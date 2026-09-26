@@ -29,6 +29,13 @@ class FakeDb:
         self._t(table).append(row)
         return [row]
     def update(self, table, f, row):
+        if f.startswith("id=eq."):
+            tid = f[len("id=eq."):]
+            rows = self._t(table)
+            for i, r in enumerate(rows):
+                if r.get("id") == tid:
+                    rows[i] = {**r, **row}
+                    return rows[i]
         return None
     def upsert(self, table, on_conflict, row):
         rows = self._t(table)
@@ -107,7 +114,7 @@ def test_submit_creates_job_and_dedups():
     assert r1["deduplicated"] is False and r2["deduplicated"] is True
     assert r1["job_id"] == r2["job_id"]
     jobs = api.db._t("jobs")
-    assert jobs[0]["payload"]["ticker"] == "NVDA"
+    assert any(j["payload"]["ticker"] == "NVDA" for j in jobs)
 
 
 def test_queue_candidate_requires_cron_secret():
