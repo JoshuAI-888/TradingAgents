@@ -5,6 +5,36 @@ Newest decisions first. Each entry: context → decision → implications.
 
 ---
 
+## 2026-09-27 — DEPLOYED: Supabase project + Render stack (Virginia) live
+
+**Supabase**: project `tradingagents`, ref **`hiqasyjalspuchtacatk`**, region us-east-1
+(N. Virginia), org JoshuAI (`rlxyyaufuthoeuhivrgf`), $10/mo (owner approved via MCP cost
+confirm). Migrations **0001 → 0002 → 0003 all applied** via hosted MCP
+(apply_migration). 0001 needed two ordering fixes for real Postgres (repo file updated):
+`tickers` must precede FK-dependent tables; `enqueue_job` (language sql) must follow
+`jobs` (SQL fns validate refs at create time). Service-role key is NOT exposed by the
+hosted MCP (only publishable) and no legacy jwt_secret GUC is readable via SQL on new
+projects — key must come from owner's dashboard (Settings → API keys → service_role or
+sb_secret_); worker/API then get SUPABASE_SERVICE_KEY via Render env.
+
+**Render** (workspace `tea-d98bet57vvec739alvbg`, all region virginia, branch
+`product/portal-phase0`, autoDeploy on, plan starter):
+- `tradingagents-portal` web `srv-das1tjbncjis73fi131g` → https://tradingagents-portal.onrender.com
+  (build `pip install -r web/api/requirements.txt`, start `cd web/api && uvicorn …`)
+- `tradingagents-worker` web `srv-das1tngu01pc73ebb7sg` — Render MCP cannot create
+  background workers or disks, so the worker runs as a web service: `service.py` gained
+  a PORT-gated `/healthz` HTTP thread (commit d4fff75) and uses `/tmp` cache dirs
+  instead of a mounted disk (Supabase remains source of truth; disk was cache-only).
+  Build includes `pip install -e .` (full framework for real LLM runs).
+- `tradingagents-settlement` cron `crn-das1to7avr4c738m2bog` ("30 * * * *")
+- `tradingagents-discovery` cron `crn-das1tojbc2fs7390e32g` ("*/15 13-21 * * 1-5")
+- Env set on creation: SUPABASE_URL, OPENROUTER_API_KEY, WORKER_STUB_MODE=1,
+  PYTHON_VERSION=3.12.8, portal CRON_SECRET. SUPABASE_SERVICE_KEY pending owner.
+- MCP tooling gotchas: no rootDir support → commands `cd` from repo root; web-service
+  health check is TCP-only (hence the PORT bind); crons lack rootDir too.
+
+---
+
 ## 2026-09-27 — Phase 0 BUILT and pushed (`product/portal-phase0`)
 
 **Built** (branch `product/portal-phase0`, commit 277b30b):
