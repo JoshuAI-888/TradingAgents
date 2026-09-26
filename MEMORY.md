@@ -180,3 +180,29 @@ but NOT for live news/social on historical dates; no P&L engine; yfinance is uno
 **Implications.** Vendor abstraction seam is `tradingagents/dataflows/interface.py` +
 `data_vendors` config — adding vendors is contained, not a rewrite. FMP/EODHD keys required
 (user-supplied, encrypted at rest in `user_secrets`).
+
+---
+
+## 2026-09-27 — Region decision: Render Virginia + Supabase North Virginia
+
+**Context.** Owner asked where each datasource lives and where Supabase should sit. The moomoo
+exploration states it directly (poc/README.md:323): *"Location: put it in US East (Virginia)
+for US names. moomoo's quote servers are there and in Singapore."*
+
+**Decision.** All four Render services move **oregon → virginia** (render.yaml updated).
+Supabase project region = **North Virginia (us-east-1)** — co-located with the worker, and
+Supabase's best-provisioned region.
+
+**Region map (evidence).**
+- moomoo REST/WS: quote servers **US East (Virginia) + Singapore** → Virginia keeps WS push
+  at ~70 ms behind the exchange event (measured from a US-east-ish cloud container).
+- SEC EDGAR: AWS US East (Virginia). FRED: St. Louis Fed, US. yfinance: global CDN edge.
+  FMP: US. Polymarket: Cloudflare global edge. LLM APIs: anycast, region-irrelevant.
+- Supabase: N. Virginia (chosen). Portal user in NZ: NZ→Virginia page latency is CDN-mitigated;
+  data-plane latency is worker↔Supabase, both in Virginia.
+
+**Supabase MCP.** Hosted server `https://mcp.supabase.com/mcp` (OAuth, no PAT needed) added to
+`~/.zcode/cli/config.json` alongside Render MCP. Supports create_project + apply_migration +
+execute_sql → deployment can be driven from ZCode after the owner restarts and completes the
+browser OAuth grant. Fallback if ZCode can't OAuth: PAT from supabase.com dashboard →
+Authorization: Bearer header on the same URL.

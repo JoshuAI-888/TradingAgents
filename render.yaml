@@ -11,7 +11,7 @@ services:
     name: tradingagents-portal
     runtime: python
     plan: starter
-    region: oregon
+    region: virginia
     rootDir: web
     buildCommand: pip install -r api/requirements.txt
     startCommand: uvicorn tradingagents_api.main:app --host 0.0.0.0 --port $PORT
@@ -34,7 +34,7 @@ services:
     name: tradingagents-worker
     runtime: python
     plan: starter
-    region: oregon
+    region: virginia
     rootDir: web
     buildCommand: pip install -r worker/requirements.txt && pip install -e ..
     startCommand: python -m tradingagents_worker.service
@@ -68,7 +68,7 @@ services:
     name: tradingagents-settlement
     runtime: python
     plan: starter
-    region: oregon
+    region: virginia
     rootDir: web
     buildCommand: pip install -r api/requirements.txt
     schedule: "30 * * * *"          # hourly; settles anything past its horizon
@@ -85,7 +85,7 @@ services:
     name: tradingagents-discovery
     runtime: python
     plan: starter
-    region: oregon
+    region: virginia
     rootDir: web
     buildCommand: pip install -r api/requirements.txt
     schedule: "*/15 13-21 * * 1-5"  # 13:00–21:59 UTC weekdays = US market hours (Oregon)

@@ -19,7 +19,7 @@ deploy/supabase/0001_init.sql. Decision log: MEMORY.md.
                                        │ service-role key          │ mounted disk (10GB)
                                        ▼                           ▼
                         ┌──────────────────────────┐   ┌──────────────────────────┐
-                        │ Supabase (us-east)       │   │ /data (scratch, rebuild.)│
+                        │ Supabase (N. Virginia)       │   │ /data (scratch, rebuild.)│
                         │ - Postgres (31 tables)   │   │ - vendor cache           │
                         │ - Auth (Google/GitHub)   │   │ - LangGraph checkpoints  │
                         │ - Realtime (job_events)  │   └──────────────────────────┘
