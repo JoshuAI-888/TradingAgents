@@ -30,3 +30,26 @@ def save_model_pair(db: Db, provider: str, quick: str, deep: str) -> dict:
     value = {"provider": provider, "quick": quick, "deep": deep}
     db.upsert("app_settings", "key", {"key": KEY, "value": value})
     return value
+
+
+RUNTIME_KEY = "runtime"
+
+
+def get_runtime_flags(db: Db | None = None) -> dict:
+    """Live runtime switches. DB flag wins; WORKER_STUB_MODE env is the default."""
+    stub = SETTINGS.stub_mode
+    try:
+        if db is not None:
+            rows = db.select("app_settings", {"key": f"eq.{RUNTIME_KEY}"}, "value")
+            if rows:
+                v = rows[0]["value"] or {}
+                stub = bool(v.get("stub", stub))
+    except Exception:
+        pass  # settings are an optimization; never block a run on them
+    return {"stub": stub}
+
+
+def save_runtime_flags(db: Db, stub: bool) -> dict:
+    value = {"stub": bool(stub)}
+    db.upsert("app_settings", "key", {"key": RUNTIME_KEY, "value": value})
+    return value

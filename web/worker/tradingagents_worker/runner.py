@@ -66,7 +66,6 @@ class EngineRunner:
 
     The model pair resolves per run: DB app_settings ('models') → env defaults.
     """
-
     def __init__(self, model_pair_resolver=None):
         self._pair_resolver = model_pair_resolver or (lambda: {
             "provider": SETTINGS.llm_provider, "quick": SETTINGS.quick_model, "deep": SETTINGS.deep_model})
@@ -98,13 +97,9 @@ class EngineRunner:
             raise Cancelled("cancelled by caller")
         reports = {
             "analysts": (final_state.get("market_report") or "") + "\n\n" + (final_state.get("sentiment_report") or ""),
-            "research_debate": "\n\n".join(
-                m.get("content", "") for m in (final_state.get("investment_debate_state") or {}).get("history", [])
-            ),
+            "research_debate": _join_history((final_state.get("investment_debate_state") or {}).get("history")),
             "trader": final_state.get("trader_investment_plan") or "",
-            "risk_debate": "\n\n".join(
-                m.get("content", "") for m in (final_state.get("risk_debate_state") or {}).get("history", [])
-            ),
+            "risk_debate": _join_history((final_state.get("risk_debate_state") or {}).get("history")),
             "portfolio_manager": final_state.get("final_trade_decision") or "",
         }
         for st, md in reports.items():
@@ -122,5 +117,35 @@ class EngineRunner:
         }
 
 
-def get_runner(model_pair_resolver=None) -> Runner:
+def _join_history(items) -> str:
+    """Debate history entries are plain strings in 0.5.1 (dicts in some forks) — accept both."""
+    parts: list[str] = []
+    for m in items or []:
+        if isinstance(m, dict):
+            parts.append(str(m.get("content") or m.get("message") or ""))
+        elif m:
+            parts.append(str(m))
+    return "\n\n".join(p for p in parts if p.strip())
+
+
+def get_runner(model_pair_resolver=None, stub_resolver=None) -> Runner:
+    if stub_resolver is not None:
+        return RuntimeRunner(model_pair_resolver, stub_resolver)
     return StubRunner() if SETTINGS.stub_mode else EngineRunner(model_pair_resolver)
+
+
+class RuntimeRunner:
+    """Picks stub or engine per run from a live flag (Settings toggle; env is the default)."""
+
+    def __init__(self, model_pair_resolver=None, stub_resolver=None):
+        self._pair_resolver = model_pair_resolver
+        self._stub_resolver = stub_resolver or (lambda: SETTINGS.stub_mode)
+        self._stub = StubRunner()
+        self._engine: EngineRunner | None = None
+
+    def run(self, ticker, trade_date, depth, instructions, emit, cancel=None):
+        if self._stub_resolver():
+            return self._stub.run(ticker, trade_date, depth, instructions, emit, cancel)
+        if self._engine is None:
+            self._engine = EngineRunner(self._pair_resolver)
+        return self._engine.run(ticker, trade_date, depth, instructions, emit, cancel)

@@ -89,8 +89,9 @@ const pages = {
       <td>${x.raw_return_pct != null ? esc(Number(x.raw_return_pct).toFixed(1)) + "%" : '<span class="faint">pending</span>'}</td>
       <td>${x.alpha_pct != null ? `<span class="${x.alpha_pct >= 0 ? "g" : "r"}">${esc(Number(x.alpha_pct).toFixed(1))}%</span>` : '<span class="faint">—</span>'}</td>
       <td>${esc(x.settlement_status || "pending")}</td></tr>`).join("");
-    return `<div class="panel"><h3 style="font-size:14px;margin-bottom:8px">Analysis candidates</h3>
-      ${c || '<div class="empty">No open candidates. The discovery sweep runs every 15 minutes in market hours.</div>'}</div>
+    return `<div class="panel"><h3 style="font-size:14px;margin-bottom:8px">Analysis candidates
+      <button class="btn ghost" style="float:right;font-size:11px;padding:3px 10px" id="cand-refresh" onclick="refreshCandidates(this)">↻ Refresh now</button></h3>
+      ${c || '<div class="empty">No open candidates. Use ↻ Refresh now, or wait for the next scheduled sweep (every 15 min in US market hours).</div>'}</div>
       <div class="panel"><h3 style="font-size:14px;margin-bottom:8px">Recent decisions</h3>
       <table><tr><th>Date · Ticker</th><th>Rating</th><th>5d ret</th><th>5d alpha</th><th>Status</th></tr>
       ${d || '<tr><td colspan="5" class="empty">No decisions yet — run your first analysis.</td></tr>'}</table></div>`;
@@ -129,7 +130,7 @@ const pages = {
       <p class="faint" style="font-size:11px;margin-top:10px">Research/education tooling — not investment advice. Every decision is stored with its full reasoning chain, costs, and data provenance.</p></div>`;
   },
   async settings() {
-    const [cat] = await Promise.all([api("/api/models"), api("/api/settings").then(r => { state.models = r.models; })]).then(([c]) => [c]).catch(e => [null]);
+    const [cat] = await Promise.all([api("/api/models"), api("/api/settings").then(r => { state.models = r.models; state.runtime = r.runtime || {}; })]).then(([c]) => [c]).catch(e => [null]);
     if (!cat) return '<div class="panel"><div class="empty">Model catalog unavailable — try Refresh.</div></div>';
     const opt = (m, sel) => `<option value="${esc(m.id)}" ${sel === m.id ? "selected" : ""}>${esc(m.id)} — $${m.in_per_m}/M in · $${m.out_per_m}/M out · est $${m.est_per_run}/run${m.free ? " · FREE" : ""}${m.recommended ? " · ★ recommended" : ""}</option>`;
     const list = cat.models.map(m => opt(m, null)).join("");
@@ -150,10 +151,27 @@ const pages = {
         <span id="s-out" class="faint" style="font-size:11.5px"></span>
       </div>
       <p class="faint" style="font-size:11px;margin-top:8px">Active: quick=<b>${esc(a.quick || "default")}</b> · deep=<b>${esc(a.deep || "default")}</b>. The deep model powers the research manager and portfolio manager; quick powers analysts, debate and trader.</p></div>
+      <div class="panel"><h3 style="font-size:14px">Runtime</h3>
+        <label style="display:flex;gap:9px;align-items:flex-start;font-size:12.5px;cursor:pointer">
+          <input type="checkbox" id="s-stub" style="margin-top:2px" ${state.runtime.stub ? "checked" : ""} onchange="toggleStub(this)">
+          <span><b>Stub mode</b> — deterministic offline runs that validate the pipeline with <i>no</i> LLM calls and zero cost.
+          When off, every analysis is a real multi-agent run via OpenRouter (billed per token, ≈$0.14 on the current defaults).
+          Takes effect on the next queued run.</span>
+        </label>
+        <div id="s-runtime-out" class="faint" style="font-size:11px;margin-top:6px"></div></div>
       <div class="panel"><h3 style="font-size:14px">System</h3><div id="sysmeta" class="ev">loading…</div></div>`;
   },
 };
 
+async function refreshCandidates(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = "Sweeping…"; }
+  try {
+    await api("/api/candidates/refresh", { method: "POST" });
+    await showPage("home");
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = "↻ Retry (failed: " + (e.message || e) + ")"; }
+  }
+}
 async function submitFromForm() {
   const out = $("#submit-out");
   out.textContent = "Submitting…";
@@ -187,6 +205,21 @@ function watch(jobId) {
       ${s.job.run_id ? `<div style="margin-top:8px"><span class="pill pg"><i></i>decision stored — see Ledger</span></div>` : ""}`;
     if (["succeeded", "failed", "cancelled"].includes(s.job.status)) { clearInterval(state.poll); state.poll = null; }
   }, 2000);
+}
+async function toggleStub(cb) {
+  const out = $("#s-runtime-out");
+  out.textContent = "Saving…";
+  try {
+    const m = state.models || {};
+    const r = await api("/api/settings", { method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: "openrouter",
+        quick: m.quick || "z-ai/glm-5.3-flash", deep: m.deep || "z-ai/glm-5.3-flash",
+        stub: cb.checked }) });
+    out.innerHTML = `✓ stub mode <b>${r.runtime.stub ? "ON" : "OFF"}</b> — applies to the next queued run.`;
+  } catch (e) {
+    out.textContent = "Save failed: " + (e.message || e);
+    cb.checked = !cb.checked;
+  }
 }
 async function saveModels() {
   const out = $("#s-out");
