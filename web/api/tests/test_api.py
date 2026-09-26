@@ -20,8 +20,8 @@ class FakeDb:
     def select(self, table, query=None, columns="*"):
         rows = [dict(r) for r in self._t(table)]
         for k, v in (query or {}).items():
-            if ".eq." in v:
-                col, val = k, v.split(".eq.")[1]
+            if v.startswith("eq."):
+                col, val = k, v[3:]
                 rows = [r for r in rows if str(r.get(col)) == val]
         return rows
     def insert(self, table, row, prefer="return=representation"):
