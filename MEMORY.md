@@ -5,6 +5,33 @@ Newest decisions first. Each entry: context → decision → implications.
 
 ---
 
+## 2026-09-27 — Phase 0 BUILT and pushed (`product/portal-phase0`)
+
+**Built** (branch `product/portal-phase0`, commit 277b30b):
+- `web/worker` — Supabase queue consumer (`claim_job` RPC / SKIP LOCKED), StubRunner
+  (offline deterministic) + EngineRunner (0.5.1 `propagate()`), job_events emitter,
+  settlement ledger (+5d/+30d alpha from `price_bars` — never live fetches),
+  discovery engine (screens/news/calendar/watchlist → `discovery_candidates`),
+  moomoo cloud-REST client (Ed25519 signing, path-template budget 30/min, HTTP-200
+  rate_limited handling), TTL vendor cache, crash rehydration.
+- `web/api` — FastAPI: idempotent enqueue, live job status, decision ledger,
+  candidates queueing (cron-gated), health/meta; serves the portal SPA.
+- `web/api/static` — portal v0 (Market Pulse candidates, live floor, ledger, system page).
+- `deploy/supabase/0002_product_deltas.sql` — qc_verdict/user_rating/evidence,
+  quality grades, runs preset/token split, quotes_realtime+quote_ticks,
+  vendor_budget_ledger, discovery_candidates, requeue RPC.
+- `render.yaml` — web + worker(10GB disk) + settlement/discovery crons.
+- **Tests: 13/13 green** (offline: fake Supabase + stub graph, no network/keys).
+
+**Deliberately NOT done yet** (blocked on owner): Supabase project + creds, LLM key,
+Render service creation (services would crash-loop without SUPABASE_URL — created only
+when creds land), moomoo probe run (needs keys), real-run smoke, price-bars backfill.
+
+**Open design items for Phase 1**: node-level streaming (floor currently coarse-grained),
+moomoo WS ingestion worker, FMP vendor, "diff-first" ledger view, degraded-state UI.
+
+---
+
 ## 2026-09-26 — Data source: moomoo OpenAPI added as live-quote + US/HK OHLCV vendor
 
 **Context.** Private repo `JoshuAI-888/moomoo-api` (branch `claude/moomoo-api-exploration-dvyz2n`)
