@@ -38,7 +38,10 @@ render.yaml                        blueprint: web + worker(+10GB disk) + 2 crons
 3. **Deploy**: Render → New → Blueprint → this repo/branch → apply. Verify:
    `/api/health` → `{"status":"ok","stub_mode":true}`.
 4. **First run (stub)**: portal → Analyze → NVDA → Run. Watch the floor; check Ledger.
-5. **Go real**: `WORKER_STUB_MODE=0` + LLM key on the worker → rerun → real decision.
+5. **Go real**: `WORKER_STUB_MODE=0` + `OPENROUTER_API_KEY` on the worker → rerun → real
+   decision. OpenRouter auto-selects with cheap-mode defaults (quick+deep = z-ai/glm-5.3-flash,
+   ≈$0.14/run); override `TRADINGAGENTS_QUICK_MODEL`/`TRADINGAGENTS_DEEP_MODEL` for premium
+   (e.g. `openai/gpt-6-sol` deep + `openai/gpt-6-luna` quick, ≈$5/run).
 6. **moomoo probe**: set `MOOMOO_APPKEY`/`MOOMOO_PRIVATE_KEY` on worker/discovery →
    run `python -m tradingagents_worker.moomoo_probe` (records tier + AU entitlement).
 7. **Seed prices** for settlement: `price_bars` backfill (yfinance today, moomoo nightly
