@@ -149,6 +149,11 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .disc{margin-top:30px;border:1px solid var(--line);border-radius:10px;padding:14px 18px;font-size:11.5px;color:var(--faint);line-height:1.7}
 .tag{font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:4px;letter-spacing:.5px}
 .t-news{background:rgba(38,198,140,.15);color:var(--green)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#26344a;border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:#33445f}
+*{scrollbar-width:thin;scrollbar-color:#26344a var(--bg)}
 </style>
 </head>
 <body>
@@ -195,12 +200,16 @@ function md(t) {
   const lines = esc(t).split("\n");
   let html = "", para = [];
   const flush = () => { if (para.length) { html += "<p>" + para.join("<br>") + "</p>"; para = []; } };
+  const inline = l => l.replace(/\*\*\*(.+?)\*\*\*/g, "<b><i>$1</i></b>")
+                      .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+                      .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, "<i>$1</i>");
   for (const ln of lines) {
     const l = ln.trim();
     if (!l) { flush(); continue; }
-    if (/^#{1,4}\s/.test(l)) { flush(); html += `<p><b>${l.replace(/^#{1,4}\s/, "")}</b></p>`; continue; }
-    if (/^([-*•]|\d+\.)\s/.test(l)) { flush(); html += `<p>· ${l.replace(/^([-*•]|\d+\.)\s/, "")}</p>`; continue; }
-    para.push(l.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>"));
+    if (/^-{3,}$/.test(l)) { flush(); html += "<hr style='border:none;border-top:1px solid var(--line);margin:10px 0'>"; continue; }
+    if (/^#{1,4}\s/.test(l)) { flush(); html += `<p><b>${inline(l.replace(/^#{1,4}\s/, ""))}</b></p>`; continue; }
+    if (/^([-*•]|\d+\.)\s/.test(l)) { flush(); html += `<p>· ${inline(l.replace(/^([-*•]|\d+\.)\s/, ""))}</p>`; continue; }
+    para.push(inline(l));
   }
   flush();
   return html || "<p>—</p>";
@@ -379,7 +388,7 @@ async function reportPage(ref) {
       <div class="v-left">
         <div class="co">${esc(sym.name || sym.symbol)}</div>
         <div class="mk">${esc(sym.symbol)} · ${esc(sym.exchange || "—")} · ${esc(sym.currency || "USD")}</div>
-        <div class="rating" style="color:${rc}">${esc(rating)}</div>
+        <div class="rating" style="color:${rc};${rating.length > 8 ? "font-size:" + (rating.length > 11 ? 17 : 21) + "px;line-height:1.15;" : ""}">${esc(rating)}</div>
         <div class="conv">Conviction: ${dec?.rating_rank ? esc(dec.rating_rank) + "/5" : "—"} · ${esc(dec?.signal || "—")}</div>
         <div style="margin-top:10px"><span class="pill ${dec?.qc_verdict === "passed" ? "pg" : "pa"}"><i></i>QC ${esc((dec?.qc_verdict || "—").toUpperCase())}</span></div>
         <div style="margin-top:6px"><span class="pill pb"><i></i>${tokPct}% tokens cached</span></div>
@@ -537,7 +546,8 @@ function chartInit() {
   const d = window.__reportData || {};
   chart.bars = (d.bars || []).map(x => ({ d: x.bar_date, o: +x.open, h: +x.high, l: +x.low, c: +x.close, v: +x.volume || 0 }));
   chart.sr = d.sr || {}; chart.sym = d.sym || "";
-  chart.hover = null; chart.tf = "6M";
+  chart.hover = null; chart.tf = "6M"; chart.sub = "rsi";
+  document.querySelectorAll("#subsel .chip").forEach(ch => ch.classList.toggle("on", ch.dataset.sub === "rsi"));
   ["main","vol","sub"].forEach(id => {
     const c = document.getElementById(id); if (!c) return;
     c.onmousemove = e => { const r = c.getBoundingClientRect();
@@ -583,8 +593,10 @@ function draw(){
       m.x.fillStyle="rgba(38,198,140,.8)";m.x.font="9px sans-serif";m.x.fillText("ENTRY",padL+4,yz1+11)}
     const lines=[[sr.r2,"R2 "+sr.r2.toFixed(1)],[sr.r1,"R1 "+sr.r1.toFixed(1)],[sr.pv,"PIV "+sr.pv.toFixed(1)],[sr.s1,"S1 "+sr.s1.toFixed(1)],[sr.s2,"S2 "+sr.s2.toFixed(1)]];
     if (sr.stop) lines.push([sr.stop,"STOP "+sr.stop.toFixed(1)]);
+    let lastLabelY = -1e9;
     lines.forEach(([p,lab])=>{m.x.strokeStyle="rgba(232,163,61,.45)";m.x.setLineDash([5,4]);m.x.beginPath();m.x.moveTo(padL,y(p));m.x.lineTo(m.w-padR,y(p));m.x.stroke();m.x.setLineDash([]);
-      m.x.fillStyle="#e8a33d";m.x.fillText(lab,m.w-padR+2,y(p)-3)})}
+      const ly = y(p)-3;
+      if (Math.abs(ly-lastLabelY) >= 13) { m.x.fillStyle="#e8a33d"; m.x.fillText(lab,m.w-padR+2,ly); lastLabelY = ly; }})}
   b.forEach((x,i)=>{const cx=padL+i*bw+bw/2;const up=x.c>=x.o;
     m.x.strokeStyle=up?"#26c68c":"#f0544f";m.x.fillStyle=up?"rgba(38,198,140,.85)":"rgba(240,84,79,.85)";
     m.x.beginPath();m.x.moveTo(cx,y(x.h));m.x.lineTo(cx,y(x.l));m.x.stroke();
