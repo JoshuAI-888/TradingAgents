@@ -62,27 +62,33 @@ class StubRunner:
 
 
 class EngineRunner:
-    """Real run via tradingagents 0.5.1. Requires an LLM key (see config)."""
+    """Real run via tradingagents 0.5.1. Requires an LLM key (see config).
 
-    def __init__(self):
-        from tradingagents.graph.trading_graph import TradingAgentsGraph  # noqa: F401
-        self._graph = None
+    The model pair resolves per run: DB app_settings ('models') → env defaults.
+    """
+
+    def __init__(self, model_pair_resolver=None):
+        self._pair_resolver = model_pair_resolver or (lambda: {
+            "provider": SETTINGS.llm_provider, "quick": SETTINGS.quick_model, "deep": SETTINGS.deep_model})
+        self._graphs: dict[str, object] = {}
 
     def _ensure_graph(self, depth: str):
         from tradingagents.graph.trading_graph import TradingAgentsGraph
         from tradingagents.default_config import DEFAULT_CONFIG
         import copy
+        pair = self._pair_resolver()
         cfg = copy.deepcopy(DEFAULT_CONFIG)
         for k, v in DEPTH_PRESETS[depth].items():
             cfg[k] = v
-        cfg["llm_provider"] = SETTINGS.llm_provider
-        cfg["quick_think_llm"] = SETTINGS.quick_model
-        cfg["deep_think_llm"] = SETTINGS.deep_model
+        cfg["llm_provider"] = pair["provider"]
+        cfg["quick_think_llm"] = pair["quick"]
+        cfg["deep_think_llm"] = pair["deep"]
         cfg["data_cache_dir"] = SETTINGS.cache_dir
         cfg["results_dir"] = SETTINGS.results_dir
-        # One graph per depth shape; reuse across runs is safe in 0.5.1.
-        self._graph = TradingAgentsGraph(**{"config": cfg})
-        return self._graph
+        key = f"{pair['provider']}|{pair['quick']}|{pair['deep']}|{depth}"
+        if key not in self._graphs:  # one graph per (models, depth) shape; reuse is safe in 0.5.1
+            self._graphs[key] = TradingAgentsGraph(**{"config": cfg})
+        return self._graphs[key]
 
     def run(self, ticker, trade_date, depth, instructions, emit, cancel=None):
         emit.emit("analysts", "progress", f"engine run starting ({SETTINGS.llm_provider})")
@@ -116,5 +122,5 @@ class EngineRunner:
         }
 
 
-def get_runner() -> Runner:
-    return StubRunner() if SETTINGS.stub_mode else EngineRunner()
+def get_runner(model_pair_resolver=None) -> Runner:
+    return StubRunner() if SETTINGS.stub_mode else EngineRunner(model_pair_resolver)

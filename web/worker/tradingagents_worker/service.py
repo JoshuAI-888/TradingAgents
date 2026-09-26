@@ -10,6 +10,7 @@ from .config import SETTINGS
 from .db import Db
 from .events import Emitter
 from .runner import Cancelled, get_runner
+from .settings import get_model_pair
 
 REPORT_STAGES = ["analysts", "research_debate", "trader", "risk_debate", "portfolio_manager"]
 
@@ -101,7 +102,7 @@ def run_forever():
     if missing:
         raise SystemExit(f"missing env: {', '.join(missing)}")
     rehydrate_crashed(db, wid)
-    runner = get_runner()
+    runner = get_runner(model_pair_resolver=lambda: get_model_pair(db))
     inflight: dict[str, threading.Event] = {}
     print(f"[{datetime.utcnow().isoformat()}Z] worker {wid} up (stub_mode={SETTINGS.stub_mode})", flush=True)
     while True:

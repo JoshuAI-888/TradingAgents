@@ -115,6 +115,43 @@ def meta():
             "stub_mode": SETTINGS.stub_mode}
 
 
+# ── model catalog + settings ─────────────────────────────────────────────
+from tradingagents_worker.openrouter import CATALOG  # noqa: E402
+from tradingagents_worker.settings import get_model_pair, save_model_pair  # noqa: E402
+
+
+@app.get("/api/models")
+def models(refresh: int = 0):
+    """OpenRouter catalog, sorted recommended-first, cost-annotated.
+
+    Cached 1h server-side; ?refresh=1 forces a re-fetch. Falls back to the last
+    good copy (flagged stale) if OpenRouter is unreachable.
+    """
+    data, err = CATALOG.try_get(force=bool(refresh))
+    if data is None:
+        raise HTTPException(502, f"OpenRouter catalog unavailable: {err}")
+    return {**data, "active": get_model_pair(db)}
+
+
+class ModelPairIn(BaseModel):
+    provider: str = Field(default="openrouter", min_length=2, max_length=32)
+    quick: str = Field(min_length=2, max_length=120)
+    deep: str = Field(min_length=2, max_length=120)
+
+
+@app.get("/api/settings")
+def get_settings():
+    return {"models": get_model_pair(db)}
+
+
+@app.put("/api/settings")
+def put_settings(inp: ModelPairIn):
+    if not SETTINGS.supabase_url:
+        raise HTTPException(503, "SUPABASE_URL not configured")
+    saved = save_model_pair(db, inp.provider, inp.quick, inp.deep)
+    return {"saved": True, "models": saved}
+
+
 # Static portal (built SPA) — mounted last so /api wins.
 _static = os.getenv("PORTAL_STATIC_DIR", "")
 if _static and os.path.isdir(_static):

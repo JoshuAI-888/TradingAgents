@@ -13,8 +13,10 @@ import hashlib
 import json
 import time
 import uuid
+
+from .net import urlopen
 from datetime import datetime, timezone
-from urllib import request as _rq, error as _err
+from urllib import error as _err
 from urllib.parse import urlencode
 
 REST = "https://webapi.moomoo.com/api/v1.0"
@@ -83,7 +85,7 @@ class MoomooClient:
             }
             req = _rq.Request(f"{REST}{full_path}", data=payload or None, method=method, headers=headers)
             try:
-                with _rq.urlopen(req, timeout=20) as resp:
+                with urlopen(req, timeout=20) as resp:
                     out = json.loads(resp.read())
             except _err.HTTPError as e:
                 raise MoomooError(f"{method} {path} -> HTTP {e.code}: {e.read()[:200]!r}") from e
@@ -129,7 +131,7 @@ class MoomooClient:
 
     @staticmethod
     def server_clock_offset_ms() -> int:
-        with _rq.urlopen(f"{REST}/server-time", timeout=10) as r:
+        with urlopen(f"{REST}/server-time", timeout=10) as r:
             server_ms = int(json.loads(r.read())["data"]["timestamp"])
         return server_ms - int(time.time() * 1000)
 

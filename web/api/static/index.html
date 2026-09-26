@@ -53,7 +53,7 @@ input,select{background:var(--panel2);border:1px solid var(--line);color:var(--t
       <button data-page="home" class="on">Market Pulse</button>
       <button data-page="analyze">Analyze</button>
       <button data-page="ledger">Ledger</button>
-      <button data-page="meta">System</button>
+      <button data-page="settings">Settings</button>
     </div>
     <span id="health" class="pill pd"><i></i>checking…</span>
   </div>
@@ -128,6 +128,30 @@ const pages = {
       stub_mode: ${esc(m.stub_mode)}</div>
       <p class="faint" style="font-size:11px;margin-top:10px">Research/education tooling — not investment advice. Every decision is stored with its full reasoning chain, costs, and data provenance.</p></div>`;
   },
+  async settings() {
+    const [cat] = await Promise.all([api("/api/models"), api("/api/settings").then(r => { state.models = r.models; })]).then(([c]) => [c]).catch(e => [null]);
+    if (!cat) return '<div class="panel"><div class="empty">Model catalog unavailable — try Refresh.</div></div>';
+    const opt = (m, sel) => `<option value="${esc(m.id)}" ${sel === m.id ? "selected" : ""}>${esc(m.id)} — $${m.in_per_m}/M in · $${m.out_per_m}/M out · est $${m.est_per_run}/run${m.free ? " · FREE" : ""}${m.recommended ? " · ★ recommended" : ""}</option>`;
+    const list = cat.models.map(m => opt(m, null)).join("");
+    const a = state.models || {};
+    const selOpts = (role) => cat.models.map(m => opt(m, a[role])).join("");
+    return `<div class="panel"><h3 style="font-size:14px">Models — which model does what
+        <span class="pill ${cat.stale ? "pa" : "pd"}"><i></i>${cat.count} models ${cat.stale ? "(stale cache)" : "from OpenRouter"}</span></h3>
+      <p class="faint" style="font-size:11px;margin-bottom:8px">Sorted recommended-first: intelligence per dollar (curated tiers ÷ analysis-mix cost). Cost shown as $/1M tokens in+out and estimated per typical analysis (${esc(cat.est_run_basis)}).</p>
+      <div class="frow" style="margin-top:6px"><span style="width:110px" class="dim">Quick model</span>
+        <select id="s-quick" style="flex:1">${selOpts("quick")}</select></div>
+      <div class="frow" style="margin-top:6px"><span style="width:110px" class="dim">Deep model</span>
+        <select id="s-deep" style="flex:1">${selOpts("deep")}</select></div>
+      <div class="frow" style="margin-top:6px"><span style="width:110px" class="dim">Custom ID</span>
+        <input id="s-custom" placeholder="paste any model id (e.g. openai/gpt-6-sol)" style="flex:1"></div>
+      <div class="frow" style="margin-top:10px">
+        <button class="btn" onclick="saveModels()">Save model pair</button>
+        <button class="btn ghost" onclick="refreshModels()">Refresh list from OpenRouter</button>
+        <span id="s-out" class="faint" style="font-size:11.5px"></span>
+      </div>
+      <p class="faint" style="font-size:11px;margin-top:8px">Active: quick=<b>${esc(a.quick || "default")}</b> · deep=<b>${esc(a.deep || "default")}</b>. The deep model powers the research manager and portfolio manager; quick powers analysts, debate and trader.</p></div>
+      <div class="panel"><h3 style="font-size:14px">System</h3><div id="sysmeta" class="ev">loading…</div></div>`;
+  },
 };
 
 async function submitFromForm() {
@@ -164,11 +188,37 @@ function watch(jobId) {
     if (["succeeded", "failed", "cancelled"].includes(s.job.status)) { clearInterval(state.poll); state.poll = null; }
   }, 2000);
 }
+async function saveModels() {
+  const out = $("#s-out");
+  const quick = $("#s-custom").value.trim() ? $("#s-custom").value.trim() : $("#s-quick").value;
+  const deep = $("#s-custom").value.trim() ? $("#s-custom").value.trim() : $("#s-deep").value;
+  out.textContent = "Saving…";
+  try {
+    const r = await api("/api/settings", { method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: "openrouter", quick, deep }) });
+    out.innerHTML = `✓ saved — quick=<b>${esc(r.models.quick)}</b>, deep=<b>${esc(r.models.deep)}</b>. Next run uses these.`;
+  } catch (e) { out.textContent = "Save failed: " + (e.message || e); }
+}
+async function refreshModels() {
+  const out = $("#s-out");
+  out.textContent = "Refreshing catalog from OpenRouter…";
+  try {
+    const cat = await api("/api/models?refresh=1");
+    out.textContent = `✓ ${cat.count} models fetched ${cat.stale ? "(stale fallback!)" : "live"}`;
+    showPage("settings");
+  } catch (e) { out.textContent = "Refresh failed: " + (e.message || e); }
+}
 async function showPage(p) {
   state.page = p;
   document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("on", b.dataset.page === p));
   $("#page").innerHTML = '<div class="empty">Loading…</div>';
   $("#page").innerHTML = await pages[p]();
+  if (p === "settings") {
+    api("/api/meta").then(m => {
+      const el = $("#sysmeta");
+      if (el) el.innerHTML = `framework: ${esc(m.framework)}<br>markets: ${esc(m.markets.join(", "))}<br>stub_mode: ${esc(m.stub_mode)}`;
+    });
+  }
 }
 document.querySelectorAll(".nav button").forEach(b => b.onclick = () => showPage(b.dataset.page));
 checkHealth(); showPage("home"); setInterval(checkHealth, 30000);

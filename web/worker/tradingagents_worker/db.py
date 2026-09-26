@@ -61,6 +61,10 @@ class Db:
     def insert(self, table: str, row: dict, prefer: str = "return=representation") -> list | dict | None:
         return self._call("POST", table, body=row, prefer=prefer)
 
+    def upsert(self, table: str, on_conflict: str, row: dict) -> None:
+        self._call("POST", f"{table}?on_conflict={on_conflict}", body=row,
+                   prefer="resolution=merge-duplicates,return=minimal")
+
     def update(self, table: str, filter: str, row: dict) -> None:
         self._call("PATCH", f"{table}?{filter}", body=row)
 
