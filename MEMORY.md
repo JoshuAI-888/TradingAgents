@@ -5,6 +5,37 @@ Newest decisions first. Each entry: context → decision → implications.
 
 ---
 
+## 2026-09-27 — Runtime toggle + discovery refresh + real-run fixes (owner feedback round)
+
+**Owner feedback** (jobs failing, Sunday staleness, stub mode questions) → shipped:
+- **Stub-mode toggle** (Settings → Runtime): `app_settings` key `runtime` =
+  `{"stub": bool}` is the authoritative flag; `get_runtime_flags(db)` resolves
+  DB → WORKER_STUB_MODE env → default true. Worker picks StubRunner vs EngineRunner
+  **per run** (`RuntimeRunner`) — no redeploy needed to flip. Portal env
+  WORKER_STUB_MODE=0 on both services now. Health endpoint reports the live flag.
+  Stub mode = deterministic offline pipeline (zero LLM cost) for smoke-testing.
+- **Market Pulse refresh button** ("↻ Refresh now") → POST /api/candidates/refresh
+  runs `discovery.sweep()` inline (moomoo when keys present, watchlist always).
+  Discovery cron stays weekday market-hours ("*/15 13-21 * * 1-5") — manual refresh
+  covers weekends/after-hours.
+- **Real-run crash fixed**: upstream 0.5.1 debate history entries are plain strings
+  (not dicts) → `'str' object has no attribute 'get'` in EngineRunner report joins →
+  `_join_history` accepts str|dict.
+- **Deploy-kill resilience**: `rehydrate_crashed` now requeues deploy-killed runs
+  (requeue_job RPC decides pending vs failed by attempts) instead of failing them.
+  ⚠ Every worker deploy restarts in-flight runs — expect re-runs after pushes.
+
+**Job forensics for owner**: 75717894 (RKLB deep) failed = claimed by the old worker
+seconds before the stage-map fix went live (deploy-swap race; reset after 'live' from
+now on). 18abaadb (RKLB standard) actually succeeded — UI had shown its earlier failed
+state. NVDA first real run burned ~$0.04 across two attempts before the join fix.
+
+**Model pair note**: owner switched deep model to openai/gpt-6-luna via Settings —
+deep runs get pricier (research manager + PM on the premium model). Toggle back in
+Settings → Models if cost matters.
+
+---
+
 ## 2026-09-27 — DEPLOYED & VERIFIED end-to-end (Supabase + Render, Virginia)
 
 **Live URLs**: portal https://tradingagents-portal.onrender.com · worker https://tradingagents-worker.onrender.com
