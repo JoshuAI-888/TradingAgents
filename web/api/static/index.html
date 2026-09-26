@@ -341,7 +341,7 @@ async function reportPage(ref) {
     profile?.forwardPE != null ? `<div><span>P/E (FWD)</span><b>${fmt(profile.forwardPE)}×</b></div>` : "",
     profile?.trailingEps != null ? `<div><span>EPS (TTM)</span><b>${fmt(profile.trailingEps)}</b></div>` : "",
     profile?.fiftyTwoWeekLow != null ? `<div><span>52-wk range</span><b>${fmt(profile.fiftyTwoWeekLow)} – ${fmt(profile.fiftyTwoWeekHigh)}</b></div>` : "",
-    profile?.dividendYield != null ? `<div><span>Div yield</span><b>${(profile.dividendYield < 1 ? profile.dividendYield * 100 : profile.dividendYield).toFixed(2)}%</b></div>` : "",
+    profile?.dividendYield != null ? `<div><span>Div yield</span><b>${(profile.dividendYield < 0.01 ? profile.dividendYield * 100 : profile.dividendYield).toFixed(2)}%</b></div>` : "",
     profile?.beta != null ? `<div><span>Beta</span><b>${fmt(profile.beta)}</b></div>` : "",
     profile?.averageVolume != null ? `<div><span>Avg vol (3m)</span><b>${(profile.averageVolume / 1e6).toFixed(1)}M</b></div>` : "",
     profile?.shortPercentOfFloat != null ? `<div><span>Short float</span><b>${(profile.shortPercentOfFloat * 100).toFixed(1)}%</b></div>` : "",
