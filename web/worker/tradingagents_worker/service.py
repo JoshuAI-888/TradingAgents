@@ -2,6 +2,7 @@
 memory, settlements) with cooperative cancel and crash rehydration."""
 from __future__ import annotations
 
+import os
 import threading
 import uuid
 from datetime import date, datetime, timedelta
@@ -13,6 +14,30 @@ from .runner import Cancelled, get_runner
 from .settings import get_model_pair
 
 REPORT_STAGES = ["analysts", "research_debate", "trader", "risk_debate", "portfolio_manager"]
+
+
+def _start_health_server() -> None:
+    # Render web services must hold $PORT open; background-worker deploys don't set it.
+    port = os.getenv("PORT")
+    if not port:
+        return
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = b'{"status":"ok"}'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *a):
+            pass
+
+    srv = HTTPServer(("0.0.0.0", int(port)), Handler)
+    threading.Thread(target=srv.serve_forever, daemon=True, name="health").start()
+    print(f"health endpoint on :{port}", flush=True)
 
 
 def persist_run(db: Db, job: dict, result: dict) -> str:
@@ -97,6 +122,7 @@ def rehydrate_crashed(db: Db, worker_id: str):
 
 def run_forever():
     wid = f"worker-{uuid.uuid4().hex[:8]}"
+    _start_health_server()
     db = Db()
     missing = SETTINGS.missing_critical()
     if missing:

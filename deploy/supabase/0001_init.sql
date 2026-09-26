@@ -32,35 +32,31 @@ begin
   return new;
 end $$;
 
--- enqueue_job: single insert point for the queue
-create or replace function enqueue_job(
-  p_job_type text, p_user_id uuid, p_payload jsonb,
-  p_priority int default 100
-) returns uuid language sql as $$
-  insert into jobs (job_type, user_id, payload, priority)
-  values (p_job_type, p_user_id, p_payload, p_priority)
-  returning id;
-$$;
+-- NOTE: enqueue_job / claim_job are created after the jobs table below —
+-- SQL-language functions validate referenced relations at create time.
 
--- claim_job: concurrent-safe dequeue (FOR UPDATE SKIP LOCKED)
-create or replace function claim_job(p_worker text, p_types text[] default null)
-returns jobs language plpgsql as $$
-declare j jobs;
-begin
-  select * into j from jobs
-   where status = 'pending'
-     and (p_types is null or job_type = any (p_types))
-   order by priority desc, created_at
-   for update skip locked limit 1;
-  if found then
-    update jobs
-       set status = 'running', locked_by = p_worker, locked_at = now(),
-           attempts = attempts + 1, started_at = coalesce(started_at, now())
-     where id = j.id
-    returning * into j;
-  end if;
-  return j;
-end $$;
+-- ---------------------------------------------------------------------------
+-- 2. INSTRUMENT MASTER  (created first: watchlist_items and market-data
+--    tables reference tickers; Postgres validates FK targets at create time)
+-- ---------------------------------------------------------------------------
+
+create table tickers (
+  id               uuid primary key default gen_random_uuid(),
+  symbol           text not null,                       -- canonical, e.g. 'NVDA'
+  native_symbol    text not null,                       -- exchange-suffixed, e.g. 'NVDA', 'AAPL.L'
+  exchange         text,
+  mic              text,                                -- market identifier code
+  name             text,
+  asset_type       text not null default 'stock' check (asset_type in ('stock','etf','crypto','index')),
+  currency         text not null default 'USD',
+  benchmark_symbol text,                                -- auto alpha benchmark for this listing
+  identity         jsonb not null default '{}',         -- deterministic anti-hallucination identity
+  is_active        boolean not null default true,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  unique (native_symbol, exchange)
+);
+create index tickers_symbol_idx on tickers (symbol);
 
 -- ---------------------------------------------------------------------------
 -- 1. IDENTITY & CONFIGURATION
@@ -129,28 +125,6 @@ create table watchlist_items (
   created_at   timestamptz not null default now(),
   unique (watchlist_id, ticker_id)
 );
-
--- ---------------------------------------------------------------------------
--- 2. INSTRUMENT MASTER
--- ---------------------------------------------------------------------------
-
-create table tickers (
-  id               uuid primary key default gen_random_uuid(),
-  symbol           text not null,                       -- canonical, e.g. 'NVDA'
-  native_symbol    text not null,                       -- exchange-suffixed, e.g. 'NVDA', 'AAPL.L'
-  exchange         text,
-  mic              text,                                -- market identifier code
-  name             text,
-  asset_type       text not null default 'stock' check (asset_type in ('stock','etf','crypto','index')),
-  currency         text not null default 'USD',
-  benchmark_symbol text,                                -- auto alpha benchmark for this listing
-  identity         jsonb not null default '{}',         -- deterministic anti-hallucination identity
-  is_active        boolean not null default true,
-  created_at       timestamptz not null default now(),
-  updated_at       timestamptz not null default now(),
-  unique (native_symbol, exchange)
-);
-create index tickers_symbol_idx on tickers (symbol);
 
 -- ---------------------------------------------------------------------------
 -- 3. MARKET DATA  (worker-written; clients read)
@@ -363,6 +337,36 @@ create table jobs (
 create index jobs_pending_idx on jobs (created_at)
   where status = 'pending';
 create index jobs_user_idx on jobs (user_id, created_at desc);
+
+-- enqueue_job: single insert point for the queue
+create or replace function enqueue_job(
+  p_job_type text, p_user_id uuid, p_payload jsonb,
+  p_priority int default 100
+) returns uuid language sql as $$
+  insert into jobs (job_type, user_id, payload, priority)
+  values (p_job_type, p_user_id, p_payload, p_priority)
+  returning id;
+$$;
+
+-- claim_job: concurrent-safe dequeue (FOR UPDATE SKIP LOCKED)
+create or replace function claim_job(p_worker text, p_types text[] default null)
+returns jobs language plpgsql as $$
+declare j jobs;
+begin
+  select * into j from jobs
+   where status = 'pending'
+     and (p_types is null or job_type = any (p_types))
+   order by priority desc, created_at
+   for update skip locked limit 1;
+  if found then
+    update jobs
+       set status = 'running', locked_by = p_worker, locked_at = now(),
+           attempts = attempts + 1, started_at = coalesce(started_at, now())
+     where id = j.id
+    returning * into j;
+  end if;
+  return j;
+end $$;
 
 -- Realtime-streamed progress (Supabase postgres_changes on job_id).
 create table job_events (
