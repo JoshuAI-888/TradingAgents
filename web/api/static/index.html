@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradingAgents Portal</title>
+<style>
+:root{--bg:#080c12;--panel:#0e141d;--panel2:#131b27;--line:#1e2a3b;--txt:#dce5f1;--dim:#8ba0b8;
+--faint:#7d92ab;--green:#26c68c;--red:#f0544f;--amber:#e8a33d;--blue:#3a76dd;--mono:'SF Mono',Menlo,monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font:13.5px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif}
+a{color:var(--blue);text-decoration:none}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 24px 80px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:14px}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:10.5px;font-weight:700}
+.pill i{width:6px;height:6px;border-radius:50%}
+.pg{background:rgba(38,198,140,.12);color:var(--green)}.pg i{background:var(--green)}
+.pr{background:rgba(240,84,79,.12);color:var(--red)}.pr i{background:var(--red)}
+.pa{background:rgba(232,163,61,.12);color:var(--amber)}.pa i{background:var(--amber)}
+.pd{background:rgba(139,160,184,.1);color:var(--dim)}.pd i{background:var(--dim)}
+.mono{font-family:var(--mono)} .dim{color:var(--dim)} .faint{color:var(--faint)} .g{color:var(--green)} .r{color:var(--red)}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.topbar h1{font-size:17px} .topbar h1 b{color:var(--amber)}
+.nav{display:flex;gap:4px}
+.nav button{background:none;border:none;color:var(--dim);padding:6px 12px;border-radius:7px;font-size:12.5px;cursor:pointer;font-family:inherit}
+.nav button.on{background:var(--panel2);color:var(--txt)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:var(--faint);font-weight:600;text-align:right;font-size:10.5px;padding:6px 8px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{padding:7px 8px;border-bottom:1px solid #131c29;text-align:right;font-family:var(--mono);font-size:11.5px}
+td:first-child{font-family:-apple-system,sans-serif;font-size:12.5px}
+.btn{background:var(--blue);border:none;color:#fff;font-size:11px;font-weight:700;padding:6px 13px;border-radius:6px;cursor:pointer}
+.btn.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--dim)}
+input,select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:7px 10px;font-size:12.5px;font-family:var(--mono)}
+.frow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cand{border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin-bottom:9px;background:var(--panel2)}
+.cand b{font-size:13px} .cand .why{font-size:12px;color:#b9c6d8;margin-top:4px}
+.cand .src{font-size:10.5px;color:var(--faint);font-family:var(--mono);margin-top:4px}
+.stage{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:5px 10px;font-size:10.5px;color:var(--dim);margin:3px}
+.stage.done{color:var(--green);border-color:rgba(38,198,140,.4)}
+.stage.running{color:var(--amber);border-color:rgba(232,163,61,.5)}
+.ev{font-family:var(--mono);font-size:10.5px;color:var(--faint);line-height:1.7}
+.rating{font-size:26px;font-weight:800;font-family:Georgia,serif}
+.empty{color:var(--faint);font-size:12.5px;padding:14px 4px}
+#floor-log{max-height:300px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h1>TRADINGAGENTS <b>PORTAL</b></h1>
+    <div class="nav">
+      <button data-page="home" class="on">Market Pulse</button>
+      <button data-page="analyze">Analyze</button>
+      <button data-page="ledger">Ledger</button>
+      <button data-page="meta">System</button>
+    </div>
+    <span id="health" class="pill pd"><i></i>checking…</span>
+  </div>
+  <div id="page"></div>
+</div>
+<script>
+const $ = (s) => document.querySelector(s);
+const api = (p, opt) => fetch(p, opt).then(r => r.json());
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const state = { page: "home", poll: null };
+
+async function checkHealth() {
+  try {
+    const h = await api("/api/health");
+    const el = $("#health");
+    el.className = "pill " + (h.status === "ok" ? "pg" : "pa");
+    el.innerHTML = `<i></i>${h.status}${h.stub_mode ? " · stub mode" : ""}`;
+  } catch { $("#health").className = "pill pr"; $("#health").innerHTML = "<i></i>api down"; }
+}
+
+const pages = {
+  async home() {
+    const [cands, decs] = await Promise.all([api("/api/candidates"), api("/api/decisions?limit=8")]);
+    const c = (cands.candidates || []).map(x => `
+      <div class="cand"><span class="pill pd"><i></i>${esc(x.trigger_type)}</span> <b>${esc(x.title)}</b>
+        <div class="why">${esc(x.reason)}</div>
+        <div class="src">score ${esc(x.score)} · ${(x.sources||[]).map(s=>esc(s.vendor)).join(", ")}</div>
+        ${x.symbol ? `<div style="margin-top:7px"><button class="btn" onclick="submitAnalysis('${esc(x.symbol)}','standard')">Run analysis</button>
+        <button class="btn ghost" onclick="submitAnalysis('${esc(x.symbol)}','deep')">Deep</button></div>` : ""}
+      </div>`).join("");
+    const d = (decs.decisions || []).map(x => `<tr>
+      <td>${esc(x.trade_date)} · ${esc(x.symbol)}</td><td>${esc((x.rating||"").toUpperCase())}</td>
+      <td>${x.raw_return_pct != null ? esc(Number(x.raw_return_pct).toFixed(1)) + "%" : '<span class="faint">pending</span>'}</td>
+      <td>${x.alpha_pct != null ? `<span class="${x.alpha_pct >= 0 ? "g" : "r"}">${esc(Number(x.alpha_pct).toFixed(1))}%</span>` : '<span class="faint">—</span>'}</td>
+      <td>${esc(x.settlement_status || "pending")}</td></tr>`).join("");
+    return `<div class="panel"><h3 style="font-size:14px;margin-bottom:8px">Analysis candidates</h3>
+      ${c || '<div class="empty">No open candidates. The discovery sweep runs every 15 minutes in market hours.</div>'}</div>
+      <div class="panel"><h3 style="font-size:14px;margin-bottom:8px">Recent decisions</h3>
+      <table><tr><th>Date · Ticker</th><th>Rating</th><th>5d ret</th><th>5d alpha</th><th>Status</th></tr>
+      ${d || '<tr><td colspan="5" class="empty">No decisions yet — run your first analysis.</td></tr>'}</table></div>`;
+  },
+  async analyze() {
+    return `<div class="panel"><h3 style="font-size:14px">New analysis</h3>
+      <div class="frow">
+        <input id="f-ticker" placeholder="Ticker (e.g. NVDA)" maxlength="16">
+        <input id="f-date" type="date" value="${new Date().toISOString().slice(0,10)}">
+        <select id="f-depth"><option value="fast">fast</option><option value="standard" selected>standard</option><option value="deep">deep</option></select>
+        <button class="btn" onclick="submitFromForm()">Run</button>
+      </div>
+      <div class="frow" style="margin-top:8px"><input id="f-instr" placeholder="Custom instructions (optional, ≤4000 chars)" style="flex:1" maxlength="4000"></div>
+      <div id="submit-out" class="faint" style="margin-top:10px;font-size:12px"></div></div>
+      <div class="panel"><h3 style="font-size:14px">Latest run</h3><div id="floor">
+      <div class="empty">Submit an analysis to watch the pipeline live.</div></div></div>`;
+  },
+  async ledger() {
+    const r = await api("/api/decisions?limit=100");
+    const d = (r.decisions || []).map(x => `<tr>
+      <td>${esc(x.trade_date)} · ${esc(x.symbol)}</td><td>${esc((x.rating||"").toUpperCase())}</td>
+      <td>${x.raw_return_pct != null ? esc(Number(x.raw_return_pct).toFixed(1)) + "%" : '<span class="faint">pending</span>'}</td>
+      <td>${x.benchmark_return_pct != null ? esc(Number(x.benchmark_return_pct).toFixed(1)) + "%" : "—"}</td>
+      <td>${x.alpha_pct != null ? `<span class="${x.alpha_pct >= 0 ? "g" : "r"}">${esc(Number(x.alpha_pct).toFixed(1))}%</span>` : '<span class="faint">—</span>'}</td>
+      <td>${esc(x.settlement_status || "pending")}</td></tr>`).join("");
+    return `<div class="panel"><h3 style="font-size:14px">Decision ledger</h3>
+      <table><tr><th>Date · Ticker</th><th>Rating</th><th>Raw</th><th>Bench</th><th>Alpha</th><th>Status</th></tr>
+      ${d || '<tr><td colspan="6" class="empty">Empty ledger — decisions appear here once settled.</td></tr>'}</table></div>`;
+  },
+  async meta() {
+    const m = await api("/api/meta");
+    return `<div class="panel"><h3 style="font-size:14px">System</h3>
+      <div class="ev">framework: ${esc(m.framework)}<br>markets: ${esc(m.markets.join(", "))}<br>
+      vendors: ${Object.entries(m.vendors).map(([k, v]) => `${k}=${esc(v)}`).join(" · ")}<br>
+      stub_mode: ${esc(m.stub_mode)}</div>
+      <p class="faint" style="font-size:11px;margin-top:10px">Research/education tooling — not investment advice. Every decision is stored with its full reasoning chain, costs, and data provenance.</p></div>`;
+  },
+};
+
+async function submitFromForm() {
+  const out = $("#submit-out");
+  out.textContent = "Submitting…";
+  try {
+    const r = await api("/api/analyses", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticker: $("#f-ticker").value, trade_date: $("#f-date").value,
+        depth: $("#f-depth").value, instructions: $("#f-instr").value || null }) });
+    out.innerHTML = `Queued: job <a href="#" onclick="watch('${esc(r.job_id)}');return false">${esc(r.job_id.slice(0, 8))}</a>${r.deduplicated ? " (deduplicated)" : ""}`;
+    watch(r.job_id);
+  } catch (e) { out.textContent = "Submit failed: " + e; }
+}
+async function submitAnalysis(ticker, depth) {
+  const r = await api("/api/analyses", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ticker, trade_date: new Date().toISOString().slice(0, 10), depth }) });
+  showPage("analyze");
+  watch(r.job_id);
+}
+function watch(jobId) {
+  if (state.poll) clearInterval(state.poll);
+  state.poll = setInterval(async () => {
+    const s = await api("/api/analyses/" + jobId).catch(() => null);
+    if (!s) return;
+    const stages = ["analysts","quality_gate","research_debate","research_manager","trader","risk_debate","portfolio_manager","report_qc"];
+    const seen = {};
+    (s.events || []).forEach(e => { seen[e.stage] = e.status; });
+    const chips = stages.map(st => `<span class="stage ${seen[st] || ""}">${st}${seen[st] === "done" ? " ✓" : seen[st] ? " …" : ""}</span>`).join("");
+    const log = (s.events || []).slice(-40).map(e => `${String(e.ts || "").slice(11, 19)} <b>${esc(e.stage)}</b> ${esc(e.message || e.status)}`).join("<br>");
+    $("#floor").innerHTML = `<div style="margin-bottom:8px">${chips}</div>
+      <div class="pill ${s.job.status === "succeeded" ? "pg" : s.job.status === "failed" ? "pr" : "pa"}"><i></i>${esc(s.job.status)}</div>
+      <div id="floor-log" class="ev" style="margin-top:8px">${log}</div>
+      ${s.job.run_id ? `<div style="margin-top:8px"><span class="pill pg"><i></i>decision stored — see Ledger</span></div>` : ""}`;
+    if (["succeeded", "failed", "cancelled"].includes(s.job.status)) { clearInterval(state.poll); state.poll = null; }
+  }, 2000);
+}
+async function showPage(p) {
+  state.page = p;
+  document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("on", b.dataset.page === p));
+  $("#page").innerHTML = '<div class="empty">Loading…</div>';
+  $("#page").innerHTML = await pages[p]();
+}
+document.querySelectorAll(".nav button").forEach(b => b.onclick = () => showPage(b.dataset.page));
+checkHealth(); showPage("home"); setInterval(checkHealth, 30000);
+</script>
+</body>
+</html>

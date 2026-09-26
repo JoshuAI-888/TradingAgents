@@ -1,0 +1,78 @@
+"""Supabase access from the worker: service-role REST (PostgREST) — no ORM dependency.
+
+Uses the service-role key which bypasses RLS. Only this process holds it.
+"""
+from __future__ import annotations
+
+import json
+from urllib import request as _rq, error as _err
+from urllib.parse import urlencode
+
+from .config import SETTINGS
+
+
+class Db:
+    def __init__(self, url: str | None = None, key: str | None = None):
+        self.url = (url or SETTINGS.supabase_url).rstrip("/")
+        self.key = key or SETTINGS.supabase_service_key
+
+    def _call(self, method: str, path: str, body: dict | list | None = None,
+              query: dict | None = None, prefer: str | None = None) -> list | dict | None:
+        qs = ("?" + urlencode(query)) if query else ""
+        req = _rq.Request(
+            f"{self.url}/rest/v1/{path}{qs}",
+            data=json.dumps(body).encode() if body is not None else None,
+            method=method,
+            headers={
+                "apikey": self.key,
+                "Authorization": f"Bearer {self.key}",
+                "Content-Type": "application/json",
+                **({"Prefer": prefer} if prefer else {}),
+            },
+        )
+        try:
+            with _rq.urlopen(req, timeout=30) as resp:
+                raw = resp.read()
+                return json.loads(raw) if raw else None
+        except _err.HTTPError as e:
+            detail = e.read().decode(errors="replace")[:500]
+            raise RuntimeError(f"supabase {method} {path} -> {e.code}: {detail}") from e
+
+    # ── jobs queue ────────────────────────────────────────────────────────
+    def claim_job(self, worker_id: str, types: list[str] | None = None) -> dict | None:
+        """Atomically claim one pending job via RPC (FOR UPDATE SKIP LOCKED)."""
+        rows = self._call("POST", "rpc/claim_job", body={
+            "p_worker": worker_id, "p_types": types,
+        }) or []
+        return rows[0] if isinstance(rows, list) and rows else (rows or None)
+
+    def finish_job(self, job_id: str, status: str, error: str | None = None, run_id: str | None = None):
+        self._call("PATCH", f"jobs?id=eq.{job_id}", body={
+            "status": status, "last_error": error,
+            **({"run_id": run_id} if run_id else {}),
+            **({"finished_at": "now()"} if status != "running" else {}),
+        })
+
+    def requeue_job(self, job_id: str, error: str):
+        """Attempts < max_attempts -> back to pending; else failed."""
+        self._call("POST", "rpc/requeue_job", body={"p_job": job_id, "p_error": error})
+
+    # ── runs / events / decisions ─────────────────────────────────────────
+    def insert(self, table: str, row: dict, prefer: str = "return=representation") -> list | dict | None:
+        return self._call("POST", table, body=row, prefer=prefer)
+
+    def update(self, table: str, filter: str, row: dict) -> None:
+        self._call("PATCH", f"{table}?{filter}", body=row)
+
+    def select(self, table: str, query: dict | None = None, columns: str = "*") -> list:
+        q = {**(query or {}), "select": columns}
+        out = self._call("GET", table, query=q)
+        return out if isinstance(out, list) else []
+
+    # ── helper RPCs (installed by 0002) ──────────────────────────────────
+    def requeue_rpc_exists(self) -> bool:
+        try:
+            self._call("GET", "rpc/claim_job", query={"p_worker": "__probe__", "p_types": None})
+            return True
+        except RuntimeError:
+            return False

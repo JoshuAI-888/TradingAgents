@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradingAgents Institutional Workstation — v2 Mockup</title>
+<style>
+:root{--bg:#080c12;--panel:#0e141d;--panel2:#131b27;--line:#1e2a3b;--txt:#dce5f1;--dim:#8ba0b8;
+--faint:#7d92ab;--green:#26c68c;--red:#f0544f;--amber:#e8a33d;--blue:#3a76dd;--purple:#a06bfa;
+--cyan:#3fc1c9;--mono:'SF Mono',Menlo,Consolas,monospace;--serif:Georgia,'Times New Roman',serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font:13.5px/1.55 -apple-system,'Segoe UI',Roboto,sans-serif}
+a{color:var(--blue);text-decoration:none} a:hover{text-decoration:underline}
+.wrap{max-width:1420px;margin:0 auto;padding:20px 26px 90px}
+.kick{color:var(--faint);font-size:10px;text-transform:uppercase;letter-spacing:2.5px}
+h3.sec{font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin:34px 0 14px;display:flex;justify-content:space-between;align-items:baseline}
+h3.sec small{color:var(--faint);font-size:11px;font-weight:400}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:10.5px;font-weight:700;letter-spacing:.4px}
+.pill i{width:6px;height:6px;border-radius:50%}
+.pg{background:rgba(38,198,140,.12);color:var(--green)}.pg i{background:var(--green)}
+.pr{background:rgba(240,84,79,.12);color:var(--red)}.pr i{background:var(--red)}
+.pa{background:rgba(232,163,61,.12);color:var(--amber)}.pa i{background:var(--amber)}
+.pb{background:rgba(91,147,245,.12);color:var(--blue)}.pb i{background:var(--blue)}
+.pd{background:rgba(139,160,184,.1);color:var(--dim)}.pd i{background:var(--dim)}
+.mono{font-family:var(--mono)} .dim{color:var(--dim)} .faint{color:var(--faint)}
+.g{color:var(--green)} .r{color:var(--red)} .a{color:var(--amber)}
+sup{color:var(--blue);font-size:11px;cursor:pointer}
+sup a{color:var(--blue)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:var(--faint);font-weight:600;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:6px 8px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{padding:6px 8px;border-bottom:1px solid #131c29;text-align:right;font-family:var(--mono);font-size:11.5px}
+td:first-child{font-family:-apple-system,sans-serif;font-size:12px}
+tr:last-child td{border-bottom:none}
+
+/* masthead — research-desk style */
+.mast{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.mast-top{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.mast-top .brand{font-family:var(--serif);font-size:15px;letter-spacing:.5px}
+.mast-top .brand b{color:var(--amber)}
+.mast-top .right{font-size:10.5px;color:var(--faint);font-family:var(--mono)}
+.verdict{display:grid;grid-template-columns:190px 1fr 330px;gap:0}
+.v-left{padding:18px;border-right:1px solid var(--line);text-align:center}
+.v-left .co{font-size:20px;font-weight:800}
+.v-left .mk{font-size:10.5px;color:var(--faint);margin-bottom:10px}
+.v-left .rating{font-family:var(--serif);font-size:30px;font-weight:700;color:var(--green)}
+.v-left .conv{margin-top:6px;font-size:11px;color:var(--dim)}
+.v-mid{padding:16px 18px}
+.v-mid .pxline{display:flex;gap:22px;align-items:baseline;flex-wrap:wrap}
+.v-mid .px{font-size:25px;font-family:var(--mono);font-weight:700}
+.v-mid .chg{font-size:12px}
+.whatc{margin-top:10px;font-size:12px;color:#b9c6d8}
+.whatc b{color:var(--txt)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;margin-top:10px}
+.kv div{display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;border-bottom:1px dotted #1a2433}
+.kv span{color:var(--dim);white-space:nowrap} .kv b{font-family:var(--mono);font-weight:600;font-size:11px}
+.src{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:8px}
+.v-right{padding:16px;border-left:1px solid var(--line)}
+.v-right .pt{font-size:12px;color:var(--dim)}
+.v-right .pt b{font-family:var(--mono);font-size:24px;color:var(--txt);display:block}
+.v-right .up{font-size:12px;color:var(--green);font-weight:700}
+
+/* workstation grid */
+.ws{display:grid;grid-template-columns:280px 1fr 300px;gap:14px;margin-top:14px;align-items:start}
+.rail h4{font-size:10.5px;text-transform:uppercase;letter-spacing:1.5px;color:var(--faint);margin:0 0 8px}
+.rail .panel{padding:13px 14px;margin-bottom:12px}
+.lvl{display:flex;justify-content:space-between;font-size:11.5px;padding:4px 0;font-family:var(--mono)}
+.lvl span{color:var(--dim);font-family:-apple-system}
+.lvl.r{color:var(--red)} .lvl.s{color:var(--green)} .lvl.p{color:var(--amber)}
+.sens{font-size:11px;color:var(--dim);margin-top:8px;line-height:1.6}
+.qcrow{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;padding:5px 0;border-bottom:1px dotted #1a2433}
+.grade{font-family:var(--mono);font-weight:700;font-size:11px}
+.fresh{display:flex;justify-content:space-between;font-size:10.5px;padding:4px 0;font-family:var(--mono)}
+.fresh .ok{color:var(--green)} .fresh .warn{color:var(--amber)}
+
+/* center tabs-as-anchors */
+.center .panel{padding:16px 18px;margin-bottom:14px}
+.thesis p{font-size:13px;color:#c3cfdf;margin-bottom:9px}
+.thesis li{margin:0 0 8px 18px;font-size:13px;color:#c3cfdf}
+.callout{border-left:3px solid var(--amber);background:rgba(232,163,61,.05);padding:9px 12px;font-size:12px;color:#cdd8e5;border-radius:0 7px 7px 0;margin:10px 0}
+.cat{border:1px solid var(--line);border-radius:8px;padding:10px 13px;margin-bottom:9px;background:var(--panel2)}
+.cat .h{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.cat .h b{font-size:12.5px}
+.cat .d{font-size:12px;color:#b3c1d4}
+.cat .src{margin-top:5px}
+.risks td,.risks th{text-align:left}
+.tag{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:4px;letter-spacing:.5px}
+.t-cat{background:rgba(38,198,140,.15);color:var(--green)}
+.t-risk{background:rgba(240,84,79,.15);color:var(--red)}
+.t-ass{background:rgba(160,107,250,.15);color:var(--purple)}
+
+/* chart */
+.tf-row{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.tf{background:var(--panel2);border:1px solid var(--line);color:var(--dim);font-size:11px;padding:4px 11px;border-radius:6px;cursor:pointer;font-family:var(--mono)}
+.tf.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-left:10px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;padding:3px 9px;border-radius:99px;border:1px solid var(--line);color:var(--dim);cursor:pointer;background:var(--panel2)}
+.chip i{width:8px;height:8px;border-radius:2px}
+.chip.on{color:var(--txt);border-color:currentColor}
+.chartbox{background:#0a1017;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.readout{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:10.5px;color:var(--dim);padding:7px 12px;border-bottom:1px solid var(--line);background:#0c1219}
+.readout b{color:var(--txt)}
+canvas{display:block;width:100%;cursor:crosshair}
+.legend{display:flex;gap:14px;padding:6px 12px;font-size:10px;color:var(--faint);border-top:1px solid var(--line);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:2px;vertical-align:middle;margin-right:4px}
+
+/* evidence claims */
+.claims td{text-align:left;font-size:11.5px}
+.claims .v{font-family:var(--mono);color:var(--txt);font-weight:600}
+.badge-ok{color:var(--green);font-size:10px;font-weight:700}
+.badge-warn{color:var(--amber);font-size:10px;font-weight:700}
+
+/* news */
+.news{border-bottom:1px solid #131c29;padding:10px 2px}
+.news:last-child{border:none}
+.news .h{display:flex;gap:8px;align-items:center;margin-bottom:3px}
+.news .h b{font-size:12.5px}
+.news .d{font-size:12px;color:#b3c1d4}
+.news .src{font-size:10px;color:var(--faint);font-family:var(--mono);margin-top:3px}
+
+/* agents accordion */
+details{border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:var(--panel2);overflow:hidden}
+details summary{cursor:pointer;padding:10px 14px;font-size:12.5px;font-weight:600;display:flex;justify-content:space-between;align-items:center;list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary .m{color:var(--faint);font-weight:400;font-size:10.5px;font-family:var(--mono)}
+details .body{padding:2px 16px 14px;font-size:12.5px;color:#b9c6d8;border-top:1px solid var(--line)}
+details .body p{margin-top:9px}
+details .body .kv{margin-top:6px}
+.bubble-b{border-left:3px solid var(--red);padding-left:10px}
+.bubble-u{border-left:3px solid var(--green);padding-left:10px}
+
+/* live trace */
+.trace{background:#0a1017;border:1px solid var(--line);border-radius:10px;font-family:var(--mono);font-size:11px;line-height:1.8;padding:12px 16px;max-height:340px;overflow:auto}
+.trace .t{color:var(--faint)} .trace .ag{color:var(--blue);font-weight:700}
+.trace .tool{color:var(--cyan)} .trace .sys{color:var(--dim)}
+.trace .live{color:var(--amber)}
+.cursor{display:inline-block;width:7px;height:13px;background:var(--amber);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* transparency rail */
+.trow{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px dotted #1a2433}
+.trow span{color:var(--dim)} .trow b{font-family:var(--mono);font-weight:600;font-size:10.5px}
+.bar{height:5px;background:#1a2332;border-radius:3px;overflow:hidden;display:flex;margin:5px 0 2px}
+.bar i{display:block;height:100%}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 13px;border-radius:7px;font-size:12px;cursor:pointer}
+.btn:hover{border-color:var(--dim)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){.cursor{animation:none}}
+section,div[id]{scroll-margin-top:52px}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.disc{margin-top:34px;border:1px solid var(--line);border-radius:10px;padding:16px 20px;font-size:11.5px;color:var(--faint);line-height:1.7}
+.foot{margin-top:26px;text-align:center;color:var(--faint);font-size:11px}
+.topnav{position:sticky;top:0;z-index:9;background:rgba(8,12,18,.92);backdrop-filter:blur(6px);display:flex;gap:4px;padding:9px 0;border-bottom:1px solid var(--line);margin-bottom:8px}
+.topnav a{color:var(--dim);font-size:12px;padding:5px 12px;border-radius:7px}
+.topnav a:hover{background:var(--panel2);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ══════════ MASTHEAD ══════════ -->
+<div class="mast">
+  <div class="mast-top">
+    <div class="brand">TRADINGAGENTS <b>GLOBAL RESEARCH</b> — Multi-Agent Institutional Workstation</div>
+    <div class="right">Equity Analysis · run 8f3ac21 · 2026-09-26 14:02 ET · data verified ✓ · <span class="pill pg"><i></i>CONNECTION LIVE</span></div>
+  </div>
+  <div class="verdict">
+    <div class="v-left">
+      <div class="co">NVIDIA Corp</div>
+      <div class="mk">NVDA · US · NASDAQ · Semiconductors</div>
+      <div class="rating">BUY</div>
+      <div class="conv">Conviction: High (4/5) · Overweight</div>
+      <div style="margin-top:10px"><span class="pill pg"><i></i>QC PASSED 4/4</span></div>
+      <div style="margin-top:6px"><span class="pill pb"><i></i>61% tokens cached</span></div>
+    </div>
+    <div class="v-mid">
+      <div class="pxline">
+        <span class="px">$182.44</span>
+        <span class="chg g">▲ +1.80% (moomoo live)</span>
+        <span class="dim">as of 14:02:08 ET</span>
+        <span class="pill pd"><i></i>moomoo WS · 71ms p50</span>
+      </div>
+      <div class="whatc"><b>What's changed:</b> Hyperscaler 10-Q capex disclosures (Jul–Sep) confirm FY27 data-center budgets tracking <b>+18% above prior guide</b> — the single largest input to our PT raise. Analysts' average grade A– (Quality Gate), 2 of 34 numeric claims initially unsourced (resolved).</div>
+      <div class="kv">
+        <div><span>Mkt cap</span><b>$4.45T</b></div>
+        <div><span>P/E (TTM / FWD)</span><b>51.2× / 28.4×</b></div>
+        <div><span>Shares out</span><b>24.41B</b></div>
+        <div><span>EPS (TTM / FY27E)</span><b>$3.56 / $6.42</b></div>
+        <div><span>52-wk range</span><b>$86.62 – 195.40</b></div>
+        <div><span>Div yield</span><b>0.03%</b></div>
+        <div><span>Avg vol (3m)</span><b>208.4M</b></div>
+        <div><span>Beta (2y)</span><b>1.68</b></div>
+      </div>
+      <div class="src">Key data: moomoo snapshot US.NVDA @14:02:08 (batch 2/30 budget) · statements: moomoo F10 + SEC EDGAR 10-Q filed 2026-08-27 · estimates: agent synthesis vs consensus (moomoo /research/analyst-consensus, 12 brokers)</div>
+    </div>
+    <div class="v-right">
+      <div class="pt">12-month price target <b>$205</b></div>
+      <div class="up">↑ +12.4% potential upside</div>
+      <div class="kv" style="grid-template-columns:1fr">
+        <div><span>Method</span><b>Blended</b></div>
+        <div><span>30× FY27E EPS</span><b>$192.60 (40%)</b></div>
+        <div><span>DCF (WACC 9.2%)</span><b>$217.80 (30%)</b></div>
+        <div><span>26× EV/EBITDA</span><b>$201.40 (30%)</b></div>
+        <div><span>Prob-weighted</span><b>$204.50 ✓</b></div>
+      </div>
+      <div class="levels" style="margin-top:10px">
+        <div class="lvl r"><span>Stop loss</span><b>$164.00 (−10.1%)</b></div>
+        <div class="lvl"><span>Position size</span><b>4.0% NAV</b></div>
+        <div class="lvl"><span>Horizon</span><b>12m · review 11-19</b></div>
+      </div>
+      <div class="src">Risk/reward 1.9:1 to PT vs stop · sizing per risk-debate consensus (neutral chair)</div>
+    </div>
+  </div>
+</div>
+
+<div class="topnav" style="margin-top:10px">
+  <a href="#thesis">Thesis</a><a href="#chart">Charts</a><a href="#levels">Levels &amp; Scenarios</a><a href="#fund">Fundamentals</a><a href="#news">News &amp; Catalysts</a><a href="#evidence">Evidence</a><a href="#agents">Agent Outputs</a><a href="#trace">Live Reasoning</a><a href="#ops">Ops &amp; Provenance</a>
+</div>
+
+<div class="ws">
+  <!-- ══════════ LEFT RAIL ══════════ -->
+  <div class="rail">
+    <div class="panel">
+      <h4>Support / Resistance</h4>
+      <div class="lvl r"><span>R2</span><b>188.20</b></div>
+      <div class="lvl r"><span>R1</span><b>185.60</b></div>
+      <div class="lvl p"><span>Pivot</span><b>181.15</b></div>
+      <div class="lvl s"><span>S1</span><b>177.80</b></div>
+      <div class="lvl s"><span>S2</span><b>173.40</b></div>
+      <div class="sens">Entry zone <b class="g mono">178.00–183.00</b> sits between S1 and pivot. Stop $164 sits below S2 with 1.9× ATR(14)=$4.85 clearance. Levels: floor-pivot derivation on 6M daily + moomoo order-book density (14:02).</div>
+    </div>
+    <div class="panel">
+      <h4>Scenario analysis</h4>
+      <table>
+        <tr><th>Case</th><th>Prob</th><th>PT</th></tr>
+        <tr><td class="g">Bull — capex +20% vs guide</td><td>30%</td><td>$248</td></tr>
+        <tr><td>Base — guide holds</td><td>50%</td><td>$205</td></tr>
+        <tr><td class="r">Bear — ASIC share loss</td><td>20%</td><td>$138</td></tr>
+        <tr><td><b>Expected value</b></td><td><b>—</b></td><td><b>$204.50</b></td></tr>
+      </table>
+      <div class="sens">Sensitivity: ±2pt FY27 gross margin ⇒ ∓$14 PT; −10% data-center ASP ⇒ $178.</div>
+    </div>
+    <div class="panel">
+      <h4>Quality gate</h4>
+      <div class="qcrow"><span>Market</span><span class="grade g">A</span></div>
+      <div class="qcrow"><span>Sentiment</span><span class="grade a">B+</span></div>
+      <div class="qcrow"><span>News</span><span class="grade g">A−</span></div>
+      <div class="qcrow"><span>Fundamentals</span><span class="grade a">B</span></div>
+      <div class="sens">Weak reports are down-weighted by researchers per gate policy. Fundamentals B: dividend-policy keyword missing; 2 claims flagged, later sourced.</div>
+    </div>
+    <div class="panel">
+      <h4>Data freshness</h4>
+      <div class="fresh"><span>moomoo quotes (WS)</span><span class="ok">live · 0.7s</span></div>
+      <div class="fresh"><span>moomoo daily bars</span><span class="ok">09-26 pre ✓</span></div>
+      <div class="fresh"><span>SEC EDGAR 10-Q</span><span class="ok">filed 08-27 ✓</span></div>
+      <div class="fresh"><span>FRED macro</span><span class="ok">09-25 vintage ✓</span></div>
+      <div class="fresh"><span>Reddit RSS</span><span class="warn">429 → backoff 12s</span></div>
+      <div class="fresh"><span>StockTwits</span><span class="ok">14:01 ✓</span></div>
+      <div class="fresh"><span>Polymarket</span><span class="ok">13:58 ✓</span></div>
+    </div>
+  </div>
+
+  <!-- ══════════ CENTER ══════════ -->
+  <div class="center">
+
+    <div class="panel" id="thesis">
+      <h3 class="sec" style="margin-top:0">Investment thesis <small>structured per sell-side convention · every claim cited</small></h3>
+      <div class="thesis">
+        <p><b>Case in one line:</b> NVDA's data-center franchise remains supply-constrained through H1-FY27, and hyperscaler disclosures<sup><a href="#evidence">[1][2]</a></sup> imply budgets rising faster than consensus models — we raise PT to $205 (from $188) and enter on weakness toward the S1–pivot band.</p>
+        <ul>
+          <li><b>Demand:</b> FY27E data-center revenue $246.8B (+38% y/y) vs consensus $231B; order visibility extends past two quarters per customer disclosures<sup>[1][3]</sup>.</li>
+          <li><b>Margin moat:</b> GM 74.9% (Q2 FY26, 10-Q<sup>[2]</sup>); pricing power intact while supply-constrained; our FY27E 73.2% embeds 1.5pt ASP normalization.</li>
+          <li><b>Valuation:</b> 28.4× FY27E vs 5-yr median 31.6× (moomoo valuation-history percentile: 38th) — re-rating supported by estimate momentum (+2.1% FY27E vs consensus)<sup>[4]</sup>.</li>
+          <li><b>Positioning:</b> Options-implied skew and prediction-market odds (Fed path<sup>[5]</sup>) pose no near-term macro constraint; entry staged 178–183.</li>
+        </ul>
+        <div class="callout"><b>What would change our mind:</b> (i) a top-4 customer 10-Q showing ASIC capex displacing GPU budgets, (ii) China license scope widening beyond current restriction, (iii) GM guide &lt; 71%. All three are monitored as standing risk triggers with citations below.</div>
+      </div>
+    </div>
+
+    <div class="panel" id="chart">
+      <h3 class="sec" style="margin-top:0">Price &amp; indicators <small>interactive · moomoo bars · adjust: forward (incl. divs) · extended-hours off</small></h3>
+      <div class="tf-row">
+        <button class="tf" data-tf="1D">1D·5m</button><button class="tf" data-tf="5D">5D·30m</button><button class="tf" data-tf="1M">1M·1h</button><button class="tf on" data-tf="6M">6M·1d</button><button class="tf" data-tf="1Y">1Y·1d</button><button class="tf" data-tf="5Y">5Y·1w</button>
+        <div class="chips">
+          <button class="chip on" data-ov="ema20" aria-pressed="true"><i style="background:#f2c14e"></i>EMA20</button>
+          <button class="chip on" data-ov="ema50" aria-pressed="true"><i style="background:#e05fa0"></i>EMA50</button>
+          <button class="chip" data-ov="wma20" aria-pressed="false"><i style="background:#9aa7ff"></i>WMA20</button>
+          <button class="chip on" data-ov="boll" aria-pressed="true"><i style="background:#3fc1c9"></i>BOLL(20,2)</button>
+          <button class="chip on" data-ov="sr" aria-pressed="true"><i style="background:#e8a33d"></i>S/R + entry</button>
+        </div>
+      </div>
+      <div class="tf-row">
+        <span class="faint" style="font-size:10.5px;letter-spacing:1px">LOWER PANEL</span>
+        <div class="chips" id="subsel">
+          <button class="chip on" data-sub="vol" aria-pressed="true">Volume</button>
+          <button class="chip" data-sub="rsi" aria-pressed="false">RSI(14)</button>
+          <button class="chip" data-sub="macd" aria-pressed="false">MACD 12·26·9 (DIF/DEA)</button>
+          <button class="chip" data-sub="kdj" aria-pressed="false">KDJ(9,3,3)</button>
+          <button class="chip" data-sub="atr" aria-pressed="false">ATR(14)</button>
+          <button class="chip" data-sub="cci" aria-pressed="false">CCI(20)</button>
+        </div>
+      </div>
+      <div class="chartbox">
+        <div class="readout" id="readout">NVDA · 6M daily · <b>hover for OHLCV + indicators</b></div>
+        <canvas id="main" height="330"></canvas>
+        <canvas id="vol" height="62"></canvas>
+        <canvas id="sub" height="118"></canvas>
+        <div class="legend">
+          <span><i style="background:#f2c14e"></i>EMA20</button><span><i style="background:#e05fa0"></i>EMA50</button>
+          <span><i style="background:#9aa7ff"></i>WMA20</button><span><i style="background:#3fc1c9"></i>BOLL ±2σ</span>
+          <span><i style="background:#e8a33d"></i>S/R ladder</span><span><i style="background:rgba(38,198,140,.5)"></i>entry zone 178–183</span>
+          <span><i style="background:rgba(240,84,79,.6)"></i>stop 164</span>
+          <span style="margin-left:auto" title="engine indicators via stockstats: MA EMA WMA BOLL RSI MACD(DIF/DEA/H) KDJ ATR CCI DMI OBV MFI WR">engine indicators: full stockstats set (13)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="fund">
+      <h3 class="sec" style="margin-top:0">Fundamentals <small>moomoo F10 + SEC EDGAR as-filed · USD millions unless noted</small></h3>
+      <table>
+        <tr><th>Income statement</th><th>FY24A</th><th>FY25A</th><th>FY26A</th><th>FY27E</th><th>FY28E</th></tr>
+        <tr><td>Revenue</td><td>60,922</td><td>130,497</td><td>212,340</td><td>289,400</td><td>348,200</td></tr>
+        <tr><td>&nbsp;&nbsp;growth y/y</td><td>+126%</td><td>+114%</td><td>+63%</td><td>+36%</td><td>+20%</td></tr>
+        <tr><td>Gross margin</td><td>72.7%</td><td>75.0%</td><td>74.9%</td><td>73.2%</td><td>71.5%</td></tr>
+        <tr><td>Operating income</td><td>32,972</td><td>81,453</td><td>128,940</td><td>172,900</td><td>204,600</td></tr>
+        <tr><td>Diluted EPS</td><td>1.19</td><td>2.94</td><td>3.56</td><td>6.42</td><td>8.11</td></tr>
+        <tr><td><span class="dim">vs consensus</span></td><td class="dim">—</td><td class="dim">—</td><td class="dim">—</td><td class="g">+2.1%</td><td class="g">+1.4%</td></tr>
+      </table>
+      <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+        <div>
+          <table>
+            <tr><th>Balance sheet</th><th>FY26A</th></tr>
+            <tr><td>Cash &amp; marketable sec.</td><td>43,610</td></tr>
+            <tr><td>Total debt</td><td>9,740</td></tr>
+            <tr><td>Net cash</td><td class="g">+33,870</td></tr>
+            <tr><td>Inventory (days)</td><td>112 ▲</td></tr>
+          </table>
+        </div>
+        <div>
+          <table>
+            <tr><th>Ownership &amp; flows</th><th>Value</th></tr>
+            <tr><td>Institutional holding</td><td>66.8%</td></tr>
+            <tr><td>Insider net (90d)</td><td class="r">−$412M</td></tr>
+            <tr><td>Short interest</td><td>0.9% · 1.1 DTC</td></tr>
+            <tr><td>Analyst consensus</td><td>4.6/5 · 12 brokers</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="src" style="margin-top:10px">Sources: moomoo /financials/statements (quarterly+annual, YoY/QoQ) · /valuation/detail (PE-TTM at 38th percentile of 10y band, avg 34.1, ±1σ 22–46) · /shareholders/* · /short/interest (US) · EDGAR 10-Q filed 2026-08-27 (PIT-verified: figures as first reported) · Morningstar moat: Wide (licensing)</div>
+    </div>
+
+    <div class="panel" id="news">
+      <h3 class="sec" style="margin-top:0">News, catalysts &amp; risks <small>each item: stance → why it matters → citable source</small></h3>
+      <div class="news"><div class="h"><span class="tag t-cat">CATALYST</span><b>Hyperscaler capex guides land above consensus for a third consecutive quarter</b></div>
+        <div class="d">MSFT/GOOGL/META quarterly filings imply FY27 data-center budgets +18% vs prior guide — the core input to our revenue model. Effect: supports FY27E +36% and the 30× multiple.</div>
+        <div class="src">10-Qs filed 2026-07-30/08-01 — sec.gov/Archives (MSFT 0000950170-26-084711) · cross-checked moomoo /earnings-price-move</div></div>
+      <div class="news"><div class="h"><span class="tag t-cat">CATALYST</span><b>Q3 FY27 earnings — 2026-11-19 AMC; consensus $71.2B / EPS $1.48</b></div>
+        <div class="d">Guide-beat is the re-rating trigger; options price ±8.4% move. Pre-earnings entry within 178–183 band keeps risk defined ahead of the print.</div>
+        <div class="src">nvidianews.nvidia.com/calendar · moomoo /research/analyst-consensus (12 brokers, updated 09-24)</div></div>
+      <div class="news"><div class="h"><span class="tag t-risk">RISK</span><b>Export-control scope review opened for advanced memory packaging</b></div>
+        <div class="d">Direct China H20-class exposure is now 6% of rev (down from 19% FY24); incremental scope would trim FY27E by ~$6–9B. Effect: −$9 PT under bear case.</div>
+        <div class="src">federalregister.gov/documents/2026/09/12/2026-13402 · company 10-Q geographic disclosure<sup>[2]</sup></div></div>
+      <div class="news"><div class="h"><span class="tag t-risk">RISK</span><b>Top-4 customer concentration at 43% of revenue; internal ASIC programs funded</b></div>
+        <div class="d">The bear thesis's load-bearing fact. Watch: customer 10-K capex decomposition vs GPU procurement commentary. Effect: bear case $138 if displacement begins FY28.</div>
+        <div class="src">10-Q<sup>[2]</sup> · customer filings — sec.gov full-text search "custom silicon" (2026-08)</div></div>
+      <div class="news"><div class="h"><span class="tag t-ass">ASSUMPTION</span><b>FY27 GM 73.2% assumes 1.5pt ASP normalization, no China revival</b></div>
+        <div class="d">Conservative vs sell-side mean 74.0%. Each ±1pt GM = ∓$14 PT (sensitivity in left rail). If H20 licenses resume, upside skews to bull case.</div>
+        <div class="src">Derived: 8-qtr GM series (EDGAR) × pricing survey synthesis — agent assumptions register, run 8f3ac21</div></div>
+      <div class="news"><div class="h"><span class="tag t-ass">ASSUMPTION</span><b>Macro: Fed path pricing 2 cuts by Jun-27; no liquidity shock</b></div>
+        <div class="d">Growth-multiple sensitivity: −100bp terminal rate ≈ +1.2pt justified multiple. Polymarket Fed odds cross-checked at 13:58.</div>
+        <div class="src">FRED DFF + T10Y2Y (vintage 09-25) · polymarket.com/fed-decisions</div></div>
+    </div>
+
+    <div class="panel" id="evidence">
+      <h3 class="sec" style="margin-top:0">Evidence register <small>every load-bearing number → source &amp; verification · QC-gated</small></h3>
+      <table class="claims">
+        <tr><th>Claim (as used in thesis)</th><th>Value</th><th>Source</th><th>Verified</th></tr>
+        <tr><td>Q2 FY26 revenue</td><td class="v">$46.7B</td><td>10-Q filed 08-27<sup>[2]</sup></td><td class="badge-ok">✓ as-filed</td></tr>
+        <tr><td>Gross margin (Q2 FY26)</td><td class="v">74.9%</td><td>10-Q<sup>[2]</sup> + moomoo statements</td><td class="badge-ok">✓ dual-source</td></tr>
+        <tr><td>Hyperscaler FY27 capex delta</td><td class="v">+18%</td><td>3× 10-Q capex lines<sup>[1]</sup></td><td class="badge-ok">✓ computed</td></tr>
+        <tr><td>Customer concentration</td><td class="v">43% top-4</td><td>10-Q<sup>[2]</sup></td><td class="badge-ok">✓ as-filed</td></tr>
+        <tr><td>Consensus FY27E EPS</td><td class="v">$6.29</td><td>moomoo /analyst-consensus</td><td class="badge-ok">✓ 12 brokers</td></tr>
+        <tr><td>China rev share FY26</td><td class="v">6%</td><td>10-Q geographic note</td><td class="badge-ok">✓ as-filed</td></tr>
+        <tr><td>Order visibility "past 2 quarters"</td><td class="v">qualitative</td><td>earnings-call transcript</td><td class="badge-warn">▲ paraphrase — link + TS</td></tr>
+        <tr><td>"Supply sold out through H1-27"</td><td class="v">qualitative</td><td>analyst synthesis (2 reports)</td><td class="badge-warn">▲ inference — flagged by QC</td></tr>
+      </table>
+      <div class="sens">QC verdict <b class="g">PASSED</b>: consistency RM=OW / Trader=BUY / PM=BUY ✓ · risk coverage ✓ (stop+size present) · scope violations 0 · unsourced 2 (both flagged as inference, above) · blocked 0.</div>
+    </div>
+
+    <div class="panel" id="agents">
+      <h3 class="sec" style="margin-top:0">Agent outputs — complete <small>all twelve reports, unedited · grades from Quality Gate</small></h3>
+      <details open><summary>Market / Technical Analyst <span class="m">grade A · gpt-6-luna · 3 tools · 12s</span></summary><div class="body">
+        <p>Trend structure is intact across horizons: price $182.44 sits above the rising 50-DMA ($168.9) and 200-DMA ($152.3), with higher lows since the August consolidation. MACD(12,26,9) DIF 2.41 vs DEA 1.96 — histogram positive and widening for six sessions; RSI(14) 61.3, strong but below overbought. BOLL(20,2) mid-band 179.2, upper 186.8 — price riding the upper half of the band (trend regime, not mean-reversion).</p>
+        <p>Volume confirms: 6M OBV rising; up-day volume share 58%. ATR(14) $4.85 (2.7%) implies stop geometry needs ≥1.5× ATR clearance — the $164 stop satisfies this below S2. Resistance: 185.6 (measured move + order-book density), then 188.2. Support: 177.8 (gap fill), 173.4 (50-DMA projection). Entry zone 178–183 aligns with the S1–pivot band and keeps reward/risk ≥1.8× to PT.</p>
+        <div class="kv"><div><span>Tools used</span><b>get_stock_data · get_indicators · get_verified_market_snapshot</b></div><div><span>Data window</span><b>6M daily + 5D 5m · moomoo (PIT-verified)</b></div></div>
+      </div></details>
+      <details><summary>Sentiment Analyst <span class="m">grade B+ · gpt-6-luna · 2 tools · 9s</span></summary><div class="body">
+        <p>Aggregated read from StockTwits (1,204 msgs/24h, 62% bullish) and Reddit r/investing + r/wallstreetbets (34 threads, mixed-positive): retail mood is constructive but not euphoric — no blow-off signature. Jev screening dropped 41% of posts as off-topic (nvda-mention-only or unrelated tickers), lifting signal quality.</p>
+        <p>Notable shift: bearish mentions cluster on "ASIC displacement" (up 3× w/w), not on demand — i.e., the retail bear case is the same concentration argument as our risk section, which we treat as priced-in-but-live. Confidence: medium (social vintage is current-day; not used in historical backtests).</p>
+      </div></details>
+      <details><summary>News &amp; Macro Analyst <span class="m">grade A− · gpt-6-luna · 5 tools · 14s</span></summary><div class="body">
+        <p>News flow over the window is catalyst-rich: three hyperscaler 10-Qs (capex +18% vs guide), one export-control review opening (memory packaging scope), zero demand-negative headlines. Insider transactions show continued 10b5-1 selling (−$412M/90d) — historically non-signal at this cadence. Macro: FRED vintage 09-25 shows 2s10s un-inverted (−4bp), Fed funds 4.12%, pricing 2 cuts by Jun-27 (Polymarket 71%) — a neutral-to-supportive liquidity backdrop for a 30× multiple.</p>
+        <p>Macro is applied as a multiple-modifier, not a thesis pillar: −100bp terminal rate ≈ +1.2pt justified multiple. Prediction-market check: "US recession in 2026" 8% — no macro veto.</p>
+      </div></details>
+      <details><summary>Fundamentals Analyst <span class="m">grade B · gpt-6-luna · 4 tools · 11s</span></summary><div class="body">
+        <p>Statements as-filed (EDGAR 10-Q 08-27; moomoo F10 cross-check): revenue +63% FY26 to $212.3B; GM 74.9%; inventory days 112 (▲ from 98 — watch item, consistent with Blackwell ramp build, not demand softening, per management commentary). Balance sheet: net cash $33.9B. Cash conversion strong; buybacks $34.1B TTM offset insider sales.</p>
+        <p>Gate note: dividend-policy keyword missing from my report (grade B) — immaterial to thesis at 0.03% yield. Two claims initially unsourced (order visibility, supply sold-out) were flagged by QC and are carried in the Evidence register as inference, not fact.</p>
+      </div></details>
+      <details><summary>Quality Gate <span class="m">deterministic · 0 LLM tokens</span></summary><div class="body">
+        <p>Per-report checks: Market A (1,842 chars ✓ · 6 source markers ✓ · 9 numeric claims ✓ · keyword checklist 5/5) · Sentiment B+ (2 unsourced phrases flagged) · News A− · Fundamentals B (keyword 3/4). Down-weighting instruction issued to researchers for B-graded inputs. No fabricated-content patterns detected (source-marker verification).</p>
+      </div></details>
+      <details><summary>Bull Researcher — full case <span class="m">round 1+2 · gpt-6-luna</span></summary><div class="body bubble-u">
+        <p>R1: The demand signal is the strongest in semis: three independent hyperscaler disclosures show capex accelerating into FY27 while NVDA's supply remains allocation-constrained. At 28.4× FY27E the stock trades below its own 5-year median multiple despite a higher-quality revenue mix. Momentum, flow, and fundamentals align — this is a trend-and-estimate-revision long, not a hope trade.</p>
+        <p>R2 rebuttal: The bear's ASIC argument is a FY28+ risk mispriced as a FY27 risk. Customer capex is rising in absolute terms — displacement happens at the margin, not the base. Even a 5-point mix loss leaves FY27E EPS within 4% of our number.</p>
+      </div></details>
+      <details><summary>Bear Researcher — full case <span class="m">round 1+2 · gpt-6-luna</span></summary><div class="body bubble-b">
+        <p>R1: Concentration is the fragility: 43% of revenue from four buyers who are all funding internal silicon roadmaps, and whose capex lines we are treating as demand when they are partially optionality against us. A ~45% incremental-margin assumption embeds zero share loss — historically unkind to incumbents at this stage of a platform cycle.</p>
+        <p>R2 rebuttal: Momentum and multiple-expansion arguments assume the multiple holds into a decelerating growth print (FY28E +20% vs +36%). If GM guide lands at 71% — the low end of our own sensitivity — the stock at $182 is a hold, not a buy. The entry band 178–183 is the entire edge; chasing above R1 has negative asymmetry.</p>
+      </div></details>
+      <details><summary>Research Manager — synthesis &amp; plan <span class="m">deep: gpt-6-sol · structured ResearchPlan</span></summary><div class="body">
+        <p>Verdict: <b>Overweight</b>. The bull case carries on evidence quality (A-grade market work, as-filed fundamentals); the bear case is real but its probability mass belongs to FY28. Research plan: enter 178–183 staged; invalidation on weekly close &lt; S2 (173.4); re-underwrite at Q3 print 11-19; monitor customer capex decomposition as the leading indicator for the bear trigger.</p>
+        <p>Directive to trader: size for a 4% NAV position with defined stop; do not chase above R1 (185.6) without a volume-confirmed breakout (1.5× avg vol).</p>
+      </div></details>
+      <details><summary>Trader — proposal <span class="m">quick: gpt-6-luna · price-grounded</span></summary><div class="body">
+        <div class="kv"><div><span>Action</span><b>BUY (staged)</b></div><div><span>Entry zone</span><b>178.00–183.00</b></div><div><span>Stop</span><b>164.00 (−10.1%)</b></div><div><span>Size</span><b>4.0% NAV</b></div><div><span>PT / horizon</span><b>$205 / 12m</b></div><div><span>Review</span><b>2026-11-19</b></div></div>
+        <p>Rationale: levels are grounded in the technical report (S1 177.8 / pivot 181.15 / R1 185.6) and the 1.9× ATR stop rule. Split fills: 2% at market within band, 2% limit 179.0. Plan-alignment self-check ✓ (matches RM directive; no override).</p>
+      </div></details>
+      <details><summary>Risk debate — Aggressive / Conservative / Neutral <span class="m">3 perspectives · 2 rounds</span></summary><div class="body">
+        <p class="bubble-u"><b>Aggressive:</b> The setup is trend + estimate-revision with a catalyst path; 4% is too timid for a 1.9:1 reward/risk — 6% NAV, trail the stop at 2×ATR once above R1.</p>
+        <p class="bubble-b"><b>Conservative:</b> Concentration + inventory-days rising + insider selling is a classic late-cycle trio. Half-size now (2%), reserve the rest for a post-earnings re-test of S1; stop must survive a ±8% print day (gap risk), not just intraday ATR.</p>
+        <p><b>Neutral (chair):</b> Gap risk is decisive: a stop at 164 can gap through on earnings. Resolution: 4% NAV staged 50/50 (now / post-print re-test), stop placed for the position, not the day; hedge budget available if concentration triggers fire. Risk checks: volatility regime ✓, liquidity ✓ (ADV 208M), event risk ✓ (11-19 flagged), correlation to existing book — see PM.</p>
+      </div></details>
+      <details open><summary>Portfolio Manager — final decision <span class="m">deep: gpt-6-sol · structured PortfolioDecision · QC passed</span></summary><div class="body">
+        <p><b>Rating: BUY (Overweight) · conviction 4/5 · PT $205 · horizon 12m · next review 2026-11-19.</b></p>
+        <p>The evidence register supports each load-bearing number; the two inferences are flagged as such and their failure modes are covered by the stop and the re-underwrite date. Risk debate resolved sizing at 4% staged. I approve the trader's proposal with the neutral chair's amendment (staged 50/50 around the earnings print).</p>
+        <p class="faint" style="font-size:10.5px">Research/education output of an automated multi-agent pipeline — not investment advice. Full agent provenance, prompts, data snapshots and costs are retained for this run (see Ops &amp; Provenance).</p>
+      </div></details>
+    </div>
+
+    <div class="panel" id="trace">
+      <h3 class="sec" style="margin-top:0">Live reasoning trace <small>human-readable stream · what the agents said while working · replayable</small></h3>
+      <div class="trace">
+        <div><span class="t">14:01:52</span> <span class="sys">RUN start · NVDA · 2026-09-26 · depth=standard · 4 analysts (parallel)</span></div>
+        <div><span class="t">14:01:53</span> <span class="ag">MARKET ANALYST</span> — "Before forming a view I need the trend structure: 6 months of daily bars, then momentum and volatility context."</div>
+        <div><span class="t">14:01:54</span> <span class="tool">⚙ get_stock_data(NVDA, 2026-03-26 → 09-26, 1d)</span> — moomoo history-kline · 2/30 budget · 126 bars · 190ms</div>
+        <div><span class="t">14:01:58</span> <span class="tool">⚙ get_indicators(NVDA, close, 1d)</span> — cache hit · EMA/WMA/BOLL/RSI/MACD computed</div>
+        <div><span class="t">14:02:02</span> <span class="ag">MARKET ANALYST</span> — "Price is above both major moving averages and the MACD histogram is widening, so momentum supports the uptrend. RSI at 61 is strong without being overbought. I'll define levels from the pivot ladder, not round numbers."</div>
+        <div><span class="t">14:02:06</span> <span class="ag">SENTIMENT ANALYST</span> — "Pulling social reads now. StockTwits first, Reddit second — Reddit RSS returned 429 earlier, so I'll note degradation if it persists."</div>
+        <div><span class="t">14:02:09</span> <span class="sys">⚠ degradation — reddit RSS 429 → backoff 12s (freshness unaffected; noted in report)</span></div>
+        <div><span class="t">14:02:14</span> <span class="ag">FUNDAMENTALS ANALYST</span> — "Statements must be as-filed for the run date: EDGAR 10-Q (08-27) is the source of truth; moomoo F10 for cross-check and consensus context."</div>
+        <div><span class="t">14:02:19</span> <span class="sys">QUALITY GATE — Market A · Sentiment B+ · News A− · Fundamentals B · 2 unsourced claims flagged → down-weight issued</span></div>
+        <div><span class="t">14:02:26</span> <span class="ag">BULL RESEARCHER</span> — "Opening case: three hyperscaler disclosures, one conclusion — FY27 budgets are rising faster than the consensus model that prices this stock…"</div>
+        <div><span class="t">14:03:41</span> <span class="ag">BEAR RESEARCHER</span> — "Rebutting: capex is not demand for GPUs specifically. Four buyers funding internal silicon is optionality against our thesis, and it's in their 10-Qs…"</div>
+        <div><span class="t">14:04:58</span> <span class="ag">RESEARCH MANAGER</span> <span class="sys">(deep)</span> — "Synthesis: bull carries on evidence grade; bear's probability mass is FY28. Plan: staged entry 178–183, invalidation below S2, re-underwrite 11-19."</div>
+        <div><span class="t">14:06:03</span> <span class="ag">TRADER</span> — "Grounding levels in the technical report: entry band from S1→pivot, stop below S2 at 1.9× ATR, size 4% split 50/50 around the print per risk chair."</div>
+        <div><span class="t">14:08:30</span> <span class="ag">PORTFOLIO MANAGER</span> <span class="sys">(deep)</span> — "Approve BUY (Overweight), conviction 4/5, PT $205. QC passed; two inferences flagged and covered by stop geometry + review date."</div>
+        <div><span class="t">14:08:42</span> <span class="live">RUN complete · decision stored · settlement scheduled (+5d / +30d) · provenance sealed (sha256:9c4f…e8)</span> <span class="cursor"></span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════ RIGHT RAIL ══════════ -->
+  <div class="rail" id="ops">
+    <div class="panel">
+      <h4>Run transparency</h4>
+      <div class="trow"><span>Elapsed / events</span><b>6m 50s · 214</b></div>
+      <div class="trow"><span>Debate rounds</span><b>research 2/3 · risk 2/2</b></div>
+      <div class="trow"><span>Retries / max wait</span><b>1 · 24s (heartbeat ✓)</b></div>
+      <div class="trow"><span>Models</span><b>sol (deep) · luna (quick)</b></div>
+      <div class="trow"><span>Framework</span><b>v0.5.1 · config 4b21…9d</b></div>
+    </div>
+    <div class="panel">
+      <h4>Tokens &amp; cost</h4>
+      <div class="trow"><span>Tokens in (cached)</span><b>1,782k (61%)</b></div>
+      <div class="trow"><span>Tokens out</span><b>142k</b></div>
+      <div class="bar"><i style="width:61%;background:var(--green)"></i><i style="width:39%;background:#33415a"></i></div>
+      <div class="trow"><span>Cost total</span><b>$0.214</b></div>
+      <div class="trow"><span>· analysts (parallel)</span><b>$0.062</b></div>
+      <div class="trow"><span>· research debate</span><b>$0.081</b></div>
+      <div class="trow"><span>· trader + risk</span><b>$0.055</b></div>
+      <div class="trow"><span>· PM (deep)</span><b>$0.016</b></div>
+    </div>
+    <div class="panel">
+      <h4>Vendor budget ledger</h4><div style="font-size:10px;color:var(--faint);margin:-6px 0 6px">30 requests/min per endpoint</div>
+      <div class="trow"><span>moomoo snapshot</span><b class="g">2/30</b></div>
+      <div class="trow"><span>moomoo history-kline</span><b class="g">2/30</b></div>
+      <div class="trow"><span>moomoo F10 (8 ep.)</span><b class="g">9/30 ea.</b></div>
+      <div class="trow"><span>SEC EDGAR</span><b class="g">3 calls</b></div>
+      <div class="trow"><span>FRED (vintage 09-25)</span><b class="g">1</b></div>
+      <div class="trow"><span>Reddit RSS</span><b class="a">429 ×1 → ok</b></div>
+      <div class="trow"><span>StockTwits / Polymarket</span><b class="g">2 / 1</b></div>
+    </div>
+    <div class="panel">
+      <h4>Tool calls by agent</h4>
+      <div class="trow"><span>Market</span><b>3</b></div><div class="trow"><span>Sentiment</span><b>2</b></div>
+      <div class="trow"><span>News</span><b>5</b></div><div class="trow"><span>Fundamentals</span><b>4</b></div>
+      <div class="trow"><span>Quality gate</span><b>0 (deterministic)</b></div><div class="trow"><span>Total</span><b>14</b></div>
+    </div>
+    <div class="panel">
+      <h4>Exports &amp; audit</h4>
+      <div class="actions">
+        <button class="btn primary">PDF (research-style)</button>
+        <button class="btn">Markdown</button>
+        <button class="btn">Raw state JSON</button>
+        <button class="btn">Diff vs 09-25 run</button>
+      </div>
+      <div class="sens">Sealed: full agent-state JSON → Storage (sha256:9c4f…e8) · prompts &amp; prompts-version pinned · data snapshots cached per date for exact replay.</div>
+    </div>
+    <div class="panel">
+      <h4>My review</h4>
+      <div class="trow"><span>Auto rating</span><b>BUY (4/5)</b></div>
+      <div class="actions"><button class="btn">👍 Agree</button><button class="btn">👎 Disagree</button><button class="btn">Note</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="disc">
+  <b>Required disclosures (mockup):</b> This is a design mockup with synthetic data. In production: (1) all exhibits carry source + timestamp + verification badge; figures marked "as-filed" are point-in-time verified against SEC EDGAR; (2) agent outputs are retained unedited with prompts, model versions, data snapshots and cost per run — every number in this document is traceable to a stored artifact; (3) qualitative or inferred claims are labeled as inference and excluded from the QC-passed fact base; (4) this output is research/education tooling, not investment advice; (5) analysis of securities involves risk — past agent performance (ledger) is not indicative of future results. Price data: moomoo (live, verified 14:02:08 ET). Fundamentals: SEC EDGAR as-filed + moomoo F10. Macro: FRED (vintage-pinned).
+</div>
+<div class="foot">Mockup v2 — institutional workstation · supersedes v1 decision card · v1 ledger &amp; settings carry over · links illustrative</div>
+</div>
+
+<script>
+// ── deterministic data + interactive chart ─────────────────────────────
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const TF={ "1D":{n:78,vol:.0035,trend:.0004,label:"1D · 5m"}, "5D":{n:78,vol:.006,trend:.0003,label:"5D · 30m"},
+  "1M":{n:66,vol:.011,trend:.0006,label:"1M · 1h"}, "6M":{n:126,vol:.018,trend:.0012,label:"6M · daily"},
+  "1Y":{n:252,vol:.02,trend:.0009,label:"1Y · daily"}, "5Y":{n:260,vol:.032,trend:.0021,label:"5Y · weekly"} };
+const LAST=182.44;
+function gen(tf){const c=TF[tf],rnd=mulberry32(42+c.n);let p=100,bars=[];
+  for(let i=0;i<c.n;i++){const o=p;const drift=c.trend*Math.sin(i/17);p=Math.max(20,o*(1+drift+(rnd()-.48)*c.vol));
+    const hi=Math.max(o,p)*(1+rnd()*c.vol*.4),lo=Math.min(o,p)*(1-rnd()*c.vol*.4);
+    bars.push({o,c:p,h:hi,l:lo,v:(.6+rnd()*1.4)*(1+Math.abs(p-o)/o*40)});}
+  const k=LAST/bars[bars.length-1].c;bars.forEach(b=>{b.o*=k;b.c*=k;b.h*=k;b.l*=k});return bars;}
+const sma=(b,n,f)=>b.map((_,i)=>i<n-1?null:b.slice(i-n+1,i+1).reduce((s,x)=>s+f(x),0)/n);
+const ema=(b,n)=>{const k=2/(n+1);let e=null;return b.map((x,i)=>{const c=x.c;e=e===null?c:c*k+e*(1-k);return i<n-1?null:e})};
+const wma=(b,n)=>b.map((_,i)=>{if(i<n-1)return null;let s=0,w=0;for(let j=0;j<n;j++){s+=b[i-j].c*(n-j);w+=j+1}return s/w});
+function boll(b,n=20,k=2){const m=sma(b,n,x=>x.c);return{m,up:b.map((_,i)=>{if(m[i]==null)return null;const v=b.slice(i-n+1,i+1);const sd=Math.sqrt(v.reduce((s,x)=>s+(x.c-m[i])**2,0)/n);return m[i]+k*sd}),lo:b.map((_,i)=>{if(m[i]==null)return null;const v=b.slice(i-n+1,i+1);const sd=Math.sqrt(v.reduce((s,x)=>s+(x.c-m[i])**2,0)/n);return m[i]-k*sd})}}
+function rsi(b,n=14){let g=0,l=0;return b.map((x,i)=>{if(i===0)return null;const d=x.c-b[i-1].c;
+  if(i<=n){g+=Math.max(d,0)/n;l+=Math.max(-d,0)/n;if(i<n)return null}else{g=(g*(n-1)+Math.max(d,0))/n;l=(l*(n-1)+Math.max(-d,0))/n}
+  return l===0?100:100-100/(1+g/l)})}
+function macd(b){const e12=ema(b,12),e26=ema(b,26);const dif=b.map((_,i)=>e12[i]!=null&&e26[i]!=null?e12[i]-e26[i]:null);
+  const valid=dif.map((d,i)=>({c:d==null?0:d}));const deaArr=ema(valid,9).map((v,i)=>dif[i]==null?null:v);
+  const dea=deaArr.map((v,i)=>dif[i]==null?null:v);const hist=dif.map((d,i)=>d!=null&&dea[i]!=null?2*(d-dea[i]):null);return{dif,dea,hist}}
+function kdj(b,n=9){let K=50,D=50;return b.map((x,i)=>{if(i<n-1)return{k:50,d:50,j:50};
+  const w=b.slice(i-n+1,i+1);const hh=Math.max(...w.map(v=>v.h)),ll=Math.min(...w.map(v=>v.l));
+  const rsv=hh===ll?50:(x.c-ll)/(hh-ll)*100;K=2/3*K+1/3*rsv;D=2/3*D+1/3*K;return{k:K,d:D,j:3*K-2*D}})}
+function atr(b,n=14){let a=null;return b.map((x,i)=>{if(i===0)return null;const tr=Math.max(x.h-x.l,Math.abs(x.h-b[i-1].c),Math.abs(x.l-b[i-1].c));
+  a=a===null?tr:(a*(n-1)+tr)/n;return i<n?null:a})}
+function cci(b,n=20){return b.map((_,i)=>{if(i<n-1)return null;const w=b.slice(i-n+1,i+1);const tp=w.map(v=>(v.h+v.l+v.c)/3);
+  const m=tp.reduce((a,b)=>a+b)/n;const md=tp.reduce((a,b)=>a+Math.abs(b-m),0)/n;return md===0?0:(tp[n-1]-m)/(0.015*md)})}
+const SR={r2:188.2,r1:185.6,pv:181.15,s1:177.8,s2:173.4,ez:[178,183],stop:164};
+let cur={tf:"6M",bars:gen("6M"),sub:"vol",ov:{ema20:1,ema50:1,wma20:0,boll:1,sr:1},hover:null};
+const $=id=>document.getElementById(id);
+const cv={main:$("main"),vol:$("vol"),sub:$("sub")};
+function setup(c){const d=window.devicePixelRatio||1;const w=c.parentElement.clientWidth||c.clientWidth||900;
+  c.width=w*d;c.height=+c.getAttribute("height")*d;c.style.height=c.getAttribute("height")+"px";
+  const x=c.getContext("2d");x.setTransform(d,0,0,d,0,0);return{x,w,h:+c.getAttribute("height")}}
+function draw(){const b=cur.bars,n=b.length;
+  const m=setup(cv.main),v=setup(cv.vol),s=setup(cv.sub);
+  const padL=8,padR=64;const iw=m.w-padL-padR;const bw=iw/n;
+  let lo=Math.min(...b.map(x=>x.l)),hi=Math.max(...b.map(x=>x.h));
+  if(cur.ov.sr){lo=Math.min(lo,SR.stop);hi=Math.max(hi,SR.r2)}
+  const pad=(hi-lo)*.06;lo-=pad;hi+=pad;
+  const Y=px=>v=>v.h-(v.h-v.l)*((px-lo)/(hi-lo));
+  const y=v=>m.h-((v-lo)/(hi-lo))*m.h;
+  const im=Y(b);
+  // grid + price axis
+  m.x.strokeStyle="#141d2a";m.x.fillStyle="#5c6f86";m.x.font="10px "+getComputedStyle(document.body).getPropertyValue("--mono");
+  for(let i=0;i<=5;i++){const p=lo+(hi-lo)*i/5,yy=y(p);m.x.beginPath();m.x.moveTo(padL,yy);m.x.lineTo(m.w-padR,yy);m.x.stroke();
+    m.x.fillText(p.toFixed(1),m.w-padR+6,yy+3)}
+  // entry zone + stop + SR
+  if(cur.ov.sr){const yz1=y(SR.ez[1]),yz2=y(SR.ez[0]);
+    m.x.fillStyle="rgba(38,198,140,.13)";m.x.fillRect(padL,yz1,iw,yz2-yz1);
+    m.x.fillStyle="rgba(38,198,140,.8)";m.x.font="9px sans-serif";m.x.fillText("ENTRY 178–183",padL+4,yz1+11);
+    const lines=[[SR.r2,"R2 188.2"],[SR.r1,"R1 185.6"],[SR.pv,"PIV 181.2"],[SR.s1,"S1 177.8"],[SR.s2,"S2 173.4"],[SR.stop,"STOP 164"]];
+    lines.forEach(([p,lab])=>{m.x.strokeStyle="rgba(232,163,61,.45)";m.x.setLineDash([5,4]);m.x.beginPath();m.x.moveTo(padL,y(p));m.x.lineTo(m.w-padR,y(p));m.x.stroke();m.x.setLineDash([]);
+      m.x.fillStyle="#e8a33d";m.x.fillText(lab,m.w-padR+2,y(p)-3)})}
+  // candles
+  b.forEach((x,i)=>{const cx=padL+i*bw+bw/2;const up=x.c>=x.o;
+    m.x.strokeStyle=up?"#26c68c":"#f0544f";m.x.fillStyle=up?"rgba(38,198,140,.85)":"rgba(240,84,79,.85)";
+    m.x.beginPath();m.x.moveTo(cx,y(x.h));m.x.lineTo(cx,y(x.l));m.x.stroke();
+    const t=y(Math.max(x.o,x.c)),bt=y(Math.min(x.o,x.c));
+    m.x.fillRect(cx-Math.max(bw*.32,.8),t,Math.max(bw*.64,1.6),Math.max(bt-t,1))});
+  // overlays
+  const line=(arr,color)=>{m.x.strokeStyle=color;m.x.lineWidth=1.3;m.x.beginPath();let st=false;
+    arr.forEach((v,i)=>{if(v==null){st=false;return}const cx=padL+i*bw+bw/2;st?m.x.lineTo(cx,y(v)):(m.x.moveTo(cx,y(v)),st=true)});m.x.stroke();m.x.lineWidth=1};
+  if(cur.ov.ema20)line(ema(b,20),"#f2c14e");
+  if(cur.ov.ema50)line(ema(b,50),"#e05fa0");
+  if(cur.ov.wma20)line(wma(b,20),"#9aa7ff");
+  if(cur.ov.boll){const bo=boll(b);line(bo.up,"rgba(63,193,201,.8)");line(bo.m,"rgba(63,193,201,.5)");line(bo.lo,"rgba(63,193,201,.8)")}
+  // volume
+  const vmax=Math.max(...b.map(x=>x.v));
+  b.forEach((x,i)=>{const cx=padL+i*bw+bw/2;const h=(x.v/vmax)*(v.h-8);
+    v.x.fillStyle=x.c>=x.o?"rgba(38,198,140,.55)":"rgba(240,84,79,.5)";
+    v.x.fillRect(cx-Math.max(bw*.32,.8),v.h-h,Math.max(bw*.64,1.6),h)});
+  v.x.fillStyle="#5c6f86";v.x.font="9px sans-serif";v.x.fillText("VOLUME",6,11);
+  // sub panel
+  const sl=(arr,color,sc)=>{s.x.strokeStyle=color;s.x.beginPath();let st=false;
+    arr.forEach((val,i)=>{if(val==null){st=false;return}const cx=padL+i*bw+bw/2,cy=sc(val);st?s.x.lineTo(cx,cy):(s.x.moveTo(cx,cy),st=true)});s.x.stroke()};
+  const hline=(yy,color,dash)=>{s.x.strokeStyle=color;s.x.setLineDash(dash||[]);s.x.beginPath();s.x.moveTo(padL,yy);s.x.lineTo(s.w-padR,yy);s.x.stroke();s.x.setLineDash([])};
+  s.x.font="9px sans-serif";s.x.fillStyle="#5c6f86";
+  if(cur.sub==="vol"){s.x.fillText("VOLUME",6,11);
+    b.forEach((x,i)=>{const cx=padL+i*bw+bw/2;const h=(x.v/vmax)*(s.h-12);
+      s.x.fillStyle=x.c>=x.o?"rgba(38,198,140,.55)":"rgba(240,84,79,.5)";
+      s.x.fillRect(cx-Math.max(bw*.32,.8),s.h-h,Math.max(bw*.64,1.6),h)})}
+  else if(cur.sub==="rsi"){s.x.fillText("RSI(14)",6,11);hline(s.h*.3,"rgba(240,84,79,.3)",[3,3]);hline(s.h*.7,"rgba(38,198,140,.3)",[3,3]);
+    const r=rsi(b);sl(r,"#a06bfa",val=>s.h-(val/100)*s.h)}
+  else if(cur.sub==="macd"){const {dif,dea,hist}=macd(b);s.x.fillText("MACD 12·26·9 — DIF / DEA / HIST (2×(DIF−DEA))",6,11);
+    const mx=Math.max(...hist.filter(v=>v!=null).map(Math.abs),...dif.filter(v=>v!=null).map(Math.abs))||1;
+    const sc=val=>s.h/2-(val/mx)*(s.h/2-6);hline(s.h/2,"#1e2a3b");
+    b.forEach((x,i)=>{if(hist[i]==null)return;const cx=padL+i*bw+bw/2;const y0=sc(0),yv=sc(hist[i]);
+      s.x.fillStyle=hist[i]>=0?"rgba(38,198,140,.5)":"rgba(240,84,79,.5)";s.x.fillRect(cx-bw*.3,Math.min(y0,yv),bw*.6,Math.abs(yv-y0)||1)});
+    sl(dif,"#f2c14e",sc);sl(dea,"#e05fa0",sc)}
+  else if(cur.sub==="kdj"){s.x.fillText("KDJ(9,3,3)",6,11);hline(s.h*.2,"rgba(240,84,79,.25)",[3,3]);hline(s.h*.8,"rgba(38,198,140,.25)",[3,3]);
+    const k=kdj(b);sl(k.map(x=>x&&x.k),"#f2c14e",val=>s.h-(val/100)*s.h);sl(k.map(x=>x&&x.d),"#e05fa0",val=>s.h-(val/100)*s.h);sl(k.map(x=>x&&x.j),"#3fc1c9",val=>s.h-(Math.max(0,Math.min(100,val))/100)*s.h)}
+  else if(cur.sub==="atr"){s.x.fillText("ATR(14)",6,11);const a=atr(b);const mx=Math.max(...a.filter(v=>v!=null));sl(a,"#3fc1c9",val=>s.h-8-(val/mx)*(s.h-18))}
+  else if(cur.sub==="cci"){s.x.fillText("CCI(20)",6,11);hline(s.h*.2,"rgba(240,84,79,.25)",[3,3]);hline(s.h*.8,"rgba(38,198,140,.25)",[3,3]);
+    const a=cci(b);const mx=Math.max(...a.filter(v=>v!=null).map(Math.abs));sl(a,"#a06bfa",val=>s.h/2-(val/mx)*(s.h/2-6))}
+  // crosshair
+  if(cur.hover!=null){const i=cur.hover,x0=cur.hoverX;
+    [m,v,s].forEach(c=>{c.x.strokeStyle="rgba(139,160,184,.35)";c.x.setLineDash([3,3]);c.x.beginPath();c.x.moveTo(x0,0);c.x.lineTo(x0,c.h);c.x.stroke();c.x.setLineDash([])});
+    const p=b[i];const yv=y(cur.hoverYPrice!=null?cur.hoverYPrice:p.c);
+    m.x.strokeStyle="rgba(139,160,184,.5)";m.x.beginPath();m.x.moveTo(padL,yv);m.x.lineTo(m.w-padR,yv);m.x.stroke();
+    $("readout").innerHTML=`<b>bar ${i+1}/${n}</b> O <b>${p.o.toFixed(2)}</b> · H <b>${p.h.toFixed(2)}</b> · L <b>${p.l.toFixed(2)}</b> · C <b>${p.c.toFixed(2)}</b> · Vol <b>${(p.v*1e6/1e6).toFixed(1)}M</b> · EMA20 <b>${(ema(b,20)[i]||0).toFixed(2)}</b> · EMA50 <b>${(ema(b,50)[i]||0).toFixed(2)}</b> · RSI <b>${(rsi(b)[i]||0).toFixed(1)}</b> · DIF <b>${(macd(b).dif[i]||0).toFixed(2)}</b> · DEA <b>${(macd(b).dea[i]||0).toFixed(2)}</b> · Δ$ <b>${(p.c-b[0].c).toFixed(2)}</b>`;}
+}
+["main","vol","sub"].forEach(id=>{const c=$(id);
+  c.addEventListener("mousemove",e=>{const r=c.getBoundingClientRect();
+    const bw=(r.width-72)/cur.bars.length;let i=Math.floor((e.clientX-r.left-8)/bw);
+    cur.hoverX=e.clientX-r.left;i=Math.max(0,Math.min(cur.bars.length-1,i));cur.hover=i;
+    const lo=Math.min(...cur.bars.map(x=>x.l)),hi=Math.max(...cur.bars.map(x=>x.h));
+    cur.hoverYPrice=lo+(hi-lo)*(1-(e.clientY-r.top)/r.height);draw();});
+  c.addEventListener("mouseleave",()=>{cur.hover=null;$("readout").textContent="NVDA · "+TF[cur.tf].label+" · hover for OHLCV + indicators";draw();});});
+document.querySelectorAll(".tf").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll(".tf").forEach(x=>x.classList.remove("on"));btn.classList.add("on");
+  cur.tf=btn.dataset.tf;cur.bars=gen(cur.tf);cur.hover=null;draw();}));
+document.querySelectorAll("[data-ov]").forEach(ch=>ch.addEventListener("click",()=>{
+  cur.ov[ch.dataset.ov]^=1;ch.classList.toggle("on");draw();}));
+document.querySelectorAll("#subsel .chip").forEach(ch=>ch.addEventListener("click",()=>{
+  document.querySelectorAll("#subsel .chip").forEach(x=>x.classList.remove("on"));ch.classList.add("on");
+  cur.sub=ch.dataset.sub;draw();}));
+window.addEventListener("resize",draw);draw();
+</script>
+</body>
+</html>

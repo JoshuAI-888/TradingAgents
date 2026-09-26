@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradingAgents — Market Pulse (Home) v1 Mockup</title>
+<style>
+:root{--bg:#080c12;--panel:#0e141d;--panel2:#131b27;--line:#1e2a3b;--txt:#dce5f1;--dim:#8ba0b8;
+--faint:#7d92ab;--green:#26c68c;--red:#f0544f;--amber:#e8a33d;--blue:#3a76dd;--purple:#a06bfa;--cyan:#3fc1c9;
+--mono:'SF Mono',Menlo,Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font:13.5px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif}
+.wrap{max-width:1360px;margin:0 auto;padding:20px 26px 80px}
+.kick{color:var(--faint);font-size:10.5px;text-transform:uppercase;letter-spacing:2px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:14px}
+h3{font-size:14.5px;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+h3 small{color:var(--faint);font-size:11px;font-weight:400}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:10.5px;font-weight:700}
+.pill i{width:6px;height:6px;border-radius:50%}
+.pg{background:rgba(38,198,140,.12);color:var(--green)}.pg i{background:var(--green)}
+.pr{background:rgba(240,84,79,.12);color:var(--red)}.pr i{background:var(--red)}
+.pa{background:rgba(232,163,61,.12);color:var(--amber)}.pa i{background:var(--amber)}
+.pb{background:rgba(58,118,221,.15);color:#7dabff}.pb i{background:#7dabff}
+.pd{background:rgba(139,160,184,.1);color:var(--dim)}.pd i{background:var(--dim)}
+.mono{font-family:var(--mono)} .dim{color:var(--dim)} .faint{color:var(--faint)}
+.g{color:var(--green)} .r{color:var(--red)} .a{color:var(--amber)}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.topbar h1{font-size:18px}
+.topbar h1 b{color:var(--amber)}
+.nav{display:flex;gap:4px}
+.nav a{color:var(--dim);text-decoration:none;padding:6px 12px;border-radius:7px;font-size:12.5px}
+.nav a.on{background:var(--panel2);color:var(--txt)}
+.cost{font-size:11.5px;color:var(--dim)} .cost b{color:var(--txt);font-family:var(--mono)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+/* index strip */
+.idxtape{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}
+.idx{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+.idx .nm{font-size:11px;color:var(--dim);font-weight:600}
+.idx .px{font-family:var(--mono);font-size:14.5px;font-weight:700;margin-top:2px}
+.idx .ch{font-family:var(--mono);font-size:10.5px}
+.sector-heat{display:grid;grid-template-columns:repeat(11,1fr);gap:6px;margin-top:10px}
+.heat{border-radius:7px;padding:8px 4px;text-align:center;font-family:var(--mono)}
+.heat .s{font-size:10.5px;font-weight:700;color:#e8eef6}
+.heat .v{font-size:11px;margin-top:2px;color:#e8eef6}
+
+/* movers + feed grid */
+.maingrid{display:grid;grid-template-columns:1.1fr 1fr;gap:14px;align-items:start}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:var(--faint);font-weight:600;text-align:right;font-size:10.5px;letter-spacing:.8px;padding:6px 8px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{padding:7px 8px;border-bottom:1px solid #131c29;text-align:right;font-family:var(--mono);font-size:11.5px}
+td:first-child{font-family:-apple-system,sans-serif;font-size:12.5px;font-weight:600}
+tr:last-child td{border:none}
+.sym .mkt{font-size:9.5px;color:var(--faint);margin-left:5px}
+.runbtn{background:var(--blue);border:none;color:#fff;font-size:10.5px;font-weight:700;padding:4px 11px;border-radius:6px;cursor:pointer;font-family:-apple-system,sans-serif}
+.runbtn.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--dim)}
+
+/* candidate feed */
+.cand{border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin-bottom:9px;background:var(--panel2)}
+.cand .h{display:flex;gap:8px;align-items:center;margin-bottom:5px;flex-wrap:wrap}
+.cand .h b{font-size:13px}
+.cand .why{font-size:12px;color:#b9c6d8}
+.cand .src{font-size:10.5px;color:var(--faint);font-family:var(--mono);margin-top:5px}
+.cand .act{display:flex;gap:7px;margin-top:8px;align-items:center}
+.score{font-family:var(--mono);font-size:11px;color:var(--faint);margin-left:auto}
+.tag{font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:4px;letter-spacing:.5px}
+.t-scr{background:rgba(58,118,221,.18);color:#7dabff}
+.t-news{background:rgba(38,198,140,.15);color:var(--green)}
+.t-ern{background:rgba(232,163,61,.15);color:var(--amber)}
+.t-mac{background:rgba(160,107,250,.15);color:var(--purple)}
+.t-wl{background:rgba(139,160,184,.15);color:var(--dim)}
+.calstrip{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.cal{min-width:200px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+.cal .d{font-size:10px;color:var(--faint);font-family:var(--mono)}
+.cal .t{font-size:12px;font-weight:600;margin-top:2px}
+.cal .m{font-size:10.5px;color:var(--dim);font-family:var(--mono);margin-top:2px}
+.disc{margin-top:24px;font-size:11px;color:var(--faint);line-height:1.6;border-top:1px solid var(--line);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h1>TRADINGAGENTS <b>MARKET PULSE</b></h1>
+    <div class="nav"><a class="on" href="#">Home</a><a href="#">Workstation</a><a href="#">Ledger</a><a href="#">Settings</a></div>
+    <div class="cost">this month <b>$14.72</b> · runs <b>18</b></div>
+  </div>
+
+  <!-- ═══ 1. INDICES + SECTOR HEAT — 1 moomoo snapshot call (batch, 400 codes) ═══ -->
+  <div class="panel">
+    <h3>Market state <span><span class="pill pg"><i></i>moomoo live · WS push</span> <span class="pill pd"><i></i>1 snapshot call · 22/30 budget</span></span></h3>
+    <div class="idxtape">
+      <div class="idx"><div class="nm">SPY</div><div class="px">682.14</div><div class="ch g">▲ +0.42%</div></div>
+      <div class="idx"><div class="nm">QQQ</div><div class="px">594.88</div><div class="ch g">▲ +0.71%</div></div>
+      <div class="idx"><div class="nm">IWM</div><div class="px">241.02</div><div class="ch r">▼ −0.28%</div></div>
+      <div class="idx"><div class="nm">VIX proxy</div><div class="px">14.8</div><div class="ch r">▼ −3.1%</div></div>
+      <div class="idx"><div class="nm">US10Y</div><div class="px">4.12%</div><div class="ch r">−2bp</div></div>
+      <div class="idx"><div class="nm">HSI <span class="faint">HK</span></div><div class="px">26,845</div><div class="ch g">▲ +0.9%</div></div>
+      <div class="idx"><div class="nm">ASX200 <span class="faint">yf</span></div><div class="px">8,912</div><div class="ch g">▲ +0.3%</div></div>
+      <div class="idx"><div class="nm">BTC <span class="faint">CC</span></div><div class="px">96,410</div><div class="ch g">▲ +1.2%</div></div>
+    </div>
+    <div class="sector-heat">
+      <div class="heat" style="background:rgba(38,198,140,.42)"><div class="s">XLK</div><div class="v">+1.6%</div></div>
+      <div class="heat" style="background:rgba(38,198,140,.28)"><div class="s">XLC</div><div class="v">+0.9%</div></div>
+      <div class="heat" style="background:rgba(38,198,140,.20)"><div class="s">XLY</div><div class="v">+0.6%</div></div>
+      <div class="heat" style="background:rgba(38,198,140,.12)"><div class="s">XLF</div><div class="v">+0.3%</div></div>
+      <div class="heat" style="background:rgba(38,198,140,.06)"><div class="s">XLV</div><div class="v">+0.1%</div></div>
+      <div class="heat" style="background:rgba(139,160,184,.12)"><div class="s">XLI</div><div class="v">0.0%</div></div>
+      <div class="heat" style="background:rgba(139,160,184,.12)"><div class="s">XLP</div><div class="v">−0.1%</div></div>
+      <div class="heat" style="background:rgba(240,84,79,.12)"><div class="s">XLU</div><div class="v">−0.4%</div></div>
+      <div class="heat" style="background:rgba(240,84,79,.20)"><div class="s">XLRE</div><div class="v">−0.7%</div></div>
+      <div class="heat" style="background:rgba(240,84,79,.30)"><div class="s">XLE</div><div class="v">−1.2%</div></div>
+      <div class="heat" style="background:rgba(240,84,79,.38)"><div class="s">XLB</div><div class="v">−1.5%</div></div>
+    </div>
+    <div class="faint" style="font-size:10.5px;margin-top:8px;font-family:var(--mono)">Sector heat = 11 SPDR sector ETFs, one moomoo snapshot batch (real-time). US index levels are not offered by moomoo REST — SPY/QQQ/ETF proxies per verified exploration (REVIEW.md §1). ASX200 via yfinance (moomoo AU real-time not entitled on this account — Phase-0 probe pending).</div>
+  </div>
+
+  <div class="maingrid">
+    <!-- ═══ 2. MOVERS — moomoo stock-screen, server-side sort ═══ -->
+    <div class="panel">
+      <h3>Biggest movers <span><span class="pill pb"><i></i>stock-screen · 3 calls / sweep</span></span></h3>
+      <table>
+        <tr><th>Gainers</th><th>Last</th><th>%Chg</th><th>Vol×Avg</th><th>Sector</th><th></th></tr>
+        <tr><td class="sym">PLTR<span class="mkt">US</span></td><td>84.12</td><td class="g">+6.8%</td><td>2.4×</td><td class="dim">XLK</td><td><button class="runbtn">Analyze</button></td></tr>
+        <tr><td class="sym">SMCI<span class="mkt">US</span></td><td>48.60</td><td class="g">+5.1%</td><td>3.1×</td><td class="dim">XLK</td><td><button class="runbtn">Analyze</button></td></tr>
+        <tr><td class="sym">9988<span class="mkt">HK</span></td><td>118.40</td><td class="g">+4.4%</td><td>1.8×</td><td class="dim">HC</td><td><button class="runbtn">Analyze</button></td></tr>
+        <tr><td class="sym">VST<span class="mkt">US</span></td><td>152.90</td><td class="g">+3.9%</td><td>1.5×</td><td class="dim">XLU</td><td><button class="runbtn ghost">In ledger ✓</button></td></tr>
+      </table>
+      <table style="margin-top:12px">
+        <tr><th>Losers / unusual</th><th>Last</th><th>%Chg</th><th>Note</th><th></th></tr>
+        <tr><td class="sym">XOM<span class="mkt">US</span></td><td>104.22</td><td class="r">−2.9%</td><td class="dim">crude −2.4%</td><td><button class="runbtn">Analyze</button></td></tr>
+        <tr><td class="sym">1810<span class="mkt">HK</span></td><td>21.75</td><td class="r">−3.8%</td><td class="dim">lockup expiry</td><td><button class="runbtn">Analyze</button></td></tr>
+        <tr><td class="sym">ORCL<span class="mkt">US</span></td><td>238.10</td><td class="r">−1.1%</td><td class="dim">earnings 10-08</td><td><button class="runbtn ghost">Queued</button></td></tr>
+      </table>
+      <div class="faint" style="font-size:10.5px;margin-top:10px;font-family:var(--mono)">moomoo /quote/stock-screen: server-side filter+sort (top gainers, losers, volume-surge; 300 rows/page, 9 markets). Screened every 15 min during market hours; budget 3 of 30 calls/min. Screens reflect current listings only — analysis data stays point-in-time.</div>
+    </div>
+
+    <!-- ═══ 3. TRIGGER FEED — why this ticker, why now ═══ -->
+    <div class="panel">
+      <h3>Analysis candidates <span><span class="pill pa"><i></i>discovery sweep 15 min ago</span></span></h3>
+      <div class="cand">
+        <div class="h"><span class="tag t-scr">SCREEN</span><b>PLTR</b><span class="score">score 92 · gap +6.8% · vol 2.4× · 52w break</span></div>
+        <div class="why">Broke above 52-week high on 2.4× volume after defense-contract headline. Momentum setup, extended from entry — analyze for continuation vs fade.</div>
+        <div class="src">moomoo stock-screen (kline-shape + cumulative query) · news: reuters.com/…defense-contract 08:41 ET</div>
+        <div class="act"><button class="runbtn">Run analysis · standard depth</button><button class="runbtn ghost">Deep</button><button class="runbtn ghost">Dismiss</button></div>
+      </div>
+      <div class="cand">
+        <div class="h"><span class="tag t-ern">EARNINGS</span><b>ORCL</b><span class="score">score 81 · reports in 12 days</span></div>
+        <div class="why">Earnings 2026-10-08 AMC; options imply ±7.2%. Historical post-earnings drift: +1.9% avg 5d. Pre-earnings underwrite recommended.</div>
+        <div class="src">earnings calendar: yfinance (FMP optional) · implied move: moomoo option chain · /earnings-price-history</div>
+        <div class="act"><button class="runbtn">Run analysis · standard depth</button><button class="runbtn ghost">Schedule post-earnings</button><button class="runbtn ghost">Dismiss</button></div>
+      </div>
+      <div class="cand">
+        <div class="h"><span class="tag t-news">NEWS</span><b>NVDA</b><span class="score">score 76 · watchlist member</span></div>
+        <div class="why">New export-control scope review touches advanced memory packaging — direct input to your open BUY thesis (stop $164, review 11-19). Re-underwrite?</div>
+        <div class="src">find-news (sort_type=latest) + federalregister.gov · EDGAR full-text · linked to decision 09-25</div>
+        <div class="act"><button class="runbtn">Re-underwrite open position</button><button class="runbtn ghost">Dismiss</button></div>
+      </div>
+      <div class="cand">
+        <div class="h"><span class="tag t-mac">MACRO</span><b>CPI (Sep)</b><span class="score">08:30 ET tomorrow</span></div>
+        <div class="why">Consensus +0.2% m/m; >0.3% shifts Fed-path odds (Polymarket 71% → watch) and re-rates growth multiples across watchlist. Queue post-print sweeps.</div>
+        <div class="src">moomoo economic-calendar (hot) · FRED CPI release schedule · polymarket.com</div>
+        <div class="act"><button class="runbtn ghost">Queue watchlist sweep post-print</button></div>
+      </div>
+      <div class="cand">
+        <div class="h"><span class="tag t-wl">WATCHLIST</span><b>Nightly sweep</b><span class="score">4 tickers · 02:00 ET</span></div>
+        <div class="why">NVDA · MSFT · 0700.HK · CSL.AX — last night: 1 new decision (NVDA BUY), 2 settled (+1.4%, +2.3% alpha), 0 blocked.</div>
+        <div class="src">cron · settlement +5d/+30d · digest emailed 07:00</div>
+        <div class="act"><button class="runbtn ghost">View last digest</button><button class="runbtn ghost">Edit watchlist</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 4. CALENDAR STRIP ═══ -->
+  <div class="panel">
+    <h3>Next 5 sessions <span><span class="pill pd"><i></i>earnings: yfinance/FMP · macro: moomoo econ-calendar + FRED · Fed odds: Polymarket</span></span></h3>
+    <div class="calstrip">
+      <div class="cal"><div class="d">MON 09-28</div><div class="t">No macro events</div><div class="m">watchlist: 0 earnings</div></div>
+      <div class="cal"><div class="d">TUE 09-29</div><div class="t">CPI (Sep)</div><div class="m">08:30 ET · cons +0.2% m/m</div></div>
+      <div class="cal"><div class="d">WED 09-30</div><div class="t">JOLTS · 2 FRB speeches</div><div class="m">ORCL earnings 10-08 in 8d</div></div>
+      <div class="cal"><div class="d">THU 10-01</div><div class="t">PCE · jobless claims</div><div class="m">HK market closed</div></div>
+      <div class="cal"><div class="d">FRI 10-02</div><div class="t">Nonfarm payrolls</div><div class="m">cons +140k · highest-impact</div></div>
+    </div>
+  </div>
+
+  <div class="disc"><b>Discovery engine (proposed):</b> a worker sweep every 15 min in market hours (nightly off-hours) issues ~7 moomoo REST calls (1 batch snapshot for indices+sectors, 3 stock-screens for gainers/losers/volume, find-news ×2, economic calendar) — well inside the 30/min per-endpoint budget — plus yfinance earnings dates (moomoo's earnings calendar is OpenD-only, which we don't run) and Polymarket odds deltas. Candidates are deduplicated against today's runs and your ledger, scored (novelty × magnitude × watchlist membership), and surfaced here. Nothing auto-runs except your nightly watchlist; everything else is one click with a preset depth and a stated reason. Research/education tooling — not investment advice.</div>
+</div>
+</body>
+</html>

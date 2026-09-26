@@ -1,0 +1,144 @@
+"""Worker service loop: claim → run → persist (runs, agent_reports, decisions,
+memory, settlements) with cooperative cancel and crash rehydration."""
+from __future__ import annotations
+
+import threading
+import uuid
+from datetime import date, datetime, timedelta
+
+from .config import SETTINGS
+from .db import Db
+from .events import Emitter
+from .runner import Cancelled, get_runner
+
+REPORT_STAGES = ["analysts", "research_debate", "trader", "risk_debate", "portfolio_manager"]
+
+
+def persist_run(db: Db, job: dict, result: dict) -> str:
+    ticker = job["payload"]["ticker"]
+    trade_date = job["payload"]["trade_date"]
+    ticker_row = db.select("tickers", {"symbol": f"eq.{ticker}"}, "id")
+    ticker_id = ticker_row[0]["id"] if ticker_row else _ensure_ticker(db, ticker)
+    run_id = str(uuid.uuid4())
+    cfg = {"depth": job["payload"].get("depth", "standard"), "provider": SETTINGS.llm_provider,
+           "quick": SETTINGS.quick_model, "deep": SETTINGS.deep_model, "stub": SETTINGS.stub_mode}
+    db.insert("runs", {
+        "id": run_id, "job_id": job["id"], "user_id": job.get("user_id"),
+        "ticker_id": ticker_id, "trade_date": trade_date, "asset_type": "stock",
+        "config": cfg, "config_hash": _hash_cfg(cfg), "llm_provider": SETTINGS.llm_provider,
+        "quick_model": SETTINGS.quick_model, "deep_model": SETTINGS.deep_model,
+        "depth_preset": job["payload"].get("depth", "standard"),
+        "effective_provider": SETTINGS.llm_provider,
+        "status": "succeeded",
+        "prompt_tokens": result["tokens"]["prompt"], "completion_tokens": result["tokens"]["completion"],
+        "tokens_cached": result["tokens"]["cached"], "tokens_uncached": result["tokens"]["uncached"],
+        "tool_calls": result.get("tool_calls", 0), "elapsed_seconds": result.get("elapsed_seconds"),
+        "cost_usd": result.get("cost_usd", 0), "framework_version": "0.5.1",
+    }, prefer="return=minimal")
+    for stage, md in (result.get("reports") or {}).items():
+        if stage in REPORT_STAGES and md:
+            db.insert("agent_reports", {
+                "run_id": run_id, "stage": stage, "content_markdown": md,
+            }, prefer="return=minimal")
+    decision = result.get("decision") or {}
+    if job.get("user_id") and not result.get("is_review"):
+        dec_id = str(uuid.uuid4())
+        db.insert("decisions", {
+            "id": dec_id, "run_id": run_id, "user_id": job["user_id"], "ticker_id": ticker_id,
+            "trade_date": trade_date, "rating": _rating_slug(result.get("rating")),
+            "rating_rank": _rating_rank(result.get("rating")), "signal": result["signal"],
+            "is_review": False, "executive_summary": decision.get("executive_summary"),
+            "price_target": decision.get("price_target"), "time_horizon": decision.get("time_horizon"),
+            "full_decision": decision.get("full_decision") or {},
+            "qc_verdict": "passed",
+        }, prefer="return=minimal")
+        # memory entry (pending) + settlement placeholders for configured horizons
+        db.insert("memory_entries", {
+            "user_id": job["user_id"], "ticker_id": ticker_id, "decision_id": dec_id,
+            "entry_date": trade_date, "rating": _rating_slug(result.get("rating")),
+            "status": "pending",
+        }, prefer="return=minimal")
+        for h in (5, 30):
+            db.insert("settlements", {
+                "decision_id": dec_id, "horizon_days": h, "status": "pending",
+                "as_of_date": str(date.fromisoformat(trade_date) + timedelta(days=h)),
+            }, prefer="return=minimal")
+    return run_id
+
+
+def _ensure_ticker(db: Db, symbol: str) -> str:
+    tid = str(uuid.uuid4())
+    db.insert("tickers", {"id": tid, "symbol": symbol, "native_symbol": symbol,
+                          "asset_type": "stock"}, prefer="return=minimal")
+    return tid
+
+
+def _rating_slug(rating: str | None) -> str:
+    return str(rating or "hold").lower().replace("overweight", "overweight").replace("underweight", "underweight")
+
+
+def _rating_rank(rating: str | None) -> int:
+    return {"sell": 1, "underweight": 2, "hold": 3, "overweight": 4, "buy": 5}.get(
+        str(rating or "").lower(), 3)
+
+
+def _hash_cfg(cfg: dict) -> str:
+    import hashlib, json
+    return hashlib.sha256(json.dumps(cfg, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def rehydrate_crashed(db: Db, worker_id: str):
+    """On boot, mark jobs stuck 'running' from a dead worker as failed (no silent vanishing)."""
+    stuck = db.select("jobs", {"status": "eq.running", "locked_by": f"neq.{worker_id}"}, "id")
+    for row in stuck:
+        db.update("jobs", f"id=eq.{row['id']}", {"status": "failed", "last_error": "worker restarted mid-run"})
+
+
+def run_forever():
+    wid = f"worker-{uuid.uuid4().hex[:8]}"
+    db = Db()
+    missing = SETTINGS.missing_critical()
+    if missing:
+        raise SystemExit(f"missing env: {', '.join(missing)}")
+    rehydrate_crashed(db, wid)
+    runner = get_runner()
+    inflight: dict[str, threading.Event] = {}
+    print(f"[{datetime.utcnow().isoformat()}Z] worker {wid} up (stub_mode={SETTINGS.stub_mode})", flush=True)
+    while True:
+        job = None
+        try:
+            job = db.claim_job(wid, types=["analysis"])
+        except Exception as e:  # queue hiccup: back off, keep alive
+            print(f"claim error: {e}", flush=True)
+            threading.Event().wait(SETTINGS.poll_interval_s)
+            continue
+        if not job:
+            threading.Event().wait(SETTINGS.poll_interval_s)
+            continue
+        cancel = threading.Event()
+        inflight[str(job["id"])] = cancel
+        try:
+            emit = Emitter(db, str(job["id"]))
+            payload = job.get("payload") or {}
+            ticker, trade_date = payload["ticker"], payload["trade_date"]
+            depth = payload.get("depth", "standard")
+            emit.emit("analysts", "started", f"{ticker} @ {trade_date} (depth={depth})")
+            result = runner.run(ticker, trade_date, depth, payload.get("instructions"), emit, cancel)
+            run_id = persist_run(db, job, result)
+            db.finish_job(str(job["id"]), "succeeded", run_id=run_id)
+            emit.emit("report_qc", "done", f"stored run {run_id[:8]}")
+        except Cancelled:
+            db.finish_job(str(job["id"]), "cancelled", error="cancelled")
+        except Exception as e:
+            err = str(e)[:500]
+            print(f"job {job['id']} error: {err}", flush=True)
+            try:
+                db.requeue_job(str(job["id"]), err)
+            except Exception as e2:
+                db.finish_job(str(job["id"]), "failed", error=f"{err} / requeue failed: {e2}")
+        finally:
+            inflight.pop(str(job["id"]), None)
+
+
+if __name__ == "__main__":
+    run_forever()

@@ -1,0 +1,155 @@
+# Project Memory & Decision Log
+
+Working decisions for the TradingAgents deployment product (portal + worker on Render).
+Newest decisions first. Each entry: context → decision → implications.
+
+---
+
+## 2026-09-26 — Data source: moomoo OpenAPI added as live-quote + US/HK OHLCV vendor
+
+**Context.** Private repo `JoshuAI-888/moomoo-api` (branch `claude/moomoo-api-exploration-dvyz2n`)
+contains a verified exploration: 62/62 read-only quote endpoints live-verified, OAuth WebSocket
+push measured at 65–77 ms p50, REST rate limit 30 req/min per path-template, cloud REST requires
+no OpenD gateway. Full review: `ecosystem-survey/moomoo-api/REVIEW.md`.
+
+**Decision.** Add moomoo to the vendor chain as: (1) primary live-quote/push vendor (WS, OAuth)
+for US/HK watchlists — replaces yfinance polling for the portal; (2) primary US/HK intraday +
+daily OHLCV and valuation/consensus source (REST, AppKey Ed25519, nightly batch with a
+per-path-template budget ledger). Keep yfinance as fallback + for denied markets (AU/CA/SG/JP
+real-time, NZX). FMP/EODHD still required for PIT fundamentals depth, full-text news; FRED and
+Polymarket unchanged. Do NOT deploy OpenD on Render (native binary, SMS login, quote-right
+kicking) — skip OpenD-only datasets.
+
+**Implications.** One ingestion worker owns moomoo (WS long-lived + REST batch); TS client
+`poc/ts/moomoo.ts` is a viable canonical client; Ed25519 private key only in worker secrets;
+HTTP-200 `rate_limited` + `Retry-After` handled everywhere; Supabase gains `quotes_realtime`,
+ticks (de-dup by `sequence`), `bars_1d/1m` with `autype`, valuation/short-interest tables.
+Risks: redistribution licensing for multi-user display (Morningstar content third-party),
+promotional tier withdrawable, single-account rate limits shared prod/dev/backtests.
+
+**Owner resolutions (2026-09-26).** Markets = **US + ASX + HK** (no A-shares/SG/JP; skip A-share
+vendor stacks). Single user → redistribution risk moot; retail tier, no professional
+classification. **No OpenD** — cloud REST/WS proven sufficient. Python worker owns moomoo;
+`poc/ts/moomoo.ts` = protocol reference. ASX real-time was denied on the exploration login →
+yfinance primary for ASX, moomoo ASX daily history secondary; probe owner's account entitlement
+at Phase 0. Proof status split (measured vs docs-assumed) in REVIEW.md.
+
+---
+
+## 2026-09-26 — zhouxinhao19 frontend permission granted (was PROPRIETARY)
+
+Owner reports direct permission from zhouxinhao19 to use any part of TradingAgent-Future's
+`frontend/` previously labelled proprietary. Treat as reusable (EvidenceChain UI, dashboards,
+settings dialogs — Vue 3 + Element Plus, Chinese-language; selective reuse into our Next.js
+portal). TODO before commercial shipment: obtain the grant in writing (LICENSE change or note
+in their repo). Recorded in `ecosystem-survey/SYNTHESIS.md` header.
+
+---
+
+## 2026-09-26 — Upstream sync to v0.5.1; plan impact assessment
+
+**Context.** Fork synced with TauricResearch upstream: 103 commits, releases v0.5.0 (2026-09-18)
+and v0.5.1 (2026-09-24). Framework restructured (breaking import-path changes).
+
+**What's new and adopted.**
+- **SEC EDGAR fundamentals vendor (keyless, as-filed).** US statements served point-in-time:
+  unfiled periods withheld, restatements read as first reported. Fundamentals PIT gap closed
+  for US filers at zero cost — strengthen than our planned FMP fundamentals path; FMP/EODHD
+  remain for prices + historical news.
+- **Native backtesting.** `tradingagents/backtest.py`: `run_backtest` over a ticker×date grid,
+  `summarize` scores settled cells (direction-aware: a Sell that fell is a hit), CLI
+  `tradingagents backtest --run-id` resume. Phase 3 "Backtest Lab" engine is now upstream —
+  we productize (batch jobs on the worker, equity-curve UI) instead of building the engine.
+  Explicitly a decision-quality evaluator, NOT a portfolio simulator — keep that framing in UI.
+- **Portfolio context.** `propagate(..., portfolio=...)` / `PortfolioContext` — trader, risk
+  and PM size against real holdings. New product feature: user portfolio input. Schema:
+  `runs.portfolio_snapshot` added.
+- **PIT integrity hardened everywhere** (dated tools read the run date from graph state,
+  vendor failures raise honestly, a feed that never observed a window says so). Strengthens
+  the audit story; our `data_fetch_log`/`vendor_health` telemetry remains complementary.
+- **Configurable `holding_period_days`** (was fixed 5). Schema: `settlements.horizon_days`
+  CHECK relaxed to >0; `user_settings.holding_period_days` added.
+- **Jev/TypeSafe social screening** (optional `TYPESAFE_API_KEY`): drops off-topic StockTwits/
+  Reddit posts. Added to `user_secrets.key_name`.
+- **Defaults now GPT-6 Sol (deep) / GPT-6 Luna (quick)** — `user_settings` defaults updated.
+- Run isolation fixed for graph reuse in one process — directly relevant to our long-lived
+  worker running sequential runs.
+
+**Implications of the restructure.** `dataflows/interface.py`→`router.py`, vendors under
+`dataflows/vendors/`, `agents/utils/memory`→`decision_log.py`, `graph/settlement.py` new,
+`SignalProcessor` removed (`process_signal`). Zero migration cost for us — no wrapper code
+was written yet; all OUR artifacts written against 0.5.1 from here (schema, worker, portal).
+
+**Decision.** Stay synced to upstream main as baseline; no forks of framework internals.
+Vendor additions (FMP/EODHD) go under `dataflows/vendors/` following the 0.5.x layout.
+
+## 2026-09-16 — Data platform: Supabase Postgres (over Render Postgres)
+
+**Context.** The product needs: (1) a system of record for users, decisions, settlements and
+reflections; (2) multi-user auth; (3) live progress streaming from the Render worker to the
+portal; (4) blob storage for per-run raw agent-state JSON (audit trail); (5) a job queue.
+
+**Decision.** Supabase Postgres (Pro, $25/mo) is the single data platform. Chosen over
+Render Postgres because the decision hinged on what ships *with* the database, not the engine:
+Supabase Auth (OAuth + RLS) replaces hand-rolled tenancy, Supabase Realtime replaces SSE
+plumbing for the "trading floor" live view, Storage replaces blob handling for run audit
+payloads, and pgvector is available for future similarity retrieval. The engine is commodity
+Postgres and stays portable (`pg_dump`).
+
+**Architecture placement.**
+- Job queue lives in Postgres (`FOR UPDATE SKIP LOCKED`); no broker at this scale.
+- Raw per-run agent-state JSON → Supabase Storage; metadata + reports → Postgres.
+- OHLCV/indicator disk cache and LangGraph SQLite checkpoints stay on the Render worker's
+  mounted disk — rebuildable scratch, not system of record.
+- Cross-cloud latency (Render Oregon → Supabase AWS) accepted: workload is LLM-bound,
+  dozens of DB writes per run, not thousands. Pick nearest Supabase region.
+
+**Implications / caveats.**
+- Supabase free tier pauses after ~1 week inactivity → production requires Pro ($25/mo).
+- Daily backups start at Pro; add a weekly `pg_dump` → Storage cron as cheap insurance for
+  the decision ledger (the crown jewel).
+- Tenancy enforced with RLS (user-scoped rows); worker uses service role.
+
+**Rejected alternatives.** Render Postgres (same-region simplicity but auth/SSE/storage all
+hand-rolled); Neon (great branching, fewer batteries); Timescale/ClickHouse (volume is tens of
+MB/month — not justified); message broker (jobs/day too low).
+
+**Related.** Stack: Render Web Service (portal) + Background Worker (inference) + Cron
+(settlement) + Supabase. Next: detailed schema design (`docs/schema/`), Phase 0 scaffold.
+
+---
+
+## 2026-09-16 — Deployment target: Render (portal + worker + cron), no Vercel
+
+**Context.** Framework runs are minutes-long with disk state (cache, checkpoints, memory);
+serverless/Vercel functions break on runtime limits, ephemeral disk, and dependency size.
+Render MCP is connected to ZCode for direct service management.
+
+**Decision.** Render for all compute: Web Service (portal/API), Background Worker
+(`tradingagents` runner), Cron Job (nightly watchlist runs + decision settlement).
+`render.yaml` blueprint in-repo.
+
+**Implications.** Persistent disk mount required on the worker for cache/checkpoints
+(paths are env-configurable: `TRADINGAGENTS_CACHE_DIR`, `TRADINGAGENTS_RESULTS_DIR`,
+`TRADINGAGENTS_MEMORY_LOG_PATH` — the memory log is superseded by Postgres `memory_entries`).
+Free tier spins down → paid tiers (~$7/mo each).
+
+---
+
+## 2026-09-16 — Reliability thesis & datasource strategy
+
+**Context.** Upstream framework is point-in-time correct for prices/fundamentals/macro/memory
+but NOT for live news/social on historical dates; no P&L engine; yfinance is unofficial/fragile.
+
+**Decision.**
+1. Ship a settlement engine we own (cron settles each decision at +5d/+30d vs benchmark into
+   Postgres) before any backtest claims.
+2. Add FMP and EODHD as first-class dataflow vendors (historical prices, fundamentals,
+   historical news with timestamps) to enable trustworthy backtests; yfinance demoted to
+   live-quote convenience.
+3. Label backtests as backtests; weight forward-tracked ledger results over backtests in the UI.
+4. Every decision must be auditable: store raw agent-state JSON + all reports per run.
+
+**Implications.** Vendor abstraction seam is `tradingagents/dataflows/interface.py` +
+`data_vendors` config — adding vendors is contained, not a rewrite. FMP/EODHD keys required
+(user-supplied, encrypted at rest in `user_secrets`).

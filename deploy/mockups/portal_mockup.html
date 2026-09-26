@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradingAgents Portal — v1 Mockup</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#10161f; --panel2:#151d29; --line:#1f2a3a;
+    --txt:#dbe4f0; --dim:#8296ad; --faint:#5a6b80;
+    --green:#22c58b; --red:#f0544f; --amber:#e8a33d; --blue:#4f8ef7; --purple:#a06bfa;
+    --mono:'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--txt);font:14px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 24px 80px}
+  h1{font-size:20px;letter-spacing:.5px}
+  .kicker{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px}
+  .screen{margin-top:46px}
+  .screen-title{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:18px}
+  .screen-title h2{font-size:16px}
+  .screen-title span{color:var(--faint);font-size:12px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.4px}
+  .pill i{width:6px;height:6px;border-radius:50%;display:inline-block}
+  .p-green{background:rgba(34,197,139,.12);color:var(--green)} .p-green i{background:var(--green)}
+  .p-red{background:rgba(240,84,79,.12);color:var(--red)} .p-red i{background:var(--red)}
+  .p-amber{background:rgba(232,163,61,.12);color:var(--amber)} .p-amber i{background:var(--amber)}
+  .p-blue{background:rgba(79,142,247,.12);color:var(--blue)} .p-blue i{background:var(--blue)}
+  .p-dim{background:rgba(130,150,173,.1);color:var(--dim)} .p-dim i{background:var(--dim)}
+  .mono{font-family:var(--mono)}
+  .dim{color:var(--dim)} .faint{color:var(--faint)}
+  .row{display:flex;gap:14px}
+
+  /* ── top bar ── */
+  .topbar{display:flex;justify-content:space-between;align-items:center;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .nav{display:flex;gap:4px}
+  .nav a{color:var(--dim);text-decoration:none;padding:6px 12px;border-radius:7px;font-size:13px}
+  .nav a.on{background:var(--panel2);color:var(--txt)}
+  .cost{font-size:12px;color:var(--dim)} .cost b{color:var(--txt);font-family:var(--mono)}
+
+  /* ── 1. trading floor ── */
+  .tickerhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .px{font-size:26px;font-family:var(--mono);font-weight:700}
+  .px small{font-size:13px;color:var(--green);font-weight:600;margin-left:8px}
+  .stages{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin:14px 0}
+  .stage{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 10px;position:relative}
+  .stage .dot{position:absolute;top:9px;right:9px;width:7px;height:7px;border-radius:50%}
+  .stage .nm{font-size:10.5px;color:var(--dim);font-weight:600;letter-spacing:.3px}
+  .stage .st{font-size:10px;margin-top:3px}
+  .s-done .dot{background:var(--green)} .s-done .st{color:var(--green)}
+  .s-run .dot{background:var(--amber);animation:pulse 1.2s infinite} .s-run .st{color:var(--amber)} .s-run{border-color:rgba(232,163,61,.5)}
+  .s-wait .dot{background:#33415a} .s-wait .st{color:var(--faint)}
+  @keyframes pulse{50%{opacity:.3}}
+  .floor{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
+  .bubble{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:var(--panel2)}
+  .bubble .who{display:flex;justify-content:space-between;font-size:11px;margin-bottom:6px}
+  .bull .who b{color:var(--green)} .bear .who b{color:var(--red)}
+  .bubble p{font-size:12.5px;color:#b9c6d8}
+  .side-report{font-size:12.5px;color:#b9c6d8}
+  .side-report h4{font-size:12px;color:var(--txt);margin:10px 0 4px}
+  .side-report .tick{color:var(--faint);font-size:11px;font-family:var(--mono)}
+  .meter{height:4px;background:#1a2332;border-radius:3px;margin-top:12px;overflow:hidden}
+  .meter i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));width:64%}
+  .eventlog{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:12px;line-height:1.7}
+  .eventlog b{color:var(--dim);font-weight:600}
+
+  /* ── 2. decision card ── */
+  .dcard{display:grid;grid-template-columns:300px 1fr;gap:14px}
+  .rating-box{text-align:center;padding:26px 16px}
+  .rating{font-size:34px;font-weight:800;color:var(--green);letter-spacing:1px}
+  .target{margin-top:14px;font-size:13px}
+  .target b{font-family:var(--mono);font-size:17px}
+  .qc{margin-top:16px}
+  .levels{display:flex;justify-content:space-between;margin-top:18px;font-size:11px;font-family:var(--mono);color:var(--dim)}
+  .thesis li{font-size:13px;color:#b9c6d8;margin:0 0 9px 18px}
+  .vs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .vs .b{border-radius:9px;padding:11px 13px;font-size:12.5px}
+  .vs .bull{background:rgba(34,197,139,.06);border:1px solid rgba(34,197,139,.25)}
+  .vs .bear{background:rgba(240,84,79,.06);border:1px solid rgba(240,84,79,.25)}
+  .vs h5{font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .vs .bull h5{color:var(--green)} .vs .bear h5{color:var(--red)}
+  .prov{margin-top:14px;border-top:1px dashed var(--line);padding-top:10px;font-size:10.5px;color:var(--faint);font-family:var(--mono);display:flex;gap:14px;flex-wrap:wrap}
+  .actions{display:flex;gap:8px;margin-top:14px}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 14px;border-radius:7px;font-size:12.5px;cursor:pointer}
+  .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+
+  /* ── 3. ledger ── */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 16px}
+  .stat .v{font-size:21px;font-weight:700;font-family:var(--mono)}
+  .stat .l{font-size:11px;color:var(--faint);margin-top:2px}
+  .pos{color:var(--green)} .neg{color:var(--red)}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{color:var(--faint);font-weight:600;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:1px;padding:8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:9px 10px;border-bottom:1px solid #141c28;font-family:var(--mono)}
+  td:first-child{font-family:-apple-system,sans-serif}
+  .tag{font-size:10px;padding:1px 8px;border-radius:5px;font-family:-apple-system,sans-serif;font-weight:600}
+  .t-buy{background:rgba(34,197,139,.14);color:var(--green)} .t-sell{background:rgba(240,84,79,.14);color:var(--red)}
+  .t-hold{background:rgba(130,150,173,.14);color:var(--dim)} .t-rev{background:rgba(232,163,61,.14);color:var(--amber)}
+
+  /* ── 4. settings ── */
+  .setgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .frow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #141c28;font-size:13px}
+  .frow:last-child{border:none}
+  .frow .val{font-family:var(--mono);font-size:12px;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:4px 10px}
+  .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .seg span{padding:4px 12px;font-size:11.5px;color:var(--dim);cursor:pointer}
+  .seg span.on{background:var(--blue);color:#fff}
+  .key{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #141c28;font-size:12.5px}
+  .key .k{font-family:var(--mono);color:var(--txt)} .key .m{font-family:var(--mono);color:var(--faint);font-size:11px}
+  .wl{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #141c28;font-size:12.5px;align-items:center}
+  .wl .sym{font-family:var(--mono);font-weight:700} .wl .mkt{font-size:10px;color:var(--faint);margin-left:6px}
+  .foot{margin-top:40px;color:var(--faint);font-size:11px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div>
+      <div class="kicker">TradingAgents Portal · v1 mockup for approval</div>
+      <h1>Trading Floor</h1>
+    </div>
+    <div class="nav">
+      <a class="on" href="#floor">Floor</a><a href="#decision">Decision</a><a href="#ledger">Ledger</a><a href="#settings">Settings</a>
+    </div>
+    <div class="cost">this month <b>$14.72</b> · tokens <b>3.1M</b></div>
+  </div>
+
+  <!-- ═══════════ SCREEN 1: TRADING FLOOR ═══════════ -->
+  <div class="screen" id="floor">
+    <div class="screen-title"><h2>1 · Trading floor — live analysis</h2><span>Supabase Realtime stream · agents run in parallel</span></div>
+    <div class="panel">
+      <div class="tickerhead">
+        <div style="display:flex;gap:16px;align-items:baseline">
+          <span style="font-size:19px;font-weight:800">NVDA</span><span class="faint">2026-09-26 · deep preset · custom instructions: 1</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span class="px mono">$182.44<small>▲ +1.8%</small></span>
+          <span class="pill p-green"><i></i>moomoo live</span>
+          <button class="btn">Stop</button>
+        </div>
+      </div>
+
+      <div class="stages">
+        <div class="stage s-done"><span class="dot"></span><div class="nm">MARKET</div><div class="st">done · 12s</div></div>
+        <div class="stage s-done"><span class="dot"></span><div class="nm">SENTIMENT</div><div class="st">done · 9s</div></div>
+        <div class="stage s-done"><span class="dot"></span><div class="nm">NEWS</div><div class="st">done · 14s</div></div>
+        <div class="stage s-done"><span class="dot"></span><div class="nm">FUNDAMENTALS</div><div class="st">done · 11s</div></div>
+        <div class="stage s-done"><span class="dot"></span><div class="nm">QUALITY GATE</div><div class="st">A · B+ · A- · B</div></div>
+        <div class="stage s-run"><span class="dot"></span><div class="nm">BULL ↔ BEAR</div><div class="st">round 2/3</div></div>
+        <div class="stage s-wait"><span class="dot"></span><div class="nm">TRADER</div><div class="st">waiting</div></div>
+        <div class="stage s-wait"><span class="dot"></span><div class="nm">RISK → PM</div><div class="st">waiting</div></div>
+      </div>
+
+      <div class="floor">
+        <div>
+          <div class="bubble bull"><div class="who"><b>🐂 Bull researcher</b><span class="faint">round 2 · gpt-6-luna</span></div>
+            <p>Data-center capex guides from the hyperscalers confirm Blackwell demand into FY27; supply constraints support pricing power. GB200 rack shipments are the cleanest read we have.</p></div>
+          <div class="bubble bear"><div class="who"><b>🐻 Bear researcher</b><span class="faint">round 2 · gpt-6-luna</span></div>
+            <p>Customer concentration is the fragility: the top four buyers are all building internal silicon. A ~45% gross-margin assumption embeds zero share loss — historically unkind.</p></div>
+          <div class="eventlog">
+            <b>14:02:11</b> tool get_indicators NVDA ok · 41ms · cache hit<br>
+            <b>14:02:14</b> ⚠ degradation: reddit RSS 429 → backoff 12s (news freshness unchanged)<br>
+            <b>14:02:19</b> quality gate: fundamentals B+ (2 unsourced claims flagged)
+          </div>
+          <div class="meter"><i></i></div>
+        </div>
+        <div class="panel" style="background:var(--panel2)">
+          <div class="side-report">
+            <h4>Market report <span class="pill p-green" style="float:right"><i></i>grade A</span></h4>
+            <p>Price $182.44 above 50/200 DMA; MACD widening, RSI 61 (not stretched)…</p>
+            <h4>Fundamentals report <span class="pill p-blue" style="float:right"><i></i>grade B+</span></h4>
+            <p>Data-center rev +93% y/y (10-Q, filed 08-27). Gross margin 74.9% — flagged: 2 claims need sourcing.</p>
+            <div style="margin-top:12px" class="faint mono">
+              <div>tokens 412k in / 18k out</div><div>cached 61% · tools 9 calls · $0.038 est.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SCREEN 2: DECISION CARD ═══════════ -->
+  <div class="screen" id="decision">
+    <div class="screen-title"><h2>2 · Decision card</h2><span>the product's atom — rating + why, audit-ready</span></div>
+    <div class="dcard">
+      <div class="panel rating-box">
+        <div class="kicker">NVDA · 2026-09-26</div>
+        <div class="rating">BUY</div>
+        <div class="target dim">12-mo target <b>$205</b></div>
+        <div class="levels"><span>entry 178–183</span><span>stop 164</span></div>
+        <div class="qc"><span class="pill p-green"><i></i>QC passed</span></div>
+      </div>
+      <div class="panel">
+        <ul class="thesis">
+          <li><b>Compute cycle intact:</b> hyperscaler capex guidance implies Blackwell supply sold out through H1-27.</li>
+          <li><b>Margin moat:</b> 74.9% GM with pricing power; bear case needs internal-silicon share loss to bite before FY28.</li>
+          <li><b>Risk defined:</b> stop below the post-earnings gap; size 4% per risk debate consensus.</li>
+        </ul>
+        <div class="vs">
+          <div class="b bull"><h5>Strongest bull argument</h5>Three independent analysts converge on supply-constraint pricing; order book depth supports entry.</div>
+          <div class="b bear"><h5>Strongest bear argument</h5>Customer concentration + internal ASIC roadmaps; a 10% ASP cut removes the thesis.</div>
+        </div>
+        <div class="prov">
+          <span>run 8f3a…c21</span><span>deep: gpt-6-sol · quick: gpt-6-luna</span><span>depth: standard</span>
+          <span>tokens 1.9M (61% cached)</span><span>cost $0.21</span><span>8m 42s</span>
+          <span>data as of 09-26 close ✓</span>
+        </div>
+        <div class="actions">
+          <button class="btn primary">Full reasoning chain</button>
+          <button class="btn">Export PDF</button>
+          <button class="btn">👍 Agree</button>
+          <button class="btn">👎 Disagree</button>
+          <button class="btn">Add note</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SCREEN 3: LEDGER ═══════════ -->
+  <div class="screen" id="ledger">
+    <div class="screen-title"><h2>3 · Decision ledger</h2><span>every proposal, settled honestly — the trust surface</span></div>
+    <div class="stats">
+      <div class="stat"><div class="v pos">+6.8%</div><div class="l">cumulative alpha (5d, settled)</div></div>
+      <div class="stat"><div class="v">61%</div><div class="l">directional hit-rate (18 decisions)</div></div>
+      <div class="stat"><div class="v">$0.19</div><div class="l">avg cost / decision</div></div>
+      <div class="stat"><div class="v">0</div><div class="l">blocked decisions (excluded)</div></div>
+    </div>
+    <div class="panel" style="padding:6px 4px">
+      <table>
+        <tr><th>Date</th><th>Ticker</th><th>System</th><th>Me</th><th>5d ret</th><th>5d alpha</th><th>30d alpha</th><th>QC</th></tr>
+        <tr><td>09-25</td><td>NVDA <span class="mkt">US</span></td><td><span class="tag t-buy">BUY</span></td><td>👍</td><td class="pos">+2.1%</td><td class="pos">+1.4%</td><td class="dim">pending</td><td><span class="pill p-green"><i></i>passed</span></td></tr>
+        <tr><td>09-24</td><td>CSL <span class="mkt">ASX</span></td><td><span class="tag t-hold">HOLD</span></td><td>—</td><td class="pos">+0.3%</td><td class="neg">−0.2%</td><td class="dim">pending</td><td><span class="pill p-green"><i></i>passed</span></td></tr>
+        <tr><td>09-23</td><td>0700 <span class="mkt">HK</span></td><td><span class="tag t-buy">OVERWEIGHT</span></td><td>👍</td><td class="pos">+1.7%</td><td class="pos">+2.3%</td><td class="pos">+5.1%</td><td><span class="pill p-green"><i></i>passed</span></td></tr>
+        <tr><td>09-22</td><td>ANZ <span class="mkt">ASX</span></td><td><span class="tag t-sell">UNDERWEIGHT</span></td><td>👎</td><td class="neg">−0.8%</td><td class="pos">+0.6%</td><td class="pos">+1.9%</td><td><span class="pill p-amber"><i></i>needs review</span></td></tr>
+        <tr><td>09-19</td><td>TSLA <span class="mkt">US</span></td><td><span class="tag t-rev">REVIEW</span></td><td>—</td><td class="faint">excluded</td><td class="faint">—</td><td class="faint">—</td><td><span class="pill p-red"><i></i>blocked</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════ SCREEN 4: SETTINGS ═══════════ -->
+  <div class="screen" id="settings">
+    <div class="screen-title"><h2>4 · Settings &amp; watchlist</h2><span>models, depth, keys (masked), nightly watchlist</span></div>
+    <div class="setgrid">
+      <div class="panel">
+        <h4 style="margin-bottom:6px">Models &amp; depth</h4>
+        <div class="frow"><span>Provider</span><span class="val">OpenAI ▾</span></div>
+        <div class="frow"><span>Deep model</span><span class="val">gpt-6-sol ▾</span></div>
+        <div class="frow"><span>Quick model</span><span class="val">gpt-6-luna ▾</span></div>
+        <div class="frow"><span>Default depth</span>
+          <span class="seg"><span>fast</span><span class="on">standard</span><span>deep</span></span></div>
+        <div class="frow"><span>Settlement horizons</span><span class="val">5d · 30d</span></div>
+        <div class="frow"><span>Alpha benchmark</span><span class="val">auto per market</span></div>
+      </div>
+      <div class="panel">
+        <h4 style="margin-bottom:6px">Data vendor keys</h4>
+        <div class="key"><span class="k">MOOMOO_APPKEY</span><span class="m">mo_…4f2c ✓ verified</span></div>
+        <div class="key"><span class="k">MOOMOO_PRIVATE_KEY</span><span class="m">ed25519 •••• (worker-only)</span></div>
+        <div class="key"><span class="k">FMP_API_KEY</span><span class="m">fm…9a1</span></div>
+        <div class="key"><span class="k">FRED_API_KEY</span><span class="m">fr…77b</span></div>
+        <div class="key"><span class="k">TYPESAFE_API_KEY</span><span class="m faint">not set — optional</span></div>
+        <p class="faint" style="font-size:11px;margin-top:10px">Keys are vaulted; only masked hints round-trip to the browser. yfinance needs no key.</p>
+      </div>
+      <div class="panel" style="grid-column:1/3">
+        <h4 style="margin-bottom:6px">Watchlist — nightly run 02:00 US/East <span class="pill p-dim" style="margin-left:8px"><i></i>digest 07:00</span></h4>
+        <div class="wl"><span><span class="sym">NVDA</span><span class="mkt">US · moomoo live</span></span><span class="dim">daily · deep</span></div>
+        <div class="wl"><span><span class="sym">MSFT</span><span class="mkt">US · moomoo live</span></span><span class="dim">daily · standard</span></div>
+        <div class="wl"><span><span class="sym">CSL.AX</span><span class="mkt">ASX · yfinance</span></span><span class="dim">weekly · standard</span></div>
+        <div class="wl"><span><span class="sym">0700.HK</span><span class="mkt">HK · moomoo live</span></span><span class="dim">daily · standard</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">Mockup v1 — dark trading theme · approved mockup becomes the shadcn/ui component contract · not investment advice</div>
+</div>
+</body>
+</html>
