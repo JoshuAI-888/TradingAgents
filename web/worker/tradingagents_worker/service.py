@@ -15,6 +15,12 @@ from .settings import get_model_pair
 
 REPORT_STAGES = ["analysts", "research_debate", "trader", "risk_debate", "portfolio_manager"]
 
+# Runner stages → agent_reports.stage values allowed by the schema check.
+_DB_REPORT_STAGE = {"analysts": "analyst_market", "trader": "trader",
+                    "portfolio_manager": "portfolio_manager"}
+# Debate transcripts live in debate_messages, not agent_reports.
+_DEBATE_STAGE = {"research_debate": "research", "risk_debate": "risk"}
+
 
 def _start_health_server() -> None:
     # Render web services must hold $PORT open; background-worker deploys don't set it.
@@ -62,9 +68,16 @@ def persist_run(db: Db, job: dict, result: dict) -> str:
         "cost_usd": result.get("cost_usd", 0), "framework_version": "0.5.1",
     }, prefer="return=minimal")
     for stage, md in (result.get("reports") or {}).items():
-        if stage in REPORT_STAGES and md:
+        if not md:
+            continue
+        if stage in _DEBATE_STAGE:
+            db.insert("debate_messages", {
+                "run_id": run_id, "debate_type": _DEBATE_STAGE[stage],
+                "speaker": "neutral", "round": 1, "content": md,
+            }, prefer="return=minimal")
+        elif stage in _DB_REPORT_STAGE:
             db.insert("agent_reports", {
-                "run_id": run_id, "stage": stage, "content_markdown": md,
+                "run_id": run_id, "stage": _DB_REPORT_STAGE[stage], "content_markdown": md,
             }, prefer="return=minimal")
     decision = result.get("decision") or {}
     if job.get("user_id") and not result.get("is_review"):

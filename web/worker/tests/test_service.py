@@ -22,7 +22,9 @@ def test_stub_run_persists_run_reports_decision_memory_settlements(fake_db, anal
     assert runs[0]["depth_preset"] == "standard"
 
     reports = fake_db.select("agent_reports")
-    assert {r["stage"] for r in reports} == {"analysts", "research_debate", "trader", "risk_debate", "portfolio_manager"}
+    assert {r["stage"] for r in reports} == {"analyst_market", "trader", "portfolio_manager"}
+    debates = fake_db.select("debate_messages")
+    assert {d["debate_type"] for d in debates} == {"research", "risk"}
 
     decisions = fake_db.select("decisions")
     assert len(decisions) == 1 and decisions[0]["rating"] == "buy" and decisions[0]["rating_rank"] == 5
