@@ -206,3 +206,16 @@ Supabase's best-provisioned region.
 execute_sql → deployment can be driven from ZCode after the owner restarts and completes the
 browser OAuth grant. Fallback if ZCode can't OAuth: PAT from supabase.com dashboard →
 Authorization: Bearer header on the same URL.
+
+## 2026-09-27 — LLM provider: OpenRouter, cheap-mode defaults (owner key verified live)
+
+Owner supplied an OpenRouter key; verified via /auth/key (valid, $0 usage, no expiry) and a
+live completion (z-ai/glm-5.3-flash, 37 tokens). OpenRouter carries the full current lineup
+(gpt-6-sol/luna, glm-5.3 family, deepseek-v4.1, opus-5.5, gemini-3.8-flash).
+
+**Decision.** `OPENROUTER_API_KEY` on the worker → provider auto-selects `openrouter` with
+**z-ai/glm-5.3-flash for BOTH quick and deep** as the shipping default (≈$0.14/run at
+1.8M-in/140k-out vs ≈$4.98 on GPT-6 defaults). Matches the BSTester/DoThatKarma OpenRouter
+baseline. Upgrade path is a settings change (gpt-6-sol deep + gpt-6-luna quick), not code.
+`render.yaml` worker env gains OPENROUTER_API_KEY (sync: false); config.py missing_critical
+now accepts it. Engine 0.5.1 accepts non-catalog model IDs.

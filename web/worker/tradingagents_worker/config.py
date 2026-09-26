@@ -18,9 +18,17 @@ class Settings:
     cron_secret: str = field(default_factory=lambda: os.getenv("CRON_SECRET", ""))
 
     # LLM (one provider key required for real runs; stub mode needs none)
-    llm_provider: str = field(default_factory=lambda: os.getenv("TRADINGAGENTS_PROVIDER", "openai"))
-    quick_model: str = field(default_factory=lambda: os.getenv("TRADINGAGENTS_QUICK_MODEL", "gpt-6-luna"))
-    deep_model: str = field(default_factory=lambda: os.getenv("TRADINGAGENTS_DEEP_MODEL", "gpt-6-sol"))
+    llm_provider: str = field(default_factory=lambda: os.getenv(
+        "TRADINGAGENTS_PROVIDER",
+        "openrouter" if os.getenv("OPENROUTER_API_KEY") else "openai"))
+    quick_model: str = field(default_factory=lambda: os.getenv(
+        "TRADINGAGENTS_QUICK_MODEL",
+        # Cheap-mode-first (product decision): GLM-5.3-flash ≈ $0.14/run vs ≈ $4.98 GPT-6.
+        # OpenRouter accepts any model ID; gpt-6-sol/luna are the premium upgrade.
+        "z-ai/glm-5.3-flash" if os.getenv("OPENROUTER_API_KEY") else "gpt-6-luna"))
+    deep_model: str = field(default_factory=lambda: os.getenv(
+        "TRADINGAGENTS_DEEP_MODEL",
+        "z-ai/glm-5.3-flash" if os.getenv("OPENROUTER_API_KEY") else "gpt-6-sol"))
 
     # Behavior
     stub_mode: bool = field(default_factory=lambda: _bool("WORKER_STUB_MODE", "1"))
@@ -47,8 +55,9 @@ class Settings:
         if not self.stub_mode and not (
             os.getenv("OPENAI_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
             or os.getenv("DEEPSEEK_API_KEY") or os.getenv("ZHIPU_API_KEY")
+            or os.getenv("OPENROUTER_API_KEY")
         ):
-            need.append("one LLM API key (OPENAI_API_KEY or equivalent)")
+            need.append("one LLM API key (OPENROUTER_API_KEY or equivalent)")
         return need
 
 
