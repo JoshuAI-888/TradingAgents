@@ -311,6 +311,7 @@ function pivots(bars) {
 }
 
 const RATING_COLOR = { buy: "var(--green)", overweight: "var(--green)", hold: "var(--amber)", underweight: "var(--red)", sell: "var(--red)" };
+const fmtBig = v => v >= 1e12 ? (v / 1e12).toFixed(2) + "T" : v >= 1e9 ? (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v.toLocaleString();
 
 function agentLabel(stage) {
   return ({ analyst_market: "Market / Technical Analyst", analyst_social: "Sentiment Analyst",
@@ -336,7 +337,7 @@ async function reportPage(ref) {
   const info = (k, f) => profile && profile[k] != null ? f(profile[k]) : null;
   const kv = [
     info("sector", v => esc(v)) && `<div><span>Sector</span><b>${info("sector", v => esc(v))}</b></div>`,
-    profile?.marketCap != null ? `<div><span>Mkt cap</span><b>$${(profile.marketCap / 1e12).toFixed(2)}T</b></div>` : "",
+    profile?.marketCap != null ? `<div><span>Mkt cap</span><b>$${fmtBig(profile.marketCap)}</b></div>` : "",
     profile?.trailingPE != null ? `<div><span>P/E (TTM)</span><b>${fmt(profile.trailingPE)}×</b></div>` : "",
     profile?.forwardPE != null ? `<div><span>P/E (FWD)</span><b>${fmt(profile.forwardPE)}×</b></div>` : "",
     profile?.trailingEps != null ? `<div><span>EPS (TTM)</span><b>${fmt(profile.trailingEps)}</b></div>` : "",
