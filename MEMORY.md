@@ -5,33 +5,48 @@ Newest decisions first. Each entry: context → decision → implications.
 
 ---
 
-## 2026-09-27 — DEPLOYED: Supabase project + Render stack (Virginia) live
+## 2026-09-27 — DEPLOYED & VERIFIED end-to-end (Supabase + Render, Virginia)
 
-**Supabase**: project `tradingagents`, ref **`hiqasyjalspuchtacatk`**, region us-east-1
-(N. Virginia), org JoshuAI (`rlxyyaufuthoeuhivrgf`), $10/mo (owner approved via MCP cost
-confirm). Migrations **0001 → 0002 → 0003 all applied** via hosted MCP
-(apply_migration). 0001 needed two ordering fixes for real Postgres (repo file updated):
-`tickers` must precede FK-dependent tables; `enqueue_job` (language sql) must follow
-`jobs` (SQL fns validate refs at create time). Service-role key is NOT exposed by the
-hosted MCP (only publishable) and no legacy jwt_secret GUC is readable via SQL on new
-projects — key must come from owner's dashboard (Settings → API keys → service_role or
-sb_secret_); worker/API then get SUPABASE_SERVICE_KEY via Render env.
+**Live URLs**: portal https://tradingagents-portal.onrender.com · worker https://tradingagents-worker.onrender.com
 
-**Render** (workspace `tea-d98bet57vvec739alvbg`, all region virginia, branch
-`product/portal-phase0`, autoDeploy on, plan starter):
-- `tradingagents-portal` web `srv-das1tjbncjis73fi131g` → https://tradingagents-portal.onrender.com
-  (build `pip install -r web/api/requirements.txt`, start `cd web/api && uvicorn …`)
-- `tradingagents-worker` web `srv-das1tngu01pc73ebb7sg` — Render MCP cannot create
-  background workers or disks, so the worker runs as a web service: `service.py` gained
-  a PORT-gated `/healthz` HTTP thread (commit d4fff75) and uses `/tmp` cache dirs
-  instead of a mounted disk (Supabase remains source of truth; disk was cache-only).
-  Build includes `pip install -e .` (full framework for real LLM runs).
-- `tradingagents-settlement` cron `crn-das1to7avr4c738m2bog` ("30 * * * *")
-- `tradingagents-discovery` cron `crn-das1tojbc2fs7390e32g` ("*/15 13-21 * * 1-5")
-- Env set on creation: SUPABASE_URL, OPENROUTER_API_KEY, WORKER_STUB_MODE=1,
-  PYTHON_VERSION=3.12.8, portal CRON_SECRET. SUPABASE_SERVICE_KEY pending owner.
-- MCP tooling gotchas: no rootDir support → commands `cd` from repo root; web-service
-  health check is TCP-only (hence the PORT bind); crons lack rootDir too.
+**Credentials**: owner supplied the Supabase `sb_secret_…` service key from the dashboard
+(hosted MCP exposes only publishable keys; no legacy jwt_secret GUC reachable via SQL on
+new projects). Set as SUPABASE_SERVICE_KEY on all 4 services. Never printed/committed.
+
+**Supabase**: project `tradingagents`, ref `hiqasyjalspuchtacatk`, us-east-1, $10/mo
+(owner cost-confirmed). Migrations 0001→0002→0003 applied, then **0004 seed_owner_identity**:
+profiles.id FKs auth.users, so Phase 0's single owner is a deterministic auth row
+(uuid5(URL, 'tradingagents-owner:joshuaifang@gmail.com') = `414d1831-84ed-520c-a2a7-a093f19a2cde`,
+joshuaifang@gmail.com, timezone Pacific/Auckland). Portal defaults unauthenticated
+submissions to it via DEFAULT_USER_ID env; when real auth lands, retire the default.
+
+**Render services** (region virginia, branch product/portal-phase0, autoDeploy):
+- portal `srv-das1tjbncjis73fi131g` (web/starter) — env: SUPABASE_URL, SUPABASE_SERVICE_KEY,
+  DEFAULT_USER_ID, CRON_SECRET, WORKER_STUB_MODE=1(portal flag only), OPENROUTER_API_KEY
+- worker `srv-das1tngu01pc73ebb7sg` (web/starter; MCP can't create bg-workers/disks →
+  PORT-gated /healthz thread + /tmp cache dirs) — WORKER_STUB_MODE **0** since 2026-09-27
+- settlement cron `crn-das1to7avr4c738m2bog` "30 * * * *" · discovery cron
+  `crn-das1tojbc2fs7390e32g` "*/15 13-21 * * 1-5" (both: SUPABASE_URL/KEY; moomoo keys
+  still absent → discovery runs watchlist-only until probe)
+
+**First-run bugs fixed** (all pushed; 18 tests green):
+1. Migration create-order for real Postgres: SQL-language fns validate table refs at
+   create time (enqueue_job after jobs); FK targets must exist (tickers first).
+2. Portal couldn't import tradingagents_worker (not pip-installed) → path bootstrap in
+   tradingagents_api/__init__.
+3. claim_job returns a null composite when the queue is empty; PostgREST serialized it
+   as {} (no id) → worker crashed → guard: id-less claims treated as no job.
+4. Runner stages (analysts/research_debate/risk_debate) violate agent_reports_stage_check
+   → mapping in persist_run: analysts→analyst_market; debates → debate_messages
+   (speaker neutral, round 1).
+5. Render MCP gotchas: no rootDir (commands `cd` from repo root), no bg-worker/disk
+   types, web-service health = TCP-only (worker binds $PORT), env updates auto-redeploy.
+   ⚠ Deploy-swap race: reset queued jobs only AFTER the fixed deploy reports `live`.
+
+**Verification**: stub end-to-end green via live API (AAPL fast + owner-submitted RKLB
+standard): job succeeded, QC events, decision in v_decision_ledger, settlements pending
+(5d/30d). WORKER_STUB_MODE flipped to 0 — first real GLM-5.3-flash run pending at write
+time (≈$0.14/decision).
 
 ---
 
