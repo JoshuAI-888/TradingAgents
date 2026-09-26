@@ -173,6 +173,13 @@ def run_forever():
             run_id = persist_run(db, job, result)
             db.finish_job(str(job["id"]), "succeeded", run_id=run_id)
             emit.emit("report_qc", "done", f"stored run {run_id[:8]}")
+            try:
+                from .enrich import enrich_run
+                got = enrich_run(db, ticker)
+                emit.emit("report_qc", "progress",
+                          f"context: {got['bars']} bars · {got['news']} news · profile={'✓' if got['profile'] else '—'}")
+            except Exception as e2:
+                print(f"enrich (non-fatal): {e2}", flush=True)
         except Cancelled:
             db.finish_job(str(job["id"]), "cancelled", error="cancelled")
         except Exception as e:

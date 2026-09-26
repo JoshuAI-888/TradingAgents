@@ -80,6 +80,83 @@ def status(job_id: str):
     return {"job": job, "events": events}
 
 
+@app.get("/api/analyses/{ref}/report")
+def report(ref: str):
+    """Full dossier for the report page. `ref` is a job id or a decision id."""
+    runs = db.select("runs", {"job_id": f"eq.{ref}"}, "*")
+    if not runs:
+        dec0 = db.select("decisions", {"id": f"eq.{ref}"}, "run_id")
+        if dec0:
+            runs = db.select("runs", {"id": f"eq.{dec0[0]['run_id']}"}, "*")
+    if not runs:
+        raise HTTPException(404, "no run for reference")
+    run = runs[0]
+    tick = db.select("tickers", {"id": f"eq.{run['ticker_id']}"}, "symbol,name,exchange,currency")
+    reports = db.select("agent_reports", {"run_id": f"eq.{run['id']}", "order": "created_at.asc"},
+                        "stage,content_markdown,quality_grade,quality_score,created_at")
+    debates = db.select("debate_messages", {"run_id": f"eq.{run['id']}", "order": "created_at.asc"},
+                        "debate_type,speaker,round,content")
+    decision = db.select("decisions", {"run_id": f"eq.{run['id']}"}, "*")
+    settlements = []
+    if decision:
+        settlements = db.select("settlements", {"decision_id": f"eq.{decision[0]['id']}", "order": "horizon_days.asc"},
+                                "horizon_days,status,as_of_date,entry_price,exit_price,raw_return_pct,benchmark_return_pct,alpha_pct")
+    job = db.select("jobs", {"id": f"eq.{run['job_id']}"}, "id,status,payload,created_at,finished_at,last_error")
+    events = db.select("job_events", {"job_id": f"eq.{run['job_id']}", "order": "seq.asc"},
+                       "seq,ts,stage,status,message")
+    run_pub = {k: v for k, v in run.items() if k not in ("portfolio_snapshot", "config")}
+    return {"ticker": tick[0] if tick else {"symbol": "?"}, "run": run_pub,
+            "decision": decision[0] if decision else None, "reports": reports,
+            "debates": debates, "settlements": settlements,
+            "job": job[0] if job else None, "events": events}
+
+
+@app.get("/api/bars/{symbol}")
+def bars(symbol: str, days: int = 180):
+    rows = db.select("tickers", {"symbol": f"eq.{symbol.upper()}"}, "id")
+    if not rows:
+        raise HTTPException(404, "unknown ticker")
+    bars = db.select("price_bars", {"ticker_id": f"eq.{rows[0]['id']}",
+                                    "order": "bar_date.desc", "limit": "400"},
+                     "bar_date,open,high,low,close,volume")
+    bars = list(reversed([b for b in bars if b.get("bar_date")]))
+    if days > 0 and len(bars) > days:
+        bars = bars[-days:]
+    return {"symbol": symbol.upper(), "bars": bars}
+
+
+@app.get("/api/news/{symbol}")
+def news(symbol: str, limit: int = 10):
+    rows = db.select("news_items", {"tickers": f'cs.{{"{symbol.upper()}"}}',
+                                    "order": "published_at.desc", "limit": str(min(limit, 30))},
+                     "title,url,publisher,summary,published_at,sentiment")
+    return {"news": rows}
+
+
+@app.get("/api/fundamentals/{symbol}")
+def fundamentals(symbol: str):
+    rows = db.select("tickers", {"symbol": f"eq.{symbol.upper()}"}, "id")
+    if not rows:
+        raise HTTPException(404, "unknown ticker")
+    prof = db.select("company_profiles", {"ticker_id": f"eq.{rows[0]['id']}"},
+                     "payload,as_of,source")
+    return {"symbol": symbol.upper(), "profile": prof[0] if prof else None}
+
+
+class ReviewIn(BaseModel):
+    user_rating: str | None = Field(default=None, pattern="^(agree|disagree)$")
+    note: str | None = Field(default=None, max_length=2000)
+
+
+@app.post("/api/decisions/{decision_id}/review")
+def review(decision_id: str, inp: ReviewIn):
+    if inp.user_rating is None and inp.note is None:
+        raise HTTPException(400, "nothing to save")
+    patch = {k: v for k, v in {"user_rating": inp.user_rating, "note": inp.note}.items() if v is not None}
+    db.update("decisions", f"id=eq.{decision_id}", patch)
+    return {"saved": True}
+
+
 @app.get("/api/decisions")
 def decisions(limit: int = 50):
     rows = db.select("v_decision_ledger", {"order": "trade_date.desc", "limit": str(min(limit, 200))})
@@ -107,10 +184,16 @@ def queue_candidate(cid: str, depth: str = "standard", _: None = Depends(require
 
 @app.get("/api/meta")
 def meta():
+    runs = db.select("runs", {"order": "created_at.desc", "limit": "500"},
+                     "cost_usd,prompt_tokens,completion_tokens")
+    spend = {"runs": len(runs),
+             "cost_usd": round(sum(float(r.get("cost_usd") or 0) for r in runs), 4),
+             "tokens_in": sum(int(r.get("prompt_tokens") or 0) for r in runs),
+             "tokens_out": sum(int(r.get("completion_tokens") or 0) for r in runs)}
     return {"framework": "tradingagents 0.5.1", "markets": ["US", "HK", "ASX"],
             "vendors": {"live": "moomoo", "fallback": "yfinance", "fundamentals": "sec_edgar+yfinance",
                         "news": "yfinance+fmp", "macro": "fred", "prediction": "polymarket"},
-            "stub_mode": SETTINGS.stub_mode}
+            "stub_mode": SETTINGS.stub_mode, "spend": spend}
 
 
 # ── model catalog + settings ─────────────────────────────────────────────
