@@ -44,7 +44,10 @@ class Db:
         rows = self._call("POST", "rpc/claim_job", body={
             "p_worker": worker_id, "p_types": types,
         }) or []
-        return rows[0] if isinstance(rows, list) and rows else (rows or None)
+        cand = rows[0] if isinstance(rows, list) and rows else (rows or None)
+        # An exhausted queue comes back as a null composite; some PostgREST
+        # versions serialize that as an empty object instead of null.
+        return cand if isinstance(cand, dict) and cand.get("id") else None
 
     def finish_job(self, job_id: str, status: str, error: str | None = None, run_id: str | None = None):
         self._call("PATCH", f"jobs?id=eq.{job_id}", body={

@@ -51,12 +51,14 @@ def submit(inp: AnalyzeIn, x_user_id: str = Header(default="")):
     if not SETTINGS.supabase_url:
         raise HTTPException(503, "SUPABASE_URL not configured")
     key = f"analysis:{inp.ticker.upper()}:{inp.trade_date}:{inp.depth}"
+    # Single-user Phase 0: unauthenticated submissions are owned by DEFAULT_USER_ID.
+    user_id = x_user_id or os.getenv("DEFAULT_USER_ID") or None
     existing = db.select("jobs", {"idempotency_key": f"eq.{key}"}, "id,status")
     if existing:
         return {"job_id": existing[0]["id"], "status": existing[0].get("status", "pending"),
                 "deduplicated": True}
     row = db.insert("jobs", {
-        "job_type": "analysis", "user_id": x_user_id or None,
+        "job_type": "analysis", "user_id": user_id,
         "payload": {"ticker": inp.ticker.upper(), "trade_date": str(inp.trade_date),
                     "depth": inp.depth, "instructions": inp.instructions},
         "idempotency_key": key,
