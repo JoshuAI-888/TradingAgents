@@ -85,7 +85,8 @@ def persist_run(db: Db, job: dict, result: dict) -> str:
         db.insert("decisions", {
             "id": dec_id, "run_id": run_id, "user_id": job["user_id"], "ticker_id": ticker_id,
             "trade_date": trade_date, "rating": _rating_slug(result.get("rating")),
-            "rating_rank": _rating_rank(result.get("rating")), "signal": result["signal"],
+            "rating_rank": _rating_rank(result.get("rating")),
+            "signal": _signal_slug(result.get("signal"), result.get("rating")),
             "is_review": False, "executive_summary": decision.get("executive_summary"),
             "price_target": decision.get("price_target"), "time_horizon": decision.get("time_horizon"),
             "full_decision": decision.get("full_decision") or {},
@@ -119,6 +120,22 @@ def _rating_slug(rating: str | None) -> str:
 def _rating_rank(rating: str | None) -> int:
     return {"sell": 1, "underweight": 2, "hold": 3, "overweight": 4, "buy": 5}.get(
         str(rating or "").lower(), 3)
+
+
+def _signal_slug(signal: str | None, rating: str | None) -> str:
+    """Engine signals may come back as 5-tier ratings ('overweight'); the schema's
+    signal domain is buy/sell/hold/review — collapse from the rating when needed."""
+    s = str(signal or "").lower()
+    if s in ("buy", "sell", "hold", "review"):
+        return s
+    combined = f"{s} {str(rating or '').lower()}"
+    if "review" in combined:
+        return "review"
+    if "buy" in combined or "overweight" in combined or "bull" in combined:
+        return "buy"
+    if "sell" in combined or "underweight" in combined or "bear" in combined:
+        return "sell"
+    return "hold"
 
 
 def _hash_cfg(cfg: dict) -> str:

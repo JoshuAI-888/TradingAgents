@@ -5,6 +5,36 @@ Newest decisions first. Each entry: context → decision → implications.
 
 ---
 
+## 2026-09-27 — Portal aligned to approved v2 mockup (report dossier shipped)
+
+**Gap closure** (owner: "compare to mockup, fix gaps"): the live portal showed only
+stage chips + tables; the approved v2 institutional workstation is now implemented:
+- **Report dossier** (`Report` from any ledger/candidate row, keyed by job or decision
+  id): verdict masthead (rating/conviction/QC/cached-tokens pills, live close + chg,
+  fundamentals KV, PT/stop/size/horizon, settlements), S/R rail (floor pivots from the
+  latest bar + entry zone/stop from the decision), **interactive canvas chart ported
+  from the mockup** (candles, EMA20/50, WMA20, BOLL(20,2), S/R + entry overlay; lower
+  panels Volume/RSI(14)/MACD DIF·DEA·HIST/KDJ/ATR/CCI; TF 1M/3M/6M/1Y/2Y; crosshair
+  OHLCV+indicator readout), thesis panel, **news with citable links**, agent outputs
+  accordion (all reports + both debate transcripts, unedited), live reasoning trace,
+  ops rail (elapsed/models/tokens cached bar/cost/config sha/provenance), 👍/👎 review
+  (POST /api/decisions/{id}/review → decisions.user_rating).
+- **Worker post-run enrichment** (`enrich.py`, best-effort, logged to data_fetch_log):
+  1y daily bars → price_bars, headlines with URLs → news_items (handles old+new
+  yfinance shapes), profile KV → company_profiles. Verified: 251 bars + 10 news +
+  profile per ticker. Local runs need SSL_CERT_FILE=$(python -m certifi) on this Mac.
+- **APIs**: /api/analyses/{ref}/report (job or decision ref), /api/bars/{symbol},
+  /api/news/{symbol}, /api/fundamentals/{symbol}, review endpoint, /api/meta now
+  carries spend {runs, cost_usd, tokens}.
+- **Deferred (needs Phase-1 structured outputs)**: evidence register, scenario table,
+  catalyst/risk/assumption classification of news, quality-gate grades per agent.
+- **Signal-domain fix**: engine emits 5-tier ratings as signal ('overweight') →
+  decisions.signal check violation. Fixed in worker (`_signal_slug`) AND at the DB
+  boundary (migration 0005 normalize_decision_signal trigger) so any in-flight worker
+  version persists cleanly. Both real runs (NVDA fast, RKLB deep) hit this at persist.
+- Deploy discipline learned: ANY push redeploys worker+portal and kills in-flight runs
+  (rehydrate requeues, but attempts are finite) — batch pushes; verify no job running.
+
 ## 2026-09-27 — Runtime toggle + discovery refresh + real-run fixes (owner feedback round)
 
 **Owner feedback** (jobs failing, Sunday staleness, stub mode questions) → shipped:
