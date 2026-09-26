@@ -127,10 +127,15 @@ def _hash_cfg(cfg: dict) -> str:
 
 
 def rehydrate_crashed(db: Db, worker_id: str):
-    """On boot, mark jobs stuck 'running' from a dead worker as failed (no silent vanishing)."""
+    """On boot, release jobs stuck 'running' from a dead worker. requeue_job
+    decides pending-vs-failed by attempts — a deploy kill must not strand a job
+    mid-queue, but it also can't retry forever."""
     stuck = db.select("jobs", {"status": "eq.running", "locked_by": f"neq.{worker_id}"}, "id")
     for row in stuck:
-        db.update("jobs", f"id=eq.{row['id']}", {"status": "failed", "last_error": "worker restarted mid-run"})
+        try:
+            db.requeue_job(str(row["id"]), "worker restarted mid-run")
+        except Exception:
+            db.update("jobs", f"id=eq.{row['id']}", {"status": "failed", "last_error": "worker restarted mid-run"})
 
 
 def run_forever():
