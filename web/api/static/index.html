@@ -220,6 +220,75 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .msel{display:grid;grid-template-columns:1fr 70px 70px 20px;gap:6px;align-items:center;font-size:11.5px;margin-bottom:8px}
 .msel input{background:var(--panel2);border:1px solid var(--line);color:#dbe6f3;border-radius:6px;padding:4px 6px;font-size:11px;width:100%}
 .mfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+/* ── stock detail page (moomoo-style) ─────────────────────────────── */
+.stk-head{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+.stk-co{font-size:26px;font-weight:800;letter-spacing:-.3px}
+.stk-px{font-size:30px;font-weight:800;font-family:var(--mono)}
+.stk-chg{font-size:13px;font-weight:700}
+.stk-session{font-size:11px;color:var(--dim);font-family:var(--mono)}
+.stk-cap{margin-left:auto;text-align:right}
+.stk-cap .v{font-size:15px;font-weight:700;font-family:var(--mono)}
+.stk-cap .k{font-size:10px;color:var(--faint)}
+.stk-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:12px 0 14px;flex-wrap:wrap}
+.stk-tabs button{background:none;border:none;color:var(--dim);font-size:13px;font-weight:600;padding:8px 14px;cursor:pointer;border-bottom:2px solid transparent}
+.stk-tabs button.on{color:var(--txt);border-bottom-color:var(--amber)}
+.stk-tabs button:hover{color:var(--txt)}
+.stk-sub{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.stk-sub button{background:var(--panel2);border:1px solid var(--line);color:var(--dim);font-size:11.5px;padding:5px 11px;border-radius:7px;cursor:pointer}
+.stk-sub button.on{color:var(--txt);border-color:#3a76dd;background:rgba(58,118,221,.12)}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-top:10px}
+.statgrid .cell{background:var(--panel2);padding:8px 12px}
+.statgrid .v{font-size:13.5px;font-weight:700;font-family:var(--mono)}
+.statgrid .k{font-size:10px;color:var(--faint);margin-top:1px}
+.stk-toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.stk-toolbar select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:5px 9px;font-size:12px}
+.stk-toolbar .rng{background:var(--panel2);border:1px solid var(--line);color:var(--dim);font-size:11.5px;padding:5px 11px;border-radius:7px;cursor:pointer}
+.stk-toolbar .rng.on{color:var(--txt);border-color:var(--amber);background:rgba(242,193,78,.1)}
+.stk-toolbar .mode{margin-left:auto}
+.readout{font-size:11px;font-family:var(--mono);color:var(--dim);min-height:16px;margin-bottom:4px}
+.rating-bar{display:flex;height:26px;border-radius:7px;overflow:hidden;font-size:11px;font-weight:700;color:#04121c}
+.rating-bar div{display:flex;align-items:center;justify-content:center}
+.rt-row{display:flex;gap:10px;align-items:baseline;margin-top:8px;font-size:12px}
+.rt-row b{font-family:var(--mono)}
+.oflow-tot{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+.oflow-tot .b{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 12px}
+.oflow-tot .k{font-size:10px;color:var(--faint)}
+.oflow-tot .v{font-size:15px;font-weight:800;font-family:var(--mono)}
+.dist-row{display:grid;grid-template-columns:26px 1fr 90px;gap:8px;align-items:center;font-size:11px;margin-bottom:6px}
+.dist-bar{height:13px;border-radius:4px;display:flex;overflow:hidden}
+.chain-wrap{overflow:auto;max-height:560px}
+.chain-table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)}
+.chain-table th{position:sticky;top:0;background:var(--panel);color:var(--faint);font-weight:600;padding:6px 7px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap}
+.chain-table td{padding:5px 7px;border-bottom:1px solid rgba(38,52,74,.4);text-align:right;white-space:nowrap}
+.chain-table .strike{color:var(--amber);font-weight:700;background:rgba(242,193,78,.05)}
+.fin-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.fin-table th{color:var(--faint);font-weight:600;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0;background:var(--panel)}
+.fin-table td{padding:5px 8px;border-bottom:1px solid rgba(38,52,74,.35);text-align:right;font-family:var(--mono);white-space:nowrap}
+.fin-table td.rowname{font-family:inherit;text-align:left;color:#c3cfdf;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+.fin-scroll{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:9px}
+.est-t{width:100%;border-collapse:collapse;font-size:11.5px}
+.est-t th{color:var(--faint);text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);font-weight:600}
+.est-t td{padding:6px 8px;border-bottom:1px solid rgba(38,52,74,.35);text-align:right;font-family:var(--mono)}
+.ind-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.ind-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.ind-card .nm{font-size:12px;font-weight:700}
+.ind-card .v{font-size:19px;font-weight:800;font-family:var(--mono);margin:3px 0}
+.ind-card .yy{font-size:10.5px}
+.kv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+.kv-grid .it{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.kv-grid .k{font-size:10px;color:var(--faint)}
+.kv-grid .v{font-size:12px;font-weight:600;margin-top:1px;word-break:break-word}
+.news-item{padding:9px 0;border-bottom:1px solid rgba(38,52,74,.45)}
+.news-item .t{font-size:12.5px;font-weight:600;color:#dbe6f3}
+.news-item .t:hover{color:#fff}
+.news-item .m{font-size:10.5px;color:var(--faint);margin-top:2px}
+.ann-chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.ann-chips button{background:var(--panel2);border:1px solid var(--line);color:var(--dim);font-size:11px;padding:4px 10px;border-radius:14px;cursor:pointer}
+.ann-chips button.on{color:#04121c;background:var(--amber);border-color:var(--amber);font-weight:700}
+.comm-card{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin-bottom:8px}
+.comm-card .t{font-size:12.5px;font-weight:600}
+.comm-card .m{font-size:10.5px;color:var(--faint);margin-top:3px}
+.delay-note{font-size:10px;color:var(--amber);background:rgba(232,163,61,.08);border:1px solid rgba(232,163,61,.25);border-radius:7px;padding:4px 9px;display:inline-block}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:#26344a;border-radius:5px}
@@ -441,7 +510,7 @@ const pages = {
     const cap = v => v == null ? "—" : "$" + fmtBig(v);
     const body = rows.map((r, i) => `<tr>
       <td class="mono dim">${i + 1}</td>
-      <td><a href="#" onclick="submitAnalysis('${esc(r.symbol)}','standard');return false" class="mono sym">${esc(r.symbol)}</a></td>
+      <td><a href="#" onclick="openStock('${esc(r.symbol)}');return false" class="mono sym" title="open stock page">${esc(r.symbol)}</a></td>
       <td class="dim" title="${esc(r.name)}">${esc(String(r.name || "").slice(0, 26))}</td>
       <td class="mono">${num(r.price, 2)}</td>
       <td class="mono ${r.pct >= 0 ? "g" : "r"}">${r.pct != null ? (r.pct >= 0 ? "+" : "") + r.pct.toFixed(2) + "%" : "—"}</td>
@@ -1037,7 +1106,725 @@ async function refreshModels() {
   } catch (e) { out.textContent = "Refresh failed: " + (e.message || e); }
 }
 
+// ── STOCK PAGE (moomoo-style per-symbol detail; spec: web/STOCK_PAGE_FEASIBILITY.md) ──
+const STK_TABS = [["overview","Overview"],["options","Options"],["financials","Financials"],
+  ["analysis","Analysis"],["company","Company"],["news","News"],["comments","Comments"]];
+const STK_FIN_TABS = [["earnings","Earnings"],["revenue","Revenue Breakdown"],
+  ["indicators","Financial Indicators"],["income","Income Statement"],
+  ["balance","Balance Sheet"],["cashflow","Cash Flow"]];
+const STK_FIN_STMT = {income:1, balance:2, cashflow:3, indicators:4};
+const STK_RANGES = [["5D","5D"],["D","Daily"],["W","Weekly"],["M","Monthly"],["Q","1Q"],["Y","1Y"]];
+const STK_SESSIONS = [["FULL","Full Hours"],["NORMAL","Real-Time"],["PREMARKET","Pre-Market"],["AFTERHOURS","After-Hours"]];
+const STK_ANN_CATS = ["All","Earnings","Transactions","Shareholding","Events","Other"];
+
+function stkState() {
+  if (!window.__stk) window.__stk = { sym: null, tab: "overview", finTab: "earnings",
+    finAnnual: false, stmtCount: 0, yoy: true, hideBlank: true, newsTab: "news", annCat: "All",
+    revPeriod: null, chart: { src: "intraday", range: "D", kind: "FULL", mode: "line", ma: true, boll: false },
+    expiry: "auto", chainSort: null, optFilter: "all", optRange: "all", trendPeriod: "intraday",
+    quote: null, showStats: true };
+  return window.__stk;
+}
+const stkQ = () => stkState().quote || {};
+const stkSymCode = () => stkState().quote?.code || ("US." + (stkState().sym || ""));
+const stkSpot = () => Number(stkQ().last_price) || null;
+
+function openStock(sym, tab) {
+  const st = stkState();
+  st.sym = String(sym || "").toUpperCase().replace(/-US$/, "");
+  if (tab) st.tab = tab;
+  if (state.poll) { clearInterval(state.poll); state.poll = null; }
+  state.page = "stock";
+  document.querySelectorAll(".nav button").forEach(b => b.classList.remove("on"));
+  if (!location.hash.startsWith("#/stock/"))
+    history.replaceState(null, "", "#/stock/" + st.sym + "-US");
+  $("#page").innerHTML = '<div class="empty">Loading ' + esc(st.sym) + '…</div>';
+  renderStock().catch(e => { $("#page").innerHTML =
+    `<div class="panel"><div class="empty">Stock page failed: ${esc(e.message || e)}</div></div>`; });
+}
+window.openStock = openStock;
+
+function stkSet(k, v) { stkState()[k] = v; renderStock(); }
+function stkChartSet(patch) { Object.assign(stkState().chart, patch); renderStock(); }
+
+function stkFmt(v, dp) { return v == null ? "—" : Number(v).toLocaleString(undefined, { maximumFractionDigits: dp ?? 2 }); }
+function stkMoney(v) {
+  if (v == null || v === "") return "—";
+  const n = Number(v), a = Math.abs(n);
+  if (a >= 1e12) return (n / 1e12).toFixed(2) + "T";
+  if (a >= 1e9) return (n / 1e9).toFixed(2) + "B";
+  if (a >= 1e6) return (n / 1e6).toFixed(2) + "M";
+  if (a >= 1e4) return (n / 1e3).toFixed(1) + "K";
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+function stkPct(v, dp) { return v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(dp ?? 2) + "%"; }
+function stkTime(ms) {
+  if (!ms) return "—";
+  const d = new Date(Number(ms));
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+function stkStmtVal(name, v) {
+  const n = Number(v);
+  if (v == null || isNaN(n)) return null;
+  if (/ratio|margin|roe|roa|growth|return|yield|turnover rate/i.test(name)) return (n > 0 && n < 1 ? n * 100 : n).toFixed(2) + "%";
+  if (/eps|per share/i.test(name)) return n.toFixed(2);
+  if (Math.abs(n) < 1e4) return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return stkMoney(n);
+}
+
+async function renderStock() {
+  const st = stkState();
+  const quoteR = await api("/api/stock/" + st.sym + "/quote").catch(() => null);
+  st.quote = (quoteR && quoteR.available !== false && quoteR.code) ? quoteR : (st.quote || null);
+  const q = stkQ();
+  const last = q.last_price, prev = q.prev_close_price;
+  let pct = q.pct_change;
+  if (pct == null && last != null && prev) pct = (last - prev) / prev * 100;
+  const chg = last != null && prev != null ? last - prev : null;
+  const g = v => v >= 0;
+  const sess = q.pre_market || {}, aft = q.after_market || {};
+  const sessLine = (label, s) => s && s.last_price ? `<span class="stk-session">${stkFmt(s.last_price, 3)}
+      <span class="${(s.last_price - prev) >= 0 ? "g" : "r"}">${stkPct(prev ? (s.last_price - prev) / prev * 100 : null)}</span> · ${label}</span>` : "";
+  const stats = [
+    ["High", stkFmt(q.high_price, 3)], ["Low", stkFmt(q.low_price, 3)], ["Volume", stkMoney(q.volume)],
+    ["Open", stkFmt(q.open_price, 3)], ["Prev Close", stkFmt(prev, 3)], ["Turnover", stkMoney(q.turnover)],
+    ["Turnover Ratio", q.turnover_rate != null ? q.turnover_rate.toFixed(2) + "%" : "—"],
+    ["P/E (Static)", stkFmt(q.pe_ratio, 2)], ["Shares", stkMoney(q.issued_shares)],
+    ["52wk High", stkFmt(q.highest52weeks_price, 3)], ["P/B", stkFmt(q.pb_ratio, 2)],
+    ["Float Cap", stkMoney(q.circular_market_val)], ["52wk Low", stkFmt(q.lowest52weeks_price, 3)],
+    ["Dividend TTM", stkFmt(q.dividend_ttm, 3)], ["Shs Float", stkMoney(q.outstanding_shares)],
+    ["Highest", stkFmt(q.highest_history_price, 3)], ["Div Yield TTM", q.dividend_ratio_ttm != null ? q.dividend_ratio_ttm.toFixed(2) + "%" : "—"],
+    ["Range %", q.amplitude != null ? q.amplitude.toFixed(2) + "%" : "—"],
+    ["Lowest", stkFmt(q.lowest_history_price, 3)], ["Avg Price", stkFmt(q.avg_price, 3)],
+    ["Lot Size", stkFmt(q.lot_size, 0)], ["Volume Ratio", stkFmt(q.volume_ratio, 2)],
+    ["Bid/Ask %", q.bid_ask_ratio != null ? q.bid_ask_ratio.toFixed(2) + "%" : "—"],
+  ];
+  const stars = window.__scr?.watchlistSyms || [];
+  const head = `
+  <div class="panel">
+    <div class="stk-head">
+      <div>
+        <div class="stk-co">${esc(q.name || st.sym)} (${esc(st.sym)})</div>
+        <div style="display:flex;gap:14px;align-items:baseline;margin-top:6px;flex-wrap:wrap">
+          <span class="stk-px ${g(last ?? 0) ? "g" : "r"}">${stkFmt(last, 3)}</span>
+          <span class="stk-chg ${g(chg ?? 0) ? "g" : "r"}">${chg != null ? (chg >= 0 ? "▲ +" : "▼ ") : ""}${stkFmt(chg, 3)}  ${stkPct(pct)}</span>
+          <span class="stk-session">${q.data_date ? "Close " + esc(q.data_date) : ""}${q.update_time ? " · " + stkTime(q.update_time) : ""}</span>
+        </div>
+        <div style="display:flex;gap:14px;margin-top:4px;flex-wrap:wrap">
+          ${sessLine("Pre 04:00 ET", sess)}${sessLine("Post 19:30 ET", aft)}
+        </div>
+      </div>
+      <div class="stk-cap">
+        <div style="display:flex;gap:18px">
+          <div><div class="v">${stkMoney(q.total_market_val)}</div><div class="k">Market Cap</div></div>
+          <div><div class="v">${stkFmt(q.pe_ttm_ratio, 2)}</div><div class="k">P/E (TTM)</div></div>
+          <div><button class="starbtn ${stars.includes(st.sym) ? "on" : ""}" onclick="toggleWatch('${esc(st.sym)}')">${stars.includes(st.sym) ? "★" : "☆"}</button>
+            <button class="btn ghost" style="padding:3px 9px;font-size:10.5px" onclick="submitAnalysis('${esc(st.sym)}','standard')">Analyze</button></div>
+        </div>
+      </div>
+    </div>
+    <button class="faint" style="background:none;border:none;cursor:pointer;font-size:10.5px;margin-top:8px" onclick="stkSet('showStats', !stkState().showStats)">
+      ${st.showStats ? "▲ Hide stats" : "▼ All stats"}</button>
+    ${st.showStats ? `<div class="statgrid">${stats.map(([k, v]) => `<div class="cell"><div class="v">${v}</div><div class="k">${k}</div></div>`).join("")}</div>` : ""}
+    <div class="stk-tabs">${STK_TABS.map(([id, label]) =>
+      `<button class="${st.tab === id ? "on" : ""}" onclick="stkSet('tab','${id}')">${label}</button>`).join("")}</div>
+    <div id="stk-tab">${await stkTabPage()}</div>
+  </div>`;
+  $("#page").innerHTML = head;
+  if (st.tab === "overview") stkLoadChart();
+  if (st.tab === "options") stkDrawChain();
+}
+
+async function stkTabPage() {
+  const st = stkState();
+  try {
+    if (st.tab === "overview") return await stkOverview();
+    if (st.tab === "options") return await stkOptions();
+    if (st.tab === "financials") return await stkFinancials();
+    if (st.tab === "analysis") return await stkAnalysis();
+    if (st.tab === "company") return await stkCompany();
+    if (st.tab === "news") return await stkNews();
+    if (st.tab === "comments") return await stkComments();
+  } catch (e) {
+    return `<div class="empty">Section unavailable: ${esc(e.message || e)}</div>`;
+  }
+  return "";
+}
+
+const stkPanel = (title, sub, body) => `<div class="panel" style="margin-top:14px">
+  <h3 class="sec">${title}${sub ? ` <small>${sub}</small>` : ""}</h3>${body || ""}</div>`;
+const stkNa = reason => `<div class="empty">${esc(reason || "moomoo keys not configured on this deployment — data appears once MOOMOO_APPKEY/MOOMOO_PRIVATE_KEY are set.")}</div>`;
+
+// ── overview: chart + ratings + orderflow + previews ─────────────────
+async function stkOverview() {
+  const st = stkState();
+  const [research, capital, news, comm] = await Promise.all([
+    api("/api/stock/" + st.sym + "/research").catch(() => null),
+    api("/api/stock/" + st.sym + "/capital?period=" + st.trendPeriod).catch(() => null),
+    api("/api/stock/" + st.sym + "/news?type=news").catch(() => null),
+    api("/api/stock/" + st.sym + "/community").catch(() => null),
+  ]);
+  st.__research = research; st.__capital = capital;
+  const c = research?.consensus;
+  const seg = (v, color) => v > 0 ? `<div style="width:${v}%;background:${color}">${v}%</div>` : "";
+  const ratings = `
+    <div class="rt-row"><b>${stkFmt(c?.total, 0)}</b> analysts · last updated ${esc(c?.update_time_str || "—")}</div>
+    <div class="rating-bar" style="margin-top:8px">
+      ${seg(c?.buy ?? 0, "#26c68c")}${seg(c?.hold ?? 0, "#e8a33d")}${seg(c?.sell ?? 0, "#f0544f") || (c && !c.buy && !c.hold && !c.sell ? '<div style="width:100%;color:var(--faint)">no coverage</div>' : "")}
+    </div>
+    <div class="rt-row"><span class="g">● Buy ${stkPct(c?.buy ?? 0, 0)}</span><span style="color:var(--amber)">● Hold ${stkPct(c?.hold ?? 0, 0)}</span><span class="r">● Sell ${stkPct(c?.sell ?? 0, 0)}</span></div>
+    <div class="rt-row">12M price target — avg <b>${stkFmt(c?.average, 2)}</b> · max <b>${stkFmt(c?.highest, 2)}</b> · min <b>${stkFmt(c?.lowest, 2)}</b> · from <b>${stkFmt(c?.num_of_target_analysts, 0)}</b> analysts
+      ${stkSpot() && c?.average ? `<span class="${c.average >= stkSpot() ? "g" : "r"}">${stkPct((c.average - stkSpot()) / stkSpot() * 100, 1)} vs spot</span>` : ""}</div>
+    <div style="margin-top:8px"><a href="#" onclick="stkSet('tab','analysis');return false" style="font-size:11.5px">Detailed institutional ratings →</a></div>`;
+  const chartPanel = `
+    <div class="stk-toolbar">
+      <select onchange="stkChartSet({src:'intraday',kind:this.value})">
+        ${STK_SESSIONS.map(([k, l]) => `<option value="${k}" ${st.chart.src === "intraday" && st.chart.kind === k ? "selected" : ""}>${l}</option>`).join("")}
+      </select>
+      ${STK_RANGES.map(([k, l]) => `<button class="rng ${st.chart.src === "range" && st.chart.range === k ? "on" : ""}" onclick="stkChartSet({src:'range',range:'${k}'})">${l}</button>`).join("")}
+      <span class="mode" style="display:flex;gap:6px">
+        <button class="rng ${st.chart.mode === "line" ? "on" : ""}" onclick="stkChartSet({mode:'line'})">Time</button>
+        <button class="rng ${st.chart.mode === "candle" ? "on" : ""}" onclick="stkChartSet({mode:'candle'})">Candle</button>
+        <button class="rng ${st.chart.ma ? "on" : ""}" onclick="stkChartSet({ma:!stkState().chart.ma})">MA</button>
+        <button class="rng ${st.chart.boll ? "on" : ""}" onclick="stkChartSet({boll:!stkState().chart.boll})">BOLL</button>
+      </span>
+    </div>
+    <div class="chartbox">
+      <div class="readout" id="stk-readout">${esc(st.sym)} · hover the chart for detail</div>
+      <canvas id="stkMain" height="300"></canvas>
+      <canvas id="stkVol" height="56"></canvas>
+      <canvas id="stkSub" height="70"></canvas>
+    </div>`;
+  const dist = capital?.distribution || {};
+  const buckets = [["XL", dist.capital_in_super, dist.capital_out_super, "Super-large"],
+                   ["L", dist.capital_in_big, dist.capital_out_big, "Large"],
+                   ["M", dist.capital_in_mid, dist.capital_out_mid, "Medium"],
+                   ["S", dist.capital_in_small, dist.capital_out_small, "Small"]];
+  const flow = capital?.flow || [];
+  const totIn = flow.reduce((s, f) => s + (Number(f.in_flow) || 0), 0);
+  const totOut = flow.reduce((s, f) => s + (Number(f.out_flow) || 0), 0);
+  const net = totIn - totOut;
+  const unit = v => "$" + stkMoney(v / 1000) + "K";
+  const oflow = `
+    <div class="stk-sub">${[["intraday","Intraday"],["day","Day"],["week","Week"],["month","Month"]].map(([k, l]) =>
+      `<button class="${st.trendPeriod === k ? "on" : ""}" onclick="stkSet('trendPeriod','${k}')">${l}</button>`).join("")}
+      <span class="delay-note" style="margin-left:auto">Orderflow units: trade currency</span></div>
+    ${!capital ? stkNa() : `
+    <div class="oflow-tot">
+      <div class="b"><div class="v ${net >= 0 ? "g" : "r"}">${unit(net)}</div><div class="k">Net Inflow</div></div>
+      <div class="b"><div class="v g">${unit(totIn)}</div><div class="k">Inflow</div></div>
+      <div class="b"><div class="v r">${unit(totOut)}</div><div class="k">Outflow</div></div>
+    </div>
+    ${buckets.map(([k, i, o, label]) => {
+      const ti = Number(i) || 0, to = Number(o) || 0, mx = Math.max(ti, to, 1);
+      return `<div class="dist-row"><b>${k}</b>
+        <div class="dist-bar"><div style="width:${(ti / mx * 100).toFixed(1)}%;background:#26c68c"></div>
+        <div style="width:${(to / mx * 100).toFixed(1)}%;background:#f0544f"></div></div>
+        <span class="mono dim">${label}</span></div>`;
+    }).join("")}
+    <div class="faint" style="font-size:10px;margin-top:4px">In ▮ green vs out ▮ red by order size (XL / L / M / S)</div>`}`;
+  const newsList = (news?.news_list || []).slice(0, 5).map(n => stkNewsItem(n)).join("");
+  const commList = (comm?.community_list || []).slice(0, 3).map(p =>
+    `<div class="comm-card"><div class="t"><a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(p.title || "(untitled post)")}</a></div>
+     <div class="m">${esc(p.community_type || "")} · ${stkTime(Number(p.publish_time) * 1000)}</div></div>`).join("");
+  return `
+    ${stkPanel(`${esc(st.sym)} Stock Chart`, "moomoo sessions & periods · live quotes via moomoo REST", chartPanel)}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="scr-grid">
+      ${stkPanel("Analyst Ratings &amp; Price Target", "S&P-consensus via moomoo research API", research ? ratings : stkNa())}
+      ${stkPanel(`${esc(st.sym)} Orderflow Trend`, "capital-flow + capital-distribution", oflow)}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="scr-grid">
+      ${stkPanel(`${esc(st.sym)} News`, "<a href='#' onclick=\"stkSet('tab','news');return false\">all news →</a>", news ? (newsList || '<div class="empty">No headlines.</div>') : stkNa())}
+      ${stkPanel("Stock Forum", "community search (latest)", comm ? (commList || '<div class="empty">No posts.</div>') : stkNa())}
+    </div>`;
+}
+
+// ── chart engine (sessions + periods; independent from report chart) ──
+const stkChartState = { bars: [], pts: [], prevClose: null, hover: null, hoverX: 0, loaded: "" };
+async function stkLoadChart() {
+  const st = stkState(), ch = st.chart;
+  const key = ch.src + ":" + (ch.src === "intraday" ? ch.kind : ch.range) + ":" + st.sym;
+  let d;
+  if (ch.src === "intraday") {
+    d = await api("/api/stock/" + st.sym + "/intraday?kind=" + ch.kind).catch(() => null);
+    stkChartState.bars = [];
+    stkChartState.pts = ((d?.section_list || [])[0]?.point_list || [])
+      .map(p => ({ t: p.time, c: p.cur_price, o: p.open, h: p.high, l: p.low, v: p.volume, to: p.turnover }));
+  } else {
+    d = await api("/api/stock/" + st.sym + "/candles?range=" + ch.range).catch(() => null);
+    stkChartState.pts = [];
+    stkChartState.bars = (d?.bars || [])
+      .map(b => ({ t: b.time_key, o: b.open, h: b.high, l: b.low, c: b.close, v: b.volume,
+                   to: b.turnover, tr: b.turnover_rate, chg: b.change_rate }));
+  }
+  stkChartState.prevClose = stkQ().prev_close_price || null;
+  stkChartState.loaded = key;
+  stkChartState.hover = null;
+  stkDraw();
+}
+function stkBind() {
+  ["stkMain", "stkVol", "stkSub"].forEach(id => {
+    const c = document.getElementById(id); if (!c) return;
+    c.onmousemove = e => {
+      const r = c.getBoundingClientRect();
+      const n = stkChartState.bars.length || stkChartState.pts.length;
+      const bw = (r.width - 72) / Math.max(n, 1);
+      stkChartState.hoverX = e.clientX - r.left;
+      stkChartState.hover = Math.max(0, Math.min(n - 1, Math.floor((e.clientX - r.left - 8) / bw)));
+      stkDraw();
+    };
+    c.onmouseleave = () => { stkChartState.hover = null; stkDraw();
+      const ro = document.getElementById("stk-readout");
+      if (ro) ro.textContent = stkState().sym + " · hover the chart for detail"; };
+  });
+  window.onresize = () => stkDraw();
+}
+function stkSetup(id) {
+  const c = document.getElementById(id); if (!c) return null;
+  const d = window.devicePixelRatio || 1, w = c.parentElement.clientWidth || 900;
+  c.width = w * d; c.height = +c.getAttribute("height") * d; c.style.height = c.getAttribute("height") + "px";
+  const x = c.getContext("2d"); x.setTransform(d, 0, 0, d, 0, 0);
+  return { x, w, h: +c.getAttribute("height") };
+}
+function stkDraw() {
+  try { stkDrawImpl(); } catch (e) { console.error("stock chart draw:", e); }
+}
+function stkDrawImpl() {
+  const m = stkSetup("stkMain"), v = stkSetup("stkVol"), s = stkSetup("stkSub");
+  if (!m) return;
+  const ch = stkState().chart, S = stkChartState;
+  const isK = S.bars.length > 0;
+  const data = isK ? S.bars : S.pts;
+  if (!data.length) {
+    m.x.fillStyle = "#5c6f86"; m.x.font = "12px sans-serif";
+    m.x.fillText("No chart data (moomoo not configured, or market closed for this session).", 20, m.h / 2);
+    return;
+  }
+  const padL = 8, padR = 64, iw = m.w - padL - padR, bw = Math.max(iw / data.length, .8);
+  const lo = Math.min(...data.map(x => isK ? x.l : x.c)), hi = Math.max(...data.map(x => isK ? x.h : x.c));
+  const pad = (hi - lo) * .06 || 1;
+  const y = val => m.h - ((val - (lo - pad)) / ((hi + pad) - (lo - pad))) * m.h;
+  // grid
+  m.x.strokeStyle = "#141d2a"; m.x.fillStyle = "#5c6f86"; m.x.font = "10px monospace";
+  for (let i = 0; i <= 5; i++) {
+    const p = (lo - pad) + (hi + pad - (lo - pad)) * i / 5, yy = y(p);
+    m.x.beginPath(); m.x.moveTo(padL, yy); m.x.lineTo(m.w - padR, yy); m.x.stroke();
+    m.x.fillText(p.toFixed(2), m.w - padR + 6, yy + 3);
+  }
+  // intraday prev-close baseline
+  if (!isK && S.prevClose) {
+    m.x.strokeStyle = "rgba(139,160,184,.5)"; m.x.setLineDash([4, 4]);
+    m.x.beginPath(); m.x.moveTo(padL, y(S.prevClose)); m.x.lineTo(m.w - padR, y(S.prevClose)); m.x.stroke();
+    m.x.setLineDash([]);
+  }
+  const upAll = data[data.length - 1].c >= (isK ? data[0].o : (S.prevClose || data[0].c));
+  if (ch.mode === "line" || !isK) {
+    const col = upAll ? "#26c68c" : "#f0544f";
+    m.x.beginPath();
+    data.forEach((p, i) => { const cx = padL + i * bw + bw / 2; i ? m.x.lineTo(cx, y(p.c)) : m.x.moveTo(cx, y(p.c)); });
+    m.x.strokeStyle = col; m.x.lineWidth = 1.4; m.x.stroke(); m.x.lineWidth = 1;
+    m.x.lineTo(m.w - padR, m.h); m.x.lineTo(padL, m.h); m.x.closePath();
+    m.x.fillStyle = upAll ? "rgba(38,198,140,.10)" : "rgba(240,84,79,.10)"; m.x.fill();
+  } else {
+    data.forEach((x, i) => {
+      const cx = padL + i * bw + bw / 2, up = x.c >= x.o;
+      m.x.strokeStyle = up ? "#26c68c" : "#f0544f"; m.x.fillStyle = up ? "rgba(38,198,140,.85)" : "rgba(240,84,79,.85)";
+      m.x.beginPath(); m.x.moveTo(cx, y(x.h)); m.x.lineTo(cx, y(x.l)); m.x.stroke();
+      const t = y(Math.max(x.o, x.c)), bt = y(Math.min(x.o, x.c));
+      m.x.fillRect(cx - Math.max(bw * .32, .8), t, Math.max(bw * .64, 1.6), Math.max(bt - t, 1));
+    });
+  }
+  if (isK && ch.ma) {
+    const line = (arr, color) => {
+      m.x.strokeStyle = color; m.x.lineWidth = 1.1; m.x.beginPath(); let st = false;
+      arr.forEach((val, i) => { if (val == null) { st = false; return; }
+        const cx = padL + i * bw + bw / 2; st ? m.x.lineTo(cx, y(val)) : (m.x.moveTo(cx, y(val)), st = true); });
+      m.x.stroke(); m.x.lineWidth = 1; };
+    line(sma(S.bars, 5, x => x.c), "#f2c14e");
+    line(sma(S.bars, 20, x => x.c), "#e05fa0");
+    line(sma(S.bars, 60, x => x.c), "#3fc1c9");
+  }
+  if (isK && ch.boll) {
+    const bo = boll(S.bars.map(x => ({ c: x.c })));
+    const bl = (arr, color) => { m.x.strokeStyle = color; m.x.beginPath(); let st = false;
+      arr.forEach((val, i) => { if (val == null) { st = false; return; }
+        const cx = padL + i * bw + bw / 2; st ? m.x.lineTo(cx, y(val)) : (m.x.moveTo(cx, y(val)), st = true); });
+      m.x.stroke(); };
+    bl(bo.up, "rgba(63,193,201,.7)"); bl(bo.m, "rgba(63,193,201,.45)"); bl(bo.lo, "rgba(63,193,201,.7)");
+  }
+  // volume pane
+  const vmax = Math.max(...data.map(x => x.v || 0)) || 1;
+  data.forEach((x, i) => {
+    const cx = padL + i * bw + bw / 2, h = (x.v / vmax) * (v.h - 8);
+    const up = isK ? x.c >= x.o : true;
+    v.x.fillStyle = up ? "rgba(38,198,140,.55)" : "rgba(240,84,79,.5)";
+    v.x.fillRect(cx - Math.max(bw * .32, .8), v.h - h, Math.max(bw * .64, 1.6), h);
+  });
+  v.x.fillStyle = "#5c6f86"; v.x.font = "9px sans-serif"; v.x.fillText("VOLUME", 6, 11);
+  // sub pane: turnover-rate (klines) / per-minute turnover (intraday)
+  s.x.fillStyle = "#5c6f86"; s.x.font = "9px sans-serif";
+  if (isK) {
+    s.x.fillText("TURNOVER %", 6, 11);
+    const trs = S.bars.map(x => x.tr);
+    const tmax = Math.max(...trs.filter(x => x != null)) || 1;
+    const sl = arr => { s.x.strokeStyle = "#a06bfa"; s.x.beginPath(); let st = false;
+      arr.forEach((val, i) => { if (val == null) { st = false; return; }
+        const cx = padL + i * bw + bw / 2, cy = s.h - 8 - (val / tmax) * (s.h - 18);
+        st ? s.x.lineTo(cx, cy) : (s.x.moveTo(cx, cy), st = true); }); s.x.stroke(); };
+    sl(trs);
+  } else {
+    s.x.fillText("TURNOVER", 6, 11);
+    const tomax = Math.max(...data.map(x => x.to || 0)) || 1;
+    data.forEach((x, i) => {
+      const cx = padL + i * bw + bw / 2, h = ((x.to || 0) / tomax) * (s.h - 14);
+      s.x.fillStyle = "rgba(160,107,250,.55)";
+      s.x.fillRect(cx - Math.max(bw * .32, .8), s.h - h, Math.max(bw * .64, 1.6), h);
+    });
+  }
+  // crosshair + readout
+  if (S.hover != null) {
+    const i = S.hover, x0 = S.hoverX;
+    [m, v, s].forEach(c => { c.x.strokeStyle = "rgba(139,160,184,.35)"; c.x.setLineDash([3, 3]);
+      c.x.beginPath(); c.x.moveTo(x0, 0); c.x.lineTo(x0, c.h); c.x.stroke(); c.x.setLineDash([]); });
+    const p = data[i], ro = document.getElementById("stk-readout");
+    if (ro) {
+      if (isK) ro.innerHTML = `<b>${esc(stkTime(p.t))}</b> · O <b>${p.o.toFixed(2)}</b> H <b>${p.h.toFixed(2)}</b> L <b>${p.l.toFixed(2)}</b> C <b>${p.c.toFixed(2)}</b> · Chg <b class="${(p.chg ?? 0) >= 0 ? "g" : "r"}">${stkPct(p.chg)}</b> · Vol <b>${stkMoney(p.v)}</b> · Turnover <b>${stkMoney(p.to)}</b>${p.tr != null ? ` · Turnover% <b>${p.tr.toFixed(2)}%</b>` : ""}`;
+      else ro.innerHTML = `<b>${esc(stkTime(p.t))}</b> · <b>${p.c.toFixed(2)}</b> · Vol <b>${stkMoney(p.v)}</b> · Turnover <b>${stkMoney(p.to)}</b>`;
+    }
+  }
+  stkBind();
+}
+
+// ── news item renderer (shared by overview + news tab) ───────────────
+function stkNewsItem(n) {
+  let host = "moomoo";
+  try { host = new URL(n.url).hostname.replace("www.", ""); } catch (e) {}
+  return `<div class="news-item">
+    <div class="t"><a href="${esc(n.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(n.title)}</a></div>
+    <div class="m">${esc(host)} · ${stkTime(Number(n.publish_time) * 1000)}</div></div>`;
+}
+
+// ── analysis + research ──────────────────────────────────────────────
+async function stkAnalysis() {
+  const st = stkState();
+  const research = st.__research || await api("/api/stock/" + st.sym + "/research").catch(() => null);
+  if (!research) return stkPanel("Analyst Ratings", "", stkNa());
+  const c = research.consensus || {}, detail = research.detail || {};
+  const rows = (detail.inst_rating_summary_list || []).map(inst => {
+    const r = (inst.rating_item_list || [])[0] || {};
+    const ratingName = { 1: "Sell", 2: "Hold", 3: "Buy" }[r.rating] || "—";
+    const col = { 1: "r", 2: "", 3: "g" }[r.rating] || "";
+    return `<tr><td style="text-align:left">${esc(inst.institution_info?.institution_name || "—")}</td>
+      <td class="${col}" style="text-align:right">${esc(ratingName)}</td>
+      <td class="mono" style="text-align:right">${stkFmt(r.target_price, 2)}</td>
+      <td class="mono dim" style="text-align:right">${esc(r.recommendation_date_str || "—")}</td></tr>`;
+  }).join("");
+  const seg = (v, color) => v > 0 ? `<div style="width:${v}%;background:${color}">${v}%</div>` : "";
+  return stkPanel(`${esc(st.sym)} Analyst Ratings, Forecast &amp; Price Target`,
+      `${stkFmt(c.total, 0)} analysts · ${esc(c.update_time_str || "")}`, `
+    <div class="rating-bar">${seg(c.buy ?? 0, "#26c68c")}${seg(c.hold ?? 0, "#e8a33d")}${seg(c.sell ?? 0, "#f0544f")}</div>
+    <div class="rt-row"><span class="g">● Buy ${stkPct(c.buy ?? 0, 0)}</span><span style="color:var(--amber)">● Hold ${stkPct(c.hold ?? 0, 0)}</span><span class="r">● Sell ${stkPct(c.sell ?? 0, 0)}</span></div>
+    <div class="rt-row">Average target <b>${stkFmt(c.average, 2)}</b> · high <b>${stkFmt(c.highest, 2)}</b> · low <b>${stkFmt(c.lowest, 2)}</b></div>
+    <table class="est-t" style="margin-top:12px"><tr><th style="text-align:left">Institution</th><th>Rating</th><th>Target</th><th>Date</th></tr>${rows || '<tr><td colspan="4" class="empty">No detailed ratings.</td></tr>'}</table>
+    <div class="faint" style="font-size:10px;margin-top:8px">Consensus &amp; per-institution ratings via moomoo research API (rating-summary, institution dimension).</div>`);
+}
+
+// ── financials: 6 sub-tabs ───────────────────────────────────────────
+async function stkFinancials() {
+  const st = stkState();
+  const finType = st.finAnnual ? 7 : 102;
+  const stmtType = STK_FIN_STMT[st.finTab] || 1;
+  const needStmt = ["earnings", "indicators", "income", "balance", "cashflow"].includes(st.finTab);
+  const [stmts, rev, est, epsh] = await Promise.all([
+    needStmt ? api(`/api/stock/${st.sym}/financials/statements?statement_type=${stmtType}&financial_type=${finType}`).catch(() => null) : Promise.resolve(null),
+    st.finTab === "revenue" ? api(`/api/stock/${st.sym}/financials/revenue`).catch(() => null) : Promise.resolve(null),
+    api(`/api/stock/${st.sym}/estimates`).catch(() => null),
+    st.finTab === "earnings" ? api(`/api/stock/${st.sym}/earnings`).catch(() => null) : Promise.resolve(null),
+  ]);
+  const subbar = `<div class="stk-sub">${STK_FIN_TABS.map(([id, label]) =>
+    `<button class="${st.finTab === id ? "on" : ""}" onclick="stkSet('finTab','${id}')">${label}</button>`).join("")}</div>`;
+  let body = "";
+  if (st.finTab === "earnings") body = stkEarningsTab(est, epsh, stmts);
+  else if (st.finTab === "revenue") body = stkRevenueTab(rev);
+  else if (st.finTab === "indicators") body = stkIndicatorsTab(stmts);
+  else body = stkStmtTable(stmts);
+  return subbar + body;
+}
+
+function stkEarningsTab(est, epsh, stmts) {
+  if (est && est.available === false) est = null;
+  const fwdRev = (est?.revenue_estimate || []).map(r =>
+    `<tr><td style="text-align:left">${esc(r.period)}</td><td>${stkMoney(r.avg)}</td><td>${stkMoney(r.low)}</td><td>${stkMoney(r.high)}</td>
+     <td>${stkFmt(r.numberOfAnalysts, 0)}</td><td>${r.growth != null ? (r.growth * 100).toFixed(1) + "%" : "—"}</td></tr>`).join("");
+  const fwdEps = (est?.earnings_estimate || []).map(r =>
+    `<tr><td style="text-align:left">${esc(r.period)}</td><td>${stkFmt(r.avg, 2)}</td><td>${stkFmt(r.low, 2)}</td><td>${stkFmt(r.high, 2)}</td>
+     <td>${stkFmt(r.numberOfAnalysts, 0)}</td><td>${r.growth != null ? (r.growth * 100).toFixed(1) + "%" : "—"}</td></tr>`).join("");
+  const cal = est?.calendar || {};
+  const earnDate = Array.isArray(cal["Earnings Date"]) ? cal["Earnings Date"][0] : cal["Earnings Date"];
+  const surprise = (est?.earnings_history || []).map(h =>
+    `<tr><td style="text-align:left">${esc(h.quarter)}</td><td>${stkFmt(h.eps_estimate, 2)}</td><td>${stkFmt(h.eps_actual, 2)}</td>
+     <td class="${(h.surprise_pct ?? 0) >= 0 ? "g" : "r"}">${stkPct(h.surprise_pct)}</td></tr>`).join("");
+  // actuals from statements type 1
+  const periods = (stmts?.periods || []).slice(0, 8);
+  const pick = (p, name) => { const it = (p.item_list || []).find(x => x.display_name === name); return it?.value; };
+  const pickYoy = (p, name) => { const it = (p.item_list || []).find(x => x.display_name === name); return it?.yoy; };
+  const actuals = periods.map(p => `<tr>
+    <td style="text-align:left">${esc(p.period_text)}</td>
+    <td>${stkMoney(pick(p, "Total Revenue"))}</td><td class="dim">${stkPct(pickYoy(p, "Total Revenue"))}</td>
+    <td>${stkMoney(pick(p, "Net Profit"))}</td><td class="dim">${stkPct(pickYoy(p, "Net Profit"))}</td>
+    <td>${stkFmt(pick(p, "Diluted EPS"), 2)}</td></tr>`).join("");
+  const events = (epsh?.list || epsh || []).slice?.(0, 6) || [];
+  const evRows = (Array.isArray(events) ? events : []).map(e =>
+    `<tr><td style="text-align:left">${esc(e.period_text || "")}</td><td>${esc(e.disclosure_date || "")}</td>
+     <td>${stkFmt(e.prev_close, 2)} → ${stkFmt(e.close, 2)}</td>
+     <td class="${((e.close ?? 0) - (e.prev_close ?? 0)) >= 0 ? "g" : "r"}">${e.prev_close ? stkPct((e.close - e.prev_close) / e.prev_close * 100) : "—"}</td></tr>`).join("");
+  const estNote = est ? "" : `<div class="delay-note">Street estimates (S&P via Yahoo) unavailable on this deployment.</div>`;
+  return `
+  ${estNote}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="scr-grid">
+    <div class="panel"><h3 class="sec">Revenue estimates <small>next qtr ${esc(earnDate || "—")} · S&P Global MI via Yahoo</small></h3>
+      <table class="est-t"><tr><th style="text-align:left">Period</th><th>Avg</th><th>Low</th><th>High</th><th>#</th><th>YoY</th></tr>${fwdRev || '<tr><td colspan="6" class="empty">—</td></tr>'}</table></div>
+    <div class="panel"><h3 class="sec">EPS estimates</h3>
+      <table class="est-t"><tr><th style="text-align:left">Period</th><th>Avg</th><th>Low</th><th>High</th><th>#</th><th>YoY</th></tr>${fwdEps || '<tr><td colspan="6" class="empty">—</td></tr>'}</table></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="scr-grid">
+    <div class="panel"><h3 class="sec">Reported actuals <small>GAAP · moomoo statements</small></h3>
+      <table class="est-t"><tr><th style="text-align:left">Period</th><th>Revenue</th><th>YoY</th><th>Net profit</th><th>YoY</th><th>Dil. EPS</th></tr>${actuals || '<tr><td colspan="6" class="empty">—</td></tr>'}</table></div>
+    <div class="panel"><h3 class="sec">EPS surprise history <small>street basis</small></h3>
+      <table class="est-t"><tr><th style="text-align:left">Quarter</th><th>Est</th><th>Actual</th><th>Surprise</th></tr>${surprise || '<tr><td colspan="4" class="empty">—</td></tr>'}</table>
+      ${evRows ? `<h3 class="sec" style="margin-top:14px">Earnings-day price reaction</h3>
+      <table class="est-t"><tr><th style="text-align:left">Period</th><th>Disclosed</th><th>Close</th><th>Move</th></tr>${evRows}</table>` : ""}</div>
+  </div>`;
+}
+
+function stkRevenueTab(rev) {
+  if (!rev) return stkNa();
+  if (rev.available === false) return stkNa(rev.reason);
+  const periods = rev.period_list || Object.keys(rev.business || {});
+  const st = stkState();
+  if (!st.revPeriod || !periods.includes(st.revPeriod)) st.revPeriod = periods[0];
+  const table = (rows, title) => `<div class="panel" style="margin-top:12px"><h3 class="sec">${title}
+    <small>${esc(st.revPeriod)}</small></h3>
+    <table class="est-t"><tr><th style="text-align:left">Segment</th><th>Revenue</th><th>Ratio</th></tr>
+    ${(rows || []).map(r => `<tr><td style="text-align:left">${esc(r.name)}</td><td>${stkMoney(r.value)}</td>
+      <td>${stkFmt(r.ratio, 2)}%</td></tr>`).join("") || '<tr><td colspan="3" class="empty">No data.</td></tr>'}</table></div>`;
+  return `<div class="stk-sub">${periods.map(p => `<button class="${st.revPeriod === p ? "on" : ""}" onclick="stkSet('revPeriod','${esc(p)}')">${esc(p)}</button>`).join("")}</div>
+    ${table((rev.business || {})[st.revPeriod], "By Business / Source")}
+    ${table((rev.region || {})[st.revPeriod], "By Country / Region")}`;
+}
+
+function stkIndicatorsTab(stmts) {
+  const periods = stmts?.periods || [];
+  if (!periods.length) return stkNa();
+  const names = [];
+  periods.forEach(p => (p.item_list || []).forEach(it => {
+    if (!names.includes(it.display_name)) names.push(it.display_name);
+  }));
+  const cards = names.slice(0, 16).map(name => {
+    const vals = periods.map(p => (p.item_list || []).find(x => x.display_name === name)?.value ?? null);
+    const latest = vals[0], yoy = (periods[0].item_list || []).find(x => x.display_name === name)?.yoy;
+    const mx = Math.max(...vals.map(v => Math.abs(Number(v) || 0)), 1e-9);
+    const spark = vals.slice(0, 8).reverse().map(v => {
+      const h = Math.max(4, Math.abs(Number(v) || 0) / mx * 34);
+      return `<div style="width:9px;height:${h.toFixed(0)}px;background:${(Number(v) || 0) >= 0 ? "#26c68c" : "#f0544f"};border-radius:2px;opacity:.8"></div>`;
+    }).join("");
+    return `<div class="ind-card"><div class="nm">${esc(name)}</div>
+      <div class="v">${stkStmtVal(name, latest)}</div>
+      <div class="yy ${ (yoy ?? 0) >= 0 ? "g" : "r"}">YoY ${stkPct(yoy)}</div>
+      <div style="display:flex;gap:3px;align-items:flex-end;height:36px;margin-top:6px">${spark}</div></div>`;
+  }).join("");
+  return `<div class="panel" style="margin-top:12px"><h3 class="sec">Key financial indicators
+    <small>${esc(periods[0]?.currency_code || "")} · latest ${esc(periods[0]?.period_text || "")}</small></h3>
+    <div class="ind-cards">${cards}</div></div>`;
+}
+
+function stkStmtTable(stmts) {
+  const st = stkState();
+  const periods = stmts?.periods || [];
+  if (!periods.length) return stkNa();
+  const count = st.stmtCount || periods.length;
+  const cols = periods.slice(0, count);
+  const names = [];
+  cols.forEach(p => (p.item_list || []).forEach(it => {
+    if (!names.includes(it.display_name)) names.push(it.display_name);
+  }));
+  const rows = names.map(name => {
+    const vals = cols.map(p => {
+      const it = (p.item_list || []).find(x => x.display_name === name);
+      return it ? { v: it.value, yoy: it.yoy } : { v: null, yoy: null };
+    });
+    if (st.hideBlank && vals.every(x => x.v == null || x.v === 0 || isNaN(Number(x.v)))) return "";
+    const tds = vals.map(x => {
+      if (x.v == null || isNaN(Number(x.v))) return "<td class='dim'>—</td>";
+      const main = stkStmtVal(name, x.v);
+      const yoy = st.yoy && x.yoy != null ? ` <span class="${x.yoy >= 0 ? "g" : "r"}" style="font-size:10px">${stkPct(x.yoy, 1)}</span>` : "";
+      return `<td>${main}${yoy}</td>`;
+    }).join("");
+    return `<tr><td class="rowname">${esc(name)}</td>${tds}</tr>`;
+  }).join("");
+  return `<div class="panel" style="margin-top:12px"><h3 class="sec">${esc(STK_FIN_TABS.find(t => t[0] === st.finTab)?.[1] || "")}
+    <small>${esc(cols[0]?.currency_code || "")} · ${esc(cols[0]?.accounting_standards || "")} · quarterly${st.finAnnual ? " / annual" : ""}</small></h3>
+  <div class="stk-toolbar">
+    ${[[0, "All"], [4, "4Q"], [8, "8Q"], [12, "12Q"]].map(([n, l]) =>
+      `<button class="rng ${(st.stmtCount || periods.length) === n || (n === 0 && !st.stmtCount) ? "on" : ""}" onclick="stkSet('stmtCount',${n})">${l}</button>`).join("")}
+    <button class="rng ${st.yoy ? "on" : ""}" onclick="stkSet('yoy',!stkState().yoy)">YOY</button>
+    <button class="rng ${st.hideBlank ? "on" : ""}" onclick="stkSet('hideBlank',!stkState().hideBlank)">Hide blank lines</button>
+  </div>
+  <div class="fin-scroll"><table class="fin-table">
+    <tr><th style="text-align:left">Item</th>${cols.map(p => `<th>${esc(p.period_text)}</th>`).join("")}</tr>
+    ${rows || '<tr><td colspan="9" class="empty">No rows.</td></tr>'}
+  </table></div></div>`;
+}
+
+// ── options chain ────────────────────────────────────────────────────
+let __optData = null;
+async function stkOptions() {
+  const st = stkState();
+  const d = await api(`/api/stock/${st.sym}/options?expiry=${st.expiry}`).catch(() => null);
+  __optData = d;
+  if (!d) return stkNa();
+  const exps = d.expirations || [];
+  const controls = `
+    <div class="stk-toolbar">
+      <select onchange="stkState().expiry=this.value;renderStock()">
+        ${exps.map(e => `<option value="${esc(e.strike_time)}" ${d.expiry === e.strike_time ? "selected" : ""}>${esc(e.strike_time)}</option>`).join("") || "<option>—</option>"}
+      </select>
+      ${[["all", "ITM/OTM: All"], ["itm", "ITM"], ["otm", "OTM"]].map(([k, l]) =>
+        `<button class="rng ${st.optFilter === k ? "on" : ""}" onclick="stkSet('optFilter','${k}')">${l}</button>`).join("")}
+      ${[["all", "Strike: All"], ["5", "±5%"], ["10", "±10%"]].map(([k, l]) =>
+        `<button class="rng ${st.optRange === k ? "on" : ""}" onclick="stkSet('optRange','${k}')">${l}</button>`).join("")}
+      <span class="delay-note">15min delay</span>
+    </div><div id="stk-chain"></div>`;
+  return stkPanel(`${esc(st.sym)} Options Chain`, d.expiry ? `expiry ${esc(d.expiry)}` : "", controls);
+}
+function stkDrawChain() {
+  const host = document.getElementById("stk-chain");
+  if (!host || !__optData) return;
+  const st = stkState(), d = __optData;
+  if (d.available === false) { host.innerHTML = stkNa(d.reason); return; }
+  const spot = stkSpot();
+  const byStrike = {};
+  (d.chain || []).forEach(r => { (byStrike[r.strike_price] = byStrike[r.strike_price] || {})[r.option_type] = r; });
+  let strikes = Object.keys(byStrike).map(Number).sort((a, b) => a - b);
+  strikes = strikes.filter(k => {
+    if (st.optRange === "all" || !spot) return true;
+    return Math.abs(k / spot - 1) <= Number(st.optRange) / 100;
+  });
+  const q = c => (d.quotes || {})[c?.code] || {};
+  const val = (x, f, dp) => x ? stkFmt(f(x), dp ?? 2) : "—";
+  const th = (label, sortKey) => `<th onclick="stkChainSort('${sortKey}')">${label}${st.chainSort?.key === sortKey ? (st.chainSort.dir > 0 ? " ↓" : " ↑") : ""}</th>`;
+  const rows = strikes.map(k => {
+    const call = byStrike[k]?.CALL, put = byStrike[k]?.PUT;
+    const cq = q(call), pq = q(put);
+    const itmCall = spot && k < spot, itmPut = spot && k > spot;
+    if (st.optFilter === "itm" && !itmCall && !itmPut) return "";
+    if (st.optFilter === "otm" && (itmCall || itmPut)) return "";
+    const dim = st.optFilter === "all" && spot ? (itmCall ? "" : " dim") : "";
+    const dimp = st.optFilter === "all" && spot ? (itmPut ? "" : " dim") : "";
+    return `<tr>
+      <td class="${dim}">${val(cq, x => x.option_open_interest, 0)}</td>
+      <td class="${dim}">${val(cq, x => x.volume, 0)}</td>
+      <td class="${dim}">${val(cq, x => x.turnover, 0)}</td>
+      <td class="${dim}">${val(cq, x => x.option_implied_volatility, 1)}</td>
+      <td class="${dim}">${val(cq, x => x.delta, 2)}</td>
+      <td class="${dim}">${val(cq, x => x.bid_price)}</td>
+      <td class="${dim}">${val(cq, x => x.ask_price)}</td>
+      <td class="${dim}"><b>${val(cq, x => x.last_price)}</b></td>
+      <td class="${dim} ${Number(cq?.pct_change) >= 0 ? "g" : "r"}">${cq?.pct_change != null ? stkPct(cq.pct_change) : "—"}</td>
+      <td class="strike">${stkFmt(k, 2)}</td>
+      <td><b>${val(pq, x => x.last_price)}</b></td>
+      <td class="${Number(pq?.pct_change) >= 0 ? "g" : "r"}">${pq?.pct_change != null ? stkPct(pq.pct_change) : "—"}</td>
+      <td>${val(pq, x => x.bid_price)}</td>
+      <td>${val(pq, x => x.ask_price)}</td>
+      <td>${val(pq, x => x.delta, 2)}</td>
+      <td>${val(pq, x => x.option_implied_volatility, 1)}</td>
+      <td>${val(pq, x => x.turnover, 0)}</td>
+      <td>${val(pq, x => x.volume, 0)}</td>
+      <td>${val(pq, x => x.option_open_interest, 0)}</td></tr>`;
+  }).join("");
+  host.innerHTML = `<div class="chain-wrap"><table class="chain-table">
+    <tr><th colspan="9" class="side-h">Calls</th><th></th><th colspan="9" class="side-h p">Puts</th></tr>
+    <tr>${th("OI", "coi")}${th("Vol", "cvol")}${th("Turnover", "cto")}${th("IV", "civ")}${th("Δ", "cdelta")}
+      ${th("Bid", "cbid")}${th("Ask", "cask")}${th("Last", "clast")}${th("Chg%", "cpct")}
+      <th>Strike</th>
+      ${th("Last", "plast")}${th("Chg%", "ppct")}${th("Bid", "pbid")}${th("Ask", "pask")}${th("Δ", "pdelta")}
+      ${th("IV", "piv")}${th("Turnover", "pto")}${th("Vol", "pvol")}${th("OI", "poi")}</tr>
+    ${rows || '<tr><td colspan="19" class="empty">No contracts for this expiry.</td></tr>'}</table></div>
+    <div class="faint" style="font-size:10px;margin-top:6px">Prices/Greeks via moomoo snapshot on contract codes (option_open_interest, option_implied_volatility, delta). Spot ${stkFmt(spot, 2)}.</div>`;
+}
+window.stkChainSort = key => {
+  const st = stkState();
+  if (st.chainSort?.key === key) st.chainSort.dir *= -1; else st.chainSort = { key, dir: 1 };
+  const d = __optData; if (!d) return;
+  const spot = stkSpot();
+  const valFor = r => {
+    const x = (d.quotes || {})[r?.code] || {};
+    return ({ coi: x.option_open_interest, cvol: x.volume, cto: x.turnover, civ: x.option_implied_volatility,
+      cdelta: x.delta, cbid: x.bid_price, cask: x.ask_price, clast: x.last_price, cpct: x.pct_change,
+      plast: x.last_price, ppct: x.pct_change, pbid: x.bid_price, pask: x.ask_price, pdelta: x.delta,
+      piv: x.option_implied_volatility, pto: x.turnover, pvol: x.volume, poi: x.option_open_interest })[key];
+  };
+  if (key.startsWith("c")) d.chain.sort((a, b) => ((valFor(a) ?? -1e18) - (valFor(b) ?? -1e18)) * st.chainSort.dir);
+  else d.chain.sort((a, b) => ((valFor(b) ?? -1e18) - (valFor(a) ?? -1e18)) * st.chainSort.dir);
+  stkDrawChain();
+};
+
+// ── company ──────────────────────────────────────────────────────────
+async function stkCompany() {
+  const d = await api("/api/stock/" + stkState().sym + "/company").catch(() => null);
+  if (!d) return stkNa();
+  if (d.available === false) return stkNa(d.reason);
+  const labels = (d.profile?.label_list || []).map(l =>
+    `<div class="it"><div class="k">${esc(l.name)}</div><div class="v">${l.value && /^http/.test(l.value) ? `<a href="${esc(l.value)}" target="_blank" rel="noopener">${esc(l.value)}</a>` : esc(l.value)}</div></div>`).join("");
+  const execs = (d.executives || []).map(e =>
+    `<tr><td style="text-align:left">${esc(e.name)}</td><td style="text-align:left" class="dim">${esc(e.position || "")}</td>
+     <td class="mono" style="text-align:right">${e.salary != null ? "$" + stkMoney(e.salary) : "—"}</td></tr>`).join("");
+  return `
+  ${stkPanel("About", "", d.profile?.introduction ? `<p style="font-size:12.5px;line-height:1.5">${esc(d.profile.introduction)}</p>` : stkNa())}
+  ${stkPanel("Company Profile", "moomoo company API", `<div class="kv-grid">${labels || stkNa()}</div>`)}
+  ${stkPanel("Company Executives", "", `<table class="est-t"><tr><th style="text-align:left">Name</th><th style="text-align:left">Position</th><th>Salary</th></tr>${execs || '<tr><td colspan="3" class="empty">—</td></tr>'}</table>`)}`;
+}
+
+// ── news (3 sub-tabs incl. announcement category chips) ──────────────
+function stkAnnCat(title) {
+  const t = title.toUpperCase();
+  if (/10-?Q|10-?K|EARNINGS REPORT/.test(t)) return "Earnings";
+  if (/ FORM 4|FORM 144| 144:| 4: |PROPOSED SALE|S-8|INSIDER/.test(t)) return "Transactions";
+  if (/13G|13D|SCHEDULE 13|SC 13/.test(t)) return "Shareholding";
+  if (/8-?K|CURRENT REPORT|11-?K/.test(t)) return "Events";
+  return "Other";
+}
+async function stkNews() {
+  const st = stkState();
+  const typeByTab = { news: 1, announcement: 2, ratings: 3 };
+  const apiType = st.newsTab === "ratings" ? "report" : st.newsTab === "announcement" ? "notice" : "news";
+  const d = await api(`/api/stock/${st.sym}/news?type=${apiType}`).catch(() => null);
+  const items = (d?.news_list || []).filter(n => {
+    if (st.newsTab !== "announcement" || st.annCat === "All") return true;
+    return stkAnnCat(n.title) === st.annCat;
+  });
+  const subbar = `<div class="stk-sub">
+    ${[["news", "News"], ["announcement", "Announcement"], ["ratings", "Institutional Ratings"]].map(([id, label]) =>
+      `<button class="${st.newsTab === id ? "on" : ""}" onclick="stkSet('newsTab','${id}')">${label}</button>`).join("")}</div>`;
+  const chips = st.newsTab === "announcement" ? `<div class="ann-chips">${STK_ANN_CATS.map(c =>
+    `<button class="${st.annCat === c ? "on" : ""}" onclick="stkSet('annCat','${esc(c)}')">${c}</button>`).join("")}</div>` : "";
+  const list = items.map(stkNewsItem).join("") || '<div class="empty">No items.</div>';
+  return subbar + chips + `<div class="panel" style="margin-top:12px">${d ? list : stkNa()}</div>`;
+}
+
+// ── comments ─────────────────────────────────────────────────────────
+async function stkComments() {
+  const d = await api("/api/stock/" + stkState().sym + "/community").catch(() => null);
+  const list = (d?.community_list || []).map(p =>
+    `<div class="comm-card"><div class="t"><a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(p.title || "(untitled post)")}</a></div>
+     <div class="m">${esc(p.community_type || "")} · ${stkTime(Number(p.publish_time) * 1000)} · moomoo community</div></div>`).join("");
+  return `<div class="panel">${d ? (list || '<div class="empty">No community posts found for this symbol.</div>') : stkNa()}</div>
+  <div class="faint" style="font-size:10px">Latest discussions via moomoo find-community (search API; threads & posting live on moomoo.com).</div>`;
+}
+
 async function showPage(p) {
+  // Leaving the stock page: clear its hash so back-nav lands on Market Pulse.
+  if (location.hash.startsWith("#/stock/")) history.replaceState(null, "", location.pathname + location.search);
   state.page = p;
   document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("on", b.dataset.page === p));
   if (state.poll) { clearInterval(state.poll); state.poll = null; }
@@ -1061,7 +1848,14 @@ loadHealth();
 api("/api/meta").then(m => {
   $("#spend").textContent = `$${Number(m.spend?.cost_usd || 0).toFixed(3)} · ${m.spend?.runs || 0} runs`;
 }).catch(() => {});
-showPage("home");
+// stock-page routing: #/stock/{SYM}-US or the pretty /stock/{SYM}-US path
+function stkRoute() {
+  let m = location.hash.match(/^#\/stock\/([A-Za-z0-9.%_-]+)/);
+  if (!m) m = location.pathname.match(/\/stock\/([A-Za-z0-9.%_-]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+window.addEventListener("hashchange", () => { const s = stkRoute(); if (s) openStock(s); });
+{ const s0 = stkRoute(); s0 ? openStock(s0) : showPage("home"); }
 setInterval(loadHealth, 15000);
 </script>
 </body>
