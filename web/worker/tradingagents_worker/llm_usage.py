@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import threading
 
+from langchain_core.callbacks import BaseCallbackHandler
+
 
 class UsageRecorder:
     def __init__(self):
@@ -129,15 +131,17 @@ def estimate_cost(model: str, prompt_tokens: int, completion_tokens: int) -> flo
         return 0.0
 
 
-class LLMUsageCallback:
+class LLMUsageCallback(BaseCallbackHandler):
     """LangChain handler: version-proof token capture via on_llm_end.
 
     The SDK-level recorder can go silent when a fresh deploy build resolves a
     different openai package layout; LangChain's callback contract is stable,
     so it is the trusted token source, with the SDK recorder as cost provider.
+    Must subclass BaseCallbackHandler — the callback manager requires it.
     """
 
     def __init__(self):
+        super().__init__()
         self.calls = 0
         self.prompt = 0
         self.completion = 0
