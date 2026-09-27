@@ -172,6 +172,54 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .qcrow:last-child{border-bottom:none}
 .qchead{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;font-size:12.5px}
 .sctable td{padding:8px 10px;vertical-align:top;border-top:1px solid #131c29}
+/* screener (moomoo-style) */
+.scr-grid{display:grid;grid-template-columns:1fr 292px;gap:14px;align-items:start}
+@media (max-width:1180px){.scr-grid{grid-template-columns:1fr}}
+.scr-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.scr-toolbar select{background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px}
+.switch{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#b9c6d8;cursor:pointer}
+.switch input{accent-color:#3a76dd}
+.scr-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px}
+.chip-f{display:inline-flex;gap:6px;align-items:center;background:rgba(58,118,221,.14);border:1px solid rgba(58,118,221,.35);color:#9db9e8;font-size:10.5px;padding:3px 9px;border-radius:20px}
+.chip-x{color:var(--faint);text-decoration:none;font-weight:700}
+.chip-x:hover{color:#f0544f}
+.scr-scroll{overflow-x:auto}
+.scr-table{min-width:760px}
+.scr-table th{white-space:nowrap;text-align:left;color:var(--faint);font-size:10.5px;padding:7px 10px;border-bottom:1px solid var(--line)}
+.scr-table td{padding:7px 10px;border-bottom:1px solid #131c29;font-size:12px}
+.scr-table .sym{color:#9cc2ff;font-weight:600}
+.thsort{color:inherit;text-decoration:none}
+.thsort.on{color:#9cc2ff}
+.starbtn{background:none;border:none;color:var(--faint);cursor:pointer;font-size:13px;padding:0}
+.starbtn.on{color:#f2c14e}
+.scr-rail .pgn{margin-left:auto;font-family:var(--mono);font-size:11px}
+.scr-rail .pgn a{color:var(--faint);text-decoration:none;padding:0 4px}
+.scr-rail .pgn a.on{color:#9cc2ff;font-weight:700}
+.preset{border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:9px;background:var(--panel2);cursor:pointer}
+.preset:hover{border-color:#33445f}
+.pname{font-size:12px;font-weight:700;margin-bottom:6px}
+.prow{display:flex;gap:10px}
+.pt{flex:1;min-width:0}
+.ps{font-size:11px;font-weight:600;color:#c3cfdf;overflow:hidden;text-overflow:ellipsis}
+.pp{font-size:10.5px;margin-top:1px}
+/* add-filter modal */
+.mbox{width:min(760px,94vw);max-height:86vh;overflow:auto;background:#0d1420;border:1px solid var(--line);border-radius:12px;padding:16px 18px;color:#dbe6f3}
+.mhead{display:flex;justify-content:space-between;align-items:center;font-size:15px;margin-bottom:10px}
+.mtabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.mtab{background:none;border:none;color:var(--faint);font-size:12.5px;padding:7px 10px;cursor:pointer;border-bottom:2px solid transparent}
+.mtab.on{color:#dbe6f3;border-bottom-color:#f2c14e}
+.mbody{display:grid;grid-template-columns:1fr 240px;gap:14px}
+@media (max-width:760px){.mbody{grid-template-columns:1fr}}
+.mfields{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-content:start;max-height:46vh;overflow:auto}
+.mfld{background:var(--panel2);border:1px solid var(--line);color:#c3cfdf;font-size:11.5px;padding:7px 9px;border-radius:7px;text-align:left;cursor:pointer}
+.mfld:hover{border-color:#3a76dd}
+.mfld.off{opacity:.45;cursor:not-allowed}
+.mnote{grid-column:1/-1;font-size:10.5px;color:var(--amber);background:rgba(232,163,61,.08);border:1px solid rgba(232,163,61,.25);border-radius:8px;padding:7px 9px}
+.mselwrap{max-height:46vh;overflow:auto}
+.mlabel{font-size:11px;color:var(--faint);margin-bottom:6px}
+.msel{display:grid;grid-template-columns:1fr 70px 70px 20px;gap:6px;align-items:center;font-size:11.5px;margin-bottom:8px}
+.msel input{background:var(--panel2);border:1px solid var(--line);color:#dbe6f3;border-radius:6px;padding:4px 6px;font-size:11px;width:100%}
+.mfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:#26344a;border-radius:5px}
@@ -208,6 +256,86 @@ window.addEventListener("error", ev => {
     (document.body || document.documentElement).appendChild(t); }
   t.textContent = "script error: " + (ev.message || "unknown") + " @" + (ev.lineno || "?");
 });
+</script>
+<script>
+// ── screener state + helpers (moomoo-style Market Pulse screener) ──────
+window.__scr = { market: "US", watchlistOnly: true, filters: [], sort: "market_cap",
+                 dir: 2, presetPage: 1, watchlistSyms: [] };
+const SCR_FIELDS = {
+  price: "Price", pct: "% Chg", chg: "Chg", market_cap: "Market Cap", float_cap: "Float Cap",
+  shares: "Shares Outstanding", volume: "Volume", turnover: "Turnover", turnover_rate: "Turnover%",
+  volume_ratio: "Volume Ratio", pe: "P/E (Static)", pe_ttm: "P/E (TTM)", pb: "P/B",
+  div_yield: "Div Yield TTM", div_ttm: "Dividend TTM", eps: "EPS", amplitude: "Range %",
+  bid_ask_ratio: "Bid/Ask Ratio %", high52: "52w High", low52: "52w Low",
+};
+const SCR_TECH = ["MA", "EMA", "KDJ", "RSI", "MACD", "BOLL"];
+const SCR_FIN = ["ROE", "Net Profit", "Net Profit GR YOY", "Revenue", "Revenue GR", "Gross Margin",
+                 "Net Margin", "Debt to Asset", "ROA TTM", "Operating Margin TTM"];
+function scrSet(k, v) { window.__scr[k] = v; showPage("home"); }
+function scrSort(col) {
+  const st = window.__scr;
+  if (st.sort === col) st.dir = st.dir === 2 ? 1 : 2; else { st.sort = col; st.dir = 2; }
+  showPage("home");
+}
+function scrRemoveFilter(i) { window.__scr.filters.splice(i, 1); showPage("home"); }
+function scrApplyPreset(key) {
+  const st = window.__scr;
+  const p = (window.__scrPresets || []).find(x => x.key === key);
+  if (!p) return;
+  st.filters = JSON.parse(JSON.stringify(p.filters || []));
+  showPage("home");
+}
+async function toggleWatch(symbol) {
+  try { await api("/api/watchlist/" + symbol, { method: "POST" }); } catch (e) {}
+  showPage("home");
+}
+let scrDraft = [];
+let scrTab = "quotes";
+function scrDraftAdd(field) {
+  if (!scrDraft.find(f => f.field === field)) scrDraft.push({ field, min: null, max: null });
+  scrRenderModal();
+}
+function scrDraftRemove(i) { scrDraft.splice(i, 1); scrRenderModal(); }
+function scrDraftVal(i, k, v) { scrDraft[i][k] = v === "" ? null : Number(v); }
+function scrModalTab(t) { scrTab = t; scrRenderModal(); }
+function scrModalClose() { const m = document.getElementById("scr-modal"); if (m) m.remove(); }
+function scrModalConfirm() {
+  window.__scr.filters = scrDraft.filter(f => f.min != null || f.max != null);
+  scrModalClose();
+  showPage("home");
+}
+function scrRenderModal() {
+  let m = document.getElementById("scr-modal");
+  if (!m) {
+    m = document.createElement("div"); m.id = "scr-modal";
+    m.style.cssText = "position:fixed;inset:0;background:rgba(4,8,14,.72);z-index:60;display:flex;align-items:center;justify-content:center";
+    document.body.appendChild(m);
+  }
+  const fieldBtn = f => {
+    const on = scrTab === "quotes";
+    return `<button class="mfld ${on ? "" : "off"}" ${on ? `onclick="scrDraftAdd('${f}')"` : "disabled"}>${esc(f)}</button>`;
+  };
+  const quotes = Object.values(SCR_FIELDS).map(fieldBtn).join("");
+  const tech = SCR_TECH.map(f => `<button class="mfld off" disabled>${f}</button>`).join("");
+  const fin = SCR_FIN.map(f => `<button class="mfld off" disabled>${f}</button>`).join("");
+  const tabBtn = (id, label) => `<button class="mtab ${scrTab === id ? "on" : ""}" onclick="scrModalTab('${id}')">${label}</button>`;
+  const tabs = scrTab === "quotes" ? quotes : scrTab === "tech" ? tech : fin;
+  const note = scrTab !== "quotes"
+    ? `<div class="mnote">These ${esc(scrTab)} filters exist in moomoo's screen API but the indicator/financial property dictionary is undocumented — they light up once mapped. Quotes filters are live.</div>` : "";
+  const sel = scrDraft.map((f, i) => `<div class="msel"><b>${esc(SCR_FIELDS[f.field] || f.field)}</b>
+      <input type="number" placeholder="min" value="${f.min ?? ""}" oninput="scrDraftVal(${i},'min',this.value)">
+      <input type="number" placeholder="max" value="${f.max ?? ""}" oninput="scrDraftVal(${i},'max',this.value)">
+      <a href="#" onclick="scrDraftRemove(${i});return false" class="chip-x">×</a></div>`).join("")
+    || '<div class="faint" style="font-size:11px">Click fields on the left to add filters.</div>';
+  m.innerHTML = `<div class="mbox">
+    <div class="mhead"><b>Add Filter</b> <button class="btn ghost" onclick="scrModalClose()">✕</button></div>
+    <div class="mtabs">${tabBtn("quotes", "Quotes")}${tabBtn("tech", "Technical")}${tabBtn("fin", "Financial")}</div>
+    <div class="mbody"><div class="mfields">${tabs}${note}</div>
+      <div class="mselwrap"><div class="mlabel">Selected: (${scrDraft.length})</div>${sel}</div></div>
+    <div class="mfoot"><button class="btn ghost" onclick="scrModalClose()">Cancel</button>
+      <button class="btn primary" onclick="scrModalConfirm()">Confirm</button></div>
+  </div>`;
+}
 </script>
 <script>
 const $ = s => document.querySelector(s);
@@ -252,11 +380,18 @@ function md(t) {
 // ── pages ─────────────────────────────────────────────────────────────
 const pages = {
   async home() {
-    const [cands, decs, ms] = await Promise.all([
+    const st = window.__scr;
+    const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
+      filters: JSON.stringify(st.filters), sort: st.sort, direction: st.dir });
+    const [cands, decs, ms, scr, rail] = await Promise.all([
       api("/api/candidates"), api("/api/decisions?limit=8"),
       api("/api/market/state").catch(() => ({ available: false })),
+      api("/api/screener?" + qs).catch(() => ({ available: false, rows: [] })),
+      api("/api/screener/presets?market=" + st.market + "&page=" + st.presetPage).catch(() => ({ presets: [] })),
     ]);
     const fmtPct = v => v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(2) + "%";
+    window.__scrPresets = rail.presets || [];
+    window.__scr.watchlistSyms = scr.watchlist || st.watchlistSyms;
     const heat = v => v == null ? "rgba(139,160,184,.12)"
       : v >= 0 ? `rgba(38,198,140,${Math.min(.08 + Math.abs(v) / 3, .45).toFixed(2)})`
                : `rgba(240,84,79,${Math.min(.08 + Math.abs(v) / 3, .45).toFixed(2)})`;
@@ -269,27 +404,82 @@ const pages = {
         <div class="s">${esc(x.symbol)}</div><div class="v">${fmtPct(x.pct)}</div></div>`).join("");
       const cal = (ms.calendar || []).slice(0, 4).map(c => `<div class="cal"><div class="d">${esc(c.country || "—")} · ${"★".repeat(Math.max(1, Math.min(5, c.star || 1)))} · ${c.time ? new Date(c.time * 1000).toISOString().slice(0, 10) : ""}</div>
         <div class="t">${esc(String(c.event || "").slice(0, 80))}</div></div>`).join("");
-      msPanel = `<div class="panel"><h3 class="sec">Market state <small>moomoo real-time · as of ${esc(String(ms.as_of || "").slice(0, 16).replace("T", " "))} UTC${ms.calendar?.length ? " · " + ms.calendar.length + " upcoming events" : ""}</small></h3>
+      msPanel = `<div class="panel"><h3 class="sec">Market state <small>moomoo real-time · as of ${esc(String(ms.as_of || "").slice(0, 16).replace("T", " "))} UTC</small></h3>
         <div class="idxtape">${idx}</div>
         <div class="sector-heat">${sec}</div>
         ${ms.calendar?.length ? `<div class="calstrip">${cal}</div>` : ""}
       </div>`;
     }
-    const c = (cands.candidates || []).map(x => `
-      <div class="cand"><div class="h"><span class="pill pd"><i></i>${esc(x.trigger_type)}</span> <b>${esc(x.title)}</b>
-        <span class="score mono">score ${esc(x.score)}</span></div>
-        <div class="why">${esc(x.reason)}</div>
-        <div class="src">${esc(x.symbol || "")} ${(x.sources||[]).map(s => esc(s.vendor)).join(", ")}</div>
-        ${x.symbol ? `<div class="actions" style="margin-top:8px"><button class="btn" onclick="submitAnalysis('${esc(x.symbol)}','standard')">Run analysis</button>
-        <button class="btn ghost" onclick="submitAnalysis('${esc(x.symbol)}','deep')">Deep</button></div>` : ""}
-      </div>`).join("");
-    const d = (decs.decisions || []).map(x => `<tr>
-      <td>${esc(x.trade_date)} · <a href="#" onclick="openReport('${esc(x.id)}');return false">${esc(x.symbol)}</a></td>
-      <td>${esc((x.rating||"").toUpperCase())}</td>
-      <td>${x.raw_return_pct != null ? esc(Number(x.raw_return_pct).toFixed(1)) + "%" : '<span class="faint">pending</span>'}</td>
-      <td>${x.alpha_pct != null ? `<span class="${x.alpha_pct >= 0 ? "g" : "r"}">${esc(Number(x.alpha_pct).toFixed(1))}%</span>` : '<span class="faint">—</span>'}</td>
-      <td>${esc(x.settlement_status || "pending")}</td></tr>`).join("");
-    return `${msPanel}<div class="panel"><h3 class="sec">Market Pulse <small>trigger feed → analysis → audited decision</small></h3>
+
+    // ── screener table (moomoo-style) ──
+    const rows = scr.rows || [];
+    const stars = st.watchlistSyms || [];
+    const cols = [["symbol", "Symbol"], ["name", "Stock Name"], ["price", "Price"], ["pct", "% Chg"],
+                  ["chg", "Chg"], ["market_cap", "Market Cap"], ["volume", "Volume"],
+                  ["pe_ttm", "P/E (TTM)"], ["pb", "P/B"], ["volume_ratio", "Vol Ratio"],
+                  ["turnover_rate", "Turnover%"], ["div_yield", "Div Yld"]];
+    const num = (v, dp) => v == null ? "—" : Number(v).toLocaleString(undefined, { maximumFractionDigits: dp });
+    const cap = v => v == null ? "—" : "$" + fmtBig(v);
+    const body = rows.map((r, i) => `<tr>
+      <td class="mono dim">${i + 1}</td>
+      <td><a href="#" onclick="submitAnalysis('${esc(r.symbol)}','standard');return false" class="mono sym">${esc(r.symbol)}</a></td>
+      <td class="dim" title="${esc(r.name)}">${esc(String(r.name || "").slice(0, 26))}</td>
+      <td class="mono">${num(r.price, 2)}</td>
+      <td class="mono ${r.pct >= 0 ? "g" : "r"}">${r.pct != null ? (r.pct >= 0 ? "+" : "") + r.pct.toFixed(2) + "%" : "—"}</td>
+      <td class="mono ${r.chg >= 0 ? "g" : "r"}">${r.chg != null ? (r.chg >= 0 ? "+" : "") + r.chg.toFixed(3) : "—"}</td>
+      <td class="mono">${cap(r.market_cap)}</td>
+      <td class="mono">${r.volume != null ? (r.volume / 1e6).toFixed(2) + "M" : "—"}</td>
+      <td class="mono">${num(r.pe_ttm, 1)}</td>
+      <td class="mono">${num(r.pb, 2)}</td>
+      <td class="mono">${num(r.volume_ratio, 2)}</td>
+      <td class="mono">${r.turnover_rate != null ? r.turnover_rate.toFixed(2) + "%" : "—"}</td>
+      <td><button class="starbtn ${stars.includes(r.symbol) ? "on" : ""}" title="watchlist" onclick="toggleWatch('${esc(r.symbol)}')">${stars.includes(r.symbol) ? "★" : "☆"}</button></td></tr>`).join("");
+    const chips = st.filters.map((f, i) => `<span class="chip-f">${esc(SCR_FIELDS[f.field] || f.field)}
+      ${f.min != null ? "≥ " + f.min : ""}${f.min != null && f.max != null ? " · " : ""}${f.max != null ? "≤ " + f.max : ""}
+      <a href="#" onclick="scrRemoveFilter(${i});return false" class="chip-x">×</a></span>`).join("");
+    const sortable = { price: "Price", pct: "% Chg", market_cap: "Market Cap" };
+    const th = c => sortable[c] ? `<a href="#" class="thsort ${st.sort === c ? "on" : ""}" onclick="scrSort('${c}');return false">${sortable[c]} ${st.sort === c ? (st.dir === 2 ? "↓" : "↑") : ""}</a>` : c;
+    const table = `<table class="scr-table"><tr><th>No.</th><th>${th("symbol")}</th><th>Stock Name</th>
+      <th>${th("price")}</th><th>${th("pct")}</th><th>Chg</th><th>${th("market_cap")}</th><th>Volume</th>
+      <th>P/E (TTM)</th><th>P/B</th><th>Vol Ratio</th><th>Turnover%</th><th></th></tr>
+      ${body || '<tr><td colspan="13" class="empty">No rows match — loosen the filters, or add tickers to the watchlist (☆).</td></tr>'}</table>`;
+
+    // ── recommended screeners rail ──
+    const railCards = (rail.presets || []).map(p => {
+      const top = (p.top || []).map(t => `<div class="pt"><div class="ps mono">${esc(t.symbol)}</div>
+        <div class="pp mono ${t.pct >= 0 ? "g" : "r"}">${t.pct != null ? (t.pct >= 0 ? "+" : "") + t.pct.toFixed(2) + "%" : "--"}</div></div>`).join("");
+      return `<div class="preset" onclick="scrApplyPreset('${esc(p.key)}')"><div class="pname">${esc(p.name)} ›</div>
+        <div class="prow">${top || '<div class="faint" style="font-size:10px">no matches in universe</div>'}</div></div>`;
+    }).join("");
+
+    return `
+    ${msPanel}
+    <div class="scr-grid">
+      <div class="panel scr-main">
+        <h3 class="sec">Screener <small>moomoo data · ${st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: whole " + esc(st.market) + " market (server-sorted)"}</small></h3>
+        <div class="scr-toolbar">
+          <label class="faint">Market</label>
+          <select id="scr-market" onchange="scrSet('market', this.value)">
+            <option ${st.market === "US" ? "selected" : ""}>US</option><option ${st.market === "HK" ? "selected" : ""}>HK</option>
+          </select>
+          <label class="switch"><input type="checkbox" id="scr-wl" ${st.watchlistOnly ? "checked" : ""} onchange="scrSet('watchlistOnly', this.checked)"><i></i> Watchlist only</label>
+          <button class="btn ghost" onclick="openFilterModal()">＋ Add Filter</button>
+          ${st.filters.length ? `<button class="btn ghost" onclick="scrSet('filters', [])">Clear</button>` : ""}
+          <span class="mono dim" style="margin-left:auto">Result: ${scr.count ?? rows.length} stocks</span>
+        </div>
+        ${st.filters.length ? `<div class="scr-chips">${chips}</div>` : ""}
+        <div class="scr-scroll">${table}</div>
+        <div class="faint" style="font-size:10px;margin-top:6px">${st.watchlistOnly
+          ? "Watchlist universe = tickers saved in TradingAgents (☆). Add with the star, or from the Analyze page."
+          : "Whole-market page: server-sorted by " + esc(st.sort) + ", snapshot-enriched; filters apply to the fetched page (100 rows)."} Technical &amp; financial-factor server filters are coming once moomoo's property dictionary is mapped.</div>
+      </div>
+      <div class="panel scr-rail">
+        <h3 class="sec">Recommended Screeners <span class="pgn"><a href="#" class="${st.presetPage === 1 ? "on" : ""}" onclick="scrSet('presetPage', 1);return false">1</a> <a href="#" class="${st.presetPage === 2 ? "on" : ""}" onclick="scrSet('presetPage', 2);return false">2</a></span></h3>
+        ${railCards || '<div class="empty">Presets unavailable.</div>'}
+        <div class="faint" style="font-size:10px;margin-top:8px">Top-3 from the current universe. Recreated from moomoo's recommended screeners (pages 1–2) over our data.</div>
+      </div>
+    </div>
+    <div class="panel"><h3 class="sec">Market Pulse <small>trigger feed → analysis → audited decision</small></h3>
       <div id="cand-list">${c || '<div class="empty">No open candidates. Use ↻ Refresh now, or wait for the next scheduled sweep (every 15 min in US market hours).</div>'}</div>
       <div class="actions"><button class="btn ghost" id="cand-refresh" onclick="refreshCandidates(this)">↻ Refresh now</button>
       <span class="faint" style="font-size:10.5px">sweep = moomoo screens / news / earnings calendar (when connected) + watchlist</span></div></div>
@@ -297,19 +487,7 @@ const pages = {
       <table><tr><th>Date · Ticker</th><th>Rating</th><th>5d ret</th><th>5d alpha</th><th>Status</th></tr>
       ${d || '<tr><td colspan="5" class="empty">No decisions yet — run your first analysis.</td></tr>'}</table></div>`;
   },
-  async analyze() {
-    return `<div class="panel"><h3 class="sec">New analysis <small>multi-agent pipeline · depth presets control debate rounds &amp; analysts</small></h3>
-      <div class="frow">
-        <input id="f-ticker" placeholder="Ticker (e.g. NVDA)" maxlength="16">
-        <input id="f-date" type="date" value="${new Date().toISOString().slice(0,10)}">
-        <select id="f-depth"><option value="fast">fast — 2 analysts, no debate</option><option value="standard" selected>standard — 4 analysts, 1 round</option><option value="deep">deep — 4 analysts, 3 rounds</option></select>
-        <button class="btn primary" onclick="submitFromForm()">Run</button>
-      </div>
-      <div class="frow" style="margin-top:8px"><input id="f-instr" placeholder="Custom instructions (optional, ≤4000 chars)" style="flex:1" maxlength="4000"></div>
-      <div id="submit-out" class="faint" style="margin-top:10px;font-size:12px"></div></div>
-      <div class="panel"><h3 class="sec">Run floor <small>coarse stage events; node-level streaming lands in Phase 1</small></h3>
-      <div id="floor"><div class="empty">Submit an analysis to watch the pipeline live.</div></div></div>`;
-  },
+
   async ledger() {
     const [r, act] = await Promise.all([
       api("/api/decisions?limit=100"),

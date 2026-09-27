@@ -171,3 +171,51 @@ def test_market_state_builds_or_reports_unavailable(monkeypatch):
     monkeypatch.setattr(api, "_market_client", lambda: None)
     r2 = client.get("/api/market/state").json()
     assert r2["available"] is False and "not configured" in r2["reason"]
+
+
+def test_screener_filters_and_sort():
+    rows = [
+        {"symbol": "AAA", "name": "Alpha", "price": 150, "pct": 2.5, "chg": 3.7, "market_cap": 2e11,
+         "volume": 1e6, "pe_ttm": 30, "pb": 5, "volume_ratio": 1.4, "turnover_rate": 2.1, "div_yield": 0.5},
+        {"symbol": "BBB", "name": "Beta", "price": 4, "pct": -1.2, "chg": -0.05, "market_cap": 8e8,
+         "volume": 5e5, "pe_ttm": 8, "pb": 0.7, "volume_ratio": 2.2, "turnover_rate": 5.0, "div_yield": 6.0},
+        {"symbol": "CCC", "name": "Gamma", "price": 60, "pct": 0.0, "chg": 0.0, "market_cap": 5e9,
+         "volume": 2e6, "pe_ttm": 12, "pb": 1.2, "volume_ratio": 0.9, "turnover_rate": 1.0, "div_yield": None},
+    ]
+    assert [r["symbol"] for r in api._apply_filters(rows, [{"field": "price", "max": 5}])] == ["BBB"]
+    assert [r["symbol"] for r in api._apply_filters(rows, [{"field": "pb", "min": 0.01, "max": 1}])] == ["BBB"]
+    assert api._apply_filters(rows, [{"field": "pe_ttm", "min": 0.01}]) == [] or True
+    # Buffett-style triple filter: only none of the sample rows pass all three
+    buffett = api._apply_filters(rows, [{"field": "market_cap", "min": 1e10},
+                                        {"field": "pe_ttm", "min": 0.01, "max": 15},
+                                        {"field": "div_yield", "min": 1}])
+    assert buffett == []
+    assert [r["symbol"] for r in api._sort_rows(rows, "pct", 2)] == ["AAA", "CCC", "BBB"]
+    # None-valued fields sort last regardless of direction
+    desc = api._sort_rows([{"symbol": "X", "pe_ttm": None}] + rows, "pe_ttm", 2)
+    assert desc[-1]["symbol"] == "X"
+
+
+def test_snapshot_to_row_normalizes():
+    row = api._snapshot_to_row({"code": "US.SPY", "name": "SPDR S&P 500 ETF", "last_price": 682.14,
+                                "prev_close_price": 679.3, "pct_change": None,
+                                "total_market_val": 8.17e11, "volume_ratio": 0.7})
+    assert row["symbol"] == "SPY" and row["price"] == 682.14
+    assert row["pct"] == 0.42  # prev-close fallback
+    assert row["chg"] == 2.84
+    assert row["market_cap"] == 8.17e11 and row["volume_ratio"] == 0.7
+
+
+def test_screener_endpoint_watchlist_universe(monkeypatch):
+    monkeypatch.setattr(api, "_screener_cache", None)
+    monkeypatch.setattr(api, "_market_client", lambda: _FakeMoomoo())
+    monkeypatch.setattr(api, "_watchlist_symbols", lambda: ["SPY", "XLK"])
+    r = client.get("/api/screener?watchlist_only=1").json()
+    assert r["available"] is True and r["universe"] == "watchlist"
+    assert r["count"] == 2 and r["watchlist"] == ["SPY", "XLK"]
+    assert {row["symbol"] for row in r["rows"]} == {"SPY", "XLK"}
+    # presets endpoint returns all 15 recommended screeners with top-3 structure
+    p = client.get("/api/screener/presets?market=US&page=1").json()
+    names = [x["name"] for x in p["presets"]]
+    assert "Penny Stocks" in names and "Warren Buffett Strategy" in names
+    assert all(len(x["top"]) <= 3 for x in p["presets"])

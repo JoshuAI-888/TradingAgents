@@ -6,6 +6,7 @@ and lets the browser read its own rows via the anon key + RLS directly
 """
 from __future__ import annotations
 
+import json
 import os
 import tempfile
 import uuid
@@ -245,6 +246,262 @@ def market_state():
         return {"available": False, "reason": str(e)[:120]}
     _market_cache.put("quotes", k, state)
     return state
+
+
+# ── Screener (moomoo stock-screen + snapshot enrichment; watchlist universe) ──
+
+SCREENER_COLUMNS = [
+    ("price", "Price"), ("pct", "% Chg"), ("chg", "Chg"), ("market_cap", "Market Cap"),
+    ("volume", "Volume"), ("turnover", "Turnover"), ("turnover_rate", "Turnover%"),
+    ("volume_ratio", "Volume Ratio"), ("float_cap", "Float Cap"), ("shares", "Shares Out."),
+    ("pe", "P/E (Static)"), ("pe_ttm", "P/E (TTM)"), ("pb", "P/B"), ("div_yield", "Div Yield TTM"),
+    ("amplitude", "Range %"), ("bid_ask_ratio", "Bid/Ask Ratio %"), ("eps", "EPS"),
+    ("high52", "52w High"), ("low52", "52w Low"),
+]
+
+# Market-mode server-side sort ids verified live (values are ×1000-scaled);
+# keys match screener row field names.
+_SCREEN_SORT_IDS = {"market_cap": 2301, "price": 2201, "pct": 2210}
+_SCREEN_RETRIEVE_IDS = [2201, 2202, 2204, 2205, 2207, 2208, 2210, 2215, 2301]
+_SCREEN_MARKET_ENUM = {"US": 2, "HK": 1}
+
+PRESET_SCREENERS = [
+    {"key": "penny", "page": 1, "name": "Penny Stocks", "filters": [{"field": "price", "max": 5}]},
+    {"key": "high-div", "page": 1, "name": "High Dividend Stocks",
+     "filters": [{"field": "div_yield", "min": 5}]},
+    {"key": "blue-chip", "page": 1, "name": "Blue Chip Stocks",
+     "filters": [{"field": "market_cap", "min": 5e10}]},
+    {"key": "buffett", "page": 1, "name": "Warren Buffett Strategy",
+     "filters": [{"field": "market_cap", "min": 1e10}, {"field": "pe_ttm", "min": 0.01, "max": 15},
+                 {"field": "div_yield", "min": 1}]},
+    {"key": "undervalued", "page": 1, "name": "Undervalued Stocks",
+     "filters": [{"field": "pe_ttm", "min": 0.01, "max": 15}, {"field": "pb", "min": 0.01, "max": 1.5}]},
+    {"key": "growth", "page": 1, "name": "Best Growth Stocks",
+     "filters": [{"field": "pct", "min": 0}, {"field": "volume_ratio", "min": 1.2},
+                 {"field": "pe_ttm", "min": 0.01}]},
+    {"key": "pb-lt-1", "page": 1, "name": "P/B Ratio Less Than 1",
+     "filters": [{"field": "pb", "min": 0.01, "max": 1}]},
+    {"key": "lt-high-div", "page": 1, "name": "Best Long Term High Dividend Stocks",
+     "filters": [{"field": "div_yield", "min": 3}, {"field": "market_cap", "min": 2e9}]},
+    {"key": "high-pe", "page": 2, "name": "High P/E Ratio Stocks",
+     "filters": [{"field": "pe_ttm", "min": 100}]},
+    {"key": "good-pe", "page": 2, "name": "Good P/E Ratio Stocks",
+     "filters": [{"field": "pe_ttm", "min": 5, "max": 25}]},
+    {"key": "low-pe", "page": 2, "name": "Low P/E Ratio Stocks",
+     "filters": [{"field": "pe_ttm", "min": 0.01, "max": 10}]},
+    {"key": "rsi-30", "page": 2, "name": "Below 30 RSI Stocks",
+     "filters": [{"field": "rsi14", "max": 30}]},
+    {"key": "junk", "page": 2, "name": "Junk Stocks", "filters": [{"field": "price", "max": 1}]},
+    {"key": "small-growth", "page": 2, "name": "Small Cap Stocks with Huge Growth Potential",
+     "filters": [{"field": "market_cap", "max": 2e9}, {"field": "pct", "min": 1}]},
+    {"key": "blue-chip-div", "page": 2, "name": "Blue Chip Dividend Stocks",
+     "filters": [{"field": "market_cap", "min": 1e10}, {"field": "div_yield", "min": 2}]},
+]
+
+
+def _snapshot_to_row(s: dict) -> dict:
+    """A moomoo snapshot item → a screener row with normalized fields."""
+    last, prev = s.get("last_price"), s.get("prev_close_price")
+    pct = s.get("pct_change")
+    if pct is None and last is not None and prev:
+        pct = (float(last) - float(prev)) / float(prev) * 100
+    return {
+        "symbol": (s.get("code") or "").split(".")[-1],
+        "code": s.get("code"),
+        "name": s.get("name") or s.get("sc_name") or "",
+        "price": last,
+        "pct": None if pct is None else round(float(pct), 2),
+        "chg": None if (last is None or prev is None) else round(float(last) - float(prev), 3),
+        "market_cap": s.get("total_market_val"),
+        "float_cap": s.get("circular_market_val"),
+        "shares": s.get("outstanding_shares"),
+        "volume": s.get("volume"),
+        "turnover": s.get("turnover"),
+        "turnover_rate": s.get("turnover_rate"),
+        "volume_ratio": s.get("volume_ratio"),
+        "pe": s.get("pe_ratio") or None,
+        "pe_ttm": s.get("pe_ttm_ratio") or None,
+        "pb": s.get("pb_ratio") or None,
+        "div_yield": s.get("dividend_ratio_ttm") or None,
+        "div_ttm": s.get("dividend_ttm") or None,
+        "eps": s.get("earning_per_share") or None,
+        "amplitude": s.get("amplitude"),
+        "bid_ask_ratio": s.get("bid_ask_ratio"),
+        "high52": s.get("highest52weeks_price"),
+        "low52": s.get("lowest52weeks_price"),
+        "new_high": bool(s.get("highest52weeks_price") and last
+                         and float(last) >= float(s["highest52weeks_price"]) * 0.999),
+        "new_low": bool(s.get("lowest52weeks_price") and last
+                        and float(last) <= float(s["lowest52weeks_price"]) * 1.001),
+    }
+
+
+def _apply_filters(rows: list[dict], filters: list[dict]) -> list[dict]:
+    def keep(r: dict) -> bool:
+        for f in filters or []:
+            v = r.get(f.get("field"))
+            lo, hi = f.get("min"), f.get("max")
+            if v is None:
+                return False
+            try:
+                v = float(v)
+            except (TypeError, ValueError):
+                return False
+            if lo is not None and v < float(lo):
+                return False
+            if hi is not None and v > float(hi):
+                return False
+        return True
+    return [r for r in rows if keep(r)]
+
+
+def _sort_rows(rows: list[dict], sort: str, direction: int) -> list[dict]:
+    reverse = direction == 2
+    keyed = [r for r in rows if r.get(sort) is not None]
+    rest = [r for r in rows if r.get(sort) is None]
+    keyed.sort(key=lambda r: float(r[sort]), reverse=reverse)
+    return keyed + rest
+
+
+def _watchlist_symbols() -> list[str]:
+    user = os.getenv("DEFAULT_USER_ID") or ""
+    wls = db.select("watchlists", {"user_id": f"eq.{user}"}, "id,is_default") if user else []
+    if not wls:
+        return []
+    wl = next((w for w in wls if w.get("is_default")), wls[0])
+    items = db.select("watchlist_items", {"watchlist_id": f"eq.{wl['id']}", "active": "eq.true"},
+                      "ticker_id")
+    if not items:
+        return []
+    ids = [i["ticker_id"] for i in items if i.get("ticker_id")]
+    tickers = db.select("tickers", {"id": f"in.({','.join(ids)})"}, "symbol")
+    return sorted({t["symbol"].upper() for t in tickers if t.get("symbol")})
+
+
+def _market_rows(market: str, sort_key: str, direction: int, client) -> list[dict]:
+    """One whole-market page: stock-screen for universe+order, snapshot for fields."""
+    sort_id = _SCREEN_SORT_IDS.get(sort_key, 2301)
+    body = {"limit": 100,
+            "screen_queries": [{"simple_field_query": {
+                "simple_field": 1, "screen_value_list": [_SCREEN_MARKET_ENUM.get(market, 2)]}}],
+            "sort": {"direction": direction, "simple_property": {"name": sort_id}}}
+    out = client.call("POST", "/quote/stock-screen", body=body)
+    items = (out.get("items") or [])[:100]
+    codes = [i.get("code") for i in items if i.get("code")]
+    if not codes:
+        return []
+    snap = (client.snapshot(codes) or {}).get("snapshot_list") or []
+    order = {code: i for i, code in enumerate(codes)}
+    rows = [_snapshot_to_row(s) for s in snap if s.get("code") in order]
+    rows.sort(key=lambda r: order.get(r["code"], 999))
+    return rows
+
+
+_screener_cache = None
+
+
+def _cache():
+    global _screener_cache
+    if _screener_cache is None:
+        from tradingagents_worker.ttl_cache import TtlCache  # noqa: E402
+        _screener_cache = TtlCache(root=os.path.join(tempfile.gettempdir(), "ta-ttl"))
+    return _screener_cache
+
+
+@app.get("/api/screener")
+def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
+             sort: str = "market_cap", direction: int = 2, limit: int = 100):
+    """Screener rows. watchlist universe = our saved watchlist (snapshot, all filters);
+    market universe = moomoo stock-screen page sorted server-side, snapshot-enriched."""
+    client = _market_client()
+    if client is None:
+        return {"available": False, "reason": "moomoo keys not configured", "rows": []}
+    try:
+        flt = json.loads(filters) if filters else []
+    except ValueError:
+        raise HTTPException(400, "filters must be JSON")
+    cache = _cache()
+    universe_key = cache.key("quotes", "screener-universe", market, watchlist_only, sort, direction)
+    rows = cache.get("quotes", universe_key)
+    if rows is None:
+        if watchlist_only:
+            symbols = _watchlist_symbols()
+            if not symbols:
+                return {"available": True, "rows": [], "universe": "watchlist", "count": 0,
+                        "presets": PRESET_SCREENERS}
+            snap = (client.snapshot([f"{market}.{s}" for s in symbols[:400]])
+                    or {}).get("snapshot_list") or []
+            rows = [_snapshot_to_row(s) for s in snap]
+        else:
+            try:
+                rows = _market_rows(market, sort, direction, client)
+            except Exception as e:
+                return {"available": False, "reason": str(e)[:120], "rows": []}
+        cache.put("quotes", universe_key, rows)
+    rows = _apply_filters(rows, flt)
+    if watchlist_only or sort not in _SCREEN_SORT_IDS:
+        # Watchlist universe sorts in Python (any column); market mode keeps the
+        # server-side order unless the requested column has no verified sort id.
+        rows = _sort_rows(rows, sort, direction)
+    rows = rows[:max(1, min(limit, 300))]
+    return {"available": True, "universe": "watchlist" if watchlist_only else market,
+            "rows": rows, "count": len(rows), "presets": PRESET_SCREENERS,
+            "watchlist": _watchlist_symbols()}
+
+
+@app.get("/api/screener/presets")
+def screener_presets(market: str = "US", page: int = 0):
+    """Recommended screeners (both pages) with each preset's top-3 from the
+    watchlist universe — the moomoo screener rail, on our data."""
+    client = _market_client()
+    if client is None:
+        return {"available": False, "presets": []}
+    cache = _cache()
+    uk = cache.key("quotes", "screener-universe", market, 1, "market_cap", 2)
+    rows = cache.get("quotes", uk)
+    if rows is None:
+        symbols = _watchlist_symbols()
+        if symbols:
+            snap = (client.snapshot([f"{market}.{s}" for s in symbols[:400]])
+                    or {}).get("snapshot_list") or []
+            rows = [_snapshot_to_row(s) for s in snap]
+        else:
+            rows = []
+        cache.put("quotes", uk, rows)
+    out = []
+    for preset in PRESET_SCREENERS:
+        if page and preset["page"] != page:
+            continue
+        picked = _sort_rows(_apply_filters(rows, preset["filters"]), "pct", 2)[:3]
+        out.append({**preset, "top": [{"symbol": r["symbol"], "name": r["name"][:22],
+                                       "pct": r["pct"]} for r in picked]})
+    return {"available": True, "presets": out}
+
+
+@app.post("/api/watchlist/{symbol}")
+def watchlist_add(symbol: str):
+    """Star a ticker in the portal: upsert into the owner's default watchlist."""
+    user = os.getenv("DEFAULT_USER_ID") or ""
+    if not user:
+        raise HTTPException(503, "DEFAULT_USER_ID not configured")
+    sym = symbol.upper()
+    wl = db.select("watchlists", {"user_id": f"eq.{user}"}, "id,is_default")
+    if wl:
+        wid = next((w for w in wl if w.get("is_default")), wl[0])["id"]
+    else:
+        wid = str(uuid.uuid4())
+        db.insert("watchlists", {"id": wid, "user_id": user, "name": "Default",
+                                 "is_default": True}, prefer="return=minimal")
+    tk = db.select("tickers", {"symbol": f"eq.{sym}"}, "id")
+    if tk:
+        tid = tk[0]["id"]
+    else:
+        tid = str(uuid.uuid4())
+        db.insert("tickers", {"id": tid, "symbol": sym, "native_symbol": sym,
+                              "asset_type": "stock"}, prefer="return=minimal")
+    db.upsert("watchlist_items", "watchlist_id,ticker_id",
+              {"watchlist_id": wid, "ticker_id": tid, "active": True})
+    return {"saved": True, "symbol": sym}
 
 
 @app.get("/api/candidates")
