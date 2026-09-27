@@ -86,7 +86,12 @@ class EngineRunner:
         cfg["results_dir"] = SETTINGS.results_dir
         key = f"{pair['provider']}|{pair['quick']}|{pair['deep']}|{depth}"
         if key not in self._graphs:  # one graph per (models, depth) shape; reuse is safe in 0.5.1
-            self._graphs[key] = TradingAgentsGraph(**{"config": cfg})
+            # selected_analysts is a constructor kwarg, not a config key — depth
+            # presets that name analysts must pass it here (fast = 2 analysts).
+            kwargs = {"config": cfg}
+            if DEPTH_PRESETS[depth].get("selected_analysts"):
+                kwargs["selected_analysts"] = DEPTH_PRESETS[depth]["selected_analysts"]
+            self._graphs[key] = TradingAgentsGraph(**kwargs)
         return self._graphs[key]
 
     def run(self, ticker, trade_date, depth, instructions, emit, cancel=None):

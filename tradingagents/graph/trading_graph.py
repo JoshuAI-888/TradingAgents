@@ -316,14 +316,20 @@ class TradingAgentsGraph:
         # None resumes an existing checkpoint; init_agent_state starts fresh (#1249).
         graph_input = self.checkpoint_input(init_agent_state)
         if on_node is not None:
-            # Live node-level stream: chunks are {node_name: state_delta} (or
-            # (namespace, delta) tuples when subgraphs stream in). Merging the
-            # deltas yields the same state graph.invoke() would return; callback
-            # failures are logged and never abort the run.
+            # Live node-level stream, multi-mode: "updates" yields
+            # {node_name: state_delta} (or (namespace, delta) tuples when
+            # subgraphs stream in) for the per-node callbacks; "values" yields
+            # the full state after each step, and the last one IS the state
+            # graph.invoke() would return — deltas alone miss the base-state
+            # keys nodes never write back (company_of_interest etc.).
             final_state: dict = {}
             stream_args = dict(args)
-            stream_args["stream_mode"] = "updates"
-            for chunk in self.graph.stream(graph_input, **stream_args):
+            stream_args["stream_mode"] = ["updates", "values"]
+            for mode, chunk in self.graph.stream(graph_input, **stream_args):
+                if mode == "values":
+                    if isinstance(chunk, dict):
+                        final_state = chunk
+                    continue
                 if isinstance(chunk, dict):
                     pairs = chunk.items()
                 elif isinstance(chunk, tuple) and len(chunk) == 2:
@@ -334,7 +340,6 @@ class TradingAgentsGraph:
                 for node, delta in pairs:
                     if not node or node == "__end__" or not isinstance(delta, dict):
                         continue
-                    final_state.update(delta)
                     try:
                         on_node(node, delta)
                     except Exception:
