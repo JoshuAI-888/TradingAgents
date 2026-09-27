@@ -149,6 +149,14 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .disc{margin-top:30px;border:1px solid var(--line);border-radius:10px;padding:14px 18px;font-size:11.5px;color:var(--faint);line-height:1.7}
 .tag{font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:4px;letter-spacing:.5px}
 .t-news{background:rgba(38,198,140,.15);color:var(--green)}
+.t-scr{background:rgba(58,118,221,.18);color:#7dabff}
+.t-ern{background:rgba(232,163,61,.15);color:var(--amber)}
+.t-mac{background:rgba(160,107,250,.15);color:#c3a6ff}
+.t-wl{background:rgba(139,160,184,.15);color:var(--dim)}
+.qcrow{padding:10px 2px;border-bottom:1px solid #131c29}
+.qcrow:last-child{border-bottom:none}
+.qchead{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;font-size:12.5px}
+.sctable td{padding:8px 10px;vertical-align:top;border-top:1px solid #131c29}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:#26344a;border-radius:5px}
@@ -378,6 +386,30 @@ async function reportPage(ref) {
   const tokPct = run.prompt_tokens ? Math.round((run.tokens_cached || 0) / run.prompt_tokens * 100) : 0;
   window.__reportData = { bars, sr, sym: sym.symbol, dec, cur: last ? last.close : null };
 
+  // Post-run digest (evidence register, scenarios, news classification, QC grades)
+  const dg = r.digest?.digest || null;
+  const qccol = s => s >= 80 ? "#26c68c" : s >= 60 ? "#e8a33d" : "#f0544f";
+  const DSTAGE = { market: "t-scr", news: "t-news", social: "t-mac", fundamentals: "t-ern", research: "t-scr", risk: "t-ern" };
+  const DCLASS = { catalyst: "t-news", risk: "t-ern", assumption: "t-wl" };
+  const norm = t => String(t || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 44);
+  const newsRead = {};
+  (dg?.news || []).forEach(n => { newsRead[norm(n.title)] = n; });
+  const newsClassFor = t => newsRead[norm(t)] || (dg?.news || []).find(n => norm(t).includes(norm(n.title)) || norm(n.title).includes(norm(t))) || null;
+  const digestPanels = !dg ? "" : `
+    ${dg.evidence?.length ? `<div class="panel"><h3 class="sec">Evidence register <small>load-bearing claims behind the decision · extracted from the run's own outputs</small></h3>
+      ${dg.evidence.map(e => `<div class="news"><div class="h"><span class="tag ${DSTAGE[e.stage] || "t-wl"}">${esc(String(e.stage).toUpperCase())}</span><b>${esc(e.claim)}</b></div>
+        ${e.support ? `<div class="d">${esc(e.support)}</div>` : ""}</div>`).join("")}
+    </div>` : ""}
+    ${Object.keys(dg.scenarios || {}).length ? `<div class="panel"><h3 class="sec">Scenario &amp; sensitivity <small>bull / base / bear · fair-value bands from the run's own reasoning</small></h3>
+      <table class="sctable"><tr><th>Scenario</th><th>Thesis</th><th>Trigger</th><th>Fair value</th></tr>
+      ${["bull", "base", "bear"].filter(k => dg.scenarios[k]).map(k => `<tr><td><span class="tag ${k === "bull" ? "t-news" : k === "bear" ? "t-ern" : "t-wl"}">${k.toUpperCase()}</span></td><td>${esc(dg.scenarios[k].thesis)}</td><td class="dim" style="color:var(--dim)">${esc(dg.scenarios[k].trigger)}</td><td class="mono">${esc(dg.scenarios[k].range)}</td></tr>`).join("")}
+      </table></div>` : ""}`;
+  const qcPanel = dg && dg.qc?.length ? `<div class="panel"><h3 class="sec">Agent QC grades <small>evidence quality, consistency &amp; bias per stage${r.digest?.model ? " · digest by " + esc(r.digest.model.split("/").pop()) : ""}</small></h3>
+      ${dg.qc.map(q => `<div class="qcrow"><div class="qchead"><span class="tag ${DSTAGE[q.stage] || "t-scr"}">${esc(q.stage)}</span><b>${q.score}/100</b></div>
+        <div class="bar"><i style="width:${q.score}%;background:${qccol(q.score)}"></i><i style="width:${100 - q.score}%;background:#33415a"></i></div>
+        ${q.verdict ? `<div class="sens">${esc(q.verdict)}</div>` : ""}</div>`).join("")}
+    </div>` : "";
+
   return `
   <div class="mast">
     <div class="mast-top">
@@ -479,16 +511,22 @@ async function reportPage(ref) {
         <div class="thesis">${dec?.thesis ? md(dec.thesis) : (dec?.executive_summary ? `<p>${esc(dec.executive_summary)}</p>` : '<p class="empty">Executive summary lands when the pipeline emits structured decisions (Phase 1 QC gate). The complete unedited reasoning is in the agent outputs below.</p>')}</div>
       </div>
 
-      <div class="panel"><h3 class="sec">News — latest headlines with citable links <small>stored at run time · classification into catalysts/risks lands with the news analyst persistence</small></h3>
-        ${news.length ? news.map(n => `<div class="news"><div class="h"><span class="tag t-news">NEWS</span><b><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a></b></div>
-          ${n.summary ? `<div class="d">${esc(n.summary)}</div>` : ""}
-          <div class="src">${esc(n.publisher || "—")} · ${esc(String(n.published_at || "").slice(0, 10))} · <a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.url).slice(0, 90)}</a></div></div>`).join("")
+      ${digestPanels}
+
+      <div class="panel"><h3 class="sec">News — latest headlines with citable links <small>${dg?.news?.length ? "classified into catalysts / risks / assumptions by the post-run digest" : "stored at run time · classification into catalysts/risks lands with the news analyst persistence"}</small></h3>
+        ${news.length ? news.map(n => { const nc = dg ? newsClassFor(n.title) : null; return `<div class="news"><div class="h"><span class="tag t-news">NEWS</span>${nc ? `<span class="tag ${DCLASS[nc.class] || "t-wl"}">${esc(nc.class.toUpperCase())}${nc.impact === "high" ? " · HIGH IMPACT" : ""}</span>` : ""}<b><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a></b></div>
+          ${nc?.why ? `<div class="d">${esc(nc.why)}</div>` : ""}
+          ${n.summary && !nc?.why ? `<div class="d">${esc(n.summary)}</div>` : ""}
+          <div class="src">${esc(n.publisher || "—")} · ${esc(String(n.published_at || "").slice(0, 10))} · <a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.url).slice(0, 90)}</a></div></div>`; }).join("")
         : '<div class="empty">No stored headlines yet — the enrichment pass persists linked news after each completed run.</div>'}
+        ${dg?.news?.length ? `<div style="margin-top:10px" class="faint">${(dg.news.filter(n => !newsClassFor(n.title))).length} classified item(s) not in the stored feed shown above.</div>` : ""}
       </div>
 
       <div class="panel"><h3 class="sec">Agent outputs — complete <small>all reports &amp; debates, unedited</small></h3>
         ${agents.length ? agents.join("") : '<div class="empty">Agent reports persist when the run completes.</div>'}
       </div>
+
+      ${qcPanel}
 
       <div class="panel"><h3 class="sec">Live reasoning trace <small>what the pipeline emitted while working · replayable from job_events</small></h3>
         <div class="trace">${trace || '<div class="empty">No events recorded.</div>'}</div>

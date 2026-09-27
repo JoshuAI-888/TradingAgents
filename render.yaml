@@ -1,10 +1,15 @@
 # TradingAgents Portal — Render blueprint (Phase 0)
 # Deploy: Render dashboard → New → Blueprint → pick repo/branch, or `render blueprint launch`.
+# NOTE: mirrors the deployed MCP-created stack (branch product/portal-phase0):
+#   * the worker runs as a WEB SERVICE (Render blueprints support `worker`, but the
+#     hosted MCP path does not) — it holds $PORT open via its /healthz thread;
+#   * no persistent disk — cache/results live under /tmp;
+#   * build/start commands run from the repo root (`cd` inside the command).
 # Required env (set in dashboard or via Render MCP BEFORE first deploy):
-#   SUPABASE_URL, SUPABASE_SERVICE_KEY   — Supabase project (run deploy/supabase/0001+0002 first)
-#   OPENAI_API_KEY (or other provider)   — only when WORKER_STUB_MODE=0
+#   SUPABASE_URL, SUPABASE_SERVICE_KEY   — Supabase project (run deploy/supabase/0001+ first)
+#   OPENROUTER_API_KEY                   — only when WORKER_STUB_MODE=0
 # Optional: MOOMOO_APPKEY / MOOMOO_PRIVATE_KEY, FRED_API_KEY, FMP_API_KEY, CRON_SECRET,
-#           API_ALLOWED_ORIGINS, PORTAL_STATIC_DIR, TRADINGAGENTS_CACHE_DIR, TRADINGAGENTS_RESULTS_DIR
+#           API_ALLOWED_ORIGINS, PORTAL_STATIC_DIR
 
 services:
   - type: web
@@ -12,9 +17,8 @@ services:
     runtime: python
     plan: starter
     region: virginia
-    rootDir: web
-    buildCommand: pip install -r api/requirements.txt
-    startCommand: uvicorn tradingagents_api.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r web/api/requirements.txt
+    startCommand: cd web/api && uvicorn tradingagents_api.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
@@ -27,29 +31,33 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_KEY
         sync: false
+      - key: DEFAULT_USER_ID
+        sync: false
       - key: CRON_SECRET
         generateValue: true
 
-  - type: worker
+  - type: web
     name: tradingagents-worker
     runtime: python
     plan: starter
     region: virginia
-    rootDir: web
-    buildCommand: pip install -r worker/requirements.txt && pip install -e ..
-    startCommand: python -m tradingagents_worker.service
+    buildCommand: pip install -r web/worker/requirements.txt && pip install -e .
+    startCommand: cd web/worker && python -m tradingagents_worker.service
+    healthCheckPath: /healthz
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.8"
       - key: TRADINGAGENTS_CACHE_DIR
-        value: /data/cache
+        value: /tmp/ta-cache
       - key: TRADINGAGENTS_RESULTS_DIR
-        value: /data/results
+        value: /tmp/ta-results
       - key: WORKER_STUB_MODE
         sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: DEFAULT_USER_ID
         sync: false
       - key: MOOMOO_APPKEY
         sync: false
@@ -59,22 +67,15 @@ services:
         sync: false
       - key: OPENROUTER_API_KEY
         sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-    disk:
-      name: tradingagents-data
-      mountPath: /data
-      sizeGB: 10
 
   - type: cron
     name: tradingagents-settlement
     runtime: python
     plan: starter
     region: virginia
-    rootDir: web
-    buildCommand: pip install -r api/requirements.txt
+    buildCommand: pip install -r web/worker/requirements.txt
     schedule: "30 * * * *"          # hourly; settles anything past its horizon
-    startCommand: python -m tradingagents_worker.settlement_cron
+    startCommand: cd web/worker && python -m tradingagents_worker.settlement_cron
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.8"
@@ -88,10 +89,9 @@ services:
     runtime: python
     plan: starter
     region: virginia
-    rootDir: web
-    buildCommand: pip install -r api/requirements.txt
-    schedule: "*/15 13-21 * * 1-5"  # 13:00–21:59 UTC weekdays = US market hours (Oregon)
-    startCommand: python -m tradingagents_worker.discovery_cron
+    buildCommand: pip install -r web/worker/requirements.txt
+    schedule: "*/15 13-21 * * 1-5"  # 13:00–21:59 UTC weekdays = US market hours
+    startCommand: cd web/worker && python -m tradingagents_worker.discovery_cron
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.8"
@@ -102,4 +102,20 @@ services:
       - key: MOOMOO_APPKEY
         sync: false
       - key: MOOMOO_PRIVATE_KEY
+        sync: false
+
+  - type: cron
+    name: tradingagents-backup
+    runtime: python
+    plan: starter
+    region: virginia
+    buildCommand: pip install -r web/worker/requirements.txt
+    schedule: "0 3 * * 1"           # weekly, Monday 03:00 UTC (15:00 NZST) — off US market hours
+    startCommand: cd web/worker && python -m tradingagents_worker.backup
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
         sync: false

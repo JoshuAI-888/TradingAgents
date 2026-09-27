@@ -105,9 +105,11 @@ def report(ref: str):
     events = db.select("job_events", {"job_id": f"eq.{run['job_id']}", "order": "seq.asc"},
                        "seq,ts,stage,status,message")
     run_pub = {k: v for k, v in run.items() if k not in ("portfolio_snapshot", "config")}
+    digest = db.select("run_digest", {"run_id": f"eq.{run['id']}"}, "digest,model,created_at")
     return {"ticker": tick[0] if tick else {"symbol": "?"}, "run": run_pub,
             "decision": decision[0] if decision else None, "reports": reports,
             "debates": debates, "settlements": settlements,
+            "digest": digest[0] if digest else None,
             "job": job[0] if job else None, "events": events}
 
 

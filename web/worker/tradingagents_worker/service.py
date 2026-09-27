@@ -197,6 +197,17 @@ def run_forever():
                           f"context: {got['bars']} bars · {got['news']} news · profile={'✓' if got['profile'] else '—'}")
             except Exception as e2:
                 print(f"enrich (non-fatal): {e2}", flush=True)
+            try:
+                from .digest import build_digest
+                dig = build_digest(db, run_id, ticker)
+                if dig.get("stored"):
+                    emit.emit("report_qc", "progress",
+                              f"digest: {dig['evidence']} evidence · {dig['scenarios']} scenarios · "
+                              f"{dig['news']} news reads · qc {dig['qc']} stages")
+                else:
+                    emit.emit("report_qc", "progress", f"digest skipped: {dig.get('reason')}")
+            except Exception as e3:
+                print(f"digest (non-fatal): {e3}", flush=True)
         except Cancelled:
             db.finish_job(str(job["id"]), "cancelled", error="cancelled")
         except Exception as e:

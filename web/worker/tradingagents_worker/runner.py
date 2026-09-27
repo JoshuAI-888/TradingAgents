@@ -91,6 +91,9 @@ class EngineRunner:
 
     def run(self, ticker, trade_date, depth, instructions, emit, cancel=None):
         emit.emit("analysts", "progress", f"engine run starting ({SETTINGS.llm_provider})")
+        from . import llm_usage
+        llm_usage.install()
+        llm_usage.RECORDER.reset()
         ta = self._ensure_graph(depth)
         final_state, signal = ta.propagate(ticker, trade_date)
         if cancel is not None and cancel.is_set():
@@ -104,15 +107,14 @@ class EngineRunner:
         }
         for st, md in reports.items():
             emit.stage_done(st, None, {"chars": len(md)})
-        usage = getattr(ta, "cost_tracker", None)
-        tok = {"prompt": getattr(usage, "prompt_tokens", 0) or 0,
-               "completion": getattr(usage, "completion_tokens", 0) or 0,
-               "cached": 0, "uncached": 0} if usage else {"prompt": 0, "completion": 0, "cached": 0, "uncached": 0}
+        # Framework cost_tracker misses OpenRouter traffic; the SDK-level recorder is authoritative.
+        used = llm_usage.RECORDER.totals()
+        tok = {"prompt": used["prompt"], "completion": used["completion"], "cached": 0, "uncached": 0}
         return {
             "signal": str(signal).lower(), "rating": str(signal), "is_review": str(signal).upper() == "REVIEW",
             "decision": {"rating": str(signal), "executive_summary": None,
                          "full_decision": {"raw": str(final_state.get("final_trade_decision", ""))[:20000]}},
-            "reports": reports, "tokens": tok, "cost_usd": 0.0, "tool_calls": 0,
+            "reports": reports, "tokens": tok, "cost_usd": used["cost_usd"], "tool_calls": 0,
             "elapsed_seconds": None,
         }
 

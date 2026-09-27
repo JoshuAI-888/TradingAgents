@@ -90,10 +90,15 @@ def test_report_by_job_and_by_decision():
                                    "trade_date": "2026-09-25", "rating": "buy", "rating_rank": 5,
                                    "signal": "buy", "is_review": False, "full_decision": {},
                                    "qc_verdict": "passed"})
+    api.db._t("run_digest").append({"run_id": "run-1", "model": "z-ai/glm-5.3-flash",
+                                    "digest": {"evidence": [{"claim": "capex up", "stage": "fundamentals",
+                                                             "support": "+48%"}],
+                                               "scenarios": {}, "news": [], "qc": []}})
     # by job id
     r = client.get(f"/api/analyses/{j['job_id']}/report").json()
     assert r["ticker"]["symbol"] == "AAPL" and r["run"]["id"] == "run-1"
     assert r["reports"][0]["stage"] == "trader" and r["decision"]["id"] == "dec-1"
+    assert r["digest"]["digest"]["evidence"][0]["claim"] == "capex up"
     # by decision id (ledger rows link this way)
     r2 = client.get("/api/analyses/dec-1/report").json()
     assert r2["run"]["id"] == "run-1"

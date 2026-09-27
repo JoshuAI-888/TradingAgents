@@ -33,6 +33,15 @@ class FakeSupa(Db):
                 r.update({k: v for k, v in row.items() if v != "now()"})
         return None
 
+    def upsert(self, table, on_conflict, row):
+        self.calls.append(("upsert", table, on_conflict, row))
+        rows = self._t(table)
+        for r in rows:
+            if str(r.get(on_conflict)) == str(row.get(on_conflict)):
+                r.update(row)
+                return
+        rows.append(dict(row))
+
     def select(self, table, query=None, columns="*"):
         self.calls.append(("select", table, query))
         rows = [dict(r) for r in self._t(table)]
