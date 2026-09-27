@@ -379,32 +379,28 @@ def _watchlist_symbols() -> list[str]:
 
 
 def _market_rows(market: str, sort_key: str, direction: int, client,
-                 pages: int = 3, per_page: int = 300) -> list[dict]:
-    """Whole-market universe: stock-screen pages (server-sorted, pagination via
-    next_key) for coverage+order, then batched snapshots for the full fields.
-    3 pages x 300 = up to 900 stocks; ~6 rate-budgeted calls per cache refresh."""
-    sort_id = _SCREEN_SORT_IDS.get(sort_key, 2301)
-    items: list = []
-    next_key = ""
-    for _ in range(max(1, pages)):
+                 per_page: int = 300) -> list[dict]:
+    """Whole-market universe by slice union: moomoo returns up to 300 items per
+    stock-screen call and no pagination cursor, so we union several server-side
+    sorts — the caller's sort first, then mktcap-desc / top-gainers / top-losers
+    slices — deduped in order, then snapshot-enriched in 400-code batches.
+    4 sorts x 300 = up to ~1,200 unique stocks; ~4 screen + 3 snapshot calls per
+    cache refresh, well inside the 30/min per-path budget."""
+    slices = [(sort_key, direction)]
+    for s, d in (("market_cap", 2), ("pct", 2), ("pct", 1)):
+        if (s, d) not in slices and s in _SCREEN_SORT_IDS:
+            slices.append((s, d))
+    codes: list[str] = []
+    for s, d in slices:
         body = {"limit": min(per_page, 300),
                 "screen_queries": [{"simple_field_query": {
                     "simple_field": 1, "screen_value_list": [_SCREEN_MARKET_ENUM.get(market, 2)]}}],
-                "sort": {"direction": direction, "simple_property": {"name": sort_id}}}
-        if next_key:
-            body["next_key"] = next_key
+                "sort": {"direction": d, "simple_property": {"name": _SCREEN_SORT_IDS.get(s, 2301)}}}
         out = client.call("POST", "/quote/stock-screen", body=body)
-        page = (out.get("items") or []) if isinstance(out, dict) else []
-        items.extend(page)
-        nxt = (out.get("pagination") or {}).get("next_key") if isinstance(out, dict) else None
-        if not nxt or nxt == "-1" or not page:
-            break
-        next_key = nxt
-    codes: list[str] = []
-    for it in items:
-        c = it.get("code")
-        if c and c not in codes:
-            codes.append(c)
+        for it in (out.get("items") or []) if isinstance(out, dict) else []:
+            c = it.get("code")
+            if c and c not in codes:
+                codes.append(c)
     if not codes:
         return []
     rows = []

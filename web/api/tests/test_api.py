@@ -221,35 +221,30 @@ def test_screener_endpoint_watchlist_universe(monkeypatch):
     assert all(len(x["top"]) <= 3 for x in p["presets"])
 
 
-class _PagedMoomoo:
-    """stock-screen with next_key pagination + batched snapshot."""
+class _SlicedMoomoo:
+    """stock-screen returning 300 unique codes per call (no pagination cursor,
+    like the live API) + batched snapshot."""
 
-    def __init__(self, total):
-        self.total = total
+    def __init__(self):
         self.screen_calls = 0
 
     def call(self, method, path, body=None, query=None, retries=2):
         self.screen_calls += 1
         start = (self.screen_calls - 1) * 300
-        page = [{"code": f"US.S{i:04d}"} for i in range(start, min(start + 300, self.total))]
-        has_more = start + 300 < self.total
-        return {"items": page,
-                "pagination": {"next_key": f"k{self.screen_calls}" if has_more else "-1",
-                               "has_more": has_more}}
+        page = [{"code": f"US.S{i:04d}"} for i in range(start, start + 300)]
+        return {"items": page}
 
     def snapshot(self, codes):
         return {"snapshot_list": [{"code": c, "name": c.split(".")[1], "last_price": 10.0,
                                    "prev_close_price": 9.5} for c in codes]}
 
 
-def test_market_rows_follows_pagination(monkeypatch):
-    mm = _PagedMoomoo(700)
+def test_market_rows_unions_sort_slices(monkeypatch):
+    mm = _SlicedMoomoo()
     monkeypatch.setattr(api, "_screener_cache", None)
-    rows = api._market_rows("US", "market_cap", 2, mm)
-    assert len(rows) == 700            # 3 pages: 300 + 300 + 100
-    assert mm.screen_calls == 3
-    assert rows[0]["symbol"] == "S0000" and rows[-1]["symbol"] == "S0699"
-    # exact multiple: pagination stops without an extra call
-    mm2 = _PagedMoomoo(600)
-    rows2 = api._market_rows("US", "pct", 2, mm2)
-    assert len(rows2) == 600 and mm2.screen_calls == 2
+    rows = api._market_rows("US", "price", 1, mm)
+    assert len(rows) == 1200            # 4 sorts x 300 unique
+    assert mm.screen_calls == 4
+    assert rows[0]["symbol"] == "S0000" and rows[-1]["symbol"] == "S1199"
+    # primary slice (caller's sort) leads the ordering
+    assert [r["symbol"] for r in rows[:3]] == ["S0000", "S0001", "S0002"]
