@@ -405,3 +405,33 @@ OpenRouter's per-call cost is absent. Validated: AMD fast run 62,315 in / 42,743
 $0.0085 captured. Digest retry hardened (json_object mode with plain fallback).
 Also: failed/cancelled jobs no longer block resubmission (dedup checks status);
 `web/STOCK_PAGE_FEASIBILITY.md` (owner-authored) committed.
+
+## 2026-09-28 — Market Pulse screener (moomoo-powered, watchlist universe)
+
+**Live API discoveries (bounded experiments).** stock-screen range filters
+(simple_property_query with lower/upper) return -3 invalid parameter in every
+documented shape — only the market enum query + server-side sort work. Property
+dictionary mapped by value-matching a screened symbol against its snapshot:
+2201=price, 2202=open, 2204=high, 2205=prev_close, 2207=bid, 2208=ask,
+2210=pct_change, 2215=? ; 2301=total_market_val (all x1000). Server sort
+verified: mktcap desc -> NVDA/AAPL/GOOGL/MSFT. All 15 recommended screeners
+transcribed from moomoo's SSR page (web reader; includes page 2): Penny,
+High Dividend, Blue Chip, Buffett, Undervalued, Growth, P/B<1, LT High Div |
+High/Good/Low P/E, RSI<30, Junk, Small-Cap Growth, Blue Chip Dividend.
+
+**Architecture.** /api/screener: watchlist universe = saved TradingAgents
+watchlist -> ONE batched snapshot (all filters applied Python-side, any column
+sortable); market universe = stock-screen page (server-sorted) -> snapshot
+enrichment. /api/screener/presets: all 15 presets scored over the universe,
+top-3 each. POST /api/watchlist/{symbol} stars a ticker. Default watchlist
+seeded (NVDA AAPL META TSLA RKLB AMD). Portal home: moomoo-style layout —
+toolbar (market select, watchlist toggle, Add Filter), filter chips, 12-col
+table with stars, preset rail with page tabs, Add-Filter modal (Quotes live;
+Technical/Financial disabled pending the undocumented indicator/financial
+property dictionary — needs a live US session to map like the quotes ids).
+
+**Gotchas.** Rewriting home() silently dropped the `c`/`d` candidates/decisions
+mappings ("c is not defined" via the showPage catch) and the Add Filter button
+referenced an undefined openFilterModal — browser-based UI testing caught both.
+git add -A keeps sweeping owner-authored files (docs/, web/api stock_page
+tests) into commits — they are legit project files.
