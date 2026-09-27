@@ -84,7 +84,7 @@ def _chain(symbol: str) -> list:
     rows = []
     for s in strikes:
         for kind, tag in (("CALL", "C"), ("PUT", "P")):
-            code = f"{tag}{symbol}261016{int(s * 1000):08d}-US"
+            code = f"{symbol}261016{tag}{int(s * 1000):06d}-US"
             rows.append({"code": code, "stock_id": 0, "name": f"Chemed {tag}{s}",
                          "stock_type": "DRVT", "option_type": kind,
                          "stock_owner": f"US.{symbol}", "strike_time": "2026-10-16",
@@ -92,6 +92,24 @@ def _chain(symbol: str) -> list:
                          "index_option_type": "N/A", "expiration_cycle": "MONTHLY",
                          "option_standard_type": "STANDARD"})
     return rows
+
+
+def _chain_quotes(symbol: str) -> dict:
+    px = 60.0
+    out = []
+    for row in _chain(symbol):
+        s = row["strike_price"]
+        base = max(2.0, 512.16 - s) if row["option_type"] == "CALL" else max(2.0, s - 512.16)
+        last = round(base + (s % 7) / 9, 3)
+        out.append({"code": row["code"], "last_price": last,
+                    "prev_close_price": round(last * 0.98, 3),
+                    "pct_change": 2.04, "bid_price": round(last - 0.6, 2),
+                    "ask_price": round(last + 0.6, 2), "volume": int(s * 13) % 420,
+                    "turnover": round(last * (s * 13) % 420 * 100, 2),
+                    "option_open_interest": int(s * 31) % 1900,
+                    "option_implied_volatility": 24.6,
+                    "delta": 0.55 if row["option_type"] == "CALL" else -0.45})
+    return {"snapshot_list": out}
 
 
 def _statement(period: str, fin_type: int) -> dict:
@@ -121,8 +139,8 @@ def _statement(period: str, fin_type: int) -> dict:
 
 def payload(key: str, symbol: str):
     """Fixture for an API fetch key; None → unknown key (route 404s/available=false)."""
-    S = symbol.upper()
-    quotes = {"quote": {"snapshot_list": [_quote(S)], "skipped": []},
+    S = symbol.upper().removesuffix("-US")
+    quotes = {"quote": _quote(S),
               "candles:5D": {"kline_list": _kline(65, seed=11)},
               "candles:D": {"kline_list": _kline(370)},
               "candles:W": {"kline_list": _kline(160, seed=5)},
@@ -165,7 +183,7 @@ def payload(key: str, symbol: str):
                   {"strike_time": "2027-03-19", "option_expiry_date_distance": 173,
                    "expiration_cycle": "QUARTERLY"}]},
               "chain": {"option_chain": _chain(S)},
-              "chain-quotes": {"snapshot_list": []},
+              "chain-quotes": _chain_quotes(S),
               "statements:1:102": [_statement("2026/Q2", 102), _statement("2026/Q1", 102),
                                    _statement("2025/Q4", 102), _statement("2025/Q3", 102),
                                    _statement("2025/Q2", 102), _statement("2025/Q1", 102),
@@ -194,14 +212,15 @@ def payload(key: str, symbol: str):
                   {"disclosure_date": "2026-02-25", "period_text": "2025/Q4",
                    "open": 512.0, "close": 507.9, "high": 517.3, "low": 502.1,
                    "prev_close": 513.6, "predicted_volatility": 5.0}]},
-              "research": {"rating": 4, "total": 4, "strong_buy": 0.0, "buy": 50.0,
-                           "hold": 50.0, "underperform": 0.0, "sell": 0.0,
-                           "average": 584.5, "highest": 650.0, "lowest": 548.0,
-                           "num_of_target_analysts": 4, "update_time": 1758888000,
-                           "update_time_str": "2026-09-26"},
-              "ratings-detail": {"pagination": {"has_more": False, "next_key": "-1",
-                                                "total": 4},
-                                 "inst_rating_summary_list": [
+              "research": {"consensus": {"rating": 4, "total": 4, "strong_buy": 0.0,
+                                         "buy": 50.0, "hold": 50.0, "underperform": 0.0,
+                                         "sell": 0.0, "average": 584.5, "highest": 650.0,
+                                         "lowest": 548.0, "num_of_target_analysts": 4,
+                                         "update_time": 1758888000,
+                                         "update_time_str": "2026-09-26"},
+                           "detail": {"pagination": {"has_more": False, "next_key": "-1",
+                                                     "total": 4},
+                                      "inst_rating_summary_list": [
                   {"institution_info": {"institution_uid": 1,
                                         "institution_name": "UBS", "num_of_stars": 4,
                                         "success_rate": 60.6},
@@ -221,7 +240,7 @@ def payload(key: str, symbol: str):
                                         "institution_name": "RBC Capital",
                                         "num_of_stars": 3, "success_rate": 54.2},
                    "rating_item_list": [{"rating": 2, "target_price": 548.0,
-                                         "recommendation_date_str": "2026-07-30"}]}]},
+                                         "recommendation_date_str": "2026-07-30"}]}]}},
               "news:1": {"news_list": [
                   {"news_id": "post:1000217104", "news_type": "POST",
                    "title": "UBS Initiates Chemed(CHE.US) With Buy Rating, Announces Target Price $650",
@@ -265,7 +284,7 @@ def payload(key: str, symbol: str):
                    "title": "Oppenheimer Maintains Chemed(CHE.US) With Buy Rating, Raises Target Price to $590",
                    "publish_time": 1754009460, "url": "https://www.moomoo.com/news/post/73909886",
                    "img_url": ""}]},
-              "company": {"label_list": [
+              "company": {"profile": {"label_list": [
                   {"name": "Symbol", "value": S}, {"name": "Company Name", "value": "Chemed"},
                   {"name": "Listing Date", "value": "Jun 29, 1982"},
                   {"name": "ISIN", "value": "US16359R1032"}, {"name": "Founded", "value": "1970"},
@@ -280,7 +299,7 @@ def payload(key: str, symbol: str):
                   {"name": "Website", "value": "http://www.chemed.com"}],
                   "introduction": "Chemed Corp. engages in the provision of healthcare and "
                                   "maintenance services. It operates through the VITAS and "
-                                  "Roto-Rooter segments.",
+                                  "Roto-Rooter segments."},
                   "executives": [
                   {"name": "Kevin J. Mcnamara", "position": "President, Chief Executive Officer and Director", "salary": 12900000.0},
                   {"name": "Spencer S. Lee", "position": "EVP; Chairman of the Board and CEO of Roto-Rooter Services Company", "salary": 3210000.0},
@@ -306,7 +325,7 @@ def payload(key: str, symbol: str):
 def estimates(symbol: str) -> dict:
     """S&P Global Market Intelligence street estimates (Yahoo/yfinance shape),
     recorded from the live CHE pull on 2026-09-27."""
-    return {"available": True, "symbol": symbol.upper(),
+    return {"available": True, "symbol": symbol.upper().removesuffix("-US"),
             "revenue_estimate": [
                 {"period": "0q", "avg": 685036720, "low": 680067000, "high": 687931890,
                  "numberOfAnalysts": 5, "yearAgoRevenue": 624900000, "growth": 0.0962},

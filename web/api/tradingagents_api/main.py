@@ -703,38 +703,43 @@ def stock_capital(symbol: str, period: str = "intraday"):
     if period not in ("intraday", "day", "week", "month"):
         raise HTTPException(400, "period must be intraday|day|week|month")
     code = _stock_code(symbol)
-    key = f"capital:{period}"
 
-    def fetch(c):
-        flow = (c.capital_flow(code) if period == "intraday"
-                else c.capital_flow_history(code, period=period))
-        return {"flow": (flow or {}).get("flow_list") or [],
-                "distribution": c.capital_distribution(code) or {}}
+    def flow(c):
+        if period == "intraday":
+            return c.capital_flow(code)
+        return c.capital_flow_history(code, period=period)
 
-    out = _stock_fetch(key, symbol, "quotes", fetch)
-    if isinstance(out, dict):
-        out.setdefault("available", True)
-    return _stock_out(out)
+    fl = _stock_fetch(f"capital:{period}", symbol, "quotes", flow)
+    dist = _stock_fetch("distribution", symbol, "quotes", lambda c: c.capital_distribution(code))
+    if fl is None or dist is None:
+        return _stock_out(None)
+    out = {"available": True, "flow": (fl or {}).get("flow_list") or [],
+           "distribution": dist or {}}
+    return out
 
 
 @app.get("/api/stock/{symbol}/options")
 def stock_options(symbol: str, expiry: str = "auto"):
     code = _stock_code(symbol)
-
-    def fetch(c):
-        exps = (c.option_expirations(code) or {}).get("expire_date_list") or []
-        exp = expiry if expiry != "auto" else (exps[0].get("strike_time") if exps else None)
-        chain = ((c.option_chain(code, start=exp, end=exp) or {}).get("option_chain")
-                 or []) if exp else []
-        codes = [row.get("code") for row in chain if row.get("code")][:80]
-        snap = (c.snapshot(codes) or {}).get("snapshot_list") or [] if codes else []
-        return {"expirations": exps, "expiry": exp, "chain": chain,
-                "quotes": {s.get("code"): s for s in snap if isinstance(s, dict)}}
-
-    out = _stock_fetch("options", symbol, "quotes", fetch)
-    if isinstance(out, dict):
-        out.setdefault("available", True)
-    return _stock_out(out)
+    exps = _stock_fetch("expirations", symbol, "quotes",
+                        lambda c: c.option_expirations(code)) or {}
+    dates = exps.get("expire_date_list") or []
+    exp = expiry if expiry != "auto" else (dates[0].get("strike_time") if dates else None)
+    if not exp:
+        return {"available": True, "expirations": dates, "expiry": None,
+                "chain": [], "quotes": {}}
+    chain = _stock_fetch("chain", symbol, "quotes",
+                         lambda c: c.option_chain(code, start=exp, end=exp)) or {}
+    rows = chain.get("option_chain") or []
+    codes = [r.get("code") for r in rows if r.get("code")][:80]
+    quotes = {}
+    if codes:
+        snap = _stock_fetch("chain-quotes", symbol, "quotes",
+                            lambda c: c.snapshot(codes)) or {}
+        quotes = {s.get("code"): s for s in snap.get("snapshot_list") or []
+                  if isinstance(s, dict)}
+    return {"available": True, "expirations": dates, "expiry": exp,
+            "chain": rows, "quotes": quotes}
 
 
 @app.get("/api/stock/{symbol}/financials/statements")
@@ -745,14 +750,19 @@ def stock_statements(symbol: str, statement_type: int = 1, financial_type: int =
     out = _stock_fetch(key, symbol, "fundamentals",
                        lambda c: c.statements(_stock_code(symbol), statement_type,
                                               financial_type))
-    return _stock_out(out)
+    if out is None:
+        return _stock_out(None)
+    return {"available": True, "periods": out}
 
 
 @app.get("/api/stock/{symbol}/financials/revenue")
 def stock_revenue(symbol: str):
     out = _stock_fetch("revenue", symbol, "fundamentals",
                        lambda c: c.revenue_breakdown(_stock_code(symbol)))
-    return _stock_out(out)
+    if out is None:
+        return _stock_out(None)
+    out.setdefault("available", True)
+    return out
 
 
 @app.get("/api/stock/{symbol}/earnings")

@@ -68,8 +68,8 @@ def test_options_chain_with_quotes(client):
 
 def test_statements_pivot_source(client):
     body = client.get("/api/stock/CHE/financials/statements").json()
-    assert body["available"] is True and isinstance(body, list)
-    top = body[0]
+    assert body["available"] is True and isinstance(body["periods"], list)
+    top = body["periods"][0]
     assert top["period_text"] == "2026/Q2" and top["accounting_standards"] == "US_GAAP"
     names = {i["display_name"] for i in top["item_list"]}
     assert "Total Revenue" in names and "Diluted EPS" in names
