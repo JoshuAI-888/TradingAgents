@@ -426,7 +426,7 @@ def _cache():
 
 @app.get("/api/screener")
 def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
-             sort: str = "market_cap", direction: int = 2, limit: int = 100):
+             sort: str = "market_cap", direction: int = 2, limit: int = 500):
     """Screener rows. watchlist universe = our saved watchlist (snapshot, all filters);
     market universe = moomoo stock-screen page sorted server-side, snapshot-enriched."""
     client = _market_client()
@@ -468,9 +468,11 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
         # Watchlist universe sorts in Python (any column); market mode keeps the
         # server-side order unless the requested column has no verified sort id.
         rows = _sort_rows(rows, sort, direction)
-    rows = rows[:max(1, min(limit, 300))]
+    matched = len(rows)
+    rows = rows[:max(1, min(limit, 1200))]
     return {"available": True, "universe": "watchlist" if watchlist_only else market,
-            "rows": rows, "count": len(rows), "presets": PRESET_SCREENERS,
+            "rows": rows, "count": matched, "matched": matched, "shown": len(rows),
+            "presets": PRESET_SCREENERS,
             "watchlist": _watchlist_symbols()}
 
 

@@ -553,7 +553,7 @@ const pages = {
           <label class="switch"><input type="checkbox" id="scr-wl" ${st.watchlistOnly ? "checked" : ""} onchange="scrSet('watchlistOnly', this.checked)"><i></i> Watchlist only</label>
           <button class="btn ghost" onclick="openFilterModal()">＋ Add Filter</button>
           ${st.filters.length ? `<button class="btn ghost" onclick="scrSet('filters', [])">Clear</button>` : ""}
-          <span class="mono dim" style="margin-left:auto">Result: ${scr.count ?? rows.length} stocks</span>
+          <span class="mono dim" style="margin-left:auto">Result: ${scr.matched ?? rows.length} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown : ""}</span>
         </div>
         ${st.filters.length ? `<div class="scr-chips">${chips}</div>` : ""}
         <div class="scr-scroll">${table}</div>
