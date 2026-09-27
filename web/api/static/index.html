@@ -184,6 +184,17 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 </div>
 
 <script>
+// Visible script-error banner: a silent JS failure on any device (esp. older
+// mobile WebKit) used to leave nothing but a black page.
+window.addEventListener("error", ev => {
+  let t = document.getElementById("jswarn");
+  if (!t) { t = document.createElement("div"); t.id = "jswarn";
+    t.style.cssText = "position:fixed;bottom:8px;left:8px;right:8px;background:rgba(240,84,79,.12);color:#f0a4a0;border:1px solid rgba(240,84,79,.4);font:11px monospace;padding:6px 9px;border-radius:8px;z-index:99";
+    (document.body || document.documentElement).appendChild(t); }
+  t.textContent = "script error: " + (ev.message || "unknown") + " @" + (ev.lineno || "?");
+});
+</script>
+<script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const state = { page: "home", models: null, runtime: {}, poll: null };
@@ -210,7 +221,7 @@ function md(t) {
   const flush = () => { if (para.length) { html += "<p>" + para.join("<br>") + "</p>"; para = []; } };
   const inline = l => l.replace(/\*\*\*(.+?)\*\*\*/g, "<b><i>$1</i></b>")
                       .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
-                      .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, "<i>$1</i>");
+                      .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<i>$2</i>");
   for (const ln of lines) {
     const l = ln.trim();
     if (!l) { flush(); continue; }
@@ -263,7 +274,16 @@ const pages = {
       <div id="floor"><div class="empty">Submit an analysis to watch the pipeline live.</div></div></div>`;
   },
   async ledger() {
-    const r = await api("/api/decisions?limit=100");
+    const [r, act] = await Promise.all([
+      api("/api/decisions?limit=100"),
+      api("/api/jobs/active").catch(() => ({ jobs: [] })),
+    ]);
+    const inflight = (act.jobs || []);
+    const inflightHtml = inflight.length ? `<div class="panel"><h3 class="sec">In flight <small>${inflight.length} analysis(es) running now · decisions land below when they complete</small></h3>
+      ${inflight.map(j => { const p = j.payload || {}; return `<div class="fresh"><span>${esc(p.ticker || "?")} · ${esc(p.depth || "standard")} · queued ${esc(String(j.created_at || "").slice(11, 16))}Z</span>
+        <span class="warn">${esc(j.status)} · <a href="#" onclick="showPage('analyze');watch('${esc(j.id)}');return false">live trace →</a></span></div>`; }).join("")}
+    </div>` : "";
+    if (inflight.length) setTimeout(() => { if (state.page === "ledger") showPage("ledger"); }, 8000);
     const d = (r.decisions || []).map(x => `<tr>
       <td>${esc(x.trade_date)} · <a href="#" onclick="openReport('${esc(x.id)}');return false">${esc(x.symbol)}</a></td>
       <td>${esc((x.rating||"").toUpperCase())}</td>
@@ -272,7 +292,7 @@ const pages = {
       <td>${x.alpha_pct != null ? `<span class="${x.alpha_pct >= 0 ? "g" : "r"}">${esc(Number(x.alpha_pct).toFixed(1))}%</span>` : '<span class="faint">—</span>'}</td>
       <td>${esc(x.settlement_status || "pending")}</td>
       <td><button class="btn ghost" style="padding:2px 9px;font-size:10.5px" onclick="openReport('${esc(x.id)}')">Report</button></td></tr>`).join("");
-    return `<div class="panel"><h3 class="sec">Decision ledger <small>every recommendation, settled against reality</small></h3>
+    return `${inflightHtml}<div class="panel"><h3 class="sec">Decision ledger <small>every recommendation, settled against reality</small></h3>
       <table><tr><th>Date · Ticker</th><th>Rating</th><th>Raw</th><th>Bench</th><th>Alpha</th><th>Status</th><th></th></tr>
       ${d || '<tr><td colspan="7" class="empty">Empty ledger — decisions appear here once the first run completes.</td></tr>'}</table></div>`;
   },
@@ -611,7 +631,8 @@ function curBars(){ const n = TF_N[chart.tf] || 400; return chart.bars.slice(-n)
 function setup(c){ const d=window.devicePixelRatio||1; const w=c.parentElement.clientWidth||900;
   c.width=w*d; c.height=+c.getAttribute("height")*d; c.style.height=c.getAttribute("height")+"px";
   const x=c.getContext("2d"); x.setTransform(d,0,0,d,0,0); return{x,w,h:+c.getAttribute("height")}}
-function draw(){
+function draw(){ try { drawImpl() } catch(e){ console.error("chart draw failed:", e) } }
+function drawImpl(){
   const b = curBars();
   const m = setup(document.getElementById("main")), v = setup(document.getElementById("vol")), s = setup(document.getElementById("sub"));
   const padL=8, padR=64; const iw=m.w-padL-padR; const bw=Math.max(iw/Math.max(b.length,1),.8);

@@ -95,7 +95,15 @@ class EngineRunner:
         llm_usage.install()
         llm_usage.RECORDER.reset()
         ta = self._ensure_graph(depth)
-        final_state, signal = ta.propagate(ticker, trade_date)
+        started = time.monotonic()
+
+        def on_node(node, delta):
+            # Live per-agent progress for the Analyze page's reasoning trace.
+            ev = node_event(node, delta or {}, time.monotonic() - started)
+            if ev:
+                emit.emit(ev[0], "progress", ev[1])
+
+        final_state, signal = ta.propagate(ticker, trade_date, on_node=on_node)
         if cancel is not None and cancel.is_set():
             raise Cancelled("cancelled by caller")
         reports = {
@@ -128,6 +136,39 @@ def _join_history(items) -> str:
         elif m:
             parts.append(str(m))
     return "\n\n".join(p for p in parts if p.strip())
+
+
+# Graph node → (trace stage, human label) for the live reasoning trace.
+_NODE_LABELS = {
+    "Market Analyst": ("analysts", "Market Analyst"),
+    "Sentiment Analyst": ("analysts", "Sentiment Analyst"),
+    "News Analyst": ("analysts", "News Analyst"),
+    "Fundamentals Analyst": ("analysts", "Fundamentals Analyst"),
+    "Bull Researcher": ("research_debate", "Bull researcher"),
+    "Bear Researcher": ("research_debate", "Bear researcher"),
+    "Research Manager": ("research_manager", "Research Manager"),
+    "Trader": ("trader", "Trader"),
+    "Aggressive Analyst": ("risk_debate", "Aggressive risk analyst"),
+    "Neutral Analyst": ("risk_debate", "Neutral risk analyst"),
+    "Conservative Analyst": ("risk_debate", "Conservative risk analyst"),
+    "Risk Manager": ("risk_debate", "Risk Manager"),
+    "Portfolio Manager": ("portfolio_manager", "Portfolio Manager"),
+}
+_NODE_SKIP = ("Msg Clear ", "tools_", "__end__")
+_REPORT_KEYS = ("market_report", "sentiment_report", "news_report", "fundamentals_report")
+
+
+def node_event(node: str, delta: dict, elapsed_s: float) -> tuple[str, str] | None:
+    """Map a finished graph node to (stage, message) for the live trace; None to skip."""
+    if node.startswith(_NODE_SKIP):
+        return None
+    stage, label = _NODE_LABELS.get(node, ("analysts", node.replace("_", " ").title()))
+    extra = ""
+    for key in _REPORT_KEYS:
+        if delta.get(key):
+            extra = f" · {len(str(delta[key])):,} chars"
+            break
+    return stage, f"{label} done · {elapsed_s:.0f}s in{extra}"
 
 
 def get_runner(model_pair_resolver=None, stub_resolver=None) -> Runner:

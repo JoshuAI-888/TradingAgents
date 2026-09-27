@@ -165,6 +165,16 @@ def decisions(limit: int = 50):
     return {"decisions": rows}
 
 
+@app.get("/api/jobs/active")
+def active_jobs():
+    """Analyses queued or running right now — the ledger's 'In flight' panel."""
+    jobs = db.select("jobs", {"status": "eq.pending", "order": "created_at.desc", "limit": "20"},
+                     "id,status,payload,created_at,locked_by")
+    jobs += db.select("jobs", {"status": "eq.running", "order": "created_at.desc", "limit": "20"},
+                      "id,status,payload,created_at,locked_by")
+    return {"jobs": jobs}
+
+
 @app.get("/api/candidates")
 def candidates(status: str = "open"):
     return {"candidates": db.select("discovery_candidates",

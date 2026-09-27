@@ -125,3 +125,17 @@ def test_submit_creates_job_and_dedups():
 def test_queue_candidate_requires_cron_secret():
     r = client.post("/api/candidates/some-id/queue")
     assert r.status_code == 401
+
+
+def test_active_jobs_lists_pending_and_running_only():
+    api.db._t("jobs").append({"id": "j-pend", "status": "pending",
+                              "payload": {"ticker": "META", "depth": "standard"},
+                              "created_at": "2026-09-27T04:44:32Z"})
+    api.db._t("jobs").append({"id": "j-run", "status": "running",
+                              "payload": {"ticker": "NVDA", "depth": "fast"},
+                              "created_at": "2026-09-27T03:00:00Z"})
+    api.db._t("jobs").append({"id": "j-done", "status": "succeeded",
+                              "payload": {"ticker": "AAPL", "depth": "fast"},
+                              "created_at": "2026-09-26T20:00:00Z"})
+    ids = {j["id"] for j in client.get("/api/jobs/active").json()["jobs"]}
+    assert {"j-pend", "j-run"} <= ids and "j-done" not in ids

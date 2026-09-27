@@ -154,7 +154,7 @@ class TradingAgentsGraph:
             f"portfolio={portfolio.fingerprint() if portfolio is not None else 'none'}",
         ])
 
-    def propagate(self, company_name, trade_date, asset_type: str = "stock", portfolio=None):
+    def propagate(self, company_name, trade_date, asset_type: str = "stock", portfolio=None, on_node=None):
         """Run the trading agents graph for a company on a specific date.
 
         ``asset_type`` selects between the stock pipeline (default) and the
@@ -163,6 +163,10 @@ class TradingAgentsGraph:
         ``checkpoint_enabled`` is set in config, the graph is recompiled with
         a per-ticker SqliteSaver so a crashed run can resume from the last
         successful node on a subsequent invocation with the same ticker+date.
+
+        ``on_node(node_name, state_delta)`` is called after each graph node
+        finishes (streamed execution); it exists for live progress surfaces.
+        Callback failures are logged and never abort the run.
 
         Returns ``(final_state, signal)`` where ``signal`` is one of the 5-tier
         ratings (Buy / Overweight / Hold / Underweight / Sell) or ``"REVIEW"``
@@ -176,7 +180,7 @@ class TradingAgentsGraph:
                 self.checkpoint_scope(company_name, trade_date, asset_type, portfolio) as thread_id_value:
             return self._run_graph(
                 company_name, trade_date, asset_type=asset_type,
-                checkpoint_thread_id=thread_id_value, portfolio=portfolio,
+                checkpoint_thread_id=thread_id_value, portfolio=portfolio, on_node=on_node,
             )
 
     def begin_checkpoint(self, company_name, trade_date, asset_type: str = "stock", portfolio=None) -> str | None:
@@ -299,7 +303,7 @@ class TradingAgentsGraph:
         )
 
     def _run_graph(self, company_name, trade_date, asset_type: str = "stock",
-                   checkpoint_thread_id: str | None = None, portfolio=None):
+                   checkpoint_thread_id: str | None = None, portfolio=None, on_node=None):
         """Execute the graph and write the resulting state to disk and memory log."""
         init_agent_state = self.create_run_state(company_name, trade_date, asset_type, portfolio)
         args = self.propagator.get_graph_args()
@@ -311,7 +315,31 @@ class TradingAgentsGraph:
 
         # None resumes an existing checkpoint; init_agent_state starts fresh (#1249).
         graph_input = self.checkpoint_input(init_agent_state)
-        if self.debug:
+        if on_node is not None:
+            # Live node-level stream: chunks are {node_name: state_delta} (or
+            # (namespace, delta) tuples when subgraphs stream in). Merging the
+            # deltas yields the same state graph.invoke() would return; callback
+            # failures are logged and never abort the run.
+            final_state: dict = {}
+            stream_args = dict(args)
+            stream_args["stream_mode"] = "updates"
+            for chunk in self.graph.stream(graph_input, **stream_args):
+                if isinstance(chunk, dict):
+                    pairs = chunk.items()
+                elif isinstance(chunk, tuple) and len(chunk) == 2:
+                    namespace, delta = chunk
+                    pairs = ((namespace[-1] if namespace else None, delta),)
+                else:
+                    pairs = ()
+                for node, delta in pairs:
+                    if not node or node == "__end__" or not isinstance(delta, dict):
+                        continue
+                    final_state.update(delta)
+                    try:
+                        on_node(node, delta)
+                    except Exception:
+                        logger.exception("on_node callback failed for %s", node)
+        elif self.debug:
             trace = []
             last_printed = None
             for chunk in self.graph.stream(graph_input, **args):
