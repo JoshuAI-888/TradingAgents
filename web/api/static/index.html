@@ -400,6 +400,12 @@ const pages = {
         ${x.symbol ? `<div class="actions" style="margin-top:8px"><button class="btn" onclick="submitAnalysis('${esc(x.symbol)}','standard')">Run analysis</button>
         <button class="btn ghost" onclick="submitAnalysis('${esc(x.symbol)}','deep')">Deep</button></div>` : ""}
       </div>`).join("");
+    const d = (decs.decisions || []).map(x => `<tr>
+      <td>${esc(x.trade_date)} · <a href="#" onclick="openReport('${esc(x.id)}');return false">${esc(x.symbol)}</a></td>
+      <td>${esc((x.rating||"").toUpperCase())}</td>
+      <td>${x.raw_return_pct != null ? esc(Number(x.raw_return_pct).toFixed(1)) + "%" : '<span class="faint">pending</span>'}</td>
+      <td>${x.alpha_pct != null ? `<span class="${x.alpha_pct >= 0 ? "g" : "r"}">${esc(Number(x.alpha_pct).toFixed(1))}%</span>` : '<span class="faint">—</span>'}</td>
+      <td>${esc(x.settlement_status || "pending")}</td></tr>`).join("");
     const heat = v => v == null ? "rgba(139,160,184,.12)"
       : v >= 0 ? `rgba(38,198,140,${Math.min(.08 + Math.abs(v) / 3, .45).toFixed(2)})`
                : `rgba(240,84,79,${Math.min(.08 + Math.abs(v) / 3, .45).toFixed(2)})`;
