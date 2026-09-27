@@ -392,6 +392,14 @@ const pages = {
     const fmtPct = v => v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(2) + "%";
     window.__scrPresets = rail.presets || [];
     window.__scr.watchlistSyms = scr.watchlist || st.watchlistSyms;
+    const c = (cands.candidates || []).map(x => `
+      <div class="cand"><div class="h"><span class="pill pd"><i></i>${esc(x.trigger_type)}</span> <b>${esc(x.title)}</b>
+        <span class="score mono">score ${esc(x.score)}</span></div>
+        <div class="why">${esc(x.reason)}</div>
+        <div class="src">${esc(x.symbol || "")} ${(x.sources||[]).map(s => esc(s.vendor)).join(", ")}</div>
+        ${x.symbol ? `<div class="actions" style="margin-top:8px"><button class="btn" onclick="submitAnalysis('${esc(x.symbol)}','standard')">Run analysis</button>
+        <button class="btn ghost" onclick="submitAnalysis('${esc(x.symbol)}','deep')">Deep</button></div>` : ""}
+      </div>`).join("");
     const heat = v => v == null ? "rgba(139,160,184,.12)"
       : v >= 0 ? `rgba(38,198,140,${Math.min(.08 + Math.abs(v) / 3, .45).toFixed(2)})`
                : `rgba(240,84,79,${Math.min(.08 + Math.abs(v) / 3, .45).toFixed(2)})`;
