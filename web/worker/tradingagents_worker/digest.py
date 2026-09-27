@@ -135,18 +135,26 @@ def build_digest(db, run_id: str, ticker: str) -> dict:
             usage_total["cost"] += float(getattr(u, "cost", 0) or 0)
 
     resp = client.chat.completions.create(
-        model=model, temperature=0.2, max_tokens=2000, messages=messages,
+        model=model, temperature=0.2, max_tokens=2400, messages=messages,
         extra_body={"usage": {"include": True}})
     _acc(resp)
     text = resp.choices[0].message.content or ""
     try:
         digest = _norm(_parse_json(text))
     except Exception:
-        retry = client.chat.completions.create(
-            model=model, temperature=0, max_tokens=2000,
-            messages=messages + [{"role": "assistant", "content": text[:800]},
-                                 {"role": "user", "content": "That was not valid JSON per the schema. Return ONLY the JSON object."}],
-            extra_body={"usage": {"include": True}})
+        # Hard retry: demand bare JSON (json_object mode when supported), then
+        # fall back to a plain firm-nudge call if the provider rejects it.
+        json_messages = messages + [{"role": "user", "content":
+            "Return ONLY the JSON object. No prose, no markdown, no code fences."}]
+        try:
+            retry = client.chat.completions.create(
+                model=model, temperature=0, max_tokens=2400, messages=json_messages,
+                response_format={"type": "json_object"},
+                extra_body={"usage": {"include": True}})
+        except Exception:
+            retry = client.chat.completions.create(
+                model=model, temperature=0, max_tokens=2400, messages=json_messages,
+                extra_body={"usage": {"include": True}})
         _acc(retry)
         text = retry.choices[0].message.content or ""
         digest = _norm(_parse_json(text))

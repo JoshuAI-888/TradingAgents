@@ -384,3 +384,24 @@ pct_change property id — only verifiable during a live US session, so
 `discovery._screen_candidates` is disabled (news + watchlist still feed candidates).
 OAuth creds stored for the future WS push ingestion (WS requires OAuth; AppKey fails
 there — HB §3.4).
+
+## 2026-09-27 — Market Pulse live, main synced, usage capture made version-proof
+
+`/api/market/state` (portal env carries MOOMOO keys): one batched snapshot — SPY/QQQ/
+IWM/VIXY + HK.HSI (auto-dropped when quote-less) + 11 SPDR sector ETFs — plus the hot
+economic calendar; 5-min TTL; prev-close pct fallback off-session; ISO as_of stamps.
+Home page renders the Market state panel. **main is synced** with product/portal-phase0
+(fast-forward pushes both branches).
+
+TSLA standard run (16.5 min live trace): Underweight 2/5, Jev screening ran ("Jev's
+classifier read… 8 bullish / 1 bearish / 9 neutral / 4 unclear"), digest 8 evidence /
+3 scenarios / qc 5 stages. But engine token capture returned 0 — the openai SDK class
+patch goes silent when a deploy re-resolves a different SDK layout. Fixed properly:
+`LLMUsageCallback` (LangChain BaseCallbackHandler — must SUBCLASS it, the manager
+checks raise_error; AMD crashed with AttributeError until it did) threaded via
+`TradingAgentsGraph.llm_callbacks` → `get_graph_args(callbacks=…)`. `reconcile()` takes
+tokens from whichever source saw them and estimates cost from the catalog when
+OpenRouter's per-call cost is absent. Validated: AMD fast run 62,315 in / 42,743 out /
+$0.0085 captured. Digest retry hardened (json_object mode with plain fallback).
+Also: failed/cancelled jobs no longer block resubmission (dedup checks status);
+`web/STOCK_PAGE_FEASIBILITY.md` (owner-authored) committed.
