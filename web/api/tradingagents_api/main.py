@@ -789,13 +789,15 @@ def stock_options(symbol: str, expiry: str = "auto"):
 
 
 @app.get("/api/stock/{symbol}/financials/statements")
-def stock_statements(symbol: str, statement_type: int = 1, financial_type: int = 102):
-    if statement_type not in (1, 2, 3, 4) or financial_type not in (7, 102):
-        raise HTTPException(400, "statement_type 1-4; financial_type 7|102")
+def stock_statements(symbol: str, statement_type: int = 1, financial_type: int = 0):
+    """financial_type: 0 = server default (quarterly mix), 7 = annual; live enum is
+    1..7/9 (the docs' '102' value is rejected — handbook inaccuracy)."""
+    if statement_type not in (1, 2, 3, 4) or financial_type not in (0, 1, 2, 3, 4, 5, 6, 7, 9):
+        raise HTTPException(400, "statement_type 1-4; financial_type 0|1..7|9")
     key = f"statements:{statement_type}:{financial_type}"
     out = _stock_fetch(key, symbol, "fundamentals",
                        lambda c: c.statements(_stock_code(symbol), statement_type,
-                                              financial_type, limit=12))
+                                              financial_type or None, limit=12))
     if out is None:
         return _stock_out(None)
     if _is_unavailable(out):
@@ -857,7 +859,7 @@ def stock_news(symbol: str, type: str = "news", limit: int = 20):
     kw = _stock_code(symbol).split(".")[-1]
     out = _stock_fetch(f"news:{_NEWS_TYPES[type]}", symbol, "news",
                        lambda c: {"news_list": c.find_news(kw, news_type=_NEWS_TYPES[type],
-                                                           limit=limit)})
+                                                           limit=limit, lang="en")})
     if isinstance(out, dict):
         out.setdefault("available", True)
     return _stock_out(out)

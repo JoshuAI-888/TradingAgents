@@ -1606,7 +1606,7 @@ async function stkAnalysis() {
 // ── financials: 6 sub-tabs ───────────────────────────────────────────
 async function stkFinancials() {
   const st = stkState();
-  const finType = st.finAnnual ? 7 : 102;
+  const finType = st.finAnnual ? 7 : 0;  // 0 = server-default quarterly mix; live enum 1..7/9 (docs"' 102 is rejected)
   const stmtType = STK_FIN_STMT[st.finTab] || 1;
   const needStmt = ["earnings", "indicators", "income", "balance", "cashflow"].includes(st.finTab);
   const [stmts, rev, est, epsh] = await Promise.all([
