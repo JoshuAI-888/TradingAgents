@@ -116,23 +116,23 @@ def _chain_quotes(symbol: str) -> dict:
 
 def _statement(period: str, fin_type: int) -> dict:
     rows = [
-        ("Total Revenue", [673.25, 657.51, 639.34, 624.90, 618.80, 646.94, 639.99, 606.18]),
-        ("Gross Profit", [221.47, 215.76, 225.17, 196.91, 184.69, 216.41, 234.12, 209.99]),
-        ("Operating Profit", [89.20, 84.58, 103.56, 74.75, 68.08, 94.76, 114.32, 92.16]),
-        ("Net Profit", [67.70, 66.30, 76.75, 64.24, 52.49, 71.76, 90.32, 75.78]),
-        ("Basic EPS", [5.14, 4.85, 5.48, 4.46, 3.60, 4.91, 6.08, 5.04]),
-        ("Diluted EPS", [5.13, 4.84, 5.48, 4.46, 3.57, 4.86, 6.02, 5.00]),
-        ("Dividend Per Share", [0.60, 0.60, 0.60, 0.60, 0.50, 0.50, 0.50, 0.50]),
+        ("Total Revenue as Reported", [673.25e6, 657.51e6, 639.34e6, 624.90e6, 618.80e6, 646.94e6, 639.99e6, 606.18e6], "amount"),
+        ("Gross Profit", [221.47e6, 215.76e6, 225.17e6, 196.91e6, 184.69e6, 216.41e6, 234.12e6, 209.99e6], "amount"),
+        ("Operating Profit", [89.20e6, 84.58e6, 103.56e6, 74.75e6, 68.08e6, 94.76e6, 114.32e6, 92.16e6], "amount"),
+        ("Net Profit", [67.70e6, 66.30e6, 76.75e6, 64.24e6, 52.49e6, 71.76e6, 90.32e6, 75.78e6], "amount"),
+        ("Basic EPS", [5.14, 4.85, 5.48, 4.46, 3.60, 4.91, 6.08, 5.04], "ratio"),
+        ("Diluted EPS", [5.13, 4.84, 5.48, 4.46, 3.57, 4.86, 6.02, 5.00], "ratio"),
+        ("Dividend Per Share", [0.60, 0.60, 0.60, 0.60, 0.50, 0.50, 0.50, 0.50], "ratio"),
     ]
     periods = ["2026/Q2", "2026/Q1", "2025/Q4", "2025/Q3", "2025/Q2", "2025/Q1",
                "2024/Q4", "2024/Q3"]
     idx = periods.index(period)
     items = []
-    for name, vals in rows:
+    for name, vals, vtype in rows:
         v = vals[idx]
         yoy = round((v / vals[idx + 4] - 1) * 100, 2) if idx + 4 < len(vals) else None
         items.append({"field_id": name.upper().replace(" ", "_"), "display_name": name,
-                      "value": v, "yoy": yoy, "qoq": None})
+                      "data": v, "value_type": vtype, "yoy": yoy, "qoq": None})
     return {"date_time": 1751328000000, "fiscal_year": int(period[:4]),
             "financial_type": fin_type, "structure": 1, "structure_name": "NORMAL_US",
             "period_text": period, "currency_code": "USD",
@@ -199,22 +199,22 @@ def payload(key: str, symbol: str):
                   "period_text": period, "currency_code": "USD",
                   "accounting_standards": "US_GAAP", "auditor_report": "",
                   "item_list": [
-                      {"field_id": "EPS", "display_name": "EPS", "value": v[0], "yoy": v[1],
+                      {"field_id": "EPS", "display_name": "EPS", "data": v[0], "value_type": "ratio", "yoy": v[1],
                        "qoq": None},
                       {"field_id": "FCF", "display_name": "Free Cash Flow", "value": v[2],
                        "yoy": v[3], "qoq": None},
                       {"field_id": "CURRENT_RATIO", "display_name": "Current Ratio",
-                       "value": v[4], "yoy": v[5], "qoq": None},
+                       "data": v[4], "value_type": "ratio", "yoy": v[5], "qoq": None},
                       {"field_id": "QUICK_RATIO", "display_name": "Quick Ratio",
-                       "value": v[6], "yoy": v[7], "qoq": None},
-                      {"field_id": "ROE", "display_name": "ROE", "value": v[8], "yoy": v[9],
+                       "data": v[6], "value_type": "ratio", "yoy": v[7], "qoq": None},
+                      {"field_id": "ROE", "display_name": "ROE", "data": v[8], "value_type": "ratio", "yoy": v[9],
                        "qoq": None},
                       {"field_id": "ROA", "display_name": "ROA", "value": v[10],
                        "yoy": v[11], "qoq": None},
                       {"field_id": "GROSS_MARGIN", "display_name": "Gross Margin",
-                       "value": v[12], "yoy": v[13], "qoq": None},
+                       "data": v[12], "value_type": "ratio", "yoy": v[13], "qoq": None},
                       {"field_id": "NET_MARGIN", "display_name": "Net Margin",
-                       "value": v[14], "yoy": v[15], "qoq": None}]}
+                       "data": v[14], "value_type": "ratio", "yoy": v[15], "qoq": None}]}
                   for period, v in [
                       ("2026/Q2", [5.13, 43.7, 69.29e6, -43.57, 0.91, -51.1, 0.72, -56.57,
                                    8.07, 82.9, 4.35, 42.59, 32.90, 10.21, 10.06, 18.54]),

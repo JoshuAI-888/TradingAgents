@@ -1573,8 +1573,10 @@ function stkDrawImpl() {
 function stkNewsItem(n) {
   let host = "moomoo";
   try { host = new URL(n.url).hostname.replace("www.", ""); } catch (e) {}
+  // API titles carry <em> keyword-highlight tags — strip before rendering.
+  const title = String(n.title || "").replace(/<\/?em>/g, "");
   return `<div class="news-item">
-    <div class="t"><a href="${esc(n.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(n.title)}</a></div>
+    <div class="t"><a href="${esc(n.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(title)}</a></div>
     <div class="m">${esc(host)} · ${stkTime(Number(n.publish_time) * 1000)}</div></div>`;
 }
 
@@ -1639,10 +1641,12 @@ function stkEarningsTab(est, epsh, stmts) {
   const surprise = (est?.earnings_history || []).map(h =>
     `<tr><td style="text-align:left">${esc(h.quarter)}</td><td>${stkFmt(h.eps_estimate, 2)}</td><td>${stkFmt(h.eps_actual, 2)}</td>
      <td class="${(h.surprise_pct ?? 0) >= 0 ? "g" : "r"}">${stkPct(h.surprise_pct)}</td></tr>`).join("");
-  // actuals from statements type 1
-  const periods = (stmts?.periods || []).slice(0, 8);
-  const pick = (p, name) => { const it = (p.item_list || []).find(x => x.display_name === name); return it?.value; };
-  const pickYoy = (p, name) => { const it = (p.item_list || []).find(x => x.display_name === name); return it?.yoy; };
+  // Actuals from the quarterly statements mix — match display names loosely
+  // ("Total Revenue as Reported", "Net Profit", "Diluted EPS"); live value field
+  // is `data` (full currency units), full-year records filtered by financial_type 7.
+  const periods = (stmts?.periods || []).filter(p => p.financial_type !== 7).slice(0, 8);
+  const pick = (p, frag) => { const it = (p.item_list || []).find(x => (x.display_name || "").includes(frag)); return it ? (it.data ?? it.value) : null; };
+  const pickYoy = (p, frag) => { const it = (p.item_list || []).find(x => (x.display_name || "").includes(frag)); return it?.yoy; };
   const actuals = periods.map(p => `<tr>
     <td style="text-align:left">${esc(p.period_text)}</td>
     <td>${stkMoney(pick(p, "Total Revenue"))}</td><td class="dim">${stkPct(pickYoy(p, "Total Revenue"))}</td>
@@ -1733,7 +1737,7 @@ function stkStmtTable(stmts) {
   const rows = names.map(name => {
     const vals = cols.map(p => {
       const it = (p.item_list || []).find(x => x.display_name === name);
-      return it ? { v: it.value, yoy: it.yoy } : { v: null, yoy: null };
+      return it ? { v: (it.data ?? it.value), yoy: it.yoy } : { v: null, yoy: null };
     });
     if (st.hideBlank && vals.every(x => x.v == null || x.v === 0 || isNaN(Number(x.v)))) return "";
     const tds = vals.map(x => {

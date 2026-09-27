@@ -72,10 +72,13 @@ def test_statements_pivot_source(client):
     assert body["available"] is True and isinstance(body["periods"], list)
     top = body["periods"][0]
     assert top["period_text"] == "2026/Q2" and top["accounting_standards"] == "US_GAAP"
-    names = {i["display_name"] for i in top["item_list"]}
+    names = " | ".join(i["display_name"] for i in top["item_list"])
     assert "Total Revenue" in names and "Diluted EPS" in names
+    assert top["item_list"][0]["data"] == 673250000  # live `data` field, full units
     assert client.get("/api/stock/CHE/financials/statements",
                       params={"statement_type": 9}).status_code == 400
+    assert client.get("/api/stock/CHE/financials/statements",
+                      params={"financial_type": 102}).status_code == 400
 
 
 def test_revenue_breakdown_live_shape(client):
