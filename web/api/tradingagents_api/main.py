@@ -56,7 +56,8 @@ def submit(inp: AnalyzeIn, x_user_id: str = Header(default="")):
     # Single-user Phase 0: unauthenticated submissions are owned by DEFAULT_USER_ID.
     user_id = x_user_id or os.getenv("DEFAULT_USER_ID") or None
     existing = db.select("jobs", {"idempotency_key": f"eq.{key}"}, "id,status")
-    if existing:
+    # A failed/cancelled job must not block re-running the same analysis.
+    if existing and existing[0].get("status") not in ("failed", "cancelled"):
         return {"job_id": existing[0]["id"], "status": existing[0].get("status", "pending"),
                 "deduplicated": True}
     row = db.insert("jobs", {
