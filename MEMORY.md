@@ -325,3 +325,42 @@ live completion (z-ai/glm-5.3-flash, 37 tokens). OpenRouter carries the full cur
 baseline. Upgrade path is a settings change (gpt-6-sol deep + gpt-6-luna quick), not code.
 `render.yaml` worker env gains OPENROUTER_API_KEY (sync: false); config.py missing_critical
 now accepts it. Engine 0.5.1 accepts non-catalog model IDs.
+
+## 2026-09-27 — Completion round: usage capture, post-run digest, weekly backups
+
+**Usage capture.** Framework `cost_tracker` never sees OpenRouter traffic (LangChain
+ChatOpenAI → openai SDK), so real runs recorded 0 tokens. `worker/llm_usage.py` wraps
+`openai.resources.chat.completions.Completions.create` once per process; OpenRouter
+responses opt into per-call cost via `extra_body {"usage":{"include":True}}` (injected
+only for openrouter.ai base URLs). EngineRunner resets/drains the recorder per run.
+Verified live: NVDA fast run recorded **4,552 in / 695 out / $0.0010**.
+
+**Post-run digest (Phase-1 first cut).** `worker/digest.py` — one small OpenRouter call
+(quick model) over stored run artifacts (stage reports clipped, debate heads, decision,
+news titles) → normalized JSON in `run_digest` (migration 0006; upsert by run_id):
+evidence register (≤8 claims w/ stage tags), bull/base/bear scenarios, news
+classification (catalyst/risk/assumption + impact), per-stage QC scores 0–100. The
+normalizer coerces/clamps everything; the LLM is told to omit rather than invent —
+it correctly wrote "not provided" for fair-value bands when the engine gave no targets.
+Runs after `enrich_run`, non-fatal. Digest call's own usage is folded back into the run.
+Portal dossier renders Evidence register, Scenario & sensitivity table, news
+classification chips, Agent QC grade bars (visual-judge: 9/9 segments pass).
+
+**Weekly backups.** `worker/backup.py` — 19 product tables (deliberately NOT
+user_secrets) → gzipped JSONL → Storage bucket `backups/<date>/` + `_manifest.json` +
+app_settings `backup_state`. Pure REST (PostgREST pagination + Storage upload); crons
+only install `web/worker/requirements.txt`, so `requests>=2.32` was added there.
+Render cron `tradingagents-backup` crn-das8g0fpn0mc73f9det0, Mondays 03:00 UTC.
+Validated live: 1,104 rows / 20 objects uploaded.
+
+**Data hygiene.** Deploy-race churn had left duplicate run rows per job (one RKLB job
+had 4). Cleanup rule: keep runs with a decision, delete decision-less siblings
+(cascades agent_reports/debate_messages). Report API resolves **job ids and decision
+ids — NOT run ids** ("no run for reference" 404 means you passed a run id).
+
+**OpenAI SDK note.** Local dev venv lacks `openai` (framework dep, not worker req) —
+install it in web/.venv for the llm_usage tests; install() no-ops returning False
+when the SDK is absent, so stub-mode/worker-thin environments stay safe.
+
+**render.yaml** now mirrors deployed MCP topology (worker as web service w/ /healthz,
+no disk, `cd`-prefixed commands from repo root, backup cron present).
