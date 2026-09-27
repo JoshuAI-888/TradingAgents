@@ -485,3 +485,43 @@ requested column globally (slice order must not leak). Filter-aware server
 sort: max-only bound → ascending slice, else descending. Endpoint now reports
 matched vs shown (limit default 500, cap 1200). UI defaults to whole-market;
 watchlist mode stays one click away (grows as you star tickers).
+
+## 2026-09-27 — Stock page live-reconciled (production), Data & Coverage page added
+
+Probed every live /api/stock/* endpoint on Render and fixed 11 fixture-vs-live
+drifts (the POC handbook documented some shapes the live gateway doesn't match):
+- snapshot session fields are FLAT (pre_price/after_price/pre_change_rate…),
+  not the nested pre_market{} of the WS push — header reads both
+- find-news AND find-community return a BARE LIST (no news_list/community_list
+  container) — worker wrappers now accept both; news was silently empty before
+- option-expiration container is expiration_list (not expire_date_list)
+- earnings-price-history container is `records` (600 rows for CHE), fields
+  pub_trading_day_str/close_price/last_close_price
+- company/profile is {items:[{name,value,field_type}]}, field_type 2=intro
+  block; company/executives container is `executives`
+- statements: **financial_type=102 is rejected live (-3, allowed 1..7/9)** —
+  the handbook's "7/102" is wrong; 0 (server default) returns the same
+  quarterly+FY mix moomoo's web shows; item value field is `data` (FULL
+  currency units, value_type amount/ratio); container report_list; limit param
+  works; pass financial_type=7 for annual
+- revenue-breakdown: breakdown_list[type 1=Product 2=Industry 4=Region
+  8=Business].item_list[].{name, main_oper_income, ratio} + screen_date_list
+  period picker (date s + financial_type); names come provider-localized
+- find-news accepts `lang` (undocumented) — lang=en gives English titles;
+  titles carry <em> keyword highlights (stripped client-side)
+- estimates (yfinance/S&P): first probe from Render returned empty frames —
+  transient; now live (685.04M next-qtr revenue, 5 analysts). Route now
+  reports available:false with reason when everything comes back empty
+- ALL stock routes degrade upstream errors to {available:false, reason}
+  instead of 500
+Deployed: portal dep 925724f + 42f5990 + 10b2adc (auto-deploy on push to
+product/portal-phase0; worker + crons also redeploy). Verified on production:
+all 13 endpoints OK, options chain 58 contracts w/ quotes, news EN, statements
+12 periods (673.251M = moomoo web exactly), browser-checked Financials tabs.
+NEW: "Data & Coverage" nav page (#/info) — live status cards (portal/moomoo/
+estimates), module→source matrix, 17 documented gaps vs moomoo's own page
+(forum threads, WS streaming, order-book ladder, dividends/shareholders/short/
+valuation/Morningstar UI, US splits-buybacks, pagination limits, AI rails).
+74 web tests green. Diagnostics tip: the POC's poc/catalogue/verification.json
+holds actual live response samples (data_keys) — fastest way to settle
+container-name questions without burning API budget.
