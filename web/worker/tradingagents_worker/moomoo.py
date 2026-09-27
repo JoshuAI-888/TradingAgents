@@ -16,10 +16,11 @@ import uuid
 
 from .net import urlopen
 from datetime import datetime, timezone
-from urllib import error as _err
+from urllib import error as _err, request as _rq
 from urllib.parse import urlencode
 
-REST = "https://webapi.moomoo.com/api/v1.0"
+REST = "https://webapi.moomoo.com"
+API = "/api/v1.0"  # part of the signed path — omitting it fails auth (-12006)
 
 
 class MoomooError(RuntimeError):
@@ -57,21 +58,51 @@ class MoomooClient:
         self.budget = budget or Budget()
         self.offset = clock_offset_ms
 
+    def _load_key(self):
+        """Accept PEM, base64 PKCS#8 DER, or a raw 32-byte Ed25519 seed (HB §3.2)."""
+        import base64 as _b64
+
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from cryptography.hazmat.primitives.serialization import (
+            load_der_private_key,
+            load_pem_private_key,
+        )
+        raw = self._key.strip()
+        if "-----BEGIN" in raw:
+            key = load_pem_private_key(raw.encode(), password=None)
+        else:
+            try:
+                der = _b64.b64decode(raw, validate=True)
+            except Exception:
+                der = b""
+            if len(der) > 32:
+                key = load_der_private_key(der, password=None)
+            elif len(der) == 32:
+                key = Ed25519PrivateKey.from_private_bytes(der)
+            else:
+                key = None
+        if not isinstance(key, Ed25519PrivateKey):
+            raise MoomooError(
+                "MOOMOO_PRIVATE_KEY must be an Ed25519 key: PEM, base64 PKCS#8 DER, or raw 32-byte seed")
+        return key
+
     # ── signing (Ed25519, per HB §3.2) ────────────────────────────────────
     def _sign(self, ts_ms: int, method: str, path: str, query: str, body: bytes) -> str:
-        from cryptography.hazmat.primitives.serialization import load_pem_private_key
-        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-        key = load_pem_private_key(self._key.encode(), password=None)
-        if not isinstance(key, Ed25519PrivateKey):
-            raise MoomooError("MOOMOO_PRIVATE_KEY must be an Ed25519 private key (PEM)")
-        payload = f"{ts_ms}\n{method}\n{path}\n{query}\n{hashlib.sha256(body).hexdigest()}"
+        key = self._load_key()
+        # A body-less request signs the EMPTY STRING, not sha256("") (HB §3.2:
+        # `sha256_hex(body) or ''`) — hashing b"" fails every GET with -12006.
+        body_part = hashlib.sha256(body).hexdigest() if body else ""
+        payload = f"{ts_ms}\n{method}\n{path}\n{query}\n{body_part}"
         return base64.b64encode(key.sign(payload.encode())).decode()
 
     def call(self, method: str, path: str, body: dict | None = None,
              query: dict | None = None, retries: int = 2) -> dict:
         qs = urlencode(query) if query else ""
-        full_path = path + (f"?{qs}" if qs else "")
-        payload = json.dumps(body).encode() if body is not None else b""
+        sign_path = API + path
+        full_path = sign_path + (f"?{qs}" if qs else "")
+        # Compact separators — match the verified PoC byte-for-byte so the
+        # body hash the server re-computes is the one we signed.
+        payload = json.dumps(body, separators=(",", ":")).encode() if body is not None else b""
         template = path  # budget keyed by path template (symbol lives in path for some endpoints)
         for attempt in range(retries + 1):
             self.budget.reserve(template)
@@ -80,7 +111,7 @@ class MoomooClient:
                 "X-Api-Key": self.appkey,
                 "X-Timestamp": str(ts),
                 "X-Nonce": uuid.uuid4().hex,
-                "Authorization": self._sign(ts, method, path, qs, payload),
+                "Authorization": self._sign(ts, method, sign_path, qs, payload),
                 "Content-Type": "application/json",
             }
             req = _rq.Request(f"{REST}{full_path}", data=payload or None, method=method, headers=headers)
@@ -106,11 +137,17 @@ class MoomooClient:
         """Batch market snapshot: up to 400 codes/call. Denied codes → data.skipped."""
         return self.call("POST", "/quote/snapshot", body={"code_list": symbols[:400]})
 
-    def screen(self, market: str, query: dict, limit: int = 50) -> list:
-        """Server-side filter+sort (movers, volume surge, patterns). 300 rows/page max."""
-        out = self.call("POST", "/quote/stock-screen", body={
-            "market": market, "page": 1, "limit": min(limit, 300), **query})
-        return out.get("list", []) if isinstance(out, dict) else out
+    def screen(self, screen_queries: list, retrieve_queries: list | None = None,
+               sort: dict | None = None, limit: int = 50) -> list:
+        """Server-side screen. Body is structured query objects (HB: screen_queries
+        is mandatory; the response's matching rows are in `items`)."""
+        body: dict = {"screen_queries": screen_queries, "limit": min(limit, 300)}
+        if retrieve_queries:
+            body["retrieve_queries"] = retrieve_queries
+        if sort:
+            body["sort"] = sort
+        out = self.call("POST", "/quote/stock-screen", body=body)
+        return (out.get("items") or []) if isinstance(out, dict) else []
 
     def history_kline(self, symbol: str, start: str, end: str, ktype: int = 2, autype: int = 1) -> list:
         """Date-windowed daily bars. NOTE: has_more is unreliable — page by date windows."""
@@ -120,10 +157,13 @@ class MoomooClient:
         return out.get("kline_list", []) if isinstance(out, dict) else []
 
     def find_news(self, keyword: str, sort_type: int = 2, limit: int = 20) -> list:
-        """sort_type is mandatory in practice (1=reads, 2=latest) — HB §17.13."""
+        """Keyword search. The required param is confusingly named `symbol`; page
+        size is `size`; `sort_type` 2 = latest (HB §17.13: empty without sort_type)."""
         out = self.call("GET", "/quote/find-news",
-                        query={"keyword": keyword, "sort_type": sort_type, "limit": limit})
-        return out.get("news_list", []) if isinstance(out, dict) else []
+                        query={"symbol": keyword, "sort_type": sort_type, "size": min(limit, 50)})
+        if not isinstance(out, dict):
+            return []
+        return out.get("news_list") or out.get("list") or []
 
     def econ_calendar_hot(self) -> list:
         out = self.call("GET", "/quote/economic-calendar/hot")
@@ -131,8 +171,30 @@ class MoomooClient:
 
     @staticmethod
     def server_clock_offset_ms() -> int:
-        with urlopen(f"{REST}/server-time", timeout=10) as r:
-            server_ms = int(json.loads(r.read())["data"]["timestamp"])
+        with urlopen(f"{REST}{API}/server-time", timeout=10) as r:
+            out = json.loads(r.read())
+
+        def _find_ms(node):
+            """The endpoint's shape moved across versions — accept timestamp /
+            server_time_ms at any depth (handbook §3.1)."""
+            if isinstance(node, dict):
+                for k in ("timestamp", "server_time_ms"):
+                    if k in node:
+                        return int(node[k])
+                for v in node.values():
+                    got = _find_ms(v)
+                    if got is not None:
+                        return got
+            elif isinstance(node, list):
+                for v in node:
+                    got = _find_ms(v)
+                    if got is not None:
+                        return got
+            return None
+
+        server_ms = _find_ms(out)
+        if server_ms is None:
+            raise MoomooError(f"server-time: unexpected shape {str(out)[:120]}")
         return server_ms - int(time.time() * 1000)
 
 
@@ -149,7 +211,9 @@ def probe(client: MoomooClient) -> dict:
     check("US snapshot (SPY,QQQ,NVDA)", lambda: len((client.snapshot(["US.SPY", "US.QQQ", "US.NVDA"]) or {}).get("snapshot_list", [])))
     check("HK snapshot (00700)", lambda: len((client.snapshot(["HK.00700"]) or {}).get("snapshot_list", [])))
     check("AU snapshot real-time? (CBA.AX)", lambda: len((client.snapshot(["AU.CBA"]) or {}).get("snapshot_list", [])))
-    check("US screen gainers", lambda: len(client.screen("US", {"basic_filter": {"sort_field": "pct_change", "sort_type": 1}})))
+    check("stock-screen (verified HK query)", lambda: len(client.screen(
+        [{"simple_field_query": {"simple_field": 1, "screen_value_list": [1]}}], limit=3)))
     check("history-kline SPY 5y window", lambda: len(client.history_kline("US.SPY", "2021-01-01", "2021-01-31")))
     check("find-news NVDA", lambda: len(client.find_news("NVDA")))
+    check("economic calendar", lambda: len(client.econ_calendar_hot()))
     return out

@@ -49,29 +49,12 @@ def market_state(mm: MoomooClient, cache: TtlCache) -> list[dict]:
 
 
 def _screen_candidates(mm: MoomooClient, cache: TtlCache) -> list[dict]:
-    out = []
-    queries = [
-        ("gainers", {"basic_filter": {"sort_field": "pct_change", "sort_type": 1}}),
-        ("losers", {"basic_filter": {"sort_field": "pct_change", "sort_type": 2}}),
-        ("volume_surge", {"basic_filter": {"sort_field": "volume_ratio", "sort_type": 1}}),
-    ]
-    for name, q in queries:
-        k = cache.key("quotes", "screen", name)
-        hit, _ = cache.wrap("quotes", k)
-        rows = hit if hit else mm.screen("US", q, limit=10)
-        if not hit:
-            cache.put("quotes", k, rows)
-        for r in rows[:5]:
-            sym = (r.get("code") or "").split(".")[-1]
-            pct = r.get("pct_change") or 0
-            out.append({
-                "trigger_type": "screen", "symbol": sym, "market": "US",
-                "title": f"{name.replace('_', ' ').title()}: {sym} {float(pct):+.1f}%",
-                "reason": f"Screen hit — {name} ({float(pct):+.1f}%{' · vol ratio ' + str(r.get('volume_ratio')) if r.get('volume_ratio') else ''}). Analyze for continuation vs fade.",
-                "score": min(99, int(abs(float(pct)) * 10)),
-                "sources": [{"vendor": "moomoo", "endpoint": "/quote/stock-screen", "query": name}],
-            })
-    return out
+    # stock-screen is verified live (2026-09-27): it works, and the market enum
+    # is 1=HK 2=US with 2201=price×1000. But a true "movers" screen needs the
+    # pct_change property id, discoverable only during a live US session — the
+    # unsorted default order returns SPAC/warrant noise. Disabled until that id
+    # is verified; the news + watchlist sources still feed candidates.
+    return []
 
 
 def _news_candidates(mm: MoomooClient, cache: TtlCache) -> list[dict]:

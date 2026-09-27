@@ -364,3 +364,23 @@ when the SDK is absent, so stub-mode/worker-thin environments stay safe.
 
 **render.yaml** now mirrors deployed MCP topology (worker as web service w/ /healthz,
 no disk, `cd`-prefixed commands from repo root, backup cron present).
+
+## 2026-09-27 — Moomoo keys live: Phase-0 probe passed (US+HK real-time; AU not entitled)
+
+Owner supplied AppKey + Ed25519 private key (base64 PKCS#8 DER) + OAuth client/refresh
+token. All four set on the Render worker (never in the repo). Worker client fixed
+against the verified PoC (ecosystem-survey/moomoo-api/poc — run it with creds to bisect
+auth bugs): **signed path must include /api/v1.0**; **body-less requests sign the empty
+string, not sha256("")**; body JSON must be compact separators; find-news takes
+`symbol` (required, it IS the keyword) + `size` (not keyword/limit); stock-screen body
+is structured `screen_queries` and rows come back in `items`. Phase-0 probe results:
+server-time offset −48 ms; US+HK snapshot ✅ real-time; **AU snapshot denied
+(ret −9 realtime permission)** → ASX stays on yfinance; screen ✅; history-kline ✅;
+find-news ✅ (0 rows on a Sunday); economic-calendar ✅.
+
+Discovered live: stock-screen `simple_field` market enum **1=HK 2=US 3=BJ**;
+`simple_property` **2201 = last_price×1000**. A true movers screen needs the
+pct_change property id — only verifiable during a live US session, so
+`discovery._screen_candidates` is disabled (news + watchlist still feed candidates).
+OAuth creds stored for the future WS push ingestion (WS requires OAuth; AppKey fails
+there — HB §3.4).
