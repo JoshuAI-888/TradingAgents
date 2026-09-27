@@ -55,3 +55,24 @@ def test_install_is_idempotent(monkeypatch):
     wrapper = oc.Completions.create
     assert llm_usage.install() is True
     assert oc.Completions.create is wrapper
+
+
+def test_callback_totals_from_llm_end():
+    from types import SimpleNamespace as NS
+    h = llm_usage.LLMUsageCallback()
+    h.on_llm_end(NS(llm_output={"token_usage": {"prompt_tokens": 500, "completion_tokens": 120}}))
+    h.on_llm_end(NS(llm_output={"token_usage": {"prompt_tokens": 300, "completion_tokens": 80}}))
+    h.on_llm_end(NS(llm_output=None))  # tolerant of missing output
+    assert h.totals() == {"calls": 3, "prompt": 800, "completion": 200}
+
+
+def test_reconcile_prefers_best_source_and_estimates_cost(monkeypatch):
+    monkeypatch.setattr(llm_usage, "estimate_cost", lambda m, p, c: 0.0025 if (p or c) else 0.0)
+    # SDK went silent (the TSLA-run failure mode), callback saw everything.
+    out = llm_usage.reconcile({"calls": 0, "prompt": 0, "completion": 0, "cost_usd": 0.0},
+                              {"calls": 9, "prompt": 4000, "completion": 1000}, "z-ai/glm-5.3-flash")
+    assert out == {"calls": 9, "prompt": 4000, "completion": 1000, "cost_usd": 0.0025}
+    # SDK has real OpenRouter cost → it wins over the estimate.
+    out2 = llm_usage.reconcile({"calls": 9, "prompt": 4000, "completion": 1000, "cost_usd": 0.0069},
+                               {"calls": 9, "prompt": 4000, "completion": 1000}, "z-ai/glm-5.3-flash")
+    assert out2["cost_usd"] == 0.0069

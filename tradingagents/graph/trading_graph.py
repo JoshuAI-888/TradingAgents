@@ -107,6 +107,7 @@ class TradingAgentsGraph:
 
         # Graph-shape-affecting run choices, kept for the checkpoint signature.
         self.selected_analysts = tuple(selected_analysts)
+        self.llm_callbacks: list = []  # LangChain handlers threaded into every graph run
 
         # Set up the graph: keep the workflow for recompilation with a checkpointer.
         self.workflow = self.graph_setup.setup_graph(selected_analysts)
@@ -306,7 +307,7 @@ class TradingAgentsGraph:
                    checkpoint_thread_id: str | None = None, portfolio=None, on_node=None):
         """Execute the graph and write the resulting state to disk and memory log."""
         init_agent_state = self.create_run_state(company_name, trade_date, asset_type, portfolio)
-        args = self.propagator.get_graph_args()
+        args = self.propagator.get_graph_args(callbacks=self.llm_callbacks or None)
 
         # Inject the checkpoint thread_id (from checkpoint_scope) so the same
         # ticker+date+graph-shape resumes; a different one starts fresh (#1089).

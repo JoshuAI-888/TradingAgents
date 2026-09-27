@@ -100,6 +100,8 @@ class EngineRunner:
         llm_usage.install()
         llm_usage.RECORDER.reset()
         ta = self._ensure_graph(depth)
+        handler = llm_usage.LLMUsageCallback()
+        ta.llm_callbacks = [handler]  # fresh handler per run; graph is cached
         started = time.monotonic()
 
         def on_node(node, delta):
@@ -120,8 +122,12 @@ class EngineRunner:
         }
         for st, md in reports.items():
             emit.stage_done(st, None, {"chars": len(md)})
-        # Framework cost_tracker misses OpenRouter traffic; the SDK-level recorder is authoritative.
-        used = llm_usage.RECORDER.totals()
+        # Reconcile the SDK-level recorder with the LangChain callback: tokens
+        # from whichever saw them (callback is version-proof), cost from the
+        # OpenRouter per-call figure when available, else catalog-priced.
+        model = (self._pair_resolver().get("quick") or SETTINGS.quick_model)
+        used = llm_usage.reconcile(llm_usage.RECORDER.totals(), handler.totals(), model)
+        print(f"llm_usage: reconcile -> {used}", flush=True)
         tok = {"prompt": used["prompt"], "completion": used["completion"], "cached": 0, "uncached": 0}
         return {
             "signal": str(signal).lower(), "rating": str(signal), "is_review": str(signal).upper() == "REVIEW",
