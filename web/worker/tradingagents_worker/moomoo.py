@@ -160,11 +160,14 @@ class MoomooClient:
                   news_type: int | None = None) -> list:
         """Keyword search. The required param is confusingly named `symbol`; page
         size is `size`; `sort_type` 2 = latest (HB §17.13: empty without sort_type).
-        `news_type` 1=News(POST) 2=Announcement(NOTICE) 3=Report(REPORT)."""
+        `news_type` 1=News(POST) 2=Announcement(NOTICE) 3=Report(REPORT).
+        Live data is a BARE LIST (no container key)."""
         q = {"symbol": keyword, "sort_type": sort_type, "size": min(limit, 50)}
         if news_type:
             q["news_type"] = news_type
         out = self.call("GET", "/quote/find-news", query=q)
+        if isinstance(out, list):
+            return out
         if not isinstance(out, dict):
             return []
         return out.get("news_list") or out.get("list") or []
@@ -205,15 +208,20 @@ class MoomooClient:
         """Static contracts (≤20 expiries/call); prices come from snapshot on the codes."""
         return self._get(f"/quote/{symbol}/option-chain", start=start, end=end)
 
-    def statements(self, symbol: str, statement_type: int, financial_type: int) -> dict:
+    def statements(self, symbol: str, statement_type: int, financial_type: int,
+                   limit: int | None = None) -> dict:
         """F10 statements: statement_type 1/2/3 (income/balance/cashflow + key metrics
-        per docs), financial_type 7=annual / 102=all cumulative quarters."""
+        per docs), financial_type 7=annual / 102=all cumulative quarters. Live data
+        container is `report_list` (paginated via next_key)."""
         return self._get(f"/quote/{symbol}/financials/statements",
-                         statement_type=statement_type, financial_type=financial_type)
+                         statement_type=statement_type, financial_type=financial_type,
+                         limit=limit)
 
-    def revenue_breakdown(self, symbol: str, period: str | None = None) -> dict:
+    def revenue_breakdown(self, symbol: str, date: int | None = None,
+                          financial_type: int | None = None) -> dict:
+        """Period picker = screen_date_list entries {date (s), financial_type}."""
         return self._get(f"/quote/{symbol}/financials/revenue-breakdown",
-                         financial_period=period)
+                         date=date, financial_type=financial_type)
 
     def earnings_price_history(self, symbol: str) -> dict:
         return self._get(f"/quote/{symbol}/financials/earnings-price-history")
@@ -235,10 +243,13 @@ class MoomooClient:
 
     def find_community(self, keyword: str, community_type: int = 1,
                        sort_type: int = 2, size: int = 20) -> list:
-        """Community search (FEED/TOPIC/LIVE); no pagination — latest N only."""
+        """Community search (FEED/TOPIC/LIVE); no pagination — latest N only.
+        Live data is a BARE LIST (no container key)."""
         out = self.call("GET", "/quote/find-community",
                         query={"symbol": keyword, "community_type": community_type,
                                "sort_type": sort_type, "size": min(size, 50)})
+        if isinstance(out, list):
+            return out
         if not isinstance(out, dict):
             return []
         return out.get("community_list") or out.get("list") or []

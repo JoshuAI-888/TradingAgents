@@ -1182,9 +1182,14 @@ async function renderStock() {
   if (pct == null && last != null && prev) pct = (last - prev) / prev * 100;
   const chg = last != null && prev != null ? last - prev : null;
   const g = v => v >= 0;
-  const sess = q.pre_market || {}, aft = q.after_market || {};
-  const sessLine = (label, s) => s && s.last_price ? `<span class="stk-session">${stkFmt(s.last_price, 3)}
-      <span class="${(s.last_price - prev) >= 0 ? "g" : "r"}">${stkPct(prev ? (s.last_price - prev) / prev * 100 : null)}</span> · ${label}</span>` : "";
+  // Live REST snapshot carries flat pre_*/after_* session fields; tolerate the
+  // documented nested shape too.
+  const sessOf = pfx => q[pfx + "_price"] != null
+    ? { price: q[pfx + "_price"], chg: q[pfx + "_change_rate"] }
+    : (q[pfx === "pre" ? "pre_market" : "after_market"] || {});
+  const sess = sessOf("pre"), aft = sessOf("after");
+  const sessLine = (label, s) => s && s.price != null ? `<span class="stk-session">${stkFmt(s.price, 3)}
+      <span class="${(s.chg ?? 0) >= 0 ? "g" : "r"}">${stkPct(s.chg)}</span> · ${label}</span>` : "";
   const stats = [
     ["High", stkFmt(q.high_price, 3)], ["Low", stkFmt(q.low_price, 3)], ["Volume", stkMoney(q.volume)],
     ["Open", stkFmt(q.open_price, 3)], ["Prev Close", stkFmt(prev, 3)], ["Turnover", stkMoney(q.turnover)],
@@ -1537,7 +1542,8 @@ async function stkFinancials() {
   const needStmt = ["earnings", "indicators", "income", "balance", "cashflow"].includes(st.finTab);
   const [stmts, rev, est, epsh] = await Promise.all([
     needStmt ? api(`/api/stock/${st.sym}/financials/statements?statement_type=${stmtType}&financial_type=${finType}`).catch(() => null) : Promise.resolve(null),
-    st.finTab === "revenue" ? api(`/api/stock/${st.sym}/financials/revenue`).catch(() => null) : Promise.resolve(null),
+    st.finTab === "revenue" ? api(`/api/stock/${st.sym}/financials/revenue` +
+      (st.revPeriod ? "?date=" + st.revPeriod.split("|")[0] + "&financial_type=" + st.revPeriod.split("|")[1] : "")).catch(() => null) : Promise.resolve(null),
     api(`/api/stock/${st.sym}/estimates`).catch(() => null),
     st.finTab === "earnings" ? api(`/api/stock/${st.sym}/earnings`).catch(() => null) : Promise.resolve(null),
   ]);
@@ -1573,11 +1579,10 @@ function stkEarningsTab(est, epsh, stmts) {
     <td>${stkMoney(pick(p, "Total Revenue"))}</td><td class="dim">${stkPct(pickYoy(p, "Total Revenue"))}</td>
     <td>${stkMoney(pick(p, "Net Profit"))}</td><td class="dim">${stkPct(pickYoy(p, "Net Profit"))}</td>
     <td>${stkFmt(pick(p, "Diluted EPS"), 2)}</td></tr>`).join("");
-  const events = (epsh?.list || epsh || []).slice?.(0, 6) || [];
-  const evRows = (Array.isArray(events) ? events : []).map(e =>
-    `<tr><td style="text-align:left">${esc(e.period_text || "")}</td><td>${esc(e.disclosure_date || "")}</td>
-     <td>${stkFmt(e.prev_close, 2)} → ${stkFmt(e.close, 2)}</td>
-     <td class="${((e.close ?? 0) - (e.prev_close ?? 0)) >= 0 ? "g" : "r"}">${e.prev_close ? stkPct((e.close - e.prev_close) / e.prev_close * 100) : "—"}</td></tr>`).join("");
+  const events = (epsh?.list || []).map(e =>
+    `<tr><td style="text-align:left">${esc(e.period_text || "")}</td><td>${esc(e.pub_trading_day_str || e.disclosure_date || "")}</td>
+     <td>${stkFmt(e.last_close_price ?? e.prev_close, 2)} → ${stkFmt(e.close_price ?? e.close, 2)}</td>
+     <td class="${((e.close_price ?? e.close ?? 0) - (e.last_close_price ?? e.prev_close ?? 0)) >= 0 ? "g" : "r"}">${(e.close_price ?? e.close) && (e.last_close_price ?? e.prev_close) ? stkPct(((e.close_price ?? e.close) - (e.last_close_price ?? e.prev_close)) / (e.last_close_price ?? e.prev_close) * 100) : "—"}</td></tr>`).join("");
   const estNote = est ? "" : `<div class="delay-note">Street estimates (S&P via Yahoo) unavailable on this deployment.</div>`;
   return `
   ${estNote}
@@ -1600,17 +1605,25 @@ function stkEarningsTab(est, epsh, stmts) {
 function stkRevenueTab(rev) {
   if (!rev) return stkNa();
   if (rev.available === false) return stkNa(rev.reason);
-  const periods = rev.period_list || Object.keys(rev.business || {});
   const st = stkState();
-  if (!st.revPeriod || !periods.includes(st.revPeriod)) st.revPeriod = periods[0];
+  // Live shape: breakdown_list[type 1=Product 2=Industry 4=Region 8=Business],
+  // screen_date_list = available periods {date(s), financial_type, period_text}.
+  const periods = rev.screen_date_list || [];
+  if (!st.revPeriod && periods.length)
+    st.revPeriod = String(periods[0].date) + "|" + periods[0].financial_type;
+  const dimName = { 1: "By Product", 2: "By Industry", 4: "By Country / Region", 8: "By Business" };
   const table = (rows, title) => `<div class="panel" style="margin-top:12px"><h3 class="sec">${title}
-    <small>${esc(st.revPeriod)}</small></h3>
+    <small>${esc(rev.period || "")} · ${esc(rev.currency_code || "")}</small></h3>
     <table class="est-t"><tr><th style="text-align:left">Segment</th><th>Revenue</th><th>Ratio</th></tr>
-    ${(rows || []).map(r => `<tr><td style="text-align:left">${esc(r.name)}</td><td>${stkMoney(r.value)}</td>
-      <td>${stkFmt(r.ratio, 2)}%</td></tr>`).join("") || '<tr><td colspan="3" class="empty">No data.</td></tr>'}</table></div>`;
-  return `<div class="stk-sub">${periods.map(p => `<button class="${st.revPeriod === p ? "on" : ""}" onclick="stkSet('revPeriod','${esc(p)}')">${esc(p)}</button>`).join("")}</div>
-    ${table((rev.business || {})[st.revPeriod], "By Business / Source")}
-    ${table((rev.region || {})[st.revPeriod], "By Country / Region")}`;
+    ${(rows || []).map(r => `<tr><td style="text-align:left">${esc(r.name)}</td><td>${stkMoney(r.main_oper_income ?? r.value)}</td>
+      <td>${stkFmt(r.ratio, 2)}%</td></tr>`).join("") || '<tr><td colspan="3" class="empty">No data for this dimension.</td></tr>'}</table></div>`;
+  const picker = periods.length > 1 ? `<div class="stk-sub">${periods.map(p => {
+    const key = String(p.date) + "|" + p.financial_type;
+    return `<button class="${st.revPeriod === key ? "on" : ""}" onclick="stkSet('revPeriod','${key}')">${esc(p.period_text)}</button>`;
+  }).join("")}</div>` : "";
+  const sections = (rev.breakdown_list || []).map(b =>
+    table(b.item_list, dimName[b.type] || "Composition")).join("");
+  return picker + (sections || '<div class="panel" style="margin-top:12px"><div class="empty">No revenue breakdown data.</div></div>');
 }
 
 function stkIndicatorsTab(stmts) {

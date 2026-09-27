@@ -560,6 +560,8 @@ def meta():
     return {"framework": "tradingagents 0.5.1", "markets": ["US", "HK", "ASX"],
             "vendors": {"live": "moomoo", "fallback": "yfinance", "fundamentals": "sec_edgar+yfinance",
                         "news": "yfinance+fmp", "macro": "fred", "prediction": "polymarket"},
+            "stock_page": {"fixtures_mode": bool(os.getenv("TA_STOCK_FIXTURES")),
+                           "info_page": "/#/info"},
             "stub_mode": SETTINGS.stub_mode, "spend": spend}
 
 
@@ -657,7 +659,9 @@ def _stock_code(symbol: str) -> str:
 
 
 def _stock_fetch(key: str, symbol: str, category: str, fetch):
-    """Fixture payload, or the TTL-cached result of fetch(client); None w/o keys."""
+    """Fixture payload, or the TTL-cached result of fetch(client); None w/o keys.
+    Upstream errors become {"available": false, "reason"} instead of HTTP 500 —
+    one flaky endpoint must never take the whole stock tab down."""
     if os.getenv("TA_STOCK_FIXTURES"):
         from tradingagents_api import stock_fixtures
         data = stock_fixtures.payload(key, symbol)
@@ -672,9 +676,16 @@ def _stock_fetch(key: str, symbol: str, category: str, fetch):
     hit = cache.get(category, ck)
     if hit is not None:
         return hit
-    out = fetch(client)
+    try:
+        out = fetch(client)
+    except Exception as e:  # noqa: BLE001 — surface, don't crash the section
+        return {"available": False, "reason": f"moomoo error: {str(e)[:140]}"}
     cache.put(category, ck, out)
     return out
+
+
+def _is_unavailable(out) -> bool:
+    return isinstance(out, dict) and out.get("available") is False
 
 
 def _stock_out(data) -> dict:
@@ -737,8 +748,11 @@ def stock_capital(symbol: str, period: str = "intraday"):
 
     fl = _stock_fetch(f"capital:{period}", symbol, "quotes", flow)
     dist = _stock_fetch("distribution", symbol, "quotes", lambda c: c.capital_distribution(code))
-    if fl is None or dist is None:
-        return _stock_out(None)
+    for part in (fl, dist):
+        if part is None:
+            return _stock_out(None)
+        if _is_unavailable(part):
+            return part
     out = {"available": True, "flow": (fl or {}).get("flow_list") or [],
            "distribution": dist or {}}
     return out
@@ -749,21 +763,27 @@ def stock_options(symbol: str, expiry: str = "auto"):
     code = _stock_code(symbol)
     exps = _stock_fetch("expirations", symbol, "quotes",
                         lambda c: c.option_expirations(code)) or {}
-    dates = exps.get("expire_date_list") or []
+    if _is_unavailable(exps):
+        return exps
+    # Live container is expiration_list (verified POC); keep the docs' alias.
+    dates = exps.get("expiration_list") or exps.get("expire_date_list") or []
     exp = expiry if expiry != "auto" else (dates[0].get("strike_time") if dates else None)
     if not exp:
         return {"available": True, "expirations": dates, "expiry": None,
                 "chain": [], "quotes": {}}
     chain = _stock_fetch("chain", symbol, "quotes",
                          lambda c: c.option_chain(code, start=exp, end=exp)) or {}
+    if _is_unavailable(chain):
+        return chain
     rows = chain.get("option_chain") or []
     codes = [r.get("code") for r in rows if r.get("code")][:80]
     quotes = {}
     if codes:
         snap = _stock_fetch("chain-quotes", symbol, "quotes",
                             lambda c: c.snapshot(codes)) or {}
-        quotes = {s.get("code"): s for s in snap.get("snapshot_list") or []
-                  if isinstance(s, dict)}
+        if not _is_unavailable(snap):
+            quotes = {s.get("code"): s for s in snap.get("snapshot_list") or []
+                      if isinstance(s, dict)}
     return {"available": True, "expirations": dates, "expiry": exp,
             "chain": rows, "quotes": quotes}
 
@@ -775,18 +795,27 @@ def stock_statements(symbol: str, statement_type: int = 1, financial_type: int =
     key = f"statements:{statement_type}:{financial_type}"
     out = _stock_fetch(key, symbol, "fundamentals",
                        lambda c: c.statements(_stock_code(symbol), statement_type,
-                                              financial_type))
+                                              financial_type, limit=12))
     if out is None:
         return _stock_out(None)
+    if _is_unavailable(out):
+        return out
+    if isinstance(out, dict):  # live container is report_list (paginated)
+        out = out.get("report_list") or []
     return {"available": True, "periods": out}
 
 
 @app.get("/api/stock/{symbol}/financials/revenue")
-def stock_revenue(symbol: str):
-    out = _stock_fetch("revenue", symbol, "fundamentals",
-                       lambda c: c.revenue_breakdown(_stock_code(symbol)))
+def stock_revenue(symbol: str, date: int | None = None, financial_type: int | None = None):
+    """Live shape: breakdown_list[type: 1=Product 2=Industry 4=Region 8=Business],
+    screen_date_list = available periods (date s + financial_type)."""
+    out = _stock_fetch(f"revenue:{date}:{financial_type}", symbol, "fundamentals",
+                       lambda c: c.revenue_breakdown(_stock_code(symbol),
+                                                     date=date, financial_type=financial_type))
     if out is None:
         return _stock_out(None)
+    if _is_unavailable(out):
+        return out
     out.setdefault("available", True)
     return out
 
@@ -795,11 +824,15 @@ def stock_revenue(symbol: str):
 def stock_earnings(symbol: str):
     out = _stock_fetch("earnings-history", symbol, "fundamentals",
                        lambda c: c.earnings_price_history(_stock_code(symbol)))
-    if isinstance(out, dict) and "list" not in out:
-        out = {"list": out.get("item_list") or out.get("list") or []}
+    if out is None:
+        return _stock_out(None)
+    if _is_unavailable(out):
+        return out
+    if isinstance(out, dict):  # live container is `records` (verified POC)
+        out = {"list": out.get("records") or out.get("list") or []}
     if isinstance(out, dict):
         out.setdefault("available", True)
-    return _stock_out(out)
+    return out
 
 
 @app.get("/api/stock/{symbol}/research")
@@ -835,7 +868,7 @@ def stock_company(symbol: str):
 
     def fetch(c):
         return {"profile": c.company_profile(code) or {},
-                "executives": (c.company_executives(code) or {}).get("leader_list") or []}
+                "executives": (c.company_executives(code) or {}).get("executives") or []}
 
     out = _stock_fetch("company", symbol, "fundamentals", fetch)
     if isinstance(out, dict):
@@ -911,6 +944,13 @@ def stock_estimates(symbol: str):
         out = _estimates_fetch(symbol)
     except Exception as e:
         return {"available": False, "reason": f"estimates unavailable: {str(e)[:120]}"}
+    # Yahoo sometimes returns empty frames (egress rate-limited) without raising —
+    # report that as unavailable rather than a page of blank tables.
+    if not (out.get("revenue_estimate") or out.get("earnings_estimate")
+            or out.get("earnings_history")):
+        return {"available": False,
+                "reason": "estimates provider returned no data (Yahoo egress may be "
+                          "rate-limited from this host); retry later"}
     out["available"] = True
     cache.put("other", ck, out)
     return out

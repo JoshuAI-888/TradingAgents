@@ -468,3 +468,20 @@ browser-verified every tab). Gotcha: yfinance EPS actuals are street-basis
 (GAAP diluted differs); estimates route is API-side lazy-import — yfinance
 already in root pyproject, add to web/api/requirements.txt on next deploy if
 missing.
+
+## 2026-09-28 — Screener universe widened: 899 stocks whole-market (was 6/100)
+
+**What limited the list:** (1) the screener defaulted to the watchlist universe
+(6 seeded tickers); (2) market mode fetched one 100-row page; (3) the response
+`limit` param defaulted to 100 — UI never passed it.
+
+**Live probes that shaped the fix:** moomoo stock-screen returns up to 300
+items/call with NO pagination cursor (the docs' pagination.* fields are absent
+from responses — handbook §17 pattern again). So coverage comes from a sort-
+slice UNION: caller's sort + mktcap-desc + top-gainers + top-losers, deduped →
+899 unique US stocks (4 screen calls + 3 batched snapshots per 5-min cache).
+Filters run Python-side over the full union; display always Python-sorts the
+requested column globally (slice order must not leak). Filter-aware server
+sort: max-only bound → ascending slice, else descending. Endpoint now reports
+matched vs shown (limit default 500, cap 1200). UI defaults to whole-market;
+watchlist mode stays one click away (grows as you star tickers).
