@@ -24,9 +24,13 @@ class Emitter:
         self.job_id = job_id
         # Continue the job's event numbering across re-attempts: a retry that
         # restarts at 1 collides with the previous attempt's rows and scrambles
-        # every order-by-seq reader (live trace, report dossier).
-        rows = db.select("job_events", {"job_id": f"eq.{job_id}", "order": "seq.desc", "limit": "1"}, "seq")
-        self._seq = int(rows[0]["seq"] or 0) if rows else 0
+        # every order-by-seq reader (live trace, report dossier). Best-effort:
+        # if the max-seq read fails, number from 1 rather than block the job.
+        try:
+            rows = db.select("job_events", {"job_id": f"eq.{job_id}", "order": "seq.desc", "limit": "1"}, "seq")
+            self._seq = int(rows[0]["seq"] or 0) if rows else 0
+        except Exception:
+            self._seq = 0
 
     def emit(self, stage: str, status: str, message: str | None = None, payload: dict | None = None):
         self._seq += 1
