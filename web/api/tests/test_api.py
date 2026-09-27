@@ -219,3 +219,37 @@ def test_screener_endpoint_watchlist_universe(monkeypatch):
     names = [x["name"] for x in p["presets"]]
     assert "Penny Stocks" in names and "Warren Buffett Strategy" in names
     assert all(len(x["top"]) <= 3 for x in p["presets"])
+
+
+class _PagedMoomoo:
+    """stock-screen with next_key pagination + batched snapshot."""
+
+    def __init__(self, total):
+        self.total = total
+        self.screen_calls = 0
+
+    def call(self, method, path, body=None, query=None, retries=2):
+        self.screen_calls += 1
+        start = (self.screen_calls - 1) * 300
+        page = [{"code": f"US.S{i:04d}"} for i in range(start, min(start + 300, self.total))]
+        has_more = start + 300 < self.total
+        return {"items": page,
+                "pagination": {"next_key": f"k{self.screen_calls}" if has_more else "-1",
+                               "has_more": has_more}}
+
+    def snapshot(self, codes):
+        return {"snapshot_list": [{"code": c, "name": c.split(".")[1], "last_price": 10.0,
+                                   "prev_close_price": 9.5} for c in codes]}
+
+
+def test_market_rows_follows_pagination(monkeypatch):
+    mm = _PagedMoomoo(700)
+    monkeypatch.setattr(api, "_screener_cache", None)
+    rows = api._market_rows("US", "market_cap", 2, mm)
+    assert len(rows) == 700            # 3 pages: 300 + 300 + 100
+    assert mm.screen_calls == 3
+    assert rows[0]["symbol"] == "S0000" and rows[-1]["symbol"] == "S0699"
+    # exact multiple: pagination stops without an extra call
+    mm2 = _PagedMoomoo(600)
+    rows2 = api._market_rows("US", "pct", 2, mm2)
+    assert len(rows2) == 600 and mm2.screen_calls == 2

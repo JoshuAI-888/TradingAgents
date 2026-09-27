@@ -378,21 +378,41 @@ def _watchlist_symbols() -> list[str]:
     return sorted({t["symbol"].upper() for t in tickers if t.get("symbol")})
 
 
-def _market_rows(market: str, sort_key: str, direction: int, client) -> list[dict]:
-    """One whole-market page: stock-screen for universe+order, snapshot for fields."""
+def _market_rows(market: str, sort_key: str, direction: int, client,
+                 pages: int = 3, per_page: int = 300) -> list[dict]:
+    """Whole-market universe: stock-screen pages (server-sorted, pagination via
+    next_key) for coverage+order, then batched snapshots for the full fields.
+    3 pages x 300 = up to 900 stocks; ~6 rate-budgeted calls per cache refresh."""
     sort_id = _SCREEN_SORT_IDS.get(sort_key, 2301)
-    body = {"limit": 100,
-            "screen_queries": [{"simple_field_query": {
-                "simple_field": 1, "screen_value_list": [_SCREEN_MARKET_ENUM.get(market, 2)]}}],
-            "sort": {"direction": direction, "simple_property": {"name": sort_id}}}
-    out = client.call("POST", "/quote/stock-screen", body=body)
-    items = (out.get("items") or [])[:100]
-    codes = [i.get("code") for i in items if i.get("code")]
+    items: list = []
+    next_key = ""
+    for _ in range(max(1, pages)):
+        body = {"limit": min(per_page, 300),
+                "screen_queries": [{"simple_field_query": {
+                    "simple_field": 1, "screen_value_list": [_SCREEN_MARKET_ENUM.get(market, 2)]}}],
+                "sort": {"direction": direction, "simple_property": {"name": sort_id}}}
+        if next_key:
+            body["next_key"] = next_key
+        out = client.call("POST", "/quote/stock-screen", body=body)
+        page = (out.get("items") or []) if isinstance(out, dict) else []
+        items.extend(page)
+        nxt = (out.get("pagination") or {}).get("next_key") if isinstance(out, dict) else None
+        if not nxt or nxt == "-1" or not page:
+            break
+        next_key = nxt
+    codes: list[str] = []
+    for it in items:
+        c = it.get("code")
+        if c and c not in codes:
+            codes.append(c)
     if not codes:
         return []
-    snap = (client.snapshot(codes) or {}).get("snapshot_list") or []
+    rows = []
+    for i in range(0, len(codes), 400):
+        snap = (client.snapshot(codes[i:i + 400]) or {}).get("snapshot_list") or []
+        rows.extend(_snapshot_to_row(s) for s in snap)
     order = {code: i for i, code in enumerate(codes)}
-    rows = [_snapshot_to_row(s) for s in snap if s.get("code") in order]
+    rows = [r for r in rows if r.get("code") in order]
     rows.sort(key=lambda r: order.get(r["code"], 999))
     return rows
 
@@ -434,7 +454,16 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
             rows = [_snapshot_to_row(s) for s in snap]
         else:
             try:
-                rows = _market_rows(market, sort, direction, client)
+                # When a filter targets a sortable column, sort server-side so the
+                # page budget lands on relevant stocks: max-only bound → ascending
+                # (cheapest/smallest first), otherwise descending.
+                flt_sort, flt_dir = sort, direction
+                for f in flt:
+                    if f.get("field") in _SCREEN_SORT_IDS and (f.get("min") is not None or f.get("max") is not None):
+                        flt_sort = f["field"]
+                        flt_dir = 1 if f.get("min") is None and f.get("max") is not None else 2
+                        break
+                rows = _market_rows(market, flt_sort, flt_dir, client)
             except Exception as e:
                 return {"available": False, "reason": str(e)[:120], "rows": []}
         cache.put("quotes", universe_key, rows)
