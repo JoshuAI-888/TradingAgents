@@ -435,3 +435,36 @@ mappings ("c is not defined" via the showPage catch) and the Add Filter button
 referenced an undefined openFilterModal — browser-based UI testing caught both.
 git add -A keeps sweeping owner-authored files (docs/, web/api stock_page
 tests) into commits — they are legit project files.
+
+## 2026-09-27 — Stock detail page shipped (moomoo per-symbol surface, screener click-through)
+
+Built `/stock/{SYM}-US` (spec: web/STOCK_PAGE_FEASIBILITY.md; plan:
+docs/superpowers/plans/2026-09-27-moomoo-stock-page.md). Clicking a screener symbol
+now opens the moomoo-style stock page: header + expandable 21-stat grid (one
+snapshot), pre/post session lines, chart with session dropdown (rt-data
+FULL/NORMAL/PREMARKET/AFTERHOURS) + range tabs 5D/D/W/M/Q/1Y (history-kline; 1Q
+= 105-day daily window), Time/Candle toggle, MA/BOLL, volume + turnover-rate
+panes, crosshair readout (O/H/L/C/Chg/Vol/Turnover/Turnover%); analyst ratings
+(3-tier US consensus + avg/high/low PT) and orderflow trend (capital-flow
+intraday/day/week/month + XL/L/M/S capital-distribution bars); Options chain
+(option-expiration → option-chain ≤80 contracts → snapshot for prices/IV/Δ,
+ITM/OTM + ±5/±10% filters, sortable); Financials with SIX sub-tabs — Earnings
+(forward street estimates via yfinance == S&P Global MI, verified
+dollar-identical to moomoo's numbers for CHE; GAAP actuals from statements;
+EPS surprise history; earnings-day price reaction), Revenue Breakdown,
+Financial Indicators (statement_type=4 cards), Income/Balance/Cash-Flow pivot
+tables with All/4Q/8Q/12Q + YOY + hide-blank toggles; Analysis
+(rating-summary per institution); Company (profile labels + executives);
+News with News/Announcement/Institutional-Ratings sub-tabs and title-keyword
+category chips; Comments via find-community. Routing: `#/stock/{SYM}-US` hash +
+FastAPI `/stock/{rest:path}` catch-all serving the SPA (add routes BEFORE the
+static mount). New worker wrappers in moomoo.py (one per path template);
+API routes /api/stock/{sym}/{quote,candles,intraday,capital,options,
+financials/statements,financials/revenue,earnings,research,news,company,
+community,estimates}, all TTL-cached, all degrade to available:false without
+keys. **TA_STOCK_FIXTURES=1** env serves recorded CHE payloads
+(stock_fixtures.py) — how the page renders/tests offline (70 web tests pass;
+browser-verified every tab). Gotcha: yfinance EPS actuals are street-basis
+(GAAP diluted differs); estimates route is API-side lazy-import — yfinance
+already in root pyproject, add to web/api/requirements.txt on next deploy if
+missing.

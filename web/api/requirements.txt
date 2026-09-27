@@ -1,1 +1,2 @@
 -r ../worker/requirements.txt
+yfinance>=0.2.40  # S&P Global MI street estimates for /api/stock/*/estimates (lazy import)
