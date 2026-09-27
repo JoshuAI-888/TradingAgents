@@ -62,8 +62,8 @@ def test_financial_statements_params(client):
 def test_revenue_breakdown_period_optional(client):
     client.revenue_breakdown("US.CHE")
     assert not client.calls[-1]["query"]
-    client.revenue_breakdown("US.CHE", period="2026/Q2")
-    assert client.calls[-1]["query"] == {"financial_period": "2026/Q2"}
+    client.revenue_breakdown("US.CHE", date=1767110400, financial_type=7)
+    assert client.calls[-1]["query"] == {"date": 1767110400, "financial_type": 7}
 
 
 def test_research_and_company(client):

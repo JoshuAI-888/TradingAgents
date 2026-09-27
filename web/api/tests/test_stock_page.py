@@ -27,7 +27,8 @@ def test_quote_returns_snapshot_item(client):
     assert body["code"] == "US.CHE"
     assert body["last_price"] == 512.16
     for f in ("pe_ttm_ratio", "total_market_val", "highest52weeks_price",
-              "turnover_rate", "after_market", "lot_size", "dividend_ratio_ttm"):
+              "turnover_rate", "pre_price", "after_price", "lot_size",
+              "dividend_ratio_ttm"):
         assert f in body
 
 
@@ -77,17 +78,22 @@ def test_statements_pivot_source(client):
                       params={"statement_type": 9}).status_code == 400
 
 
-def test_revenue_breakdown(client):
+def test_revenue_breakdown_live_shape(client):
     body = client.get("/api/stock/CHE/financials/revenue").json()
     assert body["available"] is True
-    segs = body["business"]["2026/Q2"]
-    assert segs[0]["name"] == "VITAS" and abs(segs[0]["ratio"] + segs[1]["ratio"] - 100) < 0.01
+    dims = {b["type"]: b["item_list"] for b in body["breakdown_list"]}
+    assert dims[8][0]["name"] == "VITAS"
+    assert abs(dims[8][0]["ratio"] + dims[8][1]["ratio"] - 100) < 0.01
+    assert dims[4][0]["main_oper_income"] == 2529978000
+    assert body["screen_date_list"][0]["period_text"] == "2025/FY"
 
 
 def test_earnings(client):
     body = client.get("/api/stock/CHE/earnings").json()
     assert body["available"] is True and len(body["list"]) == 3
-    assert body["list"][0]["disclosure_date"] == "2026-07-28"
+    top = body["list"][0]
+    assert top["pub_trading_day_str"] == "2026-07-28"
+    assert top["close_price"] == 551.551 and top["last_close_price"] == 552.18
 
 
 def test_research(client):
@@ -109,11 +115,42 @@ def test_news_types(client):
 def test_company_and_community(client):
     comp = client.get("/api/stock/CHE/company").json()
     assert comp["available"] is True
-    labels = {l["name"]: l["value"] for l in comp["profile"]["label_list"]}
-    assert labels["ISIN"] == "US16359R1032"
+    items = {l["name"]: l["value"] for l in comp["profile"]["items"]}
+    assert items["ISIN"] == "US16359R1032"
     assert comp["executives"][0]["name"] == "Kevin J. Mcnamara"
     com = client.get("/api/stock/CHE/community").json()
     assert com["available"] is True and com["community_list"][0]["community_type"] == "FEED"
+
+
+def test_upstream_error_becomes_available_false(client, monkeypatch):
+    """A flaky moomoo endpoint must degrade, never 500 the stock tab."""
+
+    class Boom:
+        def snapshot(self, codes):
+            raise RuntimeError("gateway timeout")
+
+    monkeypatch.delenv("TA_STOCK_FIXTURES", raising=False)
+    monkeypatch.setattr(api, "_market_client", lambda: Boom())
+    r = client.get("/api/stock/CHE-US/quote")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["available"] is False
+    assert "gateway timeout" in body["reason"]
+
+
+def test_estimates_empty_becomes_unavailable(client, monkeypatch):
+    monkeypatch.delenv("TA_STOCK_FIXTURES", raising=False)
+    monkeypatch.setattr(api, "_estimates_fetch", lambda s: {
+        "symbol": s.upper(), "revenue_estimate": [], "earnings_estimate": [],
+        "eps_trend": [], "earnings_history": [], "calendar": {}})
+    body = client.get("/api/stock/CHE/estimates").json()
+    assert body["available"] is False
+    assert "no data" in body["reason"]
+
+
+def test_meta_exposes_stock_page_mode(client):
+    body = client.get("/api/meta").json()
+    assert body["stock_page"]["fixtures_mode"] is True
 
 
 def test_estimates_stubbed(client, monkeypatch):

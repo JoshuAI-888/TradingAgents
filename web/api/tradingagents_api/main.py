@@ -809,7 +809,8 @@ def stock_statements(symbol: str, statement_type: int = 1, financial_type: int =
 def stock_revenue(symbol: str, date: int | None = None, financial_type: int | None = None):
     """Live shape: breakdown_list[type: 1=Product 2=Industry 4=Region 8=Business],
     screen_date_list = available periods (date s + financial_type)."""
-    out = _stock_fetch(f"revenue:{date}:{financial_type}", symbol, "fundamentals",
+    key = f"revenue:{date}:{financial_type}" if (date or financial_type) else "revenue"
+    out = _stock_fetch(key, symbol, "fundamentals",
                        lambda c: c.revenue_breakdown(_stock_code(symbol),
                                                      date=date, financial_type=financial_type))
     if out is None:

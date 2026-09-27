@@ -305,6 +305,7 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
       <button data-page="analyze">Analyze</button>
       <button data-page="ledger">Ledger</button>
       <button data-page="settings">Settings</button>
+      <button data-page="info">Data &amp; Coverage</button>
     </div>
     <div class="right">
       <span id="spend" class="faint mono" style="font-size:10.5px"></span>
@@ -628,6 +629,74 @@ const pages = {
         </label>
         <div id="s-runtime-out" class="faint" style="font-size:11px;margin-top:6px"></div></div>
       <div class="panel"><h3 class="sec">System</h3><div id="sysmeta" class="empty">loading…</div></div>`;
+  },
+
+  async info() {
+    const [health, meta, ms] = await Promise.all([
+      api("/api/health").catch(() => null),
+      api("/api/meta").catch(() => null),
+      api("/api/market/state").catch(() => null),
+    ]);
+    const ok = v => `<span class="pill pg"><i></i>${v}</span>`;
+    const warn = v => `<span class="pill pa"><i></i>${v}</span>`;
+    const off = v => `<span class="pill pr"><i></i>${v}</span>`;
+    const moomooLive = ms?.available ? ok("live") : off("not configured");
+    const moomooDetail = ms?.available
+      ? `market data as of ${esc(String(ms.as_of || "").slice(0, 16).replace("T", " "))} UTC · ${ (ms.indices || []).length + (ms.sectors || []).length } tickers on tape`
+      : esc(ms?.reason || "MOOMOO_APPKEY / MOOMOO_PRIVATE_KEY not set on this deployment");
+    const estState = meta?.stock_page?.fixtures_mode ? warn("fixtures mode")
+      : warn("best-effort (see known issues)");
+    const rows = [
+      ["Quote header, 21-stat grid, pre/post-market lines", "moomoo snapshot", "live"],
+      ["Chart — intraday sessions (Full/Real/Pre/After), 5D–1Y candles, MA/BOLL, volume & turnover% panes", "rt-data + history-kline", "live"],
+      ["Orderflow trend (intraday/day/week/month) + XL/L/M/S order-size buckets", "capital-flow(-history) + capital-distribution", "live"],
+      ["Analyst consensus, 12M price targets, per-institution ratings", "research/analyst-consensus + rating-summary", "live"],
+      ["Options chain — expiries, ITM/OTM ±% filters, IV & delta, OI", "option-expiration + option-chain + snapshot", "live"],
+      ["Financials — 6 sub-tabs (statements, key indicators, revenue breakdown)", "financials/statements + revenue-breakdown", "live"],
+      ["Street estimates (revenue & EPS, forward 2q/2y) + surprise history", "S&P Global MI via Yahoo (yfinance)", "best-effort"],
+      ["News / Announcements (SEC filings) / Institutional Ratings feeds", "find-news (type 1/2/3)", "live"],
+      ["Company profile, introduction, executives", "company/profile + executives", "live"],
+      ["Community posts (latest)", "find-community", "live"],
+      ["Screener (watchlist + whole-market) & Market Pulse tape", "stock-screen + snapshot + market-state", "live"],
+    ].map(([w, s, st]) => `<tr><td style="text-align:left">${w}</td>
+      <td style="text-align:left" class="dim">${esc(s)}</td>
+      <td style="text-align:right">${st === "live" ? ok("live") : warn(st)}</td></tr>`).join("");
+    const gaps = [
+      ["Forum threads, replies & posting", "Moomoo's forum is community UGC on their platform; the OpenAPI only exposes a latest-50 search. Threads and posting stay on moomoo.com.", "not available via API"],
+      ["Real-time streaming (WebSocket push)", "The page polls moomoo REST with 5-minute caches. A WebSocket client (QUOTE/ORDER_BOOK/TICKER/KLINE push, OAuth-authenticated) is proven in the POC but not yet wired into the portal.", "planned"],
+      ["Street-estimate availability", "Estimates come from S&P Global Market Intelligence via Yahoo. Yahoo can rate-limit cloud egress (Render IPs); when that happens the Earnings tab says so instead of showing blank tables. EBIT estimates are not exposed by any free source.", "degraded at times"],
+      ["News & announcements pagination", "find-news has no cursor — latest ~50 items per type. Load-more beyond that isn't possible.", "API limit"],
+      ["Announcement category chips", "Earnings/Transactions/Shareholding/Events are derived from filing titles client-side, not authoritative tags.", "approximation"],
+      ["Revenue segment names", "Returned provider-localized — some US segment names may appear in Chinese. Displayed as returned.", "API behavior"],
+      ["Order-book ladder & trades tape", "order-book and rt-ticker endpoints are verified (app-parity modules) but not rendered on the site yet.", "backlog"],
+      ["Dividends history page", "corporate-actions/dividends is available (US supported); no UI yet.", "backlog"],
+      ["Shareholders (institutions, insiders, holders, changes)", "Five verified endpoints; no UI yet.", "backlog"],
+      ["Short interest & daily short volume", "US short APIs verified; no UI yet.", "backlog"],
+      ["Valuation bands (PE/PB/PS percentile vs history & sector)", "valuation/detail verified; no UI yet.", "backlog"],
+      ["Morningstar report (stars, fair value, moat)", "research/morningstar verified; no UI yet.", "backlog"],
+      ["Chart extras: native quarterly bars, drawings, alerts, compare", "1Q is aggregated from daily bars; history-kline has no quarter ktype. Drawing tools are client-heavy and unplanned.", "partial"],
+      ["Options greeks beyond delta (gamma/vega/theta/rho) & bid/ask sizes per row", "Greeks are in the contract snapshot; per-row depth would need one order-book call per strike.", "backlog"],
+      ["Splits & buybacks for US stocks", "corporate-actions/splits and /buybacks are HK/A-share only per moomoo docs.", "not available for US"],
+      ["Watchlist sync with moomoo accounts", "The star uses TradingAgents' own watchlist. moomoo watchlist writes (modify-user-security) are outside this app's read-only scope.", "by design"],
+      ["Moomoo AI summaries & marketing rails", "Proprietary moomoo features; intentionally not reproduced.", "by design"],
+    ].map(([t, why, st]) => `<tr>
+      <td style="text-align:left"><b>${esc(t)}</b><div class="dim" style="font-size:10.5px;margin-top:2px">${esc(why)}</div></td>
+      <td style="text-align:right;white-space:nowrap">${st.startsWith("not available") ? off(st) : st === "planned" || st === "backlog" ? warn(st) : `<span class="pill pd"><i></i>${esc(st)}</span>`}</td></tr>`).join("");
+    return `
+    <div class="panel"><h3 class="sec">Data &amp; Coverage <small>what powers this site, and what's missing vs moomoo's own stock page</small></h3>
+      <div class="oflow-tot">
+        <div class="b"><div class="k">Portal API</div><div style="margin-top:4px">${health ? (health.status === "ok" ? ok("ok") : warn(health.status + (health.missing?.length ? " · missing " + health.missing.join(", ") : ""))) : off("unreachable")}</div></div>
+        <div class="b"><div class="k">Moomoo market data</div><div style="margin-top:4px">${moomooLive}</div><div class="k" style="margin-top:3px">${moomooDetail}</div></div>
+        <div class="b"><div class="k">Street estimates (S&P via Yahoo)</div><div style="margin-top:4px">${estState}</div><div class="k" style="margin-top:3px">forward revenue &amp; EPS, next 2 quarters + 2 years</div></div>
+      </div>
+      <table class="est-t"><tr><th style="text-align:left">Module</th><th style="text-align:left">Source</th><th>State</th></tr>${rows}</table>
+    </div>
+    <div class="panel"><h3 class="sec">Known gaps vs moomoo's stock page <small>every open API surface is mapped in web/STOCK_PAGE_FEASIBILITY.md</small></h3>
+      <table class="est-t">${gaps}</table>
+      <div class="faint" style="font-size:10.5px;margin-top:10px">
+        Everything rendered comes from moomoo's official OpenAPI (read-only; AppKey-signed, 30 calls/min per endpoint family, 5-min caches) except street estimates (S&P via Yahoo). Quotes/fields can be delayed per the account's market-data tier. Offline development uses recorded payloads via TA_STOCK_FIXTURES=1. Not investment advice.
+      </div>
+    </div>`;
   },
 };
 
@@ -1597,8 +1666,8 @@ function stkEarningsTab(est, epsh, stmts) {
       <table class="est-t"><tr><th style="text-align:left">Period</th><th>Revenue</th><th>YoY</th><th>Net profit</th><th>YoY</th><th>Dil. EPS</th></tr>${actuals || '<tr><td colspan="6" class="empty">—</td></tr>'}</table></div>
     <div class="panel"><h3 class="sec">EPS surprise history <small>street basis</small></h3>
       <table class="est-t"><tr><th style="text-align:left">Quarter</th><th>Est</th><th>Actual</th><th>Surprise</th></tr>${surprise || '<tr><td colspan="4" class="empty">—</td></tr>'}</table>
-      ${evRows ? `<h3 class="sec" style="margin-top:14px">Earnings-day price reaction</h3>
-      <table class="est-t"><tr><th style="text-align:left">Period</th><th>Disclosed</th><th>Close</th><th>Move</th></tr>${evRows}</table>` : ""}</div>
+      ${events ? `<h3 class="sec" style="margin-top:14px">Earnings-day price reaction</h3>
+      <table class="est-t"><tr><th style="text-align:left">Period</th><th>Disclosed</th><th>Close</th><th>Move</th></tr>${events}</table>` : ""}</div>
   </div>`;
 }
 
@@ -1787,13 +1856,18 @@ async function stkCompany() {
   const d = await api("/api/stock/" + stkState().sym + "/company").catch(() => null);
   if (!d) return stkNa();
   if (d.available === false) return stkNa(d.reason);
-  const labels = (d.profile?.label_list || []).map(l =>
-    `<div class="it"><div class="k">${esc(l.name)}</div><div class="v">${l.value && /^http/.test(l.value) ? `<a href="${esc(l.value)}" target="_blank" rel="noopener">${esc(l.value)}</a>` : esc(l.value)}</div></div>`).join("");
+  // Live profile shape: {items:[{name, value, field_type}]} — field_type 0=text,
+  // 1=link, 2=standalone heading (long intro text). Tolerate label_list too.
+  const raw = d.profile?.items || d.profile?.label_list || [];
+  const intro = raw.filter(l => l.field_type === 2 || /introduction|about/i.test(l.name || ""))
+    .map(l => l.value).join(" ");
+  const labels = raw.filter(l => l.field_type !== 2 && !/introduction|about/i.test(l.name || ""))
+    .map(l => `<div class="it"><div class="k">${esc(l.name)}</div><div class="v">${l.value && /^http/.test(l.value) ? `<a href="${esc(l.value)}" target="_blank" rel="noopener">${esc(l.value)}</a>` : esc(l.value)}</div></div>`).join("");
   const execs = (d.executives || []).map(e =>
-    `<tr><td style="text-align:left">${esc(e.name)}</td><td style="text-align:left" class="dim">${esc(e.position || "")}</td>
+    `<tr><td style="text-align:left">${esc(e.name || e.leader_name || "—")}</td><td style="text-align:left" class="dim">${esc(e.position || e.title || "")}</td>
      <td class="mono" style="text-align:right">${e.salary != null ? "$" + stkMoney(e.salary) : "—"}</td></tr>`).join("");
   return `
-  ${stkPanel("About", "", d.profile?.introduction ? `<p style="font-size:12.5px;line-height:1.5">${esc(d.profile.introduction)}</p>` : stkNa())}
+  ${stkPanel("About", "", intro ? `<p style="font-size:12.5px;line-height:1.5">${esc(intro)}</p>` : stkNa())}
   ${stkPanel("Company Profile", "moomoo company API", `<div class="kv-grid">${labels || stkNa()}</div>`)}
   ${stkPanel("Company Executives", "", `<table class="est-t"><tr><th style="text-align:left">Name</th><th style="text-align:left">Position</th><th>Salary</th></tr>${execs || '<tr><td colspan="3" class="empty">—</td></tr>'}</table>`)}`;
 }
@@ -1861,14 +1935,23 @@ loadHealth();
 api("/api/meta").then(m => {
   $("#spend").textContent = `$${Number(m.spend?.cost_usd || 0).toFixed(3)} · ${m.spend?.runs || 0} runs`;
 }).catch(() => {});
-// stock-page routing: #/stock/{SYM}-US or the pretty /stock/{SYM}-US path
+// stock-page routing: #/stock/{SYM}-US or the pretty /stock/{SYM}-US path; #/info
 function stkRoute() {
   let m = location.hash.match(/^#\/stock\/([A-Za-z0-9.%_-]+)/);
-  if (!m) m = location.pathname.match(/\/stock\/([A-Za-z0-9.%_-]+)/);
-  return m ? decodeURIComponent(m[1]) : null;
+  if (m) return { stock: decodeURIComponent(m[1]) };
+  if (/^#\/info$/.test(location.hash)) return { info: true };
+  m = location.pathname.match(/\/stock\/([A-Za-z0-9.%_-]+)/);
+  return m ? { stock: decodeURIComponent(m[1]) } : null;
 }
-window.addEventListener("hashchange", () => { const s = stkRoute(); if (s) openStock(s); });
-{ const s0 = stkRoute(); s0 ? openStock(s0) : showPage("home"); }
+window.addEventListener("hashchange", () => {
+  const r = stkRoute();
+  if (r?.stock) openStock(r.stock);
+  else if (r?.info) showPage("info");
+});
+{ const r0 = stkRoute();
+  if (r0?.stock) openStock(r0.stock);
+  else if (r0?.info) showPage("info");
+  else showPage("home"); }
 setInterval(loadHealth, 15000);
 </script>
 </body>
