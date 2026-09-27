@@ -156,11 +156,15 @@ class MoomooClient:
                                "count": 1000})
         return out.get("kline_list", []) if isinstance(out, dict) else []
 
-    def find_news(self, keyword: str, sort_type: int = 2, limit: int = 20) -> list:
+    def find_news(self, keyword: str, sort_type: int = 2, limit: int = 20,
+                  news_type: int | None = None) -> list:
         """Keyword search. The required param is confusingly named `symbol`; page
-        size is `size`; `sort_type` 2 = latest (HB §17.13: empty without sort_type)."""
-        out = self.call("GET", "/quote/find-news",
-                        query={"symbol": keyword, "sort_type": sort_type, "size": min(limit, 50)})
+        size is `size`; `sort_type` 2 = latest (HB §17.13: empty without sort_type).
+        `news_type` 1=News(POST) 2=Announcement(NOTICE) 3=Report(REPORT)."""
+        q = {"symbol": keyword, "sort_type": sort_type, "size": min(limit, 50)}
+        if news_type:
+            q["news_type"] = news_type
+        out = self.call("GET", "/quote/find-news", query=q)
         if not isinstance(out, dict):
             return []
         return out.get("news_list") or out.get("list") or []
@@ -168,6 +172,76 @@ class MoomooClient:
     def econ_calendar_hot(self) -> list:
         out = self.call("GET", "/quote/economic-calendar/hot")
         return out.get("list", []) if isinstance(out, dict) else []
+
+    # ── stock detail page (read-only; one wrapper per path template) ─────
+    # Each returns the raw `data` dict so the API layer owns normalization.
+    def _get(self, path: str, **query) -> dict:
+        q = {k: v for k, v in query.items() if v is not None}
+        out = self.call("GET", path, query=q or None)
+        return out if isinstance(out, dict) else {}
+
+    def cur_kline(self, symbol: str, ktype: int = 2, autype: int = 1, count: int = 100) -> dict:
+        """Latest forming bars incl. today (ktype: 1=1m 2=D 3=W 4=M 5=Y 6/7/8/9=5/15/30/60m)."""
+        return self._get(f"/quote/{symbol}/cur-kline", ktype=ktype, autype=autype, count=count)
+
+    def rt_data(self, symbol: str, kind: str = "FULL") -> dict:
+        """Intraday minute line. kind: NORMAL/FULL/PREMARKET/AFTERHOURS (US)."""
+        return self._get(f"/quote/{symbol}/rt-data", type=kind)
+
+    def capital_flow(self, symbol: str) -> dict:
+        return self._get(f"/quote/{symbol}/capital-flow")
+
+    def capital_flow_history(self, symbol: str, period: str = "day") -> dict:
+        return self._get(f"/quote/{symbol}/capital-flow/history", period=period)
+
+    def capital_distribution(self, symbol: str) -> dict:
+        """Today's in/out by order size (super/large/mid/small) — the XL/L/M/S buckets."""
+        return self._get(f"/quote/{symbol}/capital-distribution")
+
+    def option_expirations(self, symbol: str) -> dict:
+        return self._get(f"/quote/{symbol}/option-expiration")
+
+    def option_chain(self, symbol: str, start: str | None = None, end: str | None = None) -> dict:
+        """Static contracts (≤20 expiries/call); prices come from snapshot on the codes."""
+        return self._get(f"/quote/{symbol}/option-chain", start=start, end=end)
+
+    def statements(self, symbol: str, statement_type: int, financial_type: int) -> dict:
+        """F10 statements: statement_type 1/2/3 (income/balance/cashflow + key metrics
+        per docs), financial_type 7=annual / 102=all cumulative quarters."""
+        return self._get(f"/quote/{symbol}/financials/statements",
+                         statement_type=statement_type, financial_type=financial_type)
+
+    def revenue_breakdown(self, symbol: str, period: str | None = None) -> dict:
+        return self._get(f"/quote/{symbol}/financials/revenue-breakdown",
+                         financial_period=period)
+
+    def earnings_price_history(self, symbol: str) -> dict:
+        return self._get(f"/quote/{symbol}/financials/earnings-price-history")
+
+    def earnings_price_move(self, symbol: str) -> dict:
+        return self._get(f"/quote/{symbol}/financials/earnings-price-move")
+
+    def analyst_consensus(self, symbol: str) -> dict:
+        return self._get(f"/quote/{symbol}/research/analyst-consensus")
+
+    def rating_summary(self, symbol: str) -> dict:
+        return self._get(f"/quote/{symbol}/research/rating-summary")
+
+    def company_profile(self, symbol: str) -> dict:
+        return self._get(f"/quote/{symbol}/company/profile")
+
+    def company_executives(self, symbol: str) -> dict:
+        return self._get(f"/quote/{symbol}/company/executives")
+
+    def find_community(self, keyword: str, community_type: int = 1,
+                       sort_type: int = 2, size: int = 20) -> list:
+        """Community search (FEED/TOPIC/LIVE); no pagination — latest N only."""
+        out = self.call("GET", "/quote/find-community",
+                        query={"symbol": keyword, "community_type": community_type,
+                               "sort_type": sort_type, "size": min(size, 50)})
+        if not isinstance(out, dict):
+            return []
+        return out.get("community_list") or out.get("list") or []
 
     @staticmethod
     def server_clock_offset_ms() -> int:
