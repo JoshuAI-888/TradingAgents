@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 import tempfile
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -200,11 +200,21 @@ def _build_market_state(client) -> dict:
 
     def quote(code: str) -> dict:
         s = by_code.get(code) or {}
-        return {"last": s.get("last_price"), "pct": s.get("pct_change"),
-                "as_of": s.get("update_time")}
+        last, prev, pct = s.get("last_price"), s.get("prev_close_price"), s.get("pct_change")
+        # Off-session snapshots leave pct_change null — fall back to prev close.
+        if pct is None and last is not None and prev:
+            pct = (float(last) - float(prev)) / float(prev) * 100
+        try:
+            as_of = (datetime.fromtimestamp(float(s["update_time"]) / 1000, tz=timezone.utc).isoformat()
+                     if s.get("update_time") else None)
+        except (TypeError, ValueError, OSError):
+            as_of = None
+        return {"last": last, "pct": None if pct is None else round(float(pct), 2), "as_of": as_of}
 
-    indices = [{"symbol": c.split(".")[-1], "name": name, **quote(c)} for c, name in _MARKET_INDICES]
-    sectors = [{"symbol": c.split(".")[-1], "name": name, **quote(c)} for c, name in _MARKET_SECTORS]
+    indices = [{"symbol": c.split(".")[-1], "name": name, **quote(c)}
+               for c, name in _MARKET_INDICES if quote(c)["last"] is not None]
+    sectors = [{"symbol": c.split(".")[-1], "name": name, **quote(c)}
+               for c, name in _MARKET_SECTORS if quote(c)["last"] is not None]
     calendar = [{"event": it.get("event_text"), "country": it.get("country"),
                  "star": it.get("star"), "time": it.get("event_time"),
                  "forecast": it.get("predictive"), "actual": it.get("announce")}

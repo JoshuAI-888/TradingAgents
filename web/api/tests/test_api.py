@@ -144,8 +144,10 @@ def test_active_jobs_lists_pending_and_running_only():
 class _FakeMoomoo:
     def snapshot(self, codes):
         return {"snapshot_list": [
-            {"code": "US.SPY", "last_price": 682.14, "pct_change": 0.42, "update_time": "2026-09-26 20:00:00"},
-            {"code": "US.XLK", "last_price": 240.0, "pct_change": 1.6, "update_time": "2026-09-26 20:00:00"},
+            {"code": "US.SPY", "last_price": 682.14, "prev_close_price": 679.3,
+             "update_time": 1790380957281},
+            {"code": "US.XLK", "last_price": 240.0, "pct_change": 1.6,
+             "update_time": 1790380957281},
         ]}
 
     def econ_calendar_hot(self):
@@ -160,6 +162,8 @@ def test_market_state_builds_or_reports_unavailable(monkeypatch):
     assert r["available"] is True
     spy = next(i for i in r["indices"] if i["symbol"] == "SPY")
     assert spy["name"] == "S&P 500" and spy["last"] == 682.14
+    assert spy["pct"] == 0.42  # computed from prev close when pct_change is null
+    assert "T00:00" in spy["as_of"] or "T" in spy["as_of"]  # ISO stamp
     assert any(s["symbol"] == "XLK" and s["pct"] == 1.6 for s in r["sectors"])
     assert r["calendar"][0]["event"] == "US CPI YoY"
 
