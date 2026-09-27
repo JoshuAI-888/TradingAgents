@@ -464,10 +464,9 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
                 return {"available": False, "reason": str(e)[:120], "rows": []}
         cache.put("quotes", universe_key, rows)
     rows = _apply_filters(rows, flt)
-    if watchlist_only or sort not in _SCREEN_SORT_IDS:
-        # Watchlist universe sorts in Python (any column); market mode keeps the
-        # server-side order unless the requested column has no verified sort id.
-        rows = _sort_rows(rows, sort, direction)
+    # Always display-sort in Python: the server-side slices decide WHICH stocks
+    # are in the universe; global ordering across the union happens here.
+    rows = _sort_rows(rows, sort, direction)
     matched = len(rows)
     rows = rows[:max(1, min(limit, 1200))]
     return {"available": True, "universe": "watchlist" if watchlist_only else market,
