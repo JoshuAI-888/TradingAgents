@@ -10,7 +10,7 @@ import json
 import os
 import tempfile
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -607,6 +607,292 @@ def candidates_refresh():
     cache = TtlCache(root=os.path.join(tempfile.gettempdir(), "ta-ttl"))
     rows = sweep(db, mm, cache, watchlist=["NVDA", "MSFT", "0700.HK", "CSL.AX"])
     return {"refreshed": True, "moomoo": mm is not None, "candidates_stored": len(rows)}
+
+
+# ── Stock detail page (moomoo per-symbol surface; read-only; fixtures mode) ──
+# Every route: TA_STOCK_FIXTURES=1 → recorded payload (stock_fixtures.py); else
+# TTL-cached live moomoo; no keys → {"available": false}. Element→endpoint map:
+# web/STOCK_PAGE_FEASIBILITY.md §2.
+
+from fastapi.responses import FileResponse  # noqa: E402
+
+_KLINE_WINDOWS = {"5D": ("candles:5D", 6, 8), "D": ("candles:D", 2, 380),
+                  "W": ("candles:W", 3, 1500), "M": ("candles:M", 4, 2500),
+                  "Q": ("candles:Q", 2, 105), "Y": ("candles:Y", 2, 380)}
+_SESSION_KINDS = {"FULL", "NORMAL", "PREMARKET", "AFTERHOURS"}
+_NEWS_TYPES = {"news": 1, "notice": 2, "report": 3}
+
+
+def _stock_code(symbol: str) -> str:
+    s = symbol.strip().upper()
+    if s.endswith("-US"):
+        s = s[:-3]
+    return s if "." in s else f"US.{s}"
+
+
+def _stock_fetch(key: str, symbol: str, category: str, fetch):
+    """Fixture payload, or the TTL-cached result of fetch(client); None w/o keys."""
+    if os.getenv("TA_STOCK_FIXTURES"):
+        from tradingagents_api import stock_fixtures
+        data = stock_fixtures.payload(key, symbol)
+        if data is None:
+            raise HTTPException(404, f"no fixture for {key}")
+        return data
+    client = _market_client()
+    if client is None:
+        return None
+    cache = _cache()
+    ck = cache.key(category, "stock-page", key, symbol.upper())
+    hit = cache.get(category, ck)
+    if hit is not None:
+        return hit
+    out = fetch(client)
+    cache.put(category, ck, out)
+    return out
+
+
+def _stock_out(data) -> dict:
+    return data if data is not None else {
+        "available": False, "reason": "moomoo keys not configured"}
+
+
+@app.get("/api/stock/{symbol}/quote")
+def stock_quote(symbol: str):
+    code = _stock_code(symbol)
+
+    def fetch(c):
+        return ((c.snapshot([code]) or {}).get("snapshot_list") or [None])[0]
+
+    item = _stock_fetch("quote", symbol, "quotes", fetch)
+    out = _stock_out(item)
+    if isinstance(out, dict):
+        out.setdefault("available", True)
+    return out
+
+
+@app.get("/api/stock/{symbol}/candles")
+def stock_candles(symbol: str, range: str = "D"):
+    if range not in _KLINE_WINDOWS:
+        raise HTTPException(400, "range must be one of " + ",".join(_KLINE_WINDOWS))
+    key, ktype, days = _KLINE_WINDOWS[range]
+    start = (date.today() - timedelta(days=days)).isoformat()
+
+    def fetch(c):
+        return {"kline_list": c.history_kline(_stock_code(symbol), start,
+                                              date.today().isoformat(), ktype=ktype)}
+
+    out = _stock_fetch(key, symbol, "ohlcv", fetch)
+    if isinstance(out, dict) and "kline_list" in out:
+        out = {"available": True, "range": range, "bars": out["kline_list"]}
+    return _stock_out(out)
+
+
+@app.get("/api/stock/{symbol}/intraday")
+def stock_intraday(symbol: str, kind: str = "FULL"):
+    if kind not in _SESSION_KINDS:
+        raise HTTPException(400, "kind must be one of " + ",".join(_SESSION_KINDS))
+    out = _stock_fetch("intraday", symbol, "quotes",
+                       lambda c: c.rt_data(_stock_code(symbol), kind=kind))
+    if isinstance(out, dict):
+        out.setdefault("available", True)
+    return _stock_out(out)
+
+
+@app.get("/api/stock/{symbol}/capital")
+def stock_capital(symbol: str, period: str = "intraday"):
+    if period not in ("intraday", "day", "week", "month"):
+        raise HTTPException(400, "period must be intraday|day|week|month")
+    code = _stock_code(symbol)
+    key = f"capital:{period}"
+
+    def fetch(c):
+        flow = (c.capital_flow(code) if period == "intraday"
+                else c.capital_flow_history(code, period=period))
+        return {"flow": (flow or {}).get("flow_list") or [],
+                "distribution": c.capital_distribution(code) or {}}
+
+    out = _stock_fetch(key, symbol, "quotes", fetch)
+    if isinstance(out, dict):
+        out.setdefault("available", True)
+    return _stock_out(out)
+
+
+@app.get("/api/stock/{symbol}/options")
+def stock_options(symbol: str, expiry: str = "auto"):
+    code = _stock_code(symbol)
+
+    def fetch(c):
+        exps = (c.option_expirations(code) or {}).get("expire_date_list") or []
+        exp = expiry if expiry != "auto" else (exps[0].get("strike_time") if exps else None)
+        chain = ((c.option_chain(code, start=exp, end=exp) or {}).get("option_chain")
+                 or []) if exp else []
+        codes = [row.get("code") for row in chain if row.get("code")][:80]
+        snap = (c.snapshot(codes) or {}).get("snapshot_list") or [] if codes else []
+        return {"expirations": exps, "expiry": exp, "chain": chain,
+                "quotes": {s.get("code"): s for s in snap if isinstance(s, dict)}}
+
+    out = _stock_fetch("options", symbol, "quotes", fetch)
+    if isinstance(out, dict):
+        out.setdefault("available", True)
+    return _stock_out(out)
+
+
+@app.get("/api/stock/{symbol}/financials/statements")
+def stock_statements(symbol: str, statement_type: int = 1, financial_type: int = 102):
+    if statement_type not in (1, 2, 3, 4) or financial_type not in (7, 102):
+        raise HTTPException(400, "statement_type 1-4; financial_type 7|102")
+    key = f"statements:{statement_type}:{financial_type}"
+    out = _stock_fetch(key, symbol, "fundamentals",
+                       lambda c: c.statements(_stock_code(symbol), statement_type,
+                                              financial_type))
+    return _stock_out(out)
+
+
+@app.get("/api/stock/{symbol}/financials/revenue")
+def stock_revenue(symbol: str):
+    out = _stock_fetch("revenue", symbol, "fundamentals",
+                       lambda c: c.revenue_breakdown(_stock_code(symbol)))
+    return _stock_out(out)
+
+
+@app.get("/api/stock/{symbol}/earnings")
+def stock_earnings(symbol: str):
+    out = _stock_fetch("earnings-history", symbol, "fundamentals",
+                       lambda c: c.earnings_price_history(_stock_code(symbol)))
+    if isinstance(out, dict) and "list" not in out:
+        out = {"list": out.get("item_list") or out.get("list") or []}
+    if isinstance(out, dict):
+        out.setdefault("available", True)
+    return _stock_out(out)
+
+
+@app.get("/api/stock/{symbol}/research")
+def stock_research(symbol: str):
+    code = _stock_code(symbol)
+
+    def fetch(c):
+        return {"consensus": c.analyst_consensus(code) or {},
+                "detail": c.rating_summary(code) or {}}
+
+    out = _stock_fetch("research", symbol, "other", fetch)
+    if isinstance(out, dict):
+        out.setdefault("available", True)
+    return _stock_out(out)
+
+
+@app.get("/api/stock/{symbol}/news")
+def stock_news(symbol: str, type: str = "news", limit: int = 20):
+    if type not in _NEWS_TYPES:
+        raise HTTPException(400, "type must be news|notice|report")
+    kw = _stock_code(symbol).split(".")[-1]
+    out = _stock_fetch(f"news:{_NEWS_TYPES[type]}", symbol, "news",
+                       lambda c: {"news_list": c.find_news(kw, news_type=_NEWS_TYPES[type],
+                                                           limit=limit)})
+    if isinstance(out, dict):
+        out.setdefault("available", True)
+    return _stock_out(out)
+
+
+@app.get("/api/stock/{symbol}/company")
+def stock_company(symbol: str):
+    code = _stock_code(symbol)
+
+    def fetch(c):
+        return {"profile": c.company_profile(code) or {},
+                "executives": (c.company_executives(code) or {}).get("leader_list") or []}
+
+    out = _stock_fetch("company", symbol, "fundamentals", fetch)
+    if isinstance(out, dict):
+        out.setdefault("available", True)
+    return _stock_out(out)
+
+
+@app.get("/api/stock/{symbol}/community")
+def stock_community(symbol: str):
+    kw = _stock_code(symbol).split(".")[-1]
+    out = _stock_fetch("community", symbol, "other",
+                       lambda c: {"community_list": c.find_community(kw)})
+    if isinstance(out, dict):
+        out.setdefault("available", True)
+    return _stock_out(out)
+
+
+def _estimates_fetch(symbol: str) -> dict:
+    """Street estimates — S&P Global Market Intelligence via Yahoo (yfinance).
+
+    Lazy import: yfinance is an optional runtime dep; failure → available=false.
+    """
+    import math
+
+    import yfinance as yf
+    t = yf.Ticker(symbol)
+
+    def clean(o):
+        if isinstance(o, dict):
+            return {k: clean(v) for k, v in o.items()}
+        if isinstance(o, list):
+            return [clean(v) for v in o]
+        if isinstance(o, float) and not math.isfinite(o):
+            return None
+        if isinstance(o, (date, datetime)):
+            return o.isoformat()
+        return o
+
+    def rows(df):
+        recs = df.reset_index().to_dict("records")
+        return [{k: (None if v != v else clean(v)) for k, v in r.items()} for r in recs]
+
+    hist = t.earnings_history
+    hist_recs = []
+    for r in rows(hist) if hist is not None else []:
+        q = r.get("quarter") or r.get("index")
+        hist_recs.append({"quarter": str(q)[:10] if q else None,
+                          "eps_estimate": r.get("epsEstimate"), "eps_actual": r.get("epsActual"),
+                          "surprise_pct": (round(r["surprisePercent"] * 100, 2)
+                                           if isinstance(r.get("surprisePercent"), (int, float))
+                                           and abs(r["surprisePercent"]) < 1
+                                           else r.get("surprisePercent"))})
+    cal = clean(t.calendar) or {}
+    return {"symbol": symbol.upper(),
+            "revenue_estimate": rows(t.revenue_estimate),
+            "earnings_estimate": rows(t.earnings_estimate),
+            "eps_trend": rows(t.eps_trend),
+            "earnings_history": hist_recs,
+            "calendar": cal}
+
+
+@app.get("/api/stock/{symbol}/estimates")
+def stock_estimates(symbol: str):
+    if os.getenv("TA_STOCK_FIXTURES"):
+        from tradingagents_api import stock_fixtures
+        return stock_fixtures.estimates(symbol)
+    cache = _cache()
+    ck = cache.key("other", "stock-estimates", symbol.upper())
+    hit = cache.get("other", ck)
+    if hit is not None:
+        return hit
+    try:
+        out = _estimates_fetch(symbol)
+    except Exception as e:
+        return {"available": False, "reason": f"estimates unavailable: {str(e)[:120]}"}
+    out["available"] = True
+    cache.put("other", ck, out)
+    return out
+
+
+def _portal_index() -> str | None:
+    d = os.getenv("PORTAL_STATIC_DIR", "")
+    p = os.path.join(d, "index.html") if d else ""
+    return p if p and os.path.isfile(p) else None
+
+
+@app.get("/stock/{rest:path}", include_in_schema=False)
+def stock_spa(rest: str):
+    """Pretty shareable URLs serve the SPA; the router reads the path client-side."""
+    idx = _portal_index()
+    if idx:
+        return FileResponse(idx, media_type="text/html")
+    raise HTTPException(404, "portal static not configured")
 
 
 # Static portal (built SPA) — mounted last so /api wins.

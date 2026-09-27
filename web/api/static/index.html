@@ -299,6 +299,11 @@ function scrDraftRemove(i) { scrDraft.splice(i, 1); scrRenderModal(); }
 function scrDraftVal(i, k, v) { scrDraft[i][k] = v === "" ? null : Number(v); }
 function scrModalTab(t) { scrTab = t; scrRenderModal(); }
 function scrModalClose() { const m = document.getElementById("scr-modal"); if (m) m.remove(); }
+function openFilterModal() {
+  scrDraft = JSON.parse(JSON.stringify(window.__scr.filters || []));
+  scrTab = "quotes";
+  scrRenderModal();
+}
 function scrModalConfirm() {
   window.__scr.filters = scrDraft.filter(f => f.min != null || f.max != null);
   scrModalClose();
