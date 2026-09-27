@@ -139,3 +139,31 @@ def test_active_jobs_lists_pending_and_running_only():
                               "created_at": "2026-09-26T20:00:00Z"})
     ids = {j["id"] for j in client.get("/api/jobs/active").json()["jobs"]}
     assert {"j-pend", "j-run"} <= ids and "j-done" not in ids
+
+
+class _FakeMoomoo:
+    def snapshot(self, codes):
+        return {"snapshot_list": [
+            {"code": "US.SPY", "last_price": 682.14, "pct_change": 0.42, "update_time": "2026-09-26 20:00:00"},
+            {"code": "US.XLK", "last_price": 240.0, "pct_change": 1.6, "update_time": "2026-09-26 20:00:00"},
+        ]}
+
+    def econ_calendar_hot(self):
+        return [{"event_text": "US CPI YoY", "country": "US", "star": 3,
+                 "event_time": 1789000000, "predictive": "2.9", "announce": ""}]
+
+
+def test_market_state_builds_or_reports_unavailable(monkeypatch):
+    monkeypatch.setattr(api, "_market_cache", None)
+    monkeypatch.setattr(api, "_market_client", lambda: _FakeMoomoo())
+    r = client.get("/api/market/state").json()
+    assert r["available"] is True
+    spy = next(i for i in r["indices"] if i["symbol"] == "SPY")
+    assert spy["name"] == "S&P 500" and spy["last"] == 682.14
+    assert any(s["symbol"] == "XLK" and s["pct"] == 1.6 for s in r["sectors"])
+    assert r["calendar"][0]["event"] == "US CPI YoY"
+
+    monkeypatch.setattr(api, "_market_cache", None)
+    monkeypatch.setattr(api, "_market_client", lambda: None)
+    r2 = client.get("/api/market/state").json()
+    assert r2["available"] is False and "not configured" in r2["reason"]

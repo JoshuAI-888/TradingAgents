@@ -154,6 +154,21 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .t-mac{background:rgba(160,107,250,.15);color:#c3a6ff}
 .t-wl{background:rgba(139,160,184,.15);color:var(--dim)}
 .qcrow{padding:10px 2px;border-bottom:1px solid #131c29}
+/* market-state panel (moomoo) */
+.idxtape{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.idx{min-width:104px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.idx .nm{font-size:10px;color:var(--faint);letter-spacing:.4px}
+.idx .px{font-family:var(--mono);font-size:14px;font-weight:700;margin-top:2px}
+.idx .ch{font-family:var(--mono);font-size:10.5px;margin-top:1px}
+.sector-heat{display:grid;grid-template-columns:repeat(11,1fr);gap:5px;margin-top:10px}
+.heat{border-radius:6px;padding:6px 4px;text-align:center}
+.heat .s{font-family:var(--mono);font-size:9.5px;color:var(--faint)}
+.heat .v{font-family:var(--mono);font-size:10.5px;font-weight:700;margin-top:1px}
+.calstrip{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-top:10px}
+.cal{min-width:210px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.cal .d{font-size:10px;color:var(--faint);font-family:var(--mono)}
+.cal .t{font-size:11.5px;margin-top:2px;color:#c3cfdf}
+@media (max-width:980px){.sector-heat{grid-template-columns:repeat(4,1fr)}}
 .qcrow:last-child{border-bottom:none}
 .qchead{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;font-size:12.5px}
 .sctable td{padding:8px 10px;vertical-align:top;border-top:1px solid #131c29}
@@ -237,7 +252,29 @@ function md(t) {
 // ── pages ─────────────────────────────────────────────────────────────
 const pages = {
   async home() {
-    const [cands, decs] = await Promise.all([api("/api/candidates"), api("/api/decisions?limit=8")]);
+    const [cands, decs, ms] = await Promise.all([
+      api("/api/candidates"), api("/api/decisions?limit=8"),
+      api("/api/market/state").catch(() => ({ available: false })),
+    ]);
+    const fmtPct = v => v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(2) + "%";
+    const heat = v => v == null ? "rgba(139,160,184,.12)"
+      : v >= 0 ? `rgba(38,198,140,${Math.min(.08 + Math.abs(v) / 3, .45).toFixed(2)})`
+               : `rgba(240,84,79,${Math.min(.08 + Math.abs(v) / 3, .45).toFixed(2)})`;
+    let msPanel = "";
+    if (ms?.available) {
+      const idx = (ms.indices || []).map(x => `<div class="idx"><div class="nm">${esc(x.name)}</div>
+        <div class="px">${x.last != null ? esc(Number(x.last).toFixed(2)) : "—"}</div>
+        <div class="ch ${x.pct >= 0 ? "g" : "r"}">${x.pct >= 0 ? "▲" : "▼"} ${fmtPct(x.pct)}</div></div>`).join("");
+      const sec = (ms.sectors || []).map(x => `<div class="heat" style="background:${heat(x.pct)}">
+        <div class="s">${esc(x.symbol)}</div><div class="v">${fmtPct(x.pct)}</div></div>`).join("");
+      const cal = (ms.calendar || []).slice(0, 4).map(c => `<div class="cal"><div class="d">${esc(c.country || "—")} · ${"★".repeat(Math.max(1, Math.min(5, c.star || 1)))} · ${c.time ? new Date(c.time * 1000).toISOString().slice(0, 10) : ""}</div>
+        <div class="t">${esc(String(c.event || "").slice(0, 80))}</div></div>`).join("");
+      msPanel = `<div class="panel"><h3 class="sec">Market state <small>moomoo real-time · as of ${esc(String(ms.as_of || "").slice(0, 16).replace("T", " "))} UTC${ms.calendar?.length ? " · " + ms.calendar.length + " upcoming events" : ""}</small></h3>
+        <div class="idxtape">${idx}</div>
+        <div class="sector-heat">${sec}</div>
+        ${ms.calendar?.length ? `<div class="calstrip">${cal}</div>` : ""}
+      </div>`;
+    }
     const c = (cands.candidates || []).map(x => `
       <div class="cand"><div class="h"><span class="pill pd"><i></i>${esc(x.trigger_type)}</span> <b>${esc(x.title)}</b>
         <span class="score mono">score ${esc(x.score)}</span></div>
@@ -252,7 +289,7 @@ const pages = {
       <td>${x.raw_return_pct != null ? esc(Number(x.raw_return_pct).toFixed(1)) + "%" : '<span class="faint">pending</span>'}</td>
       <td>${x.alpha_pct != null ? `<span class="${x.alpha_pct >= 0 ? "g" : "r"}">${esc(Number(x.alpha_pct).toFixed(1))}%</span>` : '<span class="faint">—</span>'}</td>
       <td>${esc(x.settlement_status || "pending")}</td></tr>`).join("");
-    return `<div class="panel"><h3 class="sec">Market Pulse <small>trigger feed → analysis → audited decision</small></h3>
+    return `${msPanel}<div class="panel"><h3 class="sec">Market Pulse <small>trigger feed → analysis → audited decision</small></h3>
       <div id="cand-list">${c || '<div class="empty">No open candidates. Use ↻ Refresh now, or wait for the next scheduled sweep (every 15 min in US market hours).</div>'}</div>
       <div class="actions"><button class="btn ghost" id="cand-refresh" onclick="refreshCandidates(this)">↻ Refresh now</button>
       <span class="faint" style="font-size:10.5px">sweep = moomoo screens / news / earnings calendar (when connected) + watchlist</span></div></div>

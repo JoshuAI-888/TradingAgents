@@ -35,6 +35,10 @@ services:
         sync: false
       - key: CRON_SECRET
         generateValue: true
+      - key: MOOMOO_APPKEY
+        sync: false
+      - key: MOOMOO_PRIVATE_KEY
+        sync: false
 
   - type: web
     name: tradingagents-worker

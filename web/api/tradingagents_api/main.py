@@ -175,6 +175,67 @@ def active_jobs():
     return {"jobs": jobs}
 
 
+_MARKET_INDICES = [("US.SPY", "S&P 500"), ("US.QQQ", "Nasdaq 100"), ("US.IWM", "Russell 2000"),
+                   ("US.VIXY", "VIX proxy"), ("HK.HSI", "Hang Seng")]
+_MARKET_SECTORS = [("US.XLK", "Tech"), ("US.XLC", "Comms"), ("US.XLY", "Cons. Disc"),
+                   ("US.XLF", "Financials"), ("US.XLV", "Health Care"), ("US.XLI", "Industrials"),
+                   ("US.XLP", "Staples"), ("US.XLU", "Utilities"), ("US.XLRE", "Real Estate"),
+                   ("US.XLE", "Energy"), ("US.XLB", "Materials")]
+_market_cache = None
+
+
+def _market_client():
+    """Moomoo client from portal env, or None when keys are not configured."""
+    if not SETTINGS.moomoo_appkey or not SETTINGS.moomoo_private_key:
+        return None
+    from tradingagents_worker.moomoo import MoomooClient
+    return MoomooClient(SETTINGS.moomoo_appkey, SETTINGS.moomoo_private_key)
+
+
+def _build_market_state(client) -> dict:
+    """Indices tape + sector heat + calendar from two read-only moomoo calls."""
+    codes = [c for c, _ in _MARKET_INDICES] + [c for c, _ in _MARKET_SECTORS]
+    snap = (client.snapshot(codes) or {}).get("snapshot_list") or []
+    by_code = {s.get("code"): s for s in snap if isinstance(s, dict)}
+
+    def quote(code: str) -> dict:
+        s = by_code.get(code) or {}
+        return {"last": s.get("last_price"), "pct": s.get("pct_change"),
+                "as_of": s.get("update_time")}
+
+    indices = [{"symbol": c.split(".")[-1], "name": name, **quote(c)} for c, name in _MARKET_INDICES]
+    sectors = [{"symbol": c.split(".")[-1], "name": name, **quote(c)} for c, name in _MARKET_SECTORS]
+    calendar = [{"event": it.get("event_text"), "country": it.get("country"),
+                 "star": it.get("star"), "time": it.get("event_time"),
+                 "forecast": it.get("predictive"), "actual": it.get("announce")}
+                for it in (client.econ_calendar_hot() or [])[:8]]
+    stamps = [q["as_of"] for q in indices + sectors if q.get("as_of")]
+    return {"available": True, "indices": indices, "sectors": sectors,
+            "calendar": calendar, "as_of": max(stamps) if stamps else None}
+
+
+@app.get("/api/market/state")
+def market_state():
+    """Market Pulse market-state panel (moomoo snapshot + calendar; 5-min cache)."""
+    global _market_cache
+    client = _market_client()
+    if client is None:
+        return {"available": False, "reason": "moomoo keys not configured"}
+    if _market_cache is None:
+        from tradingagents_worker.ttl_cache import TtlCache  # noqa: E402
+        _market_cache = TtlCache(root=os.path.join(tempfile.gettempdir(), "ta-ttl"))
+    k = _market_cache.key("quotes", "market-state", "v1")
+    hit = _market_cache.get("quotes", k)
+    if hit is not None:
+        return hit
+    try:
+        state = _build_market_state(client)
+    except Exception as e:
+        return {"available": False, "reason": str(e)[:120]}
+    _market_cache.put("quotes", k, state)
+    return state
+
+
 @app.get("/api/candidates")
 def candidates(status: str = "open"):
     return {"candidates": db.select("discovery_candidates",
