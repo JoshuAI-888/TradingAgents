@@ -816,3 +816,20 @@ inline style); klineApply sets container height = baseH + 84×subs and chart.res
 Fullscreen: removed the viewport-stretch rules; .kc-full keeps overflow:auto so a
 scrollbar appears only when panes exceed the screen. Verified live: COST chart
 564px → 732px after adding RSI+KDJ (+2×84 exact), candles unchanged.
+
+## 2026-09-29 (late) — Screener parity + Columns fix + preset editor pane
+
+1. **Count parity**: 15,487 was our stored universe (stocks + ETFs + indices +
+   warrants). Screener now defaults to classified `stock_type == STOCK` →
+   **8,807**, zero non-stocks in view (also applied to the presets top-3
+   scoring). Honest gap vs moomoo's 9,381: their count includes ~574 OTC/
+   pink-sheet listings our 469-plate walk can't reach (no public all-instruments
+   endpoint). ETFs remain available via an explicit Type filter and on stock pages.
+2. **Columns button**: `<details>/<summary>` swallowed clicks (button-styled
+   summary); replaced with the proven body-attached JS toggle (scrToggleColPick).
+3. **Preset editor pane**: Add Filter → Screeners tab is now two-column —
+   presets + saved screeners left, editor pane right. Clicking a preset/saved
+   screener shows its filters as editable min/max rows (name + description
+   prefilled), Apply-to-table and Save screener / Update saved (POST/PUT
+   /api/screeners). Verified end-to-end: clicked Penny Stocks, edited a filter,
+   saved → appears in Your saved screeners.

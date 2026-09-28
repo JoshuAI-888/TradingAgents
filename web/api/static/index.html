@@ -1467,7 +1467,15 @@ async function reportPage(ref) {
   const reportMap = {}; (r.reports || []).forEach(x => reportMap[x.stage] = x);
   const deb = dt => (r.debates || []).filter(x => x.debate_type === dt);
   const rawDecision = dec?.full_decision?.raw;
-  const sec = (label, sub) => `<div class="agent-sec"><span class="kick">${label}</span>${sub ? `<span class="faint" style="font-size:10.5px">${esc(sub)}</span>` : ""}</div>`;
+  // QC grades keyed by digest stage — annotated into the matching section header
+  // and linked from the QC panel (below) back up to the section it scores.
+  const qcMap = {};
+  ((r.digest?.digest || {}).qc || []).forEach(q => { if (q && q.stage) qcMap[String(q.stage).toLowerCase()] = q; });
+  const qcTag = stage => qcMap[stage] ? ` · QC ${qcMap[stage].score}/100: ${qcMap[stage].verdict || ""}` : "";
+  const QC_TARGET = { market: "sec-analysts", social: "sec-analysts", news: "sec-analysts",
+    fundamentals: "sec-analysts", research: "sec-debate-research", risk: "sec-debate-risk",
+    trader: "sec-outputs", portfolio_manager: "sec-outputs" };
+  const sec = (label, sub, id) => `<div class="agent-sec"${id ? ` id="${id}"` : ""}><span class="kick">${label}</span>${sub ? `<span class="faint" style="font-size:10.5px">${esc(sub)}</span>` : ""}</div>`;
   const reportCard = (st, label, open) => `<details${open ? " open" : ""}><summary>${esc(label)}<span class="m">${reportMap[st].quality_grade ? "grade " + esc(reportMap[st].quality_grade) + " · " : ""}${esc(reportMap[st].content_markdown.length)} chars</span></summary><div class="body">${md(reportMap[st].content_markdown)}</div></details>`;
 
   // Decision first, then the reasoning chain that produced it (research → plan
@@ -1480,20 +1488,20 @@ async function reportPage(ref) {
     agents.push(sec("Final decision", "the call, in the portfolio manager's own words"),
       `<details open><summary>Portfolio Manager — final decision<span class="m">raw engine output</span></summary><div class="body">${md(rawDecision)}</div></details>`);
   if (deb("research").length)
-    agents.push(sec("Reasoning — bull vs bear", "the debate the decision was argued from"),
-      `<details><summary>Bull / Bear debate — full transcript<span class="m">${deb("research").length} message(s)</span></summary><div class="body">${deb("research").map(x => debateTurnsHtml(x.content)).join("")}</div></details>`);
+    agents.push(sec("Reasoning — bull vs bear", "the debate the decision was argued from" + qcTag("research")),
+      `<details id="sec-debate-research"><summary>Bull / Bear debate — full transcript<span class="m">${deb("research").length} message(s)</span></summary><div class="body">${deb("research").map(x => debateTurnsHtml(x.content)).join("")}</div></details>`);
   if (reportMap.research_manager)
     agents.push(reportCard("research_manager", "Research Manager — synthesis & plan"));
   if (reportMap.trader)
     agents.push(reportCard("trader", "Trader — proposal"));
   if (deb("risk").length)
-    agents.push(sec("Reasoning — risk debate", "aggressive / conservative / neutral weigh the proposal"),
-      `<details><summary>Risk debate — full transcript<span class="m">${deb("risk").length} message(s)</span></summary><div class="body">${deb("risk").map(x => debateTurnsHtml(x.content)).join("")}</div></details>`);
+    agents.push(sec("Reasoning — risk debate", "aggressive / conservative / neutral weigh the proposal" + qcTag("risk")),
+      `<details id="sec-debate-risk"><summary>Risk debate — full transcript<span class="m">${deb("risk").length} message(s)</span></summary><div class="body">${deb("risk").map(x => debateTurnsHtml(x.content)).join("")}</div></details>`);
   const analystCards = ["analyst_market", "analyst_social", "analyst_news", "analyst_fundamentals"]
     .filter(st => reportMap[st])
     .map(st => reportCard(st, agentLabel(st), st === "analyst_market"));
   if (analystCards.length)
-    agents.push(sec("Reasoning — analyst reports", "the raw evidence each analyst gathered"), ...analystCards);
+    agents.push(sec("Reasoning — analyst reports", "the raw evidence each analyst gathered", "sec-analysts"), ...analystCards);
 
   const trace = (r.events || []).slice(-60).map(e => {
     const cls = /qc|gate|settle/i.test(e.stage) ? "sys" : /fail/i.test(e.status || "") || /error/i.test(e.message || "") ? "bad" : /start|progress/i.test(e.status || "") ? "ag" : "sys";
@@ -1513,25 +1521,47 @@ async function reportPage(ref) {
   (dg?.news || []).forEach(n => { newsRead[norm(n.title)] = n; });
   const newsClassFor = t => newsRead[norm(t)] || (dg?.news || []).find(n => norm(t).includes(norm(n.title)) || norm(n.title).includes(norm(t))) || null;
   const digestPanels = !dg ? "" : `
-    ${dg.evidence?.length ? `<div class="panel"><h3 class="sec">Evidence register <small>load-bearing claims behind the decision · extracted from the run's own outputs</small></h3>
+    ${dg.evidence?.length ? `<div class="panel" id="sec-evidence"><h3 class="sec">Evidence register <small>load-bearing claims behind the decision · extracted from the run's own outputs</small></h3>
       ${dg.evidence.map(e => `<div class="news"><div class="h"><span class="tag ${DSTAGE[e.stage] || "t-wl"}">${esc(String(e.stage).toUpperCase())}</span><b>${esc(e.claim)}</b></div>
         ${e.support ? `<div class="d">${esc(e.support)}</div>` : ""}</div>`).join("")}
     </div>` : ""}
-    ${Object.keys(dg.scenarios || {}).length ? `<div class="panel"><h3 class="sec">Scenario &amp; sensitivity <small>bull / base / bear · fair-value bands from the run's own reasoning</small></h3>
+    ${Object.keys(dg.scenarios || {}).length ? `<div class="panel" id="sec-scenarios"><h3 class="sec">Scenario &amp; sensitivity <small>bull / base / bear · fair-value bands from the run's own reasoning</small></h3>
       <table class="sctable"><tr><th>Scenario</th><th>Thesis</th><th>Trigger</th><th>Fair value</th></tr>
       ${["bull", "base", "bear"].filter(k => dg.scenarios[k]).map(k => `<tr><td><span class="tag ${k === "bull" ? "t-news" : k === "bear" ? "t-ern" : "t-wl"}">${k.toUpperCase()}</span></td><td>${esc(dg.scenarios[k].thesis)}</td><td class="dim" style="color:var(--dim)">${esc(dg.scenarios[k].trigger)}</td><td class="mono">${esc(dg.scenarios[k].range)}</td></tr>`).join("")}
       </table></div>` : ""}`;
-  const qcPanel = dg && dg.qc?.length ? `<div class="panel"><h3 class="sec">Agent QC grades <small>evidence quality, consistency &amp; bias per stage${r.digest?.model ? " · digest by " + esc(r.digest.model.split("/").pop()) : ""}</small></h3>
-      ${dg.qc.map(q => `<div class="qcrow"><div class="qchead"><span class="tag ${DSTAGE[q.stage] || "t-scr"}">${esc(q.stage)}</span><b>${q.score}/100</b></div>
+  const qcPanel = dg && dg.qc?.length ? `<div class="panel" id="sec-qc"><h3 class="sec">Agent QC grades <small>evidence quality, consistency &amp; bias per stage${r.digest?.model ? " · digest by " + esc(r.digest.model.split("/").pop()) : ""}</small></h3>
+      ${dg.qc.map(q => `<div class="qcrow"><div class="qchead"><span class="tag ${DSTAGE[q.stage] || "t-scr"}">${esc(q.stage)}</span><b>${q.score}/100</b>${QC_TARGET[String(q.stage).toLowerCase()] ? `<a href="#" class="qcview" onclick="jumpTo('${QC_TARGET[String(q.stage).toLowerCase()]}');return false">view →</a>` : ""}</div>
         <div class="bar"><i style="width:${q.score}%;background:${qccol(q.score)}"></i><i style="width:${100 - q.score}%;background:#33415a"></i></div>
         ${q.verdict ? `<div class="sens">${esc(q.verdict)}</div>` : ""}</div>`).join("")}
     </div>` : "";
 
+  // On-this-page rail nav; sections with no content for this run are omitted.
+  const navSections = [
+    ["sec-verdict", "Verdict"], ["sec-chart", "Chart"], ["sec-thesis", "Thesis"],
+    ...((dg?.evidence || []).length ? [["sec-evidence", "Evidence"]] : []),
+    ...(Object.keys((dg || {}).scenarios || {}).length ? [["sec-scenarios", "Scenarios"]] : []),
+    ["sec-news", "News"], ["sec-outputs", "Agent outputs"],
+    ...(((dg || {}).qc || []).length ? [["sec-qc", "QC grades"]] : []),
+    ["sec-trace", "Trace"],
+  ];
+  const proseSerif = localStorage.getItem("prose") === "serif";
+  document.body.classList.toggle("serif-prose", proseSerif);
+
   return `
-  <div class="mast">
+  <div class="rep-sticky" id="rep-sticky">
+    <span class="rt">${esc(sym.symbol)}</span>
+    <span style="color:${rc};font-weight:800">${esc(rating)}</span>
+    <span class="dim">target ${dec?.price_target ? fmt(dec.price_target) : "—"}</span>
+    <span class="pill ${dec?.qc_verdict === "passed" ? "pg" : "pa"}"><i></i>QC ${esc((dec?.qc_verdict || "—").toUpperCase())}</span>
+    <span style="flex:1"></span>
+    <a href="#" onclick="jumpTo('sec-verdict');return false">↑ verdict</a>
+    <a href="#" onclick="jumpTo('sec-outputs');return false">outputs</a>
+    <a href="#" onclick="jumpTo('sec-qc');return false">qc</a>
+  </div>
+  <div class="mast" id="sec-verdict">
     <div class="mast-top">
       <div class="brand">TRADINGAGENTS <b>GLOBAL RESEARCH</b> — Multi-Agent Workstation</div>
-      <div class="right">run ${esc(String(run.id || "").slice(0, 8))} · ${fmtTs(run.started_at)} · ${esc(run.framework_version || "0.5.1")} · <span class="pill ${r.job?.status === "succeeded" ? "pg" : "pa"}"><i></i>${esc(r.job?.status || "—")}</span></div>
+      <div class="right"><button class="btn ghost" style="padding:2px 9px;font-size:10.5px" onclick="toggleProse(this)" title="Toggle serif reading mode for the transcripts and reports">${proseSerif ? "Aa · serif" : "Aa · sans"}</button> · run ${esc(String(run.id || "").slice(0, 8))} · ${fmtTs(run.started_at)} · ${esc(run.framework_version || "0.5.1")} · <span class="pill ${r.job?.status === "succeeded" ? "pg" : "pa"}"><i></i>${esc(r.job?.status || "—")}</span></div>
     </div>
     <div class="verdict">
       <div class="v-left">
@@ -1588,7 +1618,7 @@ async function reportPage(ref) {
     </div>
 
     <div class="center">
-      <div class="panel"><h3 class="sec">Price &amp; indicators <small>interactive · stored daily bars · indicators computed client-side</small></h3>
+      <div class="panel" id="sec-chart"><h3 class="sec">Price &amp; indicators <small>interactive · stored daily bars · indicators computed client-side</small></h3>
         <div class="tf-row">
           <button class="tf" data-rep-tf="1M">1M</button><button class="tf" data-rep-tf="3M">3M</button><button class="tf on" data-rep-tf="6M">6M</button><button class="tf" data-rep-tf="1Y">1Y</button><button class="tf" data-rep-tf="ALL">2Y</button>
         </div>
@@ -1601,13 +1631,13 @@ async function reportPage(ref) {
         </div>
       </div>
 
-      <div class="panel"><h3 class="sec">Investment thesis <small>from the pipeline's own words · full agent outputs below</small></h3>
+      <div class="panel" id="sec-thesis"><h3 class="sec">Investment thesis <small>from the pipeline's own words · full agent outputs below</small></h3>
         <div class="thesis">${dec?.thesis ? md(dec.thesis) : (dec?.executive_summary ? `<p>${esc(dec.executive_summary)}</p>` : '<p class="empty">Executive summary lands when the pipeline emits structured decisions (Phase 1 QC gate). The complete unedited reasoning is in the agent outputs below.</p>')}</div>
       </div>
 
       ${digestPanels}
 
-      <div class="panel"><h3 class="sec">News — latest headlines with citable links <small>${dg?.news?.length ? "classified into catalysts / risks / assumptions by the post-run digest" : "stored at run time · classification into catalysts/risks lands with the news analyst persistence"}</small></h3>
+      <div class="panel" id="sec-news"><h3 class="sec">News — latest headlines with citable links <small>${dg?.news?.length ? "classified into catalysts / risks / assumptions by the post-run digest" : "stored at run time · classification into catalysts/risks lands with the news analyst persistence"}</small></h3>
         ${news.length ? news.map(n => { const nc = dg ? newsClassFor(n.title) : null; return `<div class="news"><div class="h"><span class="tag t-news">NEWS</span>${nc ? `<span class="tag ${DCLASS[nc.class] || "t-wl"}">${esc(nc.class.toUpperCase())}${nc.impact === "high" ? " · HIGH IMPACT" : ""}</span>` : ""}<b><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a></b></div>
           ${nc?.why ? `<div class="d">${esc(nc.why)}</div>` : ""}
           ${n.summary && !nc?.why ? `<div class="d">${esc(n.summary)}</div>` : ""}
@@ -1616,13 +1646,13 @@ async function reportPage(ref) {
         ${dg?.news?.length ? `<div style="margin-top:10px" class="faint">${(dg.news.filter(n => !newsClassFor(n.title))).length} classified item(s) not in the stored feed shown above.</div>` : ""}
       </div>
 
-      <div class="panel"><h3 class="sec">Agent outputs — complete <small>final decision first, then the full reasoning chain · all reports &amp; debates unedited</small></h3>
+      <div class="panel" id="sec-outputs"><h3 class="sec">Agent outputs — complete <small>final decision first, then the full reasoning chain · all reports &amp; debates unedited</small></h3>
         ${agents.length ? agents.join("") : '<div class="empty">Agent reports persist when the run completes.</div>'}
       </div>
 
       ${qcPanel}
 
-      <div class="panel"><h3 class="sec">Live reasoning trace <small>what the pipeline emitted while working · replayable from job_events</small></h3>
+      <div class="panel" id="sec-trace"><h3 class="sec">Live reasoning trace <small>what the pipeline emitted while working · replayable from job_events</small></h3>
         <div class="trace">${trace || '<div class="empty">No events recorded.</div>'}</div>
       </div>
     </div>
@@ -1648,6 +1678,10 @@ async function reportPage(ref) {
         <div class="trow"><span>Job</span><b>${esc(String(r.job?.id || "").slice(0, 8))} · ${esc(r.job?.status || "")}</b></div>
         <div class="trow"><span>Trade date</span><b>${esc(run.trade_date || "—")}</b></div>
         <div class="sens">Agent outputs, debates and events are retained unedited for audit; raw agent state snapshots land in Storage in Phase 1.</div>
+      </div>
+      <div class="panel"><h4>On this page</h4>
+        <div class="jmp" id="rep-nav">${navSections.map(([id, label]) =>
+          `<a href="#" data-sec="${id}" onclick="jumpTo('${id}');return false">${label}</a>`).join("")}</div>
       </div>
     </div>
   </div>`;
