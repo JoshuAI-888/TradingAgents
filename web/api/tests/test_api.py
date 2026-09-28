@@ -23,6 +23,9 @@ class FakeDb:
             if v.startswith("eq."):
                 col, val = k, v[3:]
                 rows = [r for r in rows if str(r.get(col)) == val]
+            elif v.startswith("in.("):
+                col, vals = k, set(v[4:-1].split(","))
+                rows = [r for r in rows if str(r.get(col)) in vals]
         return rows
     def insert(self, table, row, prefer="return=representation"):
         row = {**row, "id": f"{table}-{len(self._t(table))+1}"}
@@ -289,6 +292,56 @@ def test_market_rows_unions_sort_slices(monkeypatch):
     assert rows[0]["symbol"] == "S0000" and rows[-1]["symbol"] == "S1199"
     # primary slice (caller's sort) leads the ordering
     assert [r["symbol"] for r in rows[:3]] == ["S0000", "S0001", "S0002"]
+
+
+class _NoCache:
+    """_merge_universe_meta's TtlCache is disk-backed (persists across pytest
+    runs) — tests inject this so classification reads come from the fake db."""
+    def key(self, *a): return "k"
+    def get(self, *a): return None
+    def put(self, *a): pass
+
+
+def test_presets_rail_scores_stored_rows_without_inline_stock_type(monkeypatch):
+    """Regression 2026-09-29: stored quote rows carry no stock_type (classification
+    lives in screener_universe), so filtering before merging dropped every row and
+    the rail showed 'no matches in universe' with '0 rows scored'."""
+    monkeypatch.setattr(api, "_screener_cache", None)
+    monkeypatch.setattr(api, "_universe_meta_cache", _NoCache())
+    api.db._t("screener_quotes").append({"market": "US", "code": "US.ZPST",
+                                         "row": {"code": "US.ZPST", "symbol": "ZPST",
+                                                 "name": "Zerostate", "pct": 4.2}})
+    api.db._t("screener_universe").append({"market": "US", "code": "US.ZPST",
+                                           "stock_type": "STOCK"})
+    p = client.get("/api/screener/presets?market=US").json()
+    assert p["universe_rows"] >= 1
+    tops = [t for x in p["presets"] for t in x["top"]]
+    assert any(t["symbol"] == "ZPST" and t["pct"] == 4.2 for t in tops)
+
+
+def test_execute_hydrates_rows_from_stored_snapshot(monkeypatch):
+    """Regression 2026-09-29: stock-screen retrieves returned null for every item,
+    leaving preset tables all dashes — display values fill from the snapshot."""
+
+    class _NullScreen:
+        def call(self, method, path, body=None, query=None, retries=2):
+            return {"items": [{"code": "US.ZEXE", "name": "Zexecute",
+                               "results": [{"simple_property_result": {
+                                   "property": {"name": 2201}, "ival": None}}]}]}
+
+    monkeypatch.setattr(api, "_market_client", lambda: _NullScreen())
+    monkeypatch.setattr(api, "_universe_meta_cache", _NoCache())
+    api.db._t("screener_quotes").append({"market": "US", "code": "US.ZEXE",
+                                         "row": {"code": "US.ZEXE", "symbol": "ZEXE", "price": 3.21,
+                                                 "pct": -1.4, "market_cap": 2.5e8}})
+    api.db._t("screener_universe").append({"market": "US", "code": "US.ZEXE",
+                                           "stock_type": "STOCK", "plate": "Biotech",
+                                           "exchange": "US"})
+    r = client.get("/api/screener/execute?key=penny&market=US").json()
+    assert r["available"] is True and len(r["rows"]) == 1
+    row = r["rows"][0]
+    assert row["price"] == 3.21 and row["pct"] == -1.4 and row["market_cap"] == 2.5e8
+    assert row["stock_type"] == "STOCK" and row["plate"] == "Biotech"
 
 
 def test_prompt_store_roundtrip():

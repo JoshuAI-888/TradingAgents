@@ -857,6 +857,9 @@ def screener_presets(market: str = "US", universe: str = "auto"):
     # every preset is backed by a verified stock-screen property, so there is
     # nothing to skip. The top-3 preview is scored over the stored universe,
     # restricted to common stocks for parity with moomoo's screener count.
+    # Classification lives in screener_universe, not the quote rows, so merge
+    # it in before filtering or every row is dropped here.
+    rows = _merge_universe_meta(rows, market)
     rows = [r for r in rows if r.get("stock_type") == "STOCK"]
     out = []
     for preset in PRESET_SCREENERS:
@@ -1070,6 +1073,20 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60):
             "market_cap": (vals.get(2301) or 0) / 1000 or None,
             "factors": {k: v for k, v in vals.items() if k not in (2201, 2301, 2210)},
         })
+    # moomoo's stock-screen retrieves can come back all-null for every item
+    # (2026-09-29), which left preset tables blank — display fields are filled
+    # from the stored snapshot the universe loader keeps fresh; screen values
+    # fill any gap the snapshot doesn't cover.
+    codes = sorted({r["code"] for r in rows if r["code"]})
+    if codes:
+        stored = db.select("screener_quotes", {"market": f"eq.{market}",
+                                               "code": f"in.({','.join(codes)})"}, "row")
+        by_code = {q["row"].get("code"): q["row"] for q in stored if isinstance(q.get("row"), dict)}
+        for r in rows:
+            for k, v in (by_code.get(r["code"]) or {}).items():
+                if r.get(k) is None:
+                    r[k] = v
+        _merge_universe_meta(rows, market)
     return {"available": True, "key": key, "name": name, "description": description,
             "market": market, "pending": pending, "rows": rows, "shown": len(rows)}
 
