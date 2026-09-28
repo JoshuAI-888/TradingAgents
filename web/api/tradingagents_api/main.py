@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import time
 import uuid
 from datetime import date, datetime, timedelta, timezone
 
@@ -50,11 +51,51 @@ def health():
             "stub_mode": get_runtime_flags(db)["stub"]}
 
 
+_universe_symbols_cache: tuple[float, dict] | None = (0.0, {})
+
+
+def _universe_symbols() -> dict:
+    """Stored-universe symbol → stock_type, cached 5 min (a 10k-row read per
+    submit would be wasteful; a stale list for minutes only affects the hint)."""
+    global _universe_symbols_cache
+    now = time.time()
+    if now - _universe_symbols_cache[0] < 300:
+        return _universe_symbols_cache[1]
+    try:
+        rows = db.select_all("screener_universe", {}, "code,stock_type")
+    except Exception:
+        rows = []
+    symbols = {}
+    for r in rows:
+        code = str(r.get("code") or "")
+        if "." in code:
+            symbols[code.split(".", 1)[1].upper()] = r.get("stock_type")
+    _universe_symbols_cache = (now, symbols)
+    return symbols
+
+
+def _symbol_check(ticker: str) -> dict:
+    """Best-effort known-symbol check with a did-you-mean suggestion. Soft:
+    the analysis is still enqueued — an unknown symbol fails fast at the
+    engine otherwise ('No market data'), so warn before tokens are spent."""
+    sym = ticker.strip().upper()
+    symbols = _universe_symbols()
+    if not symbols or sym in symbols:
+        return {"known": True}
+    import difflib
+    near = difflib.get_close_matches(sym, symbols.keys(), n=1, cutoff=0.72)
+    note = f"{sym} is not in the stored market universe"
+    if near:
+        note += f" — did you mean {near[0]}?"
+    return {"known": False, "suggestion": near[0] if near else None, "note": note}
+
+
 @app.post("/api/analyses")
 def submit(inp: AnalyzeIn, x_user_id: str = Header(default="")):
     """Enqueue an analysis. Idempotent per (ticker, date, depth) per day via idempotency_key."""
     if not SETTINGS.supabase_url:
         raise HTTPException(503, "SUPABASE_URL not configured")
+    validation = _symbol_check(inp.ticker)
     key = f"analysis:{inp.ticker.upper()}:{inp.trade_date}:{inp.depth}"
     # Single-user Phase 0: unauthenticated submissions are owned by DEFAULT_USER_ID.
     user_id = x_user_id or os.getenv("DEFAULT_USER_ID") or None
@@ -62,7 +103,7 @@ def submit(inp: AnalyzeIn, x_user_id: str = Header(default="")):
     # A failed/cancelled job must not block re-running the same analysis.
     if existing and existing[0].get("status") not in ("failed", "cancelled"):
         return {"job_id": existing[0]["id"], "status": existing[0].get("status", "pending"),
-                "deduplicated": True}
+                "deduplicated": True, "validation": validation}
     row = db.insert("jobs", {
         "job_type": "analysis", "user_id": user_id,
         "payload": {"ticker": inp.ticker.upper(), "trade_date": str(inp.trade_date),
@@ -70,7 +111,8 @@ def submit(inp: AnalyzeIn, x_user_id: str = Header(default="")):
         "idempotency_key": key,
     }, prefer="return=representation")
     job = row if isinstance(row, dict) else (row or [{}])[0]
-    return {"job_id": job.get("id"), "status": job.get("status", "pending"), "deduplicated": False}
+    return {"job_id": job.get("id"), "status": job.get("status", "pending"),
+            "deduplicated": False, "validation": validation}
 
 
 @app.get("/api/analyses/{job_id}")
@@ -150,9 +192,32 @@ def _queue_context(job: dict) -> dict:
     return ctx
 
 
+def _run_debates(run_id: str) -> list:
+    """Debate rows for the report. content_original arrived with migration 0010;
+    until it is applied, retry without it rather than killing the whole report."""
+    try:
+        return db.select("debate_messages", {"run_id": f"eq.{run_id}", "order": "created_at.asc"},
+                         "debate_type,speaker,round,content,content_original")
+    except Exception:
+        return [{**m, "content_original": None} for m in db.select(
+            "debate_messages", {"run_id": f"eq.{run_id}", "order": "created_at.asc"},
+            "debate_type,speaker,round,content")]
+
+
 @app.get("/api/analyses/{ref}/report")
 def report(ref: str):
-    """Full dossier for the report page. `ref` is a job id or a decision id."""
+    """Full dossier for the report page. `ref` is a job id or a decision id.
+    A DB failure surfaces as a readable 502 (the page prints e.message) instead
+    of a bare 'Internal Server Error'."""
+    try:
+        return _report_payload(ref)
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001 — detail is the point; no secrets in db errors
+        raise HTTPException(502, f"report data unavailable: {str(e)[:220]}")
+
+
+def _report_payload(ref: str) -> dict:
     runs = db.select("runs", {"job_id": f"eq.{ref}"}, "*")
     if not runs:
         dec0 = db.select("decisions", {"id": f"eq.{ref}"}, "run_id")
@@ -164,8 +229,7 @@ def report(ref: str):
     tick = db.select("tickers", {"id": f"eq.{run['ticker_id']}"}, "symbol,name,exchange,currency")
     reports = db.select("agent_reports", {"run_id": f"eq.{run['id']}", "order": "created_at.asc"},
                         "stage,content_markdown,quality_grade,quality_score,created_at")
-    debates = db.select("debate_messages", {"run_id": f"eq.{run['id']}", "order": "created_at.asc"},
-                        "debate_type,speaker,round,content,content_original")
+    debates = _run_debates(run["id"])
     # Rows stored before the char-wise _join_history fix read one character per
     # line; demangle at read time (detector is strict, normal rows pass through).
     # The worker's repair pass restores real spacing and preserves the untouched
@@ -806,14 +870,18 @@ def screener_presets(market: str = "US", universe: str = "auto"):
 
 @app.get("/api/screener/schedule")
 def screener_schedule_get():
-    """Universe-refresh cadence + current loader state (settings page + cron)."""
+    """Universe-refresh cadence + current loader state (settings page + cron).
+    stock_rows/other_rows explain the count gap vs moomoo's app total: the app
+    counts every instrument type; the screener serves common stocks by default."""
     state = _universe_state()
     rows = db.select_all("screener_quotes", {"market": "eq.US"}, "code")
-    urows = db.select_all("screener_universe", {"market": "eq.US"}, "code")
+    urows = db.select_all("screener_universe", {"market": "eq.US"}, "code,stock_type")
+    stock_rows = sum(1 for r in urows if r.get("stock_type") == "STOCK")
     return {"interval_h": float(state.get("interval_h") or 1),
             "last_quotes": state.get("last_quotes"), "last_enum": state.get("last_enum"),
             "last_result": state.get("last_result") or {},
-            "quote_rows": len(rows), "universe_rows": len(urows)}
+            "quote_rows": len(rows), "universe_rows": len(urows),
+            "stock_rows": stock_rows, "other_rows": len(urows) - stock_rows}
 
 
 @app.put("/api/screener/schedule")

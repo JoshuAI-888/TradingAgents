@@ -1296,7 +1296,7 @@ const pages = {
         <div class="faint" style="font-size:10px;margin-top:6px">Exports above: "page" = the rows on screen; "all" = the full filtered set in the current sort order.</div>
         <div class="faint" style="font-size:10px;margin-top:6px">${st.watchlistOnly
           ? "Watchlist universe = tickers saved in TradingAgents (☆). Add with the star, or from the Analyze page."
-          : (scr.universe_loaded ? "Full stored universe — every listing moomoo\u2019s plate enumeration returned, refreshed by the loader job. Technical &amp; financial-factor filters land once moomoo\u2019s indicator dictionary is mapped." : "Live fallback slices (~1,200 stocks). Run \u219b Load full market to enumerate every listing.")} Technical &amp; financial-factor server filters are coming once moomoo\u2019s property dictionary is mapped.</div>
+          : (scr.universe_loaded ? "Full stored universe — every listing moomoo\u2019s plate enumeration returned, refreshed by the loader job. Technical &amp; financial-factor filters land once moomoo\u2019s indicator dictionary is mapped." : "Live fallback slices (~1,200 stocks). Run \u219b Load full market to enumerate every listing.")} Technical &amp; financial-factor server filters are coming once moomoo\u2019s property dictionary is mapped. moomoo\u2019s app total counts every instrument type (ETFs, warrants, indices); this screener lists common stocks by default — use a Type filter to see the rest.</div>
       </div>
       <div class="panel scr-rail">
         <h3 class="sec">Recommended Screeners <small>${(rail.universe_rows ?? 0).toLocaleString()} rows scored · top 3 each</small></h3>
@@ -2196,7 +2196,10 @@ async function submitFromForm() {
     const r = await api("/api/analyses", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ticker: $("#f-ticker").value, trade_date: $("#f-date").value,
         depth: $("#f-depth").value, instructions: $("#f-instr").value || null }) });
-    out.innerHTML = `Queued: job <a href="#" onclick="openReport('${esc(r.job_id)}');return false">${esc(r.job_id.slice(0, 8))}</a>${r.deduplicated ? " (deduplicated)" : ""}`;
+    const v = r.validation || {};
+    out.innerHTML = `${!v.known ? `<div class="delay-note" style="margin-bottom:6px">${esc(v.note || "Symbol not in the market universe — the run will likely fail.")}
+      ${v.suggestion ? ` <a href="#" onclick="document.getElementById('f-ticker').value='${esc(v.suggestion)}';submitFromForm();return false">Run ${esc(v.suggestion)} instead</a>` : ""}</div>` : ""}
+      Queued: job <a href="#" onclick="openReport('${esc(r.job_id)}');return false">${esc(r.job_id.slice(0, 8))}</a>${r.deduplicated ? " (deduplicated)" : ""}`;
     watch(r.job_id);
   } catch (e) { out.textContent = "Submit failed: " + e; }
 }
@@ -3271,6 +3274,7 @@ async function showPage(p) {
         const last = s.last_quotes ? fmtTs(s.last_quotes) : "never";
         el.className = "";
         el.innerHTML = `<div class="trow"><span>Universe</span><b>${s.universe_rows.toLocaleString()} listings</b></div>
+          <div class="trow"><span>Common stocks</span><b>${(s.stock_rows ?? 0).toLocaleString()}${s.other_rows ? ` · ${(s.other_rows).toLocaleString()} ETF/warrant/other stored, hidden from the screener` : ""}</b></div>
           <div class="trow"><span>Quote rows</span><b>${s.quote_rows.toLocaleString()} · as of ${last}</b></div>
           <div class="trow"><span>Refresh cadence</span>
             <select id="scr-interval" style="background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:11.5px">

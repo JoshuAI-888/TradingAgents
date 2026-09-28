@@ -341,3 +341,69 @@ def test_report_repairs_mangled_debate_rows():
     risk = [d for d in r["debates"] if d["debate_type"] == "risk"][0]
     assert research["content"] == "BullAnalyst:thebullcaserestsonmarginexpansionandbackloggrowththrough2027."  # spaces were lost at write time
     assert risk["content"] == "Aggressive Analyst: keep it\n\nall on one line"  # normal row untouched
+
+
+def test_submit_validates_symbol_with_suggestion(monkeypatch):
+    api._universe_symbols_cache = (0.0, {})  # reset the 5-min cache
+    api.db._t("screener_universe").append({"market": "US", "code": "US.NVDA", "stock_type": "STOCK"})
+    r = client.post("/api/analyses", json={"ticker": "ndva", "trade_date": "2026-09-29", "depth": "fast"}).json()
+    assert r["validation"]["known"] is False
+    assert r["validation"]["suggestion"] == "NVDA"
+    assert "did you mean NVDA" in r["validation"]["note"]
+    assert r["job_id"]  # soft check: the run is still enqueued
+    r2 = client.post("/api/analyses", json={"ticker": "NVDA", "trade_date": "2026-09-29", "depth": "fast"}).json()
+    assert r2["validation"]["known"] is True
+    # dedup path carries the check too
+    r3 = client.post("/api/analyses", json={"ticker": "NVDA", "trade_date": "2026-09-29", "depth": "fast"}).json()
+    assert r3["deduplicated"] is True and r3["validation"]["known"] is True
+
+
+def test_schedule_reports_stock_breakdown():
+    api.db._t("screener_universe").append({"market": "US", "code": "US.SPY", "stock_type": "ETF"})
+    s = client.get("/api/screener/schedule").json()
+    assert s["stock_rows"] >= 1 and s["other_rows"] >= 1 and s["universe_rows"] >= s["stock_rows"] + s["other_rows"]
+
+
+def test_report_degrades_without_content_original_column():
+    class _NoColDb(api.FakeDb if hasattr(api, "FakeDb") else object):
+        pass
+    # a db whose debate_messages select rejects content_original (migration 0010 not applied)
+    class _PreMigrationDb:
+        def __init__(self, base):
+            self.base = base
+        def __getattr__(self, name):
+            return getattr(self.base, name)
+        def select(self, table, query=None, columns="*"):
+            if table == "debate_messages" and "content_original" in columns:
+                raise RuntimeError('supabase GET debate_messages -> 400: column "content_original" does not exist')
+            return self.base.select(table, query, columns)
+    j = client.post("/api/analyses", json={"ticker": "ZZZPLS", "trade_date": "2026-09-25", "depth": "fast"}).json()
+    api.db._t("runs").append({"id": "run-nocol", "job_id": j["job_id"], "user_id": None, "ticker_id": "tick-1",
+                              "trade_date": "2026-09-25", "config_hash": "abc", "status": "succeeded",
+                              "prompt_tokens": 1, "completion_tokens": 1, "cost_usd": 0.0,
+                              "framework_version": "0.5.1"})
+    api.db._t("debate_messages").append({"run_id": "run-nocol", "debate_type": "risk",
+                                         "speaker": "neutral", "round": 1, "content": "Aggressive Analyst: go."})
+    outer = api.db
+    api.db = _PreMigrationDb(outer)
+    try:
+        r = client.get(f"/api/analyses/{j['job_id']}/report")
+        assert r.status_code == 200, r.text
+        assert r.json()["debates"][0]["content"] == "Aggressive Analyst: go."
+        assert r.json()["debates"][0]["content_original"] is None
+    finally:
+        api.db = outer
+
+
+def test_report_surfaces_real_error_not_bare_500():
+    class _BrokenDb:
+        def __getattr__(self, name):
+            raise RuntimeError("db down")
+    outer = api.db
+    api.db = _BrokenDb()
+    try:
+        r = client.get("/api/analyses/some-ref/report")
+        assert r.status_code == 502
+        assert "report data unavailable" in r.json()["detail"]
+    finally:
+        api.db = outer
