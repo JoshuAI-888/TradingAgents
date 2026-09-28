@@ -46,6 +46,9 @@ class FakeDb:
                 return [rows[i]]
         rows.append({**row})
         return [row]
+    def select_all(self, table, query=None, columns="*"):
+        # single-user fakes are small; PostgREST pagination is a non-issue here
+        return self.select(table, query, columns)
 
 api.db = FakeDb()
 client = TestClient(api.app)
@@ -182,14 +185,18 @@ def test_screener_filters_and_sort():
         {"symbol": "CCC", "name": "Gamma", "price": 60, "pct": 0.0, "chg": 0.0, "market_cap": 5e9,
          "volume": 2e6, "pe_ttm": 12, "pb": 1.2, "volume_ratio": 0.9, "turnover_rate": 1.0, "div_yield": None},
     ]
-    assert [r["symbol"] for r in api._apply_filters(rows, [{"field": "price", "max": 5}])] == ["BBB"]
-    assert [r["symbol"] for r in api._apply_filters(rows, [{"field": "pb", "min": 0.01, "max": 1}])] == ["BBB"]
-    assert api._apply_filters(rows, [{"field": "pe_ttm", "min": 0.01}]) == [] or True
-    # Buffett-style triple filter: only none of the sample rows pass all three
-    buffett = api._apply_filters(rows, [{"field": "market_cap", "min": 1e10},
-                                        {"field": "pe_ttm", "min": 0.01, "max": 15},
-                                        {"field": "div_yield", "min": 1}])
-    assert buffett == []
+    got, skipped = api._apply_filters(rows, [{"field": "price", "max": 5}])
+    assert [r["symbol"] for r in got] == ["BBB"] and skipped == []
+    got, skipped = api._apply_filters(rows, [{"field": "pb", "min": 0.01, "max": 1}])
+    assert [r["symbol"] for r in got] == ["BBB"]
+    # a field absent from the universe SKIPS its filter instead of failing all rows
+    got, skipped = api._apply_filters(rows, [{"field": "rsi14", "max": 30}])
+    assert len(got) == 3 and skipped == ["rsi14"]
+    # Buffett-style triple filter: none of the sample rows pass all three
+    buffett, skipped = api._apply_filters(rows, [{"field": "market_cap", "min": 1e10},
+                                                 {"field": "pe_ttm", "min": 0.01, "max": 15},
+                                                 {"field": "div_yield", "min": 1}])
+    assert buffett == [] and skipped == []
     assert [r["symbol"] for r in api._sort_rows(rows, "pct", 2)] == ["AAA", "CCC", "BBB"]
     # None-valued fields sort last regardless of direction
     desc = api._sort_rows([{"symbol": "X", "pe_ttm": None}] + rows, "pe_ttm", 2)

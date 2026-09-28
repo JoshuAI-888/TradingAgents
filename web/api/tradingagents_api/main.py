@@ -577,8 +577,10 @@ def screener_presets(market: str = "US", universe: str = "auto"):
                 cache.put("quotes", uk, rows)
     out = []
     for preset in PRESET_SCREENERS:
-        picked = _sort_rows(_apply_filters(rows, preset["filters"]), "pct", 2)[:3]
+        picked, skipped = _apply_filters(rows, preset["filters"])
+        picked = _sort_rows(picked, "pct", 2)[:3]
         out.append({**preset,
+                    "skipped": skipped,
                     "top": [{"symbol": r["symbol"], "name": str(r.get("name") or "")[:22],
                              "pct": r.get("pct")} for r in picked]})
     return {"available": True, "presets": out, "universe_rows": len(rows)}
@@ -627,6 +629,68 @@ def watchlist_add(symbol: str):
     db.upsert("watchlist_items", "watchlist_id,ticker_id",
               {"watchlist_id": wid, "ticker_id": tid, "active": True})
     return {"saved": True, "symbol": sym}
+
+
+# ── Saved screeners ("Save Screener" + manage in the filter modal) ──────
+
+class SavedScreenerIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    description: str | None = Field(default=None, max_length=300)
+    market: str = Field(default="US", pattern="^(US|HK)$")
+    watchlist_only: bool = False
+    filters: list[dict] = Field(default_factory=list, max_length=40)
+    sort: str = "market_cap"
+    direction: int = Field(default=2, ge=1, le=2)
+
+
+def _screener_owner() -> str:
+    user = os.getenv("DEFAULT_USER_ID") or ""
+    if not user:
+        raise HTTPException(503, "DEFAULT_USER_ID not configured")
+    return user
+
+
+@app.get("/api/screeners")
+def list_saved_screeners():
+    user = _screener_owner()
+    rows = db.select("saved_screeners", {"user_id": f"eq.{user}",
+                                         "order": "updated_at.desc"})
+    return {"screeners": rows}
+
+
+@app.post("/api/screeners")
+def save_screener(inp: SavedScreenerIn):
+    user = _screener_owner()
+    row = db.insert("saved_screeners", {
+        "user_id": user, "name": inp.name.strip(), "description": inp.description,
+        "market": inp.market, "watchlist_only": inp.watchlist_only,
+        "filters": inp.filters, "sort": inp.sort, "direction": inp.direction,
+    }, prefer="return=representation")
+    return {"saved": True, "screener": (row if isinstance(row, dict) else (row or [{}])[0])}
+
+
+@app.put("/api/screeners/{sid}")
+def update_screener(sid: str, inp: SavedScreenerIn):
+    user = _screener_owner()
+    existing = db.select("saved_screeners", {"id": f"eq.{sid}", "user_id": f"eq.{user}"}, "id")
+    if not existing:
+        raise HTTPException(404, "screener not found")
+    db.update("saved_screeners", f"id=eq.{sid}", {
+        "name": inp.name.strip(), "description": inp.description,
+        "market": inp.market, "watchlist_only": inp.watchlist_only,
+        "filters": inp.filters, "sort": inp.sort, "direction": inp.direction,
+        "updated_at": datetime.now(timezone.utc).isoformat()})
+    return {"saved": True, "id": sid}
+
+
+@app.delete("/api/screeners/{sid}")
+def delete_screener(sid: str):
+    user = _screener_owner()
+    existing = db.select("saved_screeners", {"id": f"eq.{sid}", "user_id": f"eq.{user}"}, "id")
+    if not existing:
+        raise HTTPException(404, "screener not found")
+    db.delete("saved_screeners", f"id=eq.{sid}")
+    return {"deleted": True}
 
 
 @app.get("/api/candidates")
