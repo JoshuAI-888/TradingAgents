@@ -1304,7 +1304,7 @@ function openStock(sym, tab) {
   state.page = "stock";
   document.querySelectorAll(".nav button").forEach(b =>
     b.classList.toggle("on", b.dataset.page === "quotes"));
-  if (!/^#\/stock\//.test(location.hash))
+  if (!location.hash.includes("#/stock/" + st.sym + "-US"))
     history.replaceState(null, "", "#/stock/" + st.sym + "-US");
   $("#page").innerHTML = '<div class="empty">Loading ' + esc(st.sym) + '…</div>';
   renderStock().catch(e => { $("#page").innerHTML =
