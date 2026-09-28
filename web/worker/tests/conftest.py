@@ -36,8 +36,9 @@ class FakeSupa(Db):
     def upsert(self, table, on_conflict, row):
         self.calls.append(("upsert", table, on_conflict, row))
         rows = self._t(table)
+        keys = [k.strip() for k in on_conflict.split(",")]  # compound keys: "market,code"
         for r in rows:
-            if str(r.get(on_conflict)) == str(row.get(on_conflict)):
+            if all(str(r.get(k)) == str(row.get(k)) for k in keys):
                 r.update(row)
                 return
         rows.append(dict(row))

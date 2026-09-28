@@ -525,3 +525,22 @@ valuation/Morningstar UI, US splits-buybacks, pagination limits, AI rails).
 74 web tests green. Diagnostics tip: the POC's poc/catalogue/verification.json
 holds actual live response samples (data_keys) — fastest way to settle
 container-name questions without burning API budget.
+
+## 2026-09-28 — Full-market universe loader (9,381-stock coverage)
+
+User hit the real limits: preset rail scored the 6-stock watchlist universe
+(PLTR missing from High P/E despite 162 P/E; blanks everywhere), and the
+market list capped ~900/9,381 (screen API: 300/call, no cursor, undocumented
+range filters). Fix: universe_refresh job enumerates EVERY listing via
+moomoo plate endpoints (plate-list INDUSTRY -> plate-stock x145 plates,
+next_key pagination, <=1000/page) into screener_universe, then snapshot-
+enriches all codes in 400-batches into screener_quotes (jsonb rows) —
+migration 0007. /api/screener market mode reads the stored universe first
+(zero live calls at view time); live slices remain the fallback. Presets now
+score the ACTIVE universe and render as ONE list. Manual refresh: POST
+/api/screener/refresh queues the job; home shows a progress bar off the
+universe job_events. Budget/backoff: client MinuteBudget 30/min per path
+template + Retry-After sleeps; a full run is ~7 min (145 plate calls + ~24
+snapshot batches). db.upsert_many added (bulk merge-duplicates; single-row
+upserts would be 9k HTTP calls). Cron follows (hourly quotes, daily enum).
+FakeSupa upsert learned compound conflict keys ("market,code").
