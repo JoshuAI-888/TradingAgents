@@ -112,6 +112,27 @@ class UniverseRefresher:
         rows = [{"market": self.market, "code": c, "name": None, "plate": plate}
                 for c, plate in seen.items()]
         self.db.upsert_many("screener_universe", "market,code", rows)
+        # security classification for the multi-select filters (stock_type/exchange):
+        # /quote/stock-basicinfo, 400 codes per call, rate-budgeted
+        codes = [r["code"] for r in rows]
+        for i in range(0, len(codes), 400):
+            batch = codes[i:i + 400]
+            try:
+                out = _budgeted(self.client.call, "POST", "/quote/stock-basicinfo",
+                                body={"code_list": batch})
+            except Exception as e:
+                print(f"[universe] basicinfo batch {i} failed: {e}", flush=True)
+                continue
+            info = {b.get("code"): b for b in (out.get("basic_list") or []) if b.get("code")}
+            upd = [{"market": self.market, "code": code,
+                    "stock_type": (info.get(code) or {}).get("stock_type"),
+                    "exchange": (info.get(code) or {}).get("exchange")}
+                   for code in batch if code in info]
+            if upd:
+                self.db.upsert_many("screener_universe", "market,code", upd)
+            if (i // 400) % 5 == 0:
+                self.emit("universe", "progress",
+                          f"classification {min(i + 400, len(codes))}/{len(codes)}")
         return {"plates": plate_total, "slices": len(self.SLICES), "codes": len(rows)}
 
     # ── quotes ────────────────────────────────────────────────────────────

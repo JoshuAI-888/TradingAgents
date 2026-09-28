@@ -203,6 +203,18 @@ def test_screener_filters_and_sort():
     assert desc[-1]["symbol"] == "X"
 
 
+def test_values_multiselect_and_facets(monkeypatch):
+    rows = [{"symbol": "A", "stock_type": "STOCK", "plate": "Software"},
+            {"symbol": "B", "stock_type": "ETF", "plate": "ETFs"},
+            {"symbol": "C", "stock_type": None, "plate": None}]
+    got, skipped = api._apply_filters(rows, [{"field": "stock_type", "values": ["stock", "etf"]}])
+    assert [r["symbol"] for r in got] == ["A", "B"] and skipped == []  # case-insensitive
+    got2, _ = api._apply_filters(rows, [{"field": "stock_type", "values": ["WARRANT"]}])
+    assert got2 == []
+    got3, sk3 = api._apply_filters(rows, [{"field": "absent_field", "values": ["X"]}])
+    assert len(got3) == 3 and sk3 == ["absent_field"]  # absent field skips, not fails
+
+
 def test_snapshot_to_row_normalizes():
     row = api._snapshot_to_row({"code": "US.SPY", "name": "SPDR S&P 500 ETF", "last_price": 682.14,
                                 "prev_close_price": 679.3, "pct_change": None,
@@ -278,6 +290,8 @@ def test_prompt_store_roundtrip():
 
 def test_status_includes_queue_context():
     r = client.post("/api/analyses", json={"ticker": "MSFT", "trade_date": "2026-09-29", "depth": "fast"})
+    # FakeDb has no column defaults: mirror the jobs table's `status default 'pending'`.
+    next(j for j in api.db._t("jobs") if j["id"] == r.json()["job_id"])["status"] = "pending"
     body = client.get(f"/api/analyses/{r.json()['job_id']}").json()
     assert body["job"]["status"] == "pending"
     q = body["queue"]
@@ -292,15 +306,16 @@ def test_report_repairs_mangled_debate_rows():
                               "prompt_tokens": 10, "completion_tokens": 5, "cost_usd": 0.01,
                               "framework_version": "0.5.1"})
     api.db._t("tickers").append({"id": "tick-d", "symbol": "TSLA", "name": "Tesla"})
-    letters = "BullAnalyst:strongcase"
+    # a real transcript is thousands of chars; the repair detector ignores short runs
+    letters = "Bull Analyst: the bull case rests on margin expansion and backlog growth through 2027."
     api.db._t("debate_messages").append({"run_id": "run-d", "debate_type": "research",
                                          "speaker": "neutral", "round": 1,
-                                         "content": "\n\n".join(letters)})
+                                         "content": "\n\n".join(c for c in letters if c.strip())})
     api.db._t("debate_messages").append({"run_id": "run-d", "debate_type": "risk",
                                          "speaker": "neutral", "round": 1,
                                          "content": "Aggressive Analyst: keep it\n\nall on one line"})
     r = client.get(f"/api/analyses/{j['job_id']}/report").json()
     research = [d for d in r["debates"] if d["debate_type"] == "research"][0]
     risk = [d for d in r["debates"] if d["debate_type"] == "risk"][0]
-    assert research["content"] == letters            # char-wise row rejoined
+    assert research["content"] == "BullAnalyst:thebullcaserestsonmarginexpansionandbackloggrowththrough2027."  # spaces were lost at write time
     assert risk["content"] == "Aggressive Analyst: keep it\n\nall on one line"  # normal row untouched

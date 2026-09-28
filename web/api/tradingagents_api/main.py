@@ -463,6 +463,12 @@ def _apply_filters(rows: list[dict], filters: list[dict]) -> tuple[list[dict], l
         (active if f.get("field") in present else skipped).append(f)
     def keep(r: dict) -> bool:
         for f in active:
+            vals = f.get("values")
+            if vals is not None:  # multi-select: keep when the value is one of them
+                v = r.get(f.get("field"))
+                if v is None or str(v).lower() not in [str(x).lower() for x in vals]:
+                    return False
+                continue
             v = r.get(f.get("field"))
             lo, hi = f.get("min"), f.get("max")
             if v is None:
@@ -500,6 +506,70 @@ def _watchlist_symbols() -> list[str]:
     ids = [i["ticker_id"] for i in items if i.get("ticker_id")]
     tickers = db.select("tickers", {"id": f"in.({','.join(ids)})"}, "symbol")
     return sorted({t["symbol"].upper() for t in tickers if t.get("symbol")})
+
+
+_universe_meta_cache = None
+
+
+def _merge_universe_meta(rows: list[dict], market: str) -> list[dict]:
+    """Attach plate / stock_type / exchange from the stored universe (cached 5 min)."""
+    global _universe_meta_cache
+    if _universe_meta_cache is None:
+        from tradingagents_worker.ttl_cache import TtlCache  # noqa: E402
+        _universe_meta_cache = TtlCache(root=os.path.join(tempfile.gettempdir(), "ta-ttl"))
+    k = _universe_meta_cache.key("quotes", "universe-meta", market)
+    meta = _universe_meta_cache.get("quotes", k)
+    if meta is None:
+        stored = db.select_all("screener_universe", {"market": f"eq.{market}"},
+                               "code,plate,stock_type,exchange")
+        meta = {r["code"]: r for r in stored if r.get("code")}
+        _universe_meta_cache.put("quotes", k, meta)
+    if not meta:
+        return rows
+    for r in rows:
+        u = meta.get(r.get("code")) or meta.get(f"{market}.{r.get('symbol')}")
+        if u:
+            r.setdefault("plate", u.get("plate"))
+            r.setdefault("stock_type", u.get("stock_type"))
+            r.setdefault("exchange", u.get("exchange"))
+    return rows
+
+
+@app.get("/api/screener/facets")
+def screener_facets(field: str, market: str = "US", watchlist_only: int = 0):
+    """Distinct values (+counts) of a screener column over the active universe —
+    drives the multi-select filter checkboxes."""
+    cache = _cache()
+    uk = cache.key("quotes", "screener-universe", market, watchlist_only, "market_cap", 2)
+    rows = cache.get("quotes", uk)
+    if rows is None:
+        if watchlist_only:
+            symbols = _watchlist_symbols()
+            snap = (client_snapshot(market, symbols) or {}) if symbols else {}
+            rows = [_snapshot_to_row(s) for s in (snap.get("snapshot_list") or [])]
+        else:
+            stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "row")
+            rows = [r["row"] for r in stored if isinstance(r.get("row"), dict)]
+        if not rows and not watchlist_only:
+            client = _market_client()
+            if client:
+                try:
+                    rows = _market_rows(market, "market_cap", 2, client)
+                except Exception:
+                    rows = []
+        cache.put("quotes", uk, rows)
+    if rows:
+        rows = _merge_universe_meta(rows, market)
+    from collections import Counter
+    counts = Counter(str(r.get(field)) for r in rows if r.get(field) is not None)
+    return {"field": field, "values": [{"value": v, "count": n} for v, n in counts.most_common(80)]}
+
+
+def client_snapshot(market: str, symbols: list[str]):
+    client = _market_client()
+    if client is None or not symbols:
+        return {}
+    return client.snapshot([f"{market}.{s}" for s in symbols[:400]])
 
 
 def _market_rows(market: str, sort_key: str, direction: int, client,
@@ -598,6 +668,8 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
             except Exception as e:
                 return {"available": False, "reason": str(e)[:120], "rows": []}
         cache.put("quotes", universe_key, rows)
+    if rows:
+        rows = _merge_universe_meta(rows, market)
     rows, skipped = _apply_filters(rows, flt)
     # Always display-sort in Python: the server-side slices decide WHICH stocks
     # are in the universe; global ordering across the union happens here.
@@ -705,6 +777,141 @@ def screener_probe(body: dict):
         return {"available": True, "data": data}
     except Exception as e:  # noqa: BLE001 — probe reports errors verbatim
         return {"available": True, "error": str(e)[:400]}
+
+
+# ── server-side preset execution (moomoo's own screener semantics) ──────
+# Property dictionary reverse-engineered live 2026-09-28 (probes vs known
+# NVDA/AAPL/Tencent figures; Futu OpenAPI get-stock-screen reference):
+#   simple: 2201 price(x1000 out) · 2301 market_cap(x1000 out) · 2305 div_yield_ttm(x1000)
+#   cumulative: 3104 avg volume (days param)              [Penny's 30-day volume]
+#   financial (term=100=annual, filter values x1000, percents as 10%->10000):
+#     4102 net_profit_growth · 4106 revenue_growth · 4107 net_margin
+#     4108 gross_margin · 4109 debt_to_asset · 4110 roe
+#     4606 eps_yoy_growth · 4625 roe_yoy_growth · 4903 float_market_cap (raw $)
+#     4801 basic_eps (x1000)
+# NOT available server-side: OP/EBT, RSI (premium-locked on moomoo too),
+#     "new low in 10 days" — those stay pending in the UI.
+_FIELD_SERVER = {
+    "price":              ("simple", 2201, 1.0),
+    "market_cap":         ("simple", 2301, 1.0),
+    "div_yield":          ("simple", 2305, 1.0),
+    "volume":             ("cumulative", 3104, 1.0),
+    "pe_ttm":             ("simple", 2303, 1.0),
+    "net_profit_growth":  ("financial", 4102, 1000.0),
+    "revenue_growth":     ("financial", 4106, 1000.0),
+    "net_margin":         ("financial", 4107, 1000.0),
+    "gross_margin":       ("financial", 4108, 1000.0),
+    "debt_ratio":         ("financial", 4109, 1000.0),
+    "roe":                ("financial", 4110, 1000.0),
+    "eps_growth":         ("financial", 4606, 1000.0),
+    "roe_yoy":            ("financial", 4625, 1000.0),
+    "float_cap":          ("financial", 4903, 1.0),
+    "eps":                ("financial", 4801, 1000.0),
+}
+_FINANCIAL_TERM = 100
+
+
+def _server_filter(field: str, f: dict) -> dict | None:
+    """Our filter object -> stock-screen server query; None = not server-side."""
+    spec = _FIELD_SERVER.get(field)
+    if not spec:
+        return None
+    kind, pid, scale = spec
+    lo, hi = f.get("min"), f.get("max")
+    rng = {}
+    if lo is not None:
+        rng["lower"] = {"value": round(float(lo) * scale, 6), "includes": True}
+    if hi is not None:
+        rng["upper"] = {"value": round(float(hi) * scale, 6), "includes": True}
+    if not rng:
+        return None
+    if kind == "simple":
+        return {"simple_property_query": {"property": {"name": pid}, **rng}}
+    if kind == "cumulative":
+        return {"cumulative_property_query": {"property": {"name": pid},
+                                              "days": int(f.get("days") or 30), **rng}}
+    return {"financial_property_query": {"property": {"name": pid, "term": _FINANCIAL_TERM}, **rng}}
+
+
+def _server_retrieves(fields: list[str]) -> list[dict]:
+    out = []
+    for f in fields:
+        spec = _FIELD_SERVER.get(f)
+        if not spec:
+            continue
+        kind, pid, _ = spec
+        if kind == "simple":
+            out.append({"simple_property": {"name": pid}})
+        elif kind == "cumulative":
+            out.append({"cumulative_property": {"name": pid, "days": 30}})
+        else:
+            out.append({"financial_property": {"name": pid, "term": _FINANCIAL_TERM}})
+    return out
+
+
+@app.get("/api/screener/execute")
+def screener_execute(key: str = "", market: str = "US", limit: int = 60):
+    """Execute a preset (or saved screener by ?key=saved:<id>) SERVER-SIDE — the
+    same screening backend moomoo's own screener page uses, so results and
+    result counts reconcile with moomoo.com/screener."""
+    if key.startswith("saved:"):
+        sid = key.split(":", 1)[1]
+        rows0 = db.select("saved_screeners", {"id": f"eq.{sid}"})
+        if not rows0:
+            raise HTTPException(404, "saved screener not found")
+        s = rows0[0]
+        market = s.get("market") or market
+        filters = s.get("filters") or []
+        name = s.get("name")
+        description = s.get("description")
+    else:
+        preset = next((p for p in PRESET_SCREENERS if p["key"] == key), None)
+        if not preset:
+            raise HTTPException(404, "unknown preset")
+        filters = preset["filters"]
+        name, description = preset["name"], preset.get("description")
+    client = _market_client()
+    if client is None:
+        return {"available": False, "reason": "moomoo keys not configured"}
+    mkt = {"US": 2, "HK": 1}.get(market.upper(), 2)
+    queries: list[dict] = [{"simple_field_query": {"simple_field": 1, "screen_value_list": [mkt]}}]
+    pending = []
+    for f in filters:
+        q = _server_filter(f.get("field"), f)
+        if q is None:
+            pending.append(f.get("field"))
+        else:
+            queries.append(q)
+    retrieves = _server_retrieves([f.get("field") for f in filters])
+    retrieves += [{"simple_property": {"name": 2201}}, {"simple_property": {"name": 2301}},
+                  {"simple_property": {"name": 2210}}]
+    body = {"screen_queries": queries, "sort": {"direction": 2, "simple_property": {"name": 2301}},
+            "limit": max(1, min(limit, 300)), "retrieve_queries": retrieves}
+    try:
+        data = client.call("POST", "/quote/stock-screen", body=body)
+    except Exception as e:  # noqa: BLE001
+        return {"available": False, "reason": str(e)[:160]}
+    items = (data or {}).get("items") or []
+    rows = []
+    for it in items:
+        vals = {}
+        for r in it.get("results") or []:
+            rr = list(r.values())[0]
+            raw = rr.get("ival")
+            if raw is None:
+                raw = rr.get("dval")
+            vals[rr.get("property", {}).get("name")] = float(raw) if raw not in (None, "") else None
+        code = it.get("code") or ""
+        pct = vals.get(2210)
+        rows.append({
+            "symbol": code.split(".")[-1], "code": code, "name": it.get("name") or "",
+            "price": (vals.get(2201) or 0) / 1000 or None,
+            "pct": pct / 1000 if pct is not None else None,
+            "market_cap": (vals.get(2301) or 0) / 1000 or None,
+            "factors": {k: v for k, v in vals.items() if k not in (2201, 2301, 2210)},
+        })
+    return {"available": True, "key": key, "name": name, "description": description,
+            "market": market, "pending": pending, "rows": rows, "shown": len(rows)}
 
 
 @app.post("/api/screener/refresh")
@@ -944,7 +1151,7 @@ def _prompt_agents_payload(with_content: bool):
         active = next((v for v in rows if v["version"] == active_version), None)
         stock = next((v for v in rows if v["note"] == "engine stock prompt"), None)
         entry = {**meta, "active_version": active_version,
-                 "versions": [{k: v[k] for k in ("version", "note", "created_at", "content")}
+                 "versions": [{k: v.get(k) for k in ("version", "note", "created_at", "content")}
                               for v in rows]}
         if with_content:
             entry["active_content"] = (active or stock or {}).get("content")

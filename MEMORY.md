@@ -62,6 +62,31 @@ fullscreen, MA/EMA 5/20/50/100/200) → shipped:
 
 ---
 
+## 2026-09-29 — Render cron failures root-caused (discovery PermissionError every run)
+
+**Owner report: "lots of failed cron job emails from Render."** Render events + logs showed
+`tradingagents-discovery` failing on EVERY 15-min run since creation, exit 1:
+`PermissionError: [Errno 13] Permission denied: '/data'` at `discovery_cron.py` import —
+`TtlCache(root=SETTINGS.cache_dir …)` with the hard-coded `/data/cache` default. Render
+**cron jobs have no attached disk**, so `/data` is not writable; the worker WEB SERVICE got
+`TRADINGAGENTS_CACHE_DIR=/tmp/ta-cache` in render.yaml, but no cron service defines it
+(crons were created via hosted MCP, so render.yaml changes alone don't update them either).
+Universe/settlement/backup crons succeeded because they never touch the cache.
+
+Fix (two layers, both in commit 134dc99):
+1. **Code**: `config._path()` — explicit env wins; else use the disk path only if
+   `makedirs` succeeds; else fall back to a writable temp dir. No entrypoint can crash on
+   an unwritable default again (discovery_cron also dropped its `or "/data/cache"`).
+2. **Blueprint**: all 4 cron services get `TRADINGAGENTS_CACHE_DIR=/tmp/ta-cache` in
+   render.yaml (applies on future blueprint syncs).
+
+Note: cron cache was only a 15-min TTL anyway (cron instances are ephemeral — the disk
+wouldn't have helped across runs either), so /tmp loses nothing. Verified: local env-unset
+run falls back cleanly; 134dc99 deployed to all services 19:13Z; waiting on the 19:30Z run
+for the green confirmation.
+
+---
+
 ## 2026-09-27 — Portal aligned to approved v2 mockup (report dossier shipped)
 
 **Gap closure** (owner: "compare to mockup, fix gaps"): the live portal showed only

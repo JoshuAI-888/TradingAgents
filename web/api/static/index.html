@@ -186,6 +186,17 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .scr-prog{display:flex;align-items:center;gap:10px;margin:4px 0 8px}
 .scr-prog .bar{flex:1;margin:0}
 .scr-prog .mono{font-size:10.5px;white-space:nowrap}
+.scr-table th.thc{white-space:nowrap}
+.thsort{text-decoration:none;color:inherit}
+.thsort.on{color:#9cc2ff}
+.fic{color:#5c6f86;text-decoration:none;font-size:9px;margin-left:4px}
+.fic.on{color:#f2c14e}
+.colpick{position:relative;display:inline-block}
+.colpick summary{list-style:none;cursor:pointer}
+.colpick-list{position:absolute;top:110%;left:0;z-index:50;width:220px;max-height:300px;overflow:auto;background:#0d1420;border:1px solid var(--line);border-radius:10px;padding:8px 10px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.msv{display:flex;gap:7px;align-items:center;font-size:12px;color:#c3cfdf;padding:4px 2px;cursor:pointer}
+.msv input{accent-color:#3a76dd}
+.msvwrap{max-height:260px;overflow:auto}
 .scr-scroll{overflow-x:auto}
 .scr-table{min-width:760px}
 .scr-table th{white-space:nowrap;text-align:left;color:var(--faint);font-size:10.5px;padding:7px 10px;border-bottom:1px solid var(--line)}
@@ -383,8 +394,12 @@ function fmtClock(v) {
   return String(v).slice(11, 19);
 }
 // ── screener state + helpers (moomoo-style Market Pulse screener) ──────
-window.__scr = { market: "US", watchlistOnly: false, filters: [], sort: "market_cap",
-                 dir: 2, presetPage: 1, watchlistSyms: [] };
+try { window.__scr = JSON.parse(localStorage.getItem("scrState")) || {}; } catch (e) { window.__scr = {}; }
+window.__scr = Object.assign({ market: "US", watchlistOnly: false, filters: [], sort: "market_cap",
+                 dir: 2, watchlistSyms: [],
+                 cols: ["symbol", "name", "price", "pct", "chg", "market_cap", "volume",
+                        "pe_ttm", "pb", "volume_ratio", "turnover_rate", "div_yield"],
+                 colFilters: {} }, window.__scr);
 const SCR_FIELDS = {
   price: "Price", pct: "% Chg", chg: "Chg", market_cap: "Market Cap", float_cap: "Float Cap",
   shares: "Shares Outstanding", volume: "Volume", turnover: "Turnover", turnover_rate: "Turnover%",
@@ -393,22 +408,120 @@ const SCR_FIELDS = {
   bid_ask_ratio: "Bid/Ask Ratio %", high52: "52w High", low52: "52w Low",
 };
 const SCR_TECH = ["MA", "EMA", "KDJ", "RSI", "MACD", "BOLL"];
+// full column catalog: key → [label, kind] (kind drives filter UI + cell format)
+const SCR_COLS = {
+  symbol: ["Symbol", "text"], name: ["Stock Name", "text"], stock_type: ["Type", "multi"],
+  plate: ["Sector / Plate", "multi"], price: ["Price", "num"], pct: ["% Chg", "num"],
+  chg: ["Chg", "num"], market_cap: ["Market Cap", "num"], float_cap: ["Float Cap", "num"],
+  shares: ["Shares Out.", "num"], volume: ["Volume", "num"], turnover: ["Turnover", "num"],
+  turnover_rate: ["Turnover%", "num"], volume_ratio: ["Volume Ratio", "num"],
+  pe: ["P/E (Static)", "num"], pe_ttm: ["P/E (TTM)", "num"], pb: ["P/B", "num"],
+  div_yield: ["Div Yield TTM", "num"], div_ttm: ["Dividend TTM", "num"], eps: ["EPS", "num"],
+  amplitude: ["Range %", "num"], bid_ask_ratio: ["Bid/Ask %", "num"],
+  high52: ["52w High", "num"], low52: ["52w Low", "num"],
+  new_high: ["New High", "bool"], new_low: ["New Low", "bool"],
+};
+function scrAddColFilter(field, kind) {
+  const st = window.__scr;
+  if (!st.colFilters[field]) st.colFilters[field] = kind === "multi" ? { values: [] } : { min: null, max: null };
+  scrPersist();
+  scrRenderColMenu(field, kind);
+}
+function scrColMenuClose() { const m = document.getElementById("scr-colmenu"); if (m) m.remove(); }
+function scrRenderColMenu(field, kind) {
+  let m = document.getElementById("scr-colmenu");
+  if (!m) {
+    m = document.createElement("div"); m.id = "scr-colmenu";
+    m.style.cssText = "position:fixed;inset:0;z-index:61";
+    m.innerHTML = '<div style="position:absolute;inset:0" onclick="scrColMenuClose()"></div>';
+    document.body.appendChild(m);
+  }
+  const st = window.__scr;
+  const cf = st.colFilters[field] || (st.colFilters[field] = kind === "multi" ? { values: [] } : { min: null, max: null });
+  const label = SCR_COLS[field] ? SCR_COLS[field][0] : field;
+  let bodyHtml;
+  if (kind === "multi") {
+    const sel = new Set(cf.values || []);
+    const items = (window.__scrFacets && window.__scrFacets[field] || [])
+      .map(v => `<label class="msv"><input type="checkbox" ${sel.has(v.value) ? "checked" : ""} onchange="scrToggleValue('${field}','${esc(String(v.value)).replace(/'/g, "\'")}',this.checked)"> ${esc(v.value)} <span class="faint">(${v.count})</span></label>`).join("")
+      || '<div class="faint" style="font-size:11px">No values in the universe.</div>';
+    bodyHtml = `<div class="msvwrap">${items}</div>`;
+  } else if (kind === "bool") {
+    bodyHtml = `<label class="msv"><input type="checkbox" ${cf.values?.length ? "checked" : ""} onchange="scrSetValues('${field}', this.checked ? [true] : [])"> ${esc(label)} only</label>`;
+  } else {
+    bodyHtml = `<div class="msel" style="grid-template-columns:70px 70px">
+      <input type="number" placeholder="min" value="${cf.min ?? ""}" oninput="scrDraftVal('${field}','min',this.value)">
+      <input type="number" placeholder="max" value="${cf.max ?? ""}" oninput="scrDraftVal('${field}','max',this.value)"></div>`;
+  }
+  m.innerHTML += `<div class="mbox" style="width:300px;max-height:none;position:absolute;top:15%;right:12px;left:auto">
+    <div class="mhead"><b>Filter — ${esc(label)}</b> <button class="btn ghost" onclick="scrColMenuClose()">✕</button></div>
+    ${bodyHtml}
+    <div class="mfoot"><button class="btn ghost" onclick="scrClearColFilter('${field}')">Reset</button>
+      <button class="btn primary" onclick="scrApplyColFilter('${field}')">Apply</button></div>
+  </div>`;
+  if (kind === "multi" && !window.__scrFacets?.[field]) {
+    api("/api/screener/facets?field=" + field + "&market=" + st.market + (st.watchlistOnly ? "&watchlist_only=1" : ""))
+      .then(r => { window.__scrFacets = window.__scrFacets || {}; window.__scrFacets[field] = r.values || [];
+                   if (document.getElementById("scr-colmenu")) { scrColMenuClose(); scrRenderColMenu(field, kind); } })
+      .catch(() => {});
+  }
+}
+function scrDraftVal(field, k, v) {
+  const cf = window.__scr.colFilters[field];
+  if (cf) cf[k] = v === "" ? null : Number(v);
+}
+function scrSetValues(field, vals) {
+  const cf = window.__scr.colFilters[field];
+  if (cf) { cf.values = vals; scrPersist(); }
+}
+function scrToggleValue(field, val, on) {
+  const cf = window.__scr.colFilters[field];
+  if (!cf) return;
+  const set = new Set(cf.values || []);
+  on ? set.add(val) : set.delete(val);
+  cf.values = [...set]; scrPersist();
+}
+function scrApplyColFilter(field) {
+  const st = window.__scr, cf = st.colFilters[field];
+  if (cf) {
+    const empty = cf.values ? !(cf.values || []).length : cf.min == null && cf.max == null;
+    if (empty) delete st.colFilters[field];
+  }
+  scrPersist(); scrColMenuClose(); showPage("home");
+}
+function scrClearColFilter(field) {
+  delete window.__scr.colFilters[field];
+  scrPersist(); scrColMenuClose(); showPage("home");
+}
+function scrResetAll() {
+  const st = window.__scr;
+  st.filters = []; st.colFilters = {}; st.sort = "market_cap"; st.dir = 2;
+  scrPersist(); showPage("home");
+}
+function scrToggleCol(k) {
+  const st = window.__scr, i = st.cols.indexOf(k);
+  if (i >= 0) { if (st.cols.length > 1) st.cols.splice(i, 1); } else st.cols.push(k);
+  scrPersist(); showPage("home");
+}
 const SCR_FIN = ["ROE", "Net Profit", "Net Profit GR YOY", "Revenue", "Revenue GR", "Gross Margin",
                  "Net Margin", "Debt to Asset", "ROA TTM", "Operating Margin TTM"];
-function scrSet(k, v) { window.__scr[k] = v; showPage("home"); }
+function scrPersist() { try { localStorage.setItem("scrState", JSON.stringify(window.__scr)); } catch (e) {} }
+function scrSet(k, v) { window.__scr[k] = v; if (k === "filters") window.__scr.activePreset = null; scrPersist(); showPage("home"); }
 function scrSort(col) {
   const st = window.__scr;
   if (st.sort === col) st.dir = st.dir === 2 ? 1 : 2; else { st.sort = col; st.dir = 2; }
-  showPage("home");
+  scrPersist(); showPage("home");
 }
-function scrRemoveFilter(i) { window.__scr.filters.splice(i, 1); showPage("home"); }
+function scrRemoveFilter(i) { window.__scr.filters.splice(i, 1); scrPersist(); showPage("home"); }
 function scrApplyPreset(key) {
   const st = window.__scr;
   const p = (window.__scrPresets || []).find(x => x.key === key);
   if (!p) return;
   st.filters = JSON.parse(JSON.stringify(p.filters || []));
+  st.activePreset = key;
   showPage("home");
 }
+window.scrApplyPreset = scrApplyPreset;
 let __scrRefreshJob = null;
 function scrPollProgress(jobId) {
   window.__scrPollActive = true;
@@ -481,7 +594,8 @@ function openFilterModal() {
   scrRenderModal();
 }
 function scrModalConfirm() {
-  window.__scr.filters = scrDraft.filter(f => f.min != null || f.max != null);
+  window.__scr.filters = scrDraft.filter(f => f.min != null || f.max != null || f.values?.length);
+  scrPersist();
   scrModalClose();
   showPage("home");
 }
@@ -528,26 +642,50 @@ function scrRenderModal() {
 }
 
 // ── saved screeners (CRUD over /api/screeners) ────────────────────────
+const FIELD_LABELS = { ...SCR_FIELDS, revenue_growth: "Operating Revenue Growth %", net_profit_growth: "Net Profit Growth %",
+  roe: "ROE %", roe_yoy: "ROE YoY Growth %", gross_margin: "Gross Margin %", net_margin: "Net Margin %",
+  debt_ratio: "Debt to Asset Ratio %", op_ebt: "OP/EBT %", eps_growth: "EPS YoY Growth %",
+  rsi14: "RSI (1D, 14)", sector: "Sector", new_low_10d: "New Low: 10D", float_cap: "Float Market Cap" };
+const fldLabel = f => FIELD_LABELS[f.field] || SCR_FIELDS[f.field] || f.field;
+const fldStr = f => fldLabel(f) + (f.min != null ? " ≥" + f.min : "") + (f.min != null && f.max != null ? "~" : "") + (f.max != null ? " ≤" + f.max : "");
+
 async function scrLoadSaved() {
   const host = document.getElementById("scr-saved-list");
   if (!host) return;
   const st = window.__scr;
+  let savedRows = [];
+  let dbDown = false;
   try {
     const r = await api("/api/screeners");
-    window.__savedScreeners = r.screeners || [];
-  } catch (e) {
-    host.innerHTML = `<div class="mnote">Saved screeners need the database (${esc(String(e.message || e).slice(0, 80))}).</div>`;
-    return;
-  }
-  const rows = window.__savedScreeners;
-  const editNote = window.__scrEditId
-    ? `<div class="mnote">Editing a saved screener — adjust the filters on the Quotes tab, then press Update on its row. <a href="#" onclick="window.__scrEditId=null;scrRenderModal();return false">cancel</a></div>` : "";
-  host.innerHTML = editNote + (rows.length ? rows.map(s => `
+    savedRows = r.screeners || [];
+    window.__savedScreeners = savedRows;
+  } catch (e) { dbDown = true; }
+  const presets = window.__scrPresets || [];
+  const sel = id => `onclick="scrApplyPreset('${esc(id)}')"`;
+  const presetBlock = presets.length ? `
+    <div class="mlabel" style="margin-top:4px">Moomoo recommended screeners (executed server-side — matches moomoo.com/screener):</div>
+    ${presets.map(p => {
+      const nf = (p.filters || []).length, skipped = p.skipped || [], pend = p.pending;
+      const status = pend ? `<span class="faint" style="color:#e8a33d">pending data</span>`
+        : skipped.length ? `<span class="faint" style="font-size:9.5px">${nf - skipped.length}/${nf} filters · excl. ${esc(skipped.map(f => fldLabel({field: f})).join(", "))}</span>`
+        : `<span class="faint" style="font-size:9.5px;color:#26c68c">${nf}/${nf} filters</span>`;
+      return `<div style="border-bottom:1px solid rgba(38,52,74,.4);padding:6px 0;margin-bottom:4px;cursor:pointer" ${sel(p.key)} title="${esc(p.description || "")}">
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <div style="flex:1;min-width:0"><b style="font-size:12px">${esc(p.name)}</b> ${status}
+            <div class="faint" style="font-size:10px;margin:2px 0">${esc(p.description || "")}</div>
+            <div class="faint mono" style="font-size:9.5px">${(p.filters || []).map(fldStr).join(" · ")}</div>
+          </div>
+          <button class="btn ghost" style="padding:2px 8px;font-size:10px" onclick="event.stopPropagation();scrApplyPreset('${esc(p.key)}')">Run</button>
+        </div></div>`;
+    }).join("")}` : `<div class="mnote">Moomoo preset definitions load once the screener data is available.</div>`;
+  const savedBlock = dbDown
+    ? `<div class="mnote">Saved screeners need the database (DEFAULT_USER_ID + Supabase).</div>`
+    : (savedRows.length ? `<div class="mlabel" style="margin-top:10px">Your saved screeners:</div>` + savedRows.map(s => `
     <div style="border-bottom:1px solid rgba(38,52,74,.4);padding-bottom:8px;margin-bottom:8px">
       <div style="display:flex;gap:8px;align-items:flex-start">
         <div style="flex:1;min-width:0"><b style="font-size:12.5px">${esc(s.name)}</b>
           <div class="faint" style="font-size:10.5px;margin:2px 0">${esc(s.description || "")}</div>
-          <div class="faint mono" style="font-size:10px">${esc(s.market)}${s.watchlist_only ? " · watchlist" : " · full market"} · ${(s.filters || []).length} filters · ${(s.filters || []).map(f => esc(SCR_FIELDS[f.field] || f.field) + (f.min != null ? ">=" + f.min : "") + (f.min != null && f.max != null ? "~" : "") + (f.max != null ? "<=" + f.max : "")).join(", ")}</div>
+          <div class="faint mono" style="font-size:10px">${esc(s.market)}${s.watchlist_only ? " · watchlist" : " · full market"} · ${(s.filters || []).length} filters · ${(s.filters || []).map(fldStr).join(" · ")}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
           <button class="btn ghost" style="padding:3px 9px;font-size:10.5px" onclick="scrApplySaved('${esc(s.id)}')">Apply</button>
@@ -556,8 +694,11 @@ async function scrLoadSaved() {
           <button class="btn ghost" style="padding:3px 9px;font-size:10.5px;color:#f0a4a0" onclick="scrDeleteSaved('${esc(s.id)}')">Delete</button>
         </div>
       </div></div>`).join("")
-    : '<div class="faint" style="font-size:11px">No saved screeners yet — set filters on the screener, then save them with the box below.</div>')
-    + `<div class="faint" style="font-size:10px;margin-top:6px">Saving captures the current screener: ${esc(st.market)} · ${st.watchlistOnly ? "watchlist" : "full market"} · ${st.filters.length} filters · sort ${esc(st.sort)} ${st.dir === 2 ? "down" : "up"}</div>`;
+      : '<div class="faint" style="font-size:11px;margin-top:10px">No saved screeners yet — set filters on the screener, then save them with the box below.</div>');
+  const editNote = window.__scrEditId
+    ? `<div class="mnote">Editing a saved screener — adjust the filters on the Quotes tab, then press Update on its row. <a href="#" onclick="window.__scrEditId=null;scrRenderModal();return false">cancel</a></div>` : "";
+  host.innerHTML = editNote + presetBlock + savedBlock
+    + `<div class="faint" style="font-size:10px;margin-top:8px">Saving captures the current screener: ${esc(st.market)} · ${st.watchlistOnly ? "watchlist" : "full market"} · ${st.filters.length} filters · sort ${esc(st.sort)} ${st.dir === 2 ? "down" : "up"}</div>`;
 }
 function scrCurrentScreenerState() {
   const st = window.__scr;
@@ -662,16 +803,49 @@ const pages = {
     const st = window.__scr;
     const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
       filters: JSON.stringify(st.filters), sort: st.sort, direction: st.dir });
-        const settled = await Promise.allSettled([
+    // An applied preset runs SERVER-SIDE (moomoo's own screening backend), so
+    // its results and result counts match moomoo.com/screener 1:1. Manual
+    // filters keep the client-side path over our stored universe.
+    let scr, execd = null;
+    const baseFetches = [
       api("/api/candidates"), api("/api/decisions?limit=8"),
       api("/api/market/state").catch(() => ({ available: false })),
       api("/api/screener?" + qs).catch(() => ({ available: false, rows: [] })),
       api("/api/screener/presets?market=" + st.market).catch(() => ({ presets: [] })),
-    ]);
-    const val = (i, fb) => settled[i].status === "fulfilled" ? settled[i].value : fb;
-    const cands = val(0, { candidates: [] }), decs = val(1, { decisions: [] }),
-          ms = val(2, { available: false }), scr = val(3, { available: false, rows: [] }),
-          rail = val(4, { presets: [] });
+    ];
+    if (st.activePreset) {
+      const [r0, r1, r2, r4, ex] = await Promise.allSettled([
+        baseFetches[0], baseFetches[1], baseFetches[2],
+        api("/api/screener/presets?market=" + st.market).catch(() => ({ presets: [] })),
+        api("/api/screener/execute?key=" + encodeURIComponent(st.activePreset) + "&market=" + st.market)
+          .catch(() => ({ available: false })),
+      ]);
+      const cands = r0.status === "fulfilled" ? r0.value : { candidates: [] };
+      const decs = r1.status === "fulfilled" ? r1.value : { decisions: [] };
+      const ms = r2.status === "fulfilled" ? r2.value : { available: false };
+      const rail = r3.status === "fulfilled" ? r3.value : { presets: [] };
+      execd = ex.status === "fulfilled" ? ex.value : { available: false };
+      if (execd.available) {
+        scr = { available: true, rows: execd.rows || [], count: (execd.rows || []).length,
+                matched: (execd.rows || []).length, shown: (execd.rows || []).length,
+                skipped_filters: execd.pending || [], server_side: true,
+                preset_name: execd.name, universe_loaded: true };
+      } else {
+        const fb = await baseFetches[3].catch(() => ({ available: false, rows: [] }));
+        scr = { ...fb, server_fallback_reason: execd.reason };
+      }
+      window.__homeCtx = { cands, decs, ms, scr, rail, execd };
+    } else {
+      const settled = await Promise.allSettled(baseFetches);
+      const val = (i, fb) => settled[i].status === "fulfilled" ? settled[i].value : fb;
+      const cands = val(0, { candidates: [] }), decs = val(1, { decisions: [] }),
+            ms = val(2, { available: false }), scrV = val(3, { available: false, rows: [] }),
+            rail = val(4, { presets: [] });
+      scr = scrV; execd = null;
+      window.__homeCtx = { cands, decs, ms, scr, rail, execd: null };
+    }
+    const { cands, decs, ms, rail } = window.__homeCtx;
+    scr = window.__homeCtx.scr;
     // universe refresh progress (queued by the Load full market button):
     // initial paint only — scrPollProgress updates the bar IN PLACE and the
     // page is re-rendered exactly once, when the job finishes.
@@ -724,35 +898,47 @@ const pages = {
     }
     const rows = scr.rows || [];
     const stars = st.watchlistSyms || [];
-    const cols = [["symbol", "Symbol"], ["name", "Stock Name"], ["price", "Price"], ["pct", "% Chg"],
-                  ["chg", "Chg"], ["market_cap", "Market Cap"], ["volume", "Volume"],
-                  ["pe_ttm", "P/E (TTM)"], ["pb", "P/B"], ["volume_ratio", "Vol Ratio"],
-                  ["turnover_rate", "Turnover%"], ["div_yield", "Div Yld"]];
     const num = (v, dp) => v == null ? "—" : Number(v).toLocaleString(undefined, { maximumFractionDigits: dp });
     const cap = v => v == null ? "—" : "$" + fmtBig(v);
+    const cellFmt = {
+      text: (r, k) => k === "symbol"
+        ? `<a href="#" onclick="event.preventDefault();openStock('${esc(r.symbol)}')" class="mono sym" title="open stock page">${esc(r.symbol)}</a>`
+        : `<span class="dim" title="${esc(r[k])}">${esc(String(r[k] || "").slice(0, 26))}</span>`,
+      num: (r, k) => k === "market_cap" || k === "float_cap" ? `<span class="mono">${cap(r[k])}</span>`
+        : k === "volume" || k === "turnover" || k === "shares" ? `<span class="mono">${r[k] != null ? (r[k] / 1e6).toFixed(2) + "M" : "—"}</span>`
+        : `<span class="mono">${num(r[k], k === "price" || k === "high52" || k === "low52" || k === "eps" ? 2 : 1)}</span>`,
+      multi: (r, k) => `<span class="faint" style="font-size:11px">${esc(String(r[k] || "—").slice(0, 22))}</span>`,
+      bool: (r, k) => r[k] ? '<span class="g">✓</span>' : '<span class="faint">—</span>',
+    };
+    const filterIcon = k => {
+      const cf = st.colFilters[k];
+      const on = cf && ((cf.values || []).length || cf.min != null || cf.max != null);
+      return on ? `<a href="#" class="fic on" title="filter: on" onclick="scrRenderColMenu('${k}','${SCR_COLS[k][1]}');return false"> funnel</a>` : "";
+    };
+    const th = k => {
+      const [label, kind] = SCR_COLS[k];
+      const arrow = st.sort === k ? (st.dir === 2 ? " ↓" : " ↑") : "";
+      return `<th class="thc"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="sort by ${esc(label)}">${esc(label)}${arrow}</a><a href="#" class="fic ${st.colFilters[k] ? "on" : ""}" title="filter" onclick="scrRenderColMenu('${k}','${kind}');return false">⚈</a>${filterIcon(k)}</th>`;
+    };
     const body = rows.map((r, i) => `<tr>
       <td class="mono dim">${i + 1}</td>
-      <td><a href="#" onclick="event.preventDefault();openStock('${esc(r.symbol)}')" class="mono sym" title="open stock page">${esc(r.symbol)}</a></td>
-      <td class="dim" title="${esc(r.name)}">${esc(String(r.name || "").slice(0, 26))}</td>
-      <td class="mono">${num(r.price, 2)}</td>
-      <td class="mono ${r.pct >= 0 ? "g" : "r"}">${r.pct != null ? (r.pct >= 0 ? "+" : "") + r.pct.toFixed(2) + "%" : "—"}</td>
-      <td class="mono ${r.chg >= 0 ? "g" : "r"}">${r.chg != null ? (r.chg >= 0 ? "+" : "") + r.chg.toFixed(3) : "—"}</td>
-      <td class="mono">${cap(r.market_cap)}</td>
-      <td class="mono">${r.volume != null ? (r.volume / 1e6).toFixed(2) + "M" : "—"}</td>
-      <td class="mono">${num(r.pe_ttm, 1)}</td>
-      <td class="mono">${num(r.pb, 2)}</td>
-      <td class="mono">${num(r.volume_ratio, 2)}</td>
-      <td class="mono">${r.turnover_rate != null ? r.turnover_rate.toFixed(2) + "%" : "—"}</td>
+      ${st.cols.map(k => `<td>${(cellFmt[SCR_COLS[k][1]] || cellFmt.num)(r, k)}</td>`).join("")}
       <td><button class="starbtn ${stars.includes(r.symbol) ? "on" : ""}" title="watchlist" onclick="toggleWatch('${esc(r.symbol)}')">${stars.includes(r.symbol) ? "★" : "☆"}</button></td></tr>`).join("");
-    const chips = st.filters.map((f, i) => `<span class="chip-f">${esc(SCR_FIELDS[f.field] || f.field)}
+    const colChips = st.filters.map((f, i) => `<span class="chip-f">${esc(SCR_FIELDS[f.field] || f.field)}
       ${f.min != null ? "≥ " + f.min : ""}${f.min != null && f.max != null ? " · " : ""}${f.max != null ? "≤ " + f.max : ""}
       <a href="#" onclick="scrRemoveFilter(${i});return false" class="chip-x">×</a></span>`).join("");
-    const sortable = { price: "Price", pct: "% Chg", market_cap: "Market Cap" };
-    const th = c => sortable[c] ? `<a href="#" class="thsort ${st.sort === c ? "on" : ""}" onclick="scrSort('${c}');return false">${sortable[c]} ${st.sort === c ? (st.dir === 2 ? "↓" : "↑") : ""}</a>` : c;
-    const table = `<table class="scr-table"><tr><th>No.</th><th>${th("symbol")}</th><th>Stock Name</th>
-      <th>${th("price")}</th><th>${th("pct")}</th><th>Chg</th><th>${th("market_cap")}</th><th>Volume</th>
-      <th>P/E (TTM)</th><th>P/B</th><th>Vol Ratio</th><th>Turnover%</th><th></th></tr>
-      ${body || '<tr><td colspan="13" class="empty">No rows match — loosen the filters, or add tickers to the watchlist (☆).</td></tr>'}</table>`;
+    const colFilChips = Object.entries(st.colFilters).map(([k, cf]) => {
+      const label = SCR_COLS[k] ? SCR_COLS[k][0] : k;
+      const val = cf.values ? (cf.values.length <= 3 ? cf.values.join(", ") : cf.values.length + " selected")
+                            : `${cf.min != null ? "≥ " + cf.min : ""}${cf.min != null && cf.max != null ? " · " : ""}${cf.max != null ? "≤ " + cf.max : ""}`;
+      return `<span class="chip-f">${esc(label)}: ${esc(val)}<a href="#" onclick="scrClearColFilter('${k}');return false" class="chip-x">×</a></span>`;
+    }).join("");
+    const allChips = colChips + colFilChips;
+    const colMenu = `<details class="colpick"><summary class="btn ghost" style="display:inline-flex">Columns (${st.cols.length})</summary>
+      <div class="colpick-list">${Object.entries(SCR_COLS).map(([k, [label]]) =>
+        `<label class="msv"><input type="checkbox" ${st.cols.includes(k) ? "checked" : ""} onchange="scrToggleCol('${k}')"> ${esc(label)}</label>`).join("")}</div></details>`;
+    const table = `<table class="scr-table"><tr><th>No.</th>${st.cols.map(th).join("")}<th></th></tr>
+      ${body || '<tr><td colspan="' + (st.cols.length + 2) + '" class="empty">No rows match — loosen or reset the filters (Reset all in the toolbar).</td></tr>'}</table>`;
 
     // ── recommended screeners rail ──
     const railCards = (rail.presets || []).map(p => {
@@ -768,7 +954,7 @@ const pages = {
     ${msPanel}
     <div class="scr-grid">
       <div class="panel scr-main">
-        <h3 class="sec">Screener <small>moomoo data · ${st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: " + (scr.universe_loaded ? "full " + esc(st.market) + " market" + (scr.universe_as_of ? " · quotes as of " + fmtTs(scr.universe_as_of) : "") : "live slices — run ↻ Load full market") + ""}</small></h3>
+        <h3 class="sec">Screener <small>${scr.server_side ? "server-side execution — matches moomoo.com/screener · " + esc(scr.preset_name || st.activePreset || "") + (execd && execd.pending && execd.pending.length ? " · not yet applied server-side: " + esc(execd.pending.join(", ")) : "") : "moomoo data · " + (st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: " + (scr.universe_loaded ? "full " + esc(st.market) + " market" + (scr.universe_as_of ? " · quotes as of " + fmtTs(scr.universe_as_of) : "") : "live slices — run ↻ Load full market"))}</small></h3>
         <div class="scr-toolbar">
           <label class="faint">Market</label>
           <select id="scr-market" onchange="scrSet('market', this.value)">
@@ -776,11 +962,13 @@ const pages = {
           </select>
           <label class="switch"><input type="checkbox" id="scr-wl" ${st.watchlistOnly ? "checked" : ""} onchange="scrSet('watchlistOnly', this.checked)"><i></i> Watchlist only</label>
           <button class="btn ghost" onclick="openFilterModal()">＋ Add Filter</button>
+          ${colMenu}
+          ${st.filters.length || Object.keys(st.colFilters).length ? '<button class="btn ghost" onclick="scrResetAll()">Reset all</button>' : ""}
           <button class="btn ghost" onclick="scrLoadUniverse(this)" ${window.__scrRefreshJob ? "disabled" : ""}>${scr?.universe_loaded ? "↻ Refresh full market" : "⤓ Load full market"}</button>
           ${st.filters.length ? `<button class="btn ghost" onclick="scrSet('filters', [])">Clear</button>` : ""}
-          <span class="mono dim" style="margin-left:auto">Result: ${scr.matched ?? rows.length} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown : ""}</span>
+          <span class="mono dim" style="margin-left:auto">Result: ${(scr.matched ?? rows.length).toLocaleString()} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown.toLocaleString() : ""}</span>
         </div>
-        ${st.filters.length ? `<div class="scr-chips">${chips}</div>` : ""}
+        ${allChips ? `<div class="scr-chips">${allChips}</div>` : ""}
         ${(scr.skipped_filters || []).length ? `<div class="delay-note" style="margin-bottom:8px">${scr.skipped_filters.length} filter(s) skipped until factor data lands: ${scr.skipped_filters.map(f => esc(SCR_FIELDS[f] || f)).join(", ")}</div>` : ""}
         ${prog ? `<div class="scr-prog"><div class="bar"><i style="width:${(progPct || 5).toFixed(0)}%;background:#3a76dd"></i><i style="width:${100 - (progPct || 5)}%;background:#33415a"></i></div><span class="mono faint">${esc(prog.msg)}${prog.status ? " · " + esc(prog.status) : ""}</span></div>` : ""}
         <div class="scr-scroll">${table}</div>

@@ -27,3 +27,7 @@ alter table screener_quotes  enable row level security;
 alter table jobs drop constraint jobs_job_type_check;
 alter table jobs add constraint jobs_job_type_check
   check (job_type in ('analysis','settlement','backtest','digest','maintenance','universe_refresh'));
+
+-- 0010 (amendment): security classification columns for multi-select filters
+alter table screener_universe add column if not exists stock_type text;
+alter table screener_universe add column if not exists exchange text;
