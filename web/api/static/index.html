@@ -139,6 +139,21 @@ details .body p,.turn-b,.trace,.thesis,.news .d{overflow-wrap:anywhere}
 .agent-sec:first-child{margin-top:0}
 .agent-sec .kick{white-space:nowrap}
 .agent-sec:after{content:"";flex:1;border-top:1px solid var(--line)}
+/* sticky verdict bar (report page; appears once the mast scrolls away) */
+.rep-sticky{position:fixed;top:0;left:0;right:0;z-index:70;display:none;align-items:center;gap:12px;padding:8px 26px;background:rgba(8,12,18,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(6px);font-size:12px}
+.rep-sticky.show{display:flex}
+.rep-sticky .rt{font-family:var(--serif);font-weight:700;font-size:13px}
+.rep-sticky a{color:var(--dim);font-size:11px;white-space:nowrap}
+.rep-sticky a:hover{color:var(--txt)}
+/* on-this-page jump nav (report right rail) */
+.jmp a{display:block;padding:3px 0 3px 9px;color:var(--dim);font-size:11.5px;border-left:2px solid transparent}
+.jmp a:hover{color:var(--txt)}
+.jmp a.on{color:var(--txt);border-left-color:var(--amber)}
+[id^="sec-"]{scroll-margin-top:56px}
+/* serif reading mode (report page toggle) */
+.serif-prose .turn-b,.serif-prose details .body p,.serif-prose .thesis p{font-family:var(--serif);font-size:14.5px;line-height:1.85}
+/* qc row "view" link */
+.qcview{margin-left:auto;font-size:10.5px;font-weight:400}
 .trace{background:#0a1017;border:1px solid var(--line);border-radius:10px;font-family:var(--mono);font-size:11px;line-height:1.8;padding:12px 16px;max-height:340px;overflow:auto}
 .trace .t{color:var(--faint)} .trace .ag{color:var(--blue);font-weight:700}
 .trace .tool{color:var(--cyan)} .trace .sys{color:var(--dim)} .trace .live{color:var(--amber)}
@@ -1359,14 +1374,58 @@ function debateTurnsHtml(content) {
   const turns = parseTurns(text0);
   // legacy = stored by the pre-fix build: long text with almost no spaces
   const legacy = text0.length > 400 && (text0.match(/ /g) || []).length / text0.length < 0.05;
-  const html = turns.map(t => {
+  const renderTurn = t => {
     const body = legacy && !t.text.includes(" ") ? approxSpacing(t.text) : t.text;
     const s = t.speaker || ["", "open", "Opening"];
     return `<div class="turn b-${s[1]}"><span class="sp sp-${s[1]}">${esc(s[2] || s[0])}</span>
       <div class="turn-b">${md(body)}</div></div>`;
-  }).join("");
-  return (legacy ? `<div class="delay-note" style="margin-bottom:10px">Stored by the pre-fix pipeline build, which stripped word spacing; speaker turns and approximate spacing restored here — wording is exact, gaps are best-effort.</div>` : "") + html;
+  };
+  const note = legacy ? `<div class="delay-note" style="margin-bottom:10px">Stored by the pre-fix pipeline build, which stripped word spacing; speaker turns and approximate spacing restored here — wording is exact, gaps are best-effort.</div>` : "";
+  // long debates open with the first turns + an expander instead of a scroll pit
+  if (turns.length > 9) {
+    const uid = "d" + (++window.__debateUid || (window.__debateUid = 1));
+    const head = turns.slice(0, 3), rest = turns.slice(3);
+    return note + head.map(renderTurn).join("")
+      + `<button class="btn ghost" id="turns-tgl-${uid}" style="margin:0 0 10px;font-size:11px" onclick="toggleTurns('${uid}')">Show ${rest.length} more turns ▾</button>`
+      + `<div id="turns-mid-${uid}" style="display:none">${rest.map(renderTurn).join("")}</div>`;
+  }
+  return note + turns.map(renderTurn).join("");
 }
+function toggleTurns(uid) {
+  const mid = document.getElementById("turns-mid-" + uid);
+  const btn = document.getElementById("turns-tgl-" + uid);
+  if (!mid || !btn) return;
+  const show = mid.style.display === "none";
+  mid.style.display = show ? "" : "none";
+  btn.textContent = show ? "Collapse earlier turns ▴" : `Show ${mid.childElementCount} more turns ▾`;
+}
+// ── report-page navigation: jump links, scroll-spy, sticky verdict, prose mode ──
+function jumpTo(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function toggleProse(btn) {
+  const on = document.body.classList.toggle("serif-prose");
+  localStorage.setItem("prose", on ? "serif" : "sans");
+  btn.textContent = on ? "Aa · serif" : "Aa · sans";
+}
+function reportScrollFx() {
+  const sticky = document.getElementById("rep-sticky");
+  if (sticky) {
+    const mast = document.getElementById("sec-verdict");
+    sticky.classList.toggle("show", !!mast && window.scrollY > mast.offsetTop + mast.offsetHeight - 60);
+  }
+  const nav = document.getElementById("rep-nav");
+  if (nav) {
+    let cur = null;
+    nav.querySelectorAll("a[data-sec]").forEach(a => {
+      const el = document.getElementById(a.getAttribute("data-sec"));
+      if (el && window.scrollY + 90 >= el.offsetTop) cur = a;
+    });
+    nav.querySelectorAll("a").forEach(a => a.classList.toggle("on", a === cur));
+  }
+}
+window.addEventListener("scroll", reportScrollFx, { passive: true });
 const fmtBig = v => v >= 1e12 ? (v / 1e12).toFixed(2) + "T" : v >= 1e9 ? (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v.toLocaleString();
 
 function agentLabel(stage) {
