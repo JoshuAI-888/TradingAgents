@@ -5,6 +5,46 @@ Newest decisions first. Each entry: context → decision → implications.
 
 ---
 
+## 2026-09-29 — Unified chart engine (KLineChart), Analyze page restored, financials formatting (owner feedback round)
+
+**Owner feedback** (candles not rendering, no drawing/zoom/indicators, key indicators null,
+% vs currency, Chinese segments, Analyze button error, sync the two kline charts,
+fullscreen, MA/EMA 5/20/50/100/200) → shipped:
+- **Embedded KLineChart 9.8.10** (`web/api/static/vendor/klinecharts.min.js`, UMD, no build
+  step) replaces both hand-rolled canvas engines. ONE shared engine now drives the stock-page
+  chart and the report-dossier chart (identical toolbar: Time/Candle, MA/EMA/BOLL, sub-pane
+  dropdown VOL/MACD(DIF·DEA)/RSI/KDJ/CCI/WR/ROC/BIAS, draw tools trend/h-line/ray/v-line/
+  parallel/fib, wheel zoom + pan, crosshair readout, ⛶ fullscreen + Esc). Report keeps its
+  1M/3M/6M/1Y/2Y switch and draws the S/R ladder + entry zone + stop as static overlays.
+- **MA/EMA period pickers**: ▾ menus select 5/20/50/100/200 per overlay; implemented as ONE
+  indicator instance whose calcParams = selected periods (labels stay MA5/MA20/…).
+- **Candle-on-intraday root cause**: old engine forced line mode for `!isK`; plus a
+  klinecharts quirk — switching area↔candle on a live instance leaves the stale area canvas
+  painted above the candles → mode switches now rebuild the chart (`klineApply` rebuild path).
+- **klinecharts gotchas (learned the hard way, all verified live)**: `createIndicator(x, false,
+  {id})` REPLACES the pane's indicator set — must pass `isStack=true` to stack MA+EMA+BOLL;
+  partial indicator `styles` objects REPLACE built-ins (custom VOL bars styles crashed the
+  draw pass at `styles.lines[0]`); indicator line styles REQUIRE `dashedValue` (draw reads
+  `[0]`/`[1]` per segment); main-pane indicators need explicit `{id:"candle_pane"}`.
+- **Key financial indicators null**: cards read `item.value`; live/fixture items carry
+  `item.data` (fixed for the statements table in 10b2adc, missed here) → `stkStmtNum`.
+- **`Profit from Continuing Operations 133749000000.00%`**: `stkStmtVal` word-unbounded
+  substring `/ratio/` matched inside "Continuing OpeRATIOns" → currency row rendered as %.
+  Now word-bounded classification + guards (`debt to equity` is a multiple — its name
+  contains "Equity Ratio" which would misfire as %); EPS/per-share plain numbers;
+  coverage → ×.
+- **Chinese segment names**: revenue-breakdown has NO lang param (unlike find-news) →
+  server-side zh→en dictionary `_ZH_SEGMENT_EN` (~70 known names: 美国→United States,
+  智能云→Intelligent Cloud, …) applied in `/financials/revenue`; unmapped pass through.
+- **Analyze page**: `pages.analyze` was dropped in an early refactor while nav + callers
+  survived → "pages[p] is not a function" on click. Restored (submit form + in-flight rail +
+  live trace + recent decisions).
+- Verified: 31 API + 46 worker tests green; fixture-mode browser walkthrough (candles on all
+  ranges, MA 20/50/100/200 + EMA, MACD DIF/DEA, trend-line drawing, fullscreen, report-chart
+  harness) — screenshots in session.
+
+---
+
 ## 2026-09-27 — Portal aligned to approved v2 mockup (report dossier shipped)
 
 **Gap closure** (owner: "compare to mockup, fix gaps"): the live portal showed only
@@ -602,3 +642,30 @@ Cron tradingagents-universe crn-dat3eujncjis73cvc55g: hourly 13–21 UTC weekday
 (quotes refresh; enum re-runs after 24h TTL). Universe covers 5,794 common
 stocks (moomoo's screener shows 9,381 instruments incl. ETFs/ETPs — widen
 later via plate_class=ALL if wanted, ~1,000 plates ≈ 33 min at budget).
+
+## 2026-09-28 — Screener presets made moomoo-exact + Save/Manage Screeners
+
+User supplied screenshots of all 21 moomoo recommended screeners ("Applied
+Filters" + Selected chips). PRESET_SCREENERS rewritten 1:1 (penny now price≤5 +
+cap≤300M + vol≥100K + revenue_growth≥10% + np_growth≥5% + debt≤40%, buffett =
+float_cap≥500M + np_growth≥10% + gross_margin≥50% + OP/EBT≥70% + ROE≥15% +
+ROE-YoY≥20%, speculative = new_low_10d, undervalued-semi/tech/banks = sector
+filters, high-eps, high-roe, low-pe-high-div…). Filter fields the snapshot
+doesn't carry (roe, margins, growth rates, rsi14, sector, new_low_10d) are kept
+with needs:1 and SKIPPED by _apply_filters (now returns (rows, skipped)) —
+skipping beats zeroing every row; /api/screener returns skipped_filters and the
+rail shows "excl. …" / "needs … data — pending" (verified live: P/B<1 and Junk
+fully active; Below-30 RSI fully pending). Preset descriptions + tooltips from
+the screenshots.
+
+SAVE SCREENER: table saved_screeners (migration 0008, applied to prod Supabase
+by the parallel session), CRUD /api/screeners (GET/POST/PUT/DELETE, owner =
+DEFAULT_USER_ID), Db.delete added. Filter modal gained a "Screeners" tab:
+list w/ Apply/Edit/Update/Delete + save box (captures market, watchlist mode,
+filters, sort, direction). Verified on production: create→list→update→delete
+round-trip OK, table empty after.
+
+Also: presets route no longer requires moomoo keys when the stored universe
+exists; home() uses Promise.allSettled (one dead endpoint no longer blanks the
+page); test_stock_page fixture got a _StubDb (was order-dependent on test_api's
+env). 85 tests green. Commits 99f40f5, a7d18d2-era… see git log.
