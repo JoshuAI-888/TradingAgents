@@ -623,6 +623,20 @@ def _universe_state() -> dict:
     return (rows[0].get("value") or {}) if rows else {}
 
 
+@app.post("/api/screener/probe")
+def screener_probe(body: dict):
+    """TEMP property-dictionary discovery for stock-screen (read-only).
+    Passes the caller's payload straight through to the stock-screen API."""
+    client = _market_client()
+    if client is None:
+        return {"available": False, "reason": "moomoo keys not configured"}
+    try:
+        data = client.call("POST", "/quote/stock-screen", body=body)
+        return {"available": True, "data": data}
+    except Exception as e:  # noqa: BLE001 — probe reports errors verbatim
+        return {"available": True, "error": str(e)[:400]}
+
+
 @app.post("/api/screener/refresh")
 def screener_refresh(market: str = "US"):
     """Queue a full-market universe refresh as a worker job; progress streams
