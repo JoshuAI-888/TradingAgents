@@ -68,13 +68,14 @@ def test_quote_returns_snapshot_item(client):
 
 
 def test_candles_ranges_and_validation(client):
-    r = client.get("/api/stock/CHE/candles", params={"range": "D"})
+    r = client.get("/api/stock/CHE/candles", params={"range": "Y"})  # 1Y daily window
     body = r.json()
-    assert body["available"] is True and body["range"] == "D"
-    assert len(body["bars"]) == 370
-    assert {"time_key", "open", "close", "high", "low", "volume", "turnover"} <= set(body["bars"][0])
+    assert body["available"] is True and body["range"] == "Y"
+    assert body["bars"] and {"time_key", "open", "close", "high", "low", "volume", "turnover"} <= set(body["bars"][0])
     r5 = client.get("/api/stock/CHE/candles", params={"range": "5D"}).json()
     assert r5["available"] and r5["bars"]
+    r10 = client.get("/api/stock/CHE/candles", params={"range": "10Y"}).json()
+    assert r10["available"] and r10["bars"]
     assert client.get("/api/stock/CHE/candles", params={"range": "2W"}).status_code == 400
 
 

@@ -634,7 +634,8 @@ def _cache():
 
 @app.get("/api/screener")
 def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
-             sort: str = "market_cap", direction: int = 2, limit: int = 500):
+             sort: str = "market_cap", direction: int = 2, limit: int = 500,
+             offset: int = 0, export: str = ""):
     """Screener rows. watchlist universe = our saved watchlist (snapshot, all filters);
     market universe = moomoo stock-screen page sorted server-side, snapshot-enriched."""
     client = _market_client()
@@ -686,17 +687,60 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
         rows = _merge_universe_meta(rows, market)
     # Parity with moomoo's screener count: their 9,381 is common stocks only.
     # Our stored universe also holds ETFs/indices/warrants (for stock pages);
-    # restrict to STOCK unless the user explicitly filters Type.
-    if not any(f.get("field") == "stock_type" for f in flt):
+    # whole-market mode restricts to STOCK unless the user filters Type.
+    # Watchlist mode is exempt — it shows exactly what the user starred.
+    if not watchlist_only and not any(f.get("field") == "stock_type" for f in flt):
         rows = [r for r in rows if r.get("stock_type") == "STOCK"]
     rows, skipped = _apply_filters(rows, flt)
     # Always display-sort in Python: the server-side slices decide WHICH stocks
     # are in the universe; global ordering across the union happens here.
     rows = _sort_rows(rows, sort, direction)
     matched = len(rows)
-    rows = rows[:max(1, min(limit, 2000))]
+    if export:
+        # Full matched set (cap 20k) — CSV for everything, Excel-compatible
+        # SpreadsheetML so Excel opens it natively without imports.
+        rows = rows[:20000]
+        cols = ["symbol", "name", "stock_type", "plate", "price", "pct", "chg",
+                "market_cap", "float_cap", "shares", "volume", "turnover",
+                "turnover_rate", "volume_ratio", "pe", "pe_ttm", "pb",
+                "div_yield", "div_ttm", "eps", "amplitude", "bid_ask_ratio",
+                "high52", "low52", "new_high", "new_low"]
+        cols += [k for k in (rows[0] if rows else {}) if k not in cols]
+        from xml.sax.saxutils import escape as _x
+        from fastapi.responses import Response
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+        fname = f"screener_{market}_{matched}rows_{stamp}"
+        if export == "csv":
+            def cell(v):
+                s = "" if v is None else str(v)
+                return '"' + s.replace('"', '""') + '"' if any(ch in s for ch in ',"\n') else s
+            lines = [",".join(cell(c) for c in cols)]
+            lines += [",".join(cell(r.get(c)) for c in cols) for r in rows]
+            return Response("\ufeff" + "\n".join(lines), media_type="text/csv; charset=utf-8",
+                            headers={"Content-Disposition": f'attachment; filename="{fname}.csv"'})
+        xml = ['<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>',
+               '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" '
+               'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'
+               '<Worksheet ss:Name="Screener"><Table>',
+               "<Row>" + "".join(f'<Cell><Data ss:Type="String">{_x(str(c))}</Data></Cell>' for c in cols) + "</Row>"]
+        for r in rows:
+            cells = []
+            for c in cols:
+                v = r.get(c)
+                if v is None:
+                    cells.append("<Cell/>")
+                elif isinstance(v, (int, float)) and not isinstance(v, bool):
+                    cells.append(f'<Cell><Data ss:Type="Number">{v}</Data></Cell>')
+                else:
+                    cells.append(f'<Cell><Data ss:Type="String">{_x(str(v))}</Data></Cell>')
+            xml.append("<Row>" + "".join(cells) + "</Row>")
+        xml.append("</Table></Worksheet></Workbook>")
+        return Response("".join(xml), media_type="application/vnd.ms-excel",
+                        headers={"Content-Disposition": f'attachment; filename="{fname}.xls"'})
+    page = rows[max(0, offset):max(0, offset) + max(1, min(limit, 2000))]
     return {"available": True, "universe": "watchlist" if watchlist_only else market,
-            "rows": rows, "count": matched, "matched": matched, "shown": len(rows),
+            "rows": page, "count": matched, "matched": matched, "shown": len(page),
+            "offset": max(0, offset),
             "skipped_filters": skipped,
             "universe_loaded": universe_loaded or bool(rows), "universe_as_of": universe_as_of,
             "presets": PRESET_SCREENERS,

@@ -233,6 +233,8 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .msv{display:flex;gap:7px;align-items:center;font-size:12px;color:#c3cfdf;padding:4px 2px;cursor:pointer}
 .msv input{accent-color:#3a76dd}
 .msvwrap{max-height:260px;overflow:auto}
+.loadbar{position:fixed;top:0;left:0;right:0;height:3px;z-index:100;pointer-events:none;background:linear-gradient(90deg,rgba(58,118,221,0),#3a76dd,rgba(58,118,221,0));background-size:40% 100%;background-repeat:no-repeat;animation:loadslide 1.1s linear infinite}
+@keyframes loadslide{0%{background-position:-40% 0}100%{background-position:140% 0}}
 .scr-scroll{overflow-x:auto}
 .scr-table{min-width:760px}
 .scr-table th{white-space:nowrap;text-align:left;color:var(--faint);font-size:10.5px;padding:7px 10px;border-bottom:1px solid var(--line)}
@@ -435,7 +437,7 @@ window.__scr = Object.assign({ market: "US", watchlistOnly: false, filters: [], 
                  dir: 2, watchlistSyms: [],
                  cols: ["symbol", "name", "price", "pct", "chg", "market_cap", "volume",
                         "pe_ttm", "pb", "volume_ratio", "turnover_rate", "div_yield"],
-                 colFilters: {}, etfs: true }, window.__scr);
+                 colFilters: {}, etfs: true, page: 1, pageSize: 500 }, window.__scr);
 const SCR_FIELDS = {
   price: "Price", pct: "% Chg", chg: "Chg", market_cap: "Market Cap", float_cap: "Float Cap",
   shares: "Shares Outstanding", volume: "Volume", turnover: "Turnover", turnover_rate: "Turnover%",
@@ -529,6 +531,15 @@ function scrClearColFilter(field) {
   delete window.__scr.colFilters[field];
   scrPersist(); scrColMenuClose(); showPage("home");
 }
+function scrPage(delta) { scrSet("page", Math.max(1, (window.__scr.page || 1) + delta)); }
+function scrExport(kind) {
+  const st = window.__scr;
+  const eff = st.filters.some(f => f.field === "stock_type") ? st.filters
+    : [...st.filters, { field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }];
+  const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
+    filters: JSON.stringify(effFilters), sort: st.sort, direction: st.dir, export: kind });
+  window.open("/api/screener?" + qs.toString(), "_blank");
+}
 function scrResetAll() {
   const st = window.__scr;
   st.filters = []; st.colFilters = {}; st.sort = "market_cap"; st.dir = 2;
@@ -559,7 +570,7 @@ function scrSet(k, v) { window.__scr[k] = v; if (k === "filters") window.__scr.a
 function scrSort(col) {
   const st = window.__scr;
   if (st.sort === col) st.dir = st.dir === 2 ? 1 : 2; else { st.sort = col; st.dir = 2; }
-  scrPersist(); showPage("home");
+  st.page = 1; scrPersist(); showPage("home");
 }
 function scrRemoveFilter(i) { window.__scr.filters.splice(i, 1); scrPersist(); showPage("home"); }
 function scrApplyPreset(key) {
@@ -953,7 +964,8 @@ const pages = {
     const effFilters = st.filters.some(f => f.field === "stock_type") ? st.filters
       : [...st.filters, { field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }];
     const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
-      filters: JSON.stringify(effFilters), sort: st.sort, direction: st.dir });
+      filters: JSON.stringify(effFilters), sort: st.sort, direction: st.dir,
+      limit: String(st.pageSize || 500), offset: String(((st.page || 1) - 1) * (st.pageSize || 500)) });
     // An applied preset runs SERVER-SIDE (moomoo's own screening backend), so
     // its results and result counts match moomoo.com/screener 1:1. Manual
     // filters keep the client-side path over our stored universe.
@@ -1122,6 +1134,19 @@ const pages = {
         ${(scr.skipped_filters || []).length ? `<div class="delay-note" style="margin-bottom:8px">${scr.skipped_filters.length} filter(s) skipped until factor data lands: ${scr.skipped_filters.map(f => esc(SCR_FIELDS[f] || f)).join(", ")}</div>` : ""}
         ${prog ? `<div class="scr-prog"><div class="bar"><i style="width:${(progPct || 5).toFixed(0)}%;background:#3a76dd"></i><i style="width:${100 - (progPct || 5)}%;background:#33415a"></i></div><span class="mono faint">${esc(prog.msg)}${prog.status ? " · " + esc(prog.status) : ""}</span></div>` : ""}
         <div class="scr-scroll">${table}</div>
+        ${(scr.matched || 0) > (scr.shown || 0) || (st.page || 1) > 1 ? `<div class="pager">
+          <button class="btn ghost" style="padding:3px 10px;font-size:11px" ${(st.page || 1) <= 1 ? "disabled" : ""} onclick="scrSet('page', 1)">« First</button>
+          <button class="btn ghost" style="padding:3px 10px;font-size:11px" ${(st.page || 1) <= 1 ? "disabled" : ""} onclick="scrPage(-1)">‹ Prev</button>
+          <span class="mono dim" style="font-size:11px">Page ${st.page || 1} of ${Math.max(1, Math.ceil((scr.matched || 0) / (st.pageSize || 500)))}</span>
+          <button class="btn ghost" style="padding:3px 10px;font-size:11px" ${(scr.offset || 0) + (scr.shown || 0) >= (scr.matched || 0) ? "disabled" : ""} onclick="scrPage(1)">Next ›</button>
+          <button class="btn ghost" style="padding:3px 10px;font-size:11px" ${(scr.offset || 0) + (scr.shown || 0) >= (scr.matched || 0) ? "disabled" : ""} onclick="scrSet('page', 999999)">Last »</button>
+          <select class="pgsz" onchange="scrSet('pageSize', Number(this.value));scrSet('page',1)">
+            ${[100, 250, 500, 1000, 2000].map(n => `<option value="${n}" ${(st.pageSize || 500) === n ? "selected" : ""}>${n} / page</option>`).join("")}
+          </select></div>` : ""}
+        <div class="actions" style="margin-top:8px">
+          <button class="btn ghost" onclick="scrExport('csv')">⬇ CSV (all ${(scr.matched || 0).toLocaleString()} matched)</button>
+          <button class="btn ghost" onclick="scrExport('xls')">⬇ Excel</button>
+          <span class="faint" style="font-size:10.5px">exports the full filtered set in the current sort order</span></div>
         <div class="faint" style="font-size:10px;margin-top:6px">${st.watchlistOnly
           ? "Watchlist universe = tickers saved in TradingAgents (☆). Add with the star, or from the Analyze page."
           : (scr.universe_loaded ? "Full stored universe — every listing moomoo\u2019s plate enumeration returned, refreshed by the loader job. Technical &amp; financial-factor filters land once moomoo\u2019s indicator dictionary is mapped." : "Live fallback slices (~1,200 stocks). Run \u219b Load full market to enumerate every listing.")} Technical &amp; financial-factor server filters are coming once moomoo\u2019s property dictionary is mapped.</div>
@@ -3072,7 +3097,15 @@ async function showPage(p) {
   document.querySelectorAll(".nav button").forEach(b =>
     b.classList.toggle("on", b.dataset.page === p || (b.dataset.page === "quotes" && p === "stock")));
   if (state.poll) { clearInterval(state.poll); state.poll = null; }
-  $("#page").innerHTML = '<div class="empty">Loading…</div>';
+  // Refreshing the same page: keep the old content on screen and show a thin
+  // animated top bar — no more blank flash on every filter/toggle change.
+  const samePage = state.page === p && $("#page").innerHTML.trim() !== "" &&
+                   !/Loading…/.test($("#page").innerHTML);
+  if (!samePage) $("#page").innerHTML = '<div class="empty">Loading…</div>';
+  document.getElementById("loadbar")?.remove();
+  const __bar = document.createElement("div");
+  __bar.id = "loadbar"; __bar.className = "loadbar";
+  document.body.appendChild(__bar);
   try {
     if (p === "quotes") {  // last-viewed symbol, else the ticker picker
       const sym = stkState().sym;
@@ -3112,7 +3145,12 @@ async function showPage(p) {
           <div class="trow"><span>Spend to date</span><b>$${Number(m.spend?.cost_usd || 0).toFixed(4)} · ${m.spend?.runs || 0} runs</b></div>`;
       });
     }
-  } catch (e) { $("#page").innerHTML = `<div class="panel"><div class="empty">Failed to load: ${esc(e.message || e)}</div></div>`; }
+  } catch (e) {
+    document.getElementById("loadbar")?.remove();
+    $("#page").innerHTML = `<div class="panel"><div class="empty">Failed to load: ${esc(e.message || e)}</div></div>`;
+    return;
+  }
+  document.getElementById("loadbar")?.remove();
 }
 document.querySelectorAll(".nav button").forEach(b => b.onclick = () => showPage(b.dataset.page));
 loadHealth();

@@ -116,6 +116,28 @@ def test_report_by_job_and_by_decision():
     assert m["spend"]["runs"] >= 1 and m["spend"]["cost_usd"] >= 0.01
 
 
+def test_screener_pagination_and_exports(monkeypatch):
+    monkeypatch.setattr(api, "_screener_cache", None)
+    monkeypatch.setattr(api, "_market_client", lambda: _FakeMoomoo())
+    monkeypatch.setattr(api, "_watchlist_symbols", lambda: ["SPY", "XLK"])
+    # offset paging
+    p1 = client.get("/api/screener?watchlist_only=1&limit=1&offset=0").json()
+    p2 = client.get("/api/screener?watchlist_only=1&limit=1&offset=1").json()
+    assert p1["rows"][0]["symbol"] != p2["rows"][0]["symbol"]
+    assert p1["matched"] == p2["matched"] == 2 and p1["offset"] == 0 and p2["offset"] == 1
+    # CSV export: all matched rows, header + BOM, attachment disposition
+    r = client.get("/api/screener?watchlist_only=1&export=csv")
+    assert r.headers["content-type"].startswith("text/csv")
+    assert "attachment" in r.headers.get("content-disposition", "")
+    body = r.content.decode("utf-8-sig")
+    lines = [l for l in body.strip().split("\n") if l]
+    assert len(lines) == 3 and lines[0].startswith("symbol") and "SPY" in body
+    # Excel export: SpreadsheetML with typed cells
+    x = client.get("/api/screener?watchlist_only=1&export=xls")
+    assert "vnd.ms-excel" in x.headers.get("content-type", "")
+    assert b"Workbook" in x.content and b"ss:Type=" in x.content
+
+
 def test_submit_creates_job_and_dedups():
     r1 = client.post("/api/analyses", json={"ticker": "nvda", "trade_date": "2026-09-26", "depth": "standard"}).json()
     r2 = client.post("/api/analyses", json={"ticker": "NVDA", "trade_date": "2026-09-26", "depth": "standard"}).json()
