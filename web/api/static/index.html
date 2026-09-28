@@ -311,8 +311,8 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .kc-sep{width:1px;height:18px;background:var(--line);margin:0 2px}
 .kcwrap{position:relative}
 .kcwrap.kc-full{position:fixed;inset:0;z-index:80;background:var(--bg);padding:12px 14px;overflow:auto}
-.kcwrap.kc-full .chartbox{height:calc(100vh - 96px);display:flex;flex-direction:column}
-.kcwrap.kc-full #stk-kc,.kcwrap.kc-full #rep-kc{flex:1;height:auto!important}
+.kcwrap.kc-full .chartbox{display:flex;flex-direction:column}
+.kcwrap.kc-full #stk-kc,.kcwrap.kc-full #rep-kc{flex:none;height:auto}
 /* ticker switcher + picker */
 .stk-switch{position:relative;min-width:240px}
 .stk-switch input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 11px;font-size:12.5px}
@@ -1470,6 +1470,7 @@ function klineEnsure(h) {
     el.innerHTML = '<div class="empty" style="padding:30px 20px">Chart engine failed to load (vendor/klinecharts.min.js).</div>';
     return null;
   }
+  h.baseH = h.baseH || parseInt(el.style.height, 10) || 460;  // candle pane's own height
   const c = KC.init(el);
   try { c.setLocale("en-US"); c.setPriceVolumePrecision(2, 0); } catch (e) {}
   klineTheme(c);
@@ -1532,6 +1533,18 @@ function klineApply(h) {
   if (h.subsCur == null) {
     wantSubs.forEach(sName => klineCreate(h, sName, h.subPaneId + "_" + sName, { height: 84 }));
     h.subsCur = wantSubs.slice();
+  }
+  // Keep the candle pane at its base height: grow the container by 84px per
+  // sub pane (klinecharts gives sub panes their fixed height and hands the
+  // rest to the candles). Page scrolls naturally; fullscreen gets a scrollbar
+  // via .kc-full{overflow:auto}.
+  const el = document.getElementById(h.elId);
+  if (el) {
+    const target = (h.baseH || 460) + h.subsCur.length * 84;
+    if (parseInt(el.style.height, 10) !== target) {
+      el.style.height = target + "px";
+      setTimeout(() => { try { h.chart && h.chart.resize(); } catch (e) {} }, 60);
+    }
   }
   klineDrawOverlays(h);
 }
