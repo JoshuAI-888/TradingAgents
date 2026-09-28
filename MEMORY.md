@@ -768,3 +768,8 @@ lists all 22 with definitions + per-screener skip status + Run/Edit; presets
 run server-side (banner "server-side execution — matches moomoo.com/screener").
 99 tests green. RSI and OP/EBT: moomoo's own web UI locks RSI behind VIP — our
 account executes it server-side anyway.
+
+CLEANUP (same day): presets route + rail + Screeners tab no longer emit the
+stale skipped/pending hints — every preset filter has a verified server-side
+property, so the honest state is "all filters · server-side". Live: 22 presets,
+no stale fields; RSI<30 executes (60 rows, top ITFCY/BAC/MS). Commit 1bae3b6.
