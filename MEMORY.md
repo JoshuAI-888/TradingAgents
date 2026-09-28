@@ -863,3 +863,24 @@ markers (drop-before/after via clientX vs th midpoint); drag a header onto
 the floating 🗑 chip to remove (chip appears only while dragging a table
 column); synthetic DragEvent + constructible DataTransfer verified end-to-end
 in Chromium (real drop moved %Chg before Price; overlay showed + cleared).
+
+## 2026-09-29 (late IV) — "No data anywhere" was two read-path bugs, not data loss
+
+User hit all-dash preset tables + "0 rows scored"/"no matches in universe" on
+every recommended card. Data was FINE (their 23:07 UTC refresh landed —
+15,487 quote rows updated). Bug A: /api/screener/presets filtered stored
+quote rows on stock_type BEFORE merging classification from screener_universe
+(quote row jsonb never carries stock_type) → every row dropped. Fix: merge
+then filter. Bug B: /api/screener/execute built preset rows solely from
+moomoo stock-screen retrieves, which came back ALL-NULL today (38 matches,
+no values — property names still parse; cause unknown, looks like a moomoo
+response change or post-hours behavior; live-session probe still pending).
+Fix: hydrate execute rows from screener_quotes by code, plus ONE live
+client.snapshot() call for codes the store lacks (OTC/pink tail like ELTP —
+enumeration miss ≠ quote miss). Preset tables now 0 blanks. Note: stored
+pct values ARE percent (sub-penny fossils genuinely print +699,900% from a
+0.000001 prev close — VRPX/AAGR headline the rail's pct-desc top-3; real
+moomoo data, not a unit bug). FakeDb gained in.() support; meta cache is
+DISK-backed (tmpdir) — tests must inject a no-op cache, monkeypatching None
+still rebuilds the persistent TtlCache. Web suites 112 green; pushed both
+branches (cf8eb77, a02c487).
