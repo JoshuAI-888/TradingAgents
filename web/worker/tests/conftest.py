@@ -42,6 +42,12 @@ class FakeSupa(Db):
                 return
         rows.append(dict(row))
 
+    def upsert_many(self, table, on_conflict, rows, chunk=400):
+        self.calls.append(("upsert_many", table, on_conflict, len(rows)))
+        for row in rows:
+            self.upsert(table, on_conflict, row)
+        return len(rows)
+
     def select(self, table, query=None, columns="*"):
         self.calls.append(("select", table, query))
         rows = [dict(r) for r in self._t(table)]

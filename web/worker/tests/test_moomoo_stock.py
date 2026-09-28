@@ -99,7 +99,7 @@ def test_plate_endpoints(client):
     client.plate_stocks("US.LIST2470", limit=60)
     c = client.calls[-1]
     assert c["path"] == "/quote/plate-stock"
-    assert c["query"] == {"plate_code": "US.LIST2470", "sort_field": "MarketCapital",
+    assert c["query"] == {"plate_code": "US.LIST2470", "sort_field": "MARKET_VAL",
                           "ascend": "false", "limit": 60}
 
 

@@ -268,10 +268,11 @@ class MoomooClient:
         return (out or {}).get("plate_list") or [] if isinstance(out, dict) else []
 
     def plate_stocks(self, plate_code: str, limit: int = 60) -> list:
-        """Members of a plate, sorted by market cap desc. Live container: stock_list."""
+        """Members of a plate, market-cap desc. Live sort_field enum: MARKET_VAL
+        ('MarketCapital' is rejected). Live container: stock_list."""
         out = self.call("GET", "/quote/plate-stock",
                         query={"plate_code": plate_code,
-                               "sort_field": "MarketCapital",
+                               "sort_field": "MARKET_VAL",
                                "ascend": "false", "limit": min(limit, 1000)})
         return (out or {}).get("stock_list") or [] if isinstance(out, dict) else []
 

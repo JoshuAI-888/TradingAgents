@@ -96,7 +96,7 @@ class UniverseRefresher:
         return [r["code"] for r in rows]
 
     def refresh_quotes(self) -> dict:
-        from .api_rows import snapshot_to_row  # shared normalizer
+        from .screener_rows import snapshot_to_row  # shared normalizer
         codes = self._stored_codes()
         if not codes:
             return {"quotes": 0}

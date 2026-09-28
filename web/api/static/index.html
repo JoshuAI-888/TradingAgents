@@ -183,6 +183,9 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .chip-f{display:inline-flex;gap:6px;align-items:center;background:rgba(58,118,221,.14);border:1px solid rgba(58,118,221,.35);color:#9db9e8;font-size:10.5px;padding:3px 9px;border-radius:20px}
 .chip-x{color:var(--faint);text-decoration:none;font-weight:700}
 .chip-x:hover{color:#f0544f}
+.scr-prog{display:flex;align-items:center;gap:10px;margin:4px 0 8px}
+.scr-prog .bar{flex:1;margin:0}
+.scr-prog .mono{font-size:10.5px;white-space:nowrap}
 .scr-scroll{overflow-x:auto}
 .scr-table{min-width:760px}
 .scr-table th{white-space:nowrap;text-align:left;color:var(--faint);font-size:10.5px;padding:7px 10px;border-bottom:1px solid var(--line)}
@@ -347,6 +350,7 @@ window.addEventListener("error", ev => {
   t.textContent = "script error: " + (ev.message || "unknown") + " @" + (ev.lineno || "?");
 });
 </script>
+<script src="/vendor/klinecharts.min.js"></script>
 <script>
 // ── screener state + helpers (moomoo-style Market Pulse screener) ──────
 window.__scr = { market: "US", watchlistOnly: false, filters: [], sort: "market_cap",
@@ -374,6 +378,15 @@ function scrApplyPreset(key) {
   if (!p) return;
   st.filters = JSON.parse(JSON.stringify(p.filters || []));
   showPage("home");
+}
+let __scrRefreshJob = null;
+async function scrLoadUniverse(btn) {
+  if (btn) btn.disabled = true;
+  try {
+    const r = await api("/api/screener/refresh?market=" + window.__scr.market, { method: "POST" });
+    window.__scrRefreshJob = r.job_id;
+    showPage("home");
+  } catch (e) { if (btn) btn.disabled = false; }
 }
 async function toggleWatch(symbol) {
   try { await api("/api/watchlist/" + symbol, { method: "POST" }); } catch (e) {}
@@ -486,8 +499,23 @@ const pages = {
       api("/api/candidates"), api("/api/decisions?limit=8"),
       api("/api/market/state").catch(() => ({ available: false })),
       api("/api/screener?" + qs).catch(() => ({ available: false, rows: [] })),
-      api("/api/screener/presets?market=" + st.market + "&page=" + st.presetPage).catch(() => ({ presets: [] })),
+      api("/api/screener/presets?market=" + st.market + "&universe=" + (st.watchlistOnly ? "watchlist" : "auto")).catch(() => ({ presets: [] })),
     ]);
+    // universe refresh progress (queued by the Load full market button)
+    let prog = null;
+    if (window.__scrRefreshJob) {
+      const j = await api("/api/analyses/" + window.__scrRefreshJob).catch(() => null);
+      if (j) {
+        const ev = (j.events || []).filter(e => e.stage === "universe").slice(-1)[0];
+        prog = { status: j.job?.status, msg: ev?.message || j.job?.status || "" };
+        if (prog.status === "succeeded" || prog.status === "failed") {
+          window.__scrRefreshJob = null;
+          setTimeout(() => showPage("home"), 1200);
+        } else {
+          setTimeout(() => { if (state.page === "home" && window.__scrRefreshJob) showPage("home"); }, 2500);
+        }
+      }
+    }
     const fmtPct = v => v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(2) + "%";
     window.__scrPresets = rail.presets || [];
     window.__scr.watchlistSyms = scr.watchlist || st.watchlistSyms;
@@ -513,18 +541,27 @@ const pages = {
       const idx = (ms.indices || []).map(x => `<div class="idx"><div class="nm">${esc(x.name)}</div>
         <div class="px">${x.last != null ? esc(Number(x.last).toFixed(2)) : "—"}</div>
         <div class="ch ${x.pct >= 0 ? "g" : "r"}">${x.pct >= 0 ? "▲" : "▼"} ${fmtPct(x.pct)}</div></div>`).join("");
-      const sec = (ms.sectors || []).map(x => `<div class="heat" style="background:${heat(x.pct)}">
+      const sec = (ms.sectors || []).map(x => `<div class="heat" style="background:${heat(x.pct)}" title="${esc(x.name || x.symbol)}">
         <div class="s">${esc(x.symbol)}</div><div class="v">${fmtPct(x.pct)}</div></div>`).join("");
       const cal = (ms.calendar || []).slice(0, 4).map(c => `<div class="cal"><div class="d">${esc(c.country || "—")} · ${"★".repeat(Math.max(1, Math.min(5, c.star || 1)))} · ${c.time ? new Date(c.time * 1000).toISOString().slice(0, 10) : ""}</div>
         <div class="t">${esc(String(c.event || "").slice(0, 80))}</div></div>`).join("");
       msPanel = `<div class="panel"><h3 class="sec">Market state <small>moomoo real-time · as of ${esc(String(ms.as_of || "").slice(0, 16).replace("T", " "))} UTC</small></h3>
         <div class="idxtape">${idx}</div>
         <div class="sector-heat">${sec}</div>
+        <div class="faint" style="font-size:10px;margin-top:7px;line-height:1.5">SPY = S&amp;P 500 proxy · QQQ = Nasdaq-100 · IWM = Russell 2000 · VIXY = VIX proxy · HK.HSI = Hang Seng (when quoted). Sectors are the 11 SPDR ETFs: XLK Tech · XLC Comms · XLY Cons. Disc. · XLF Financials · XLV Health Care · XLI Industrials · XLP Staples · XLU Utilities · XLRE Real Estate · XLE Energy · XLB Materials. Index futures/bonds need entitlements moomoo hasn't granted this account, hence ETF proxies.</div>
         ${ms.calendar?.length ? `<div class="calstrip">${cal}</div>` : ""}
       </div>`;
     }
 
     // ── screener table (moomoo-style) ──
+    let progPct = null;
+    if (prog) {
+      let m = String(prog.msg || "").match(/plates (\d+)\/(\d+)/);
+      if (m) progPct = 5 + 55 * (Number(m[1]) / Math.max(1, Number(m[2])));
+      m = String(prog.msg || "").match(/batch (\d+)\/(\d+)/);
+      if (m) progPct = 60 + 38 * (Number(m[1]) / Math.max(1, Number(m[2])));
+      if (prog.status === "succeeded") progPct = 100;
+    }
     const rows = scr.rows || [];
     const stars = st.watchlistSyms || [];
     const cols = [["symbol", "Symbol"], ["name", "Stock Name"], ["price", "Price"], ["pct", "% Chg"],
@@ -569,7 +606,7 @@ const pages = {
     ${msPanel}
     <div class="scr-grid">
       <div class="panel scr-main">
-        <h3 class="sec">Screener <small>moomoo data · ${st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: whole " + esc(st.market) + " market (server-sorted)"}</small></h3>
+        <h3 class="sec">Screener <small>moomoo data · ${st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: " + (scr.universe_loaded ? "full " + esc(st.market) + " market" + (scr.universe_as_of ? " · as of " + esc(String(scr.universe_as_of).slice(0, 16).replace("T", " ")) + " UTC" : "") : "live slices — run ↻ Load full market") + ""}</small></h3>
         <div class="scr-toolbar">
           <label class="faint">Market</label>
           <select id="scr-market" onchange="scrSet('market', this.value)">
@@ -577,17 +614,19 @@ const pages = {
           </select>
           <label class="switch"><input type="checkbox" id="scr-wl" ${st.watchlistOnly ? "checked" : ""} onchange="scrSet('watchlistOnly', this.checked)"><i></i> Watchlist only</label>
           <button class="btn ghost" onclick="openFilterModal()">＋ Add Filter</button>
+          <button class="btn ghost" onclick="scrLoadUniverse(this)" ${window.__scrRefreshJob ? "disabled" : ""}>${scr?.universe_loaded ? "↻ Refresh full market" : "⤓ Load full market"}</button>
           ${st.filters.length ? `<button class="btn ghost" onclick="scrSet('filters', [])">Clear</button>` : ""}
           <span class="mono dim" style="margin-left:auto">Result: ${scr.matched ?? rows.length} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown : ""}</span>
         </div>
         ${st.filters.length ? `<div class="scr-chips">${chips}</div>` : ""}
+        ${prog ? `<div class="scr-prog"><div class="bar"><i style="width:${(progPct || 5).toFixed(0)}%;background:#3a76dd"></i><i style="width:${100 - (progPct || 5)}%;background:#33415a"></i></div><span class="mono faint">${esc(prog.msg)}${prog.status ? " · " + esc(prog.status) : ""}</span></div>` : ""}
         <div class="scr-scroll">${table}</div>
         <div class="faint" style="font-size:10px;margin-top:6px">${st.watchlistOnly
           ? "Watchlist universe = tickers saved in TradingAgents (☆). Add with the star, or from the Analyze page."
-          : "Whole-market universe: up to ~1,200 stocks (4 server-sorted slices × 300, unioned &amp; snapshot-enriched); filters run over the full fetched set."} Technical &amp; financial-factor server filters are coming once moomoo's property dictionary is mapped.</div>
+          : (scr.universe_loaded ? "Full stored universe — every listing moomoo\u2019s plate enumeration returned, refreshed by the loader job. Technical &amp; financial-factor filters land once moomoo\u2019s indicator dictionary is mapped." : "Live fallback slices (~1,200 stocks). Run \u219b Load full market to enumerate every listing.")} Technical &amp; financial-factor server filters are coming once moomoo\u2019s property dictionary is mapped.</div>
       </div>
       <div class="panel scr-rail">
-        <h3 class="sec">Recommended Screeners <span class="pgn"><a href="#" class="${st.presetPage === 1 ? "on" : ""}" onclick="scrSet('presetPage', 1);return false">1</a> <a href="#" class="${st.presetPage === 2 ? "on" : ""}" onclick="scrSet('presetPage', 2);return false">2</a></span></h3>
+        <h3 class="sec">Recommended Screeners <small>${(rail.universe_rows ?? 0).toLocaleString()} rows scored · top 3 each</small></h3>
         ${railCards || '<div class="empty">Presets unavailable.</div>'}
         <div class="faint" style="font-size:10px;margin-top:8px">Top-3 from the current universe. Recreated from moomoo's recommended screeners (pages 1–2) over our data.</div>
       </div>
@@ -597,6 +636,40 @@ const pages = {
       <div class="actions"><button class="btn ghost" id="cand-refresh" onclick="refreshCandidates(this)">↻ Refresh now</button>
       <span class="faint" style="font-size:10.5px">sweep = moomoo screens / news / earnings calendar (when connected) + watchlist</span></div></div>
       <div class="panel"><h3 class="sec">Recent decisions <small>settlements accrue at +5d / +30d vs SPY</small></h3>
+      <table><tr><th>Date · Ticker</th><th>Rating</th><th>5d ret</th><th>5d alpha</th><th>Status</th></tr>
+      ${d || '<tr><td colspan="5" class="empty">No decisions yet — run your first analysis.</td></tr>'}</table></div>`;
+  },
+
+  async analyze() {
+    const [act, decs] = await Promise.all([
+      api("/api/jobs/active").catch(() => ({ jobs: [] })),
+      api("/api/decisions?limit=8").catch(() => ({ decisions: [] })),
+    ]);
+    const inflight = (act.jobs || []);
+    const inflightHtml = inflight.length ? `<div class="panel"><h3 class="sec">In flight <small>${inflight.length} analysis(es) running now · decisions land in the ledger when they complete</small></h3>
+      ${inflight.map(j => { const p = j.payload || {}; return `<div class="fresh"><span>${esc(p.ticker || "?")} · ${esc(p.depth || "standard")} · queued ${esc(String(j.created_at || "").slice(11, 16))}Z</span>
+        <span class="warn">${esc(j.status)} · <a href="#" onclick="watch('${esc(j.id)}');return false">live trace →</a></span></div>`; }).join("")}
+    </div>` : "";
+    if (inflight.length) setTimeout(() => { if (state.page === "analyze" && !state.poll) showPage("analyze"); }, 8000);
+    const d = (decs.decisions || []).map(x => `<tr>
+      <td>${esc(x.trade_date)} · <a href="#" onclick="openReport('${esc(x.id)}');return false">${esc(x.symbol)}</a></td>
+      <td>${esc((x.rating || "").toUpperCase())}</td>
+      <td>${x.raw_return_pct != null ? esc(Number(x.raw_return_pct).toFixed(1)) + "%" : '<span class="faint">pending</span>'}</td>
+      <td>${x.alpha_pct != null ? `<span class="${x.alpha_pct >= 0 ? "g" : "r"}">${esc(Number(x.alpha_pct).toFixed(1))}%</span>` : '<span class="faint">—</span>'}</td>
+      <td>${esc(x.settlement_status || "pending")}</td></tr>`).join("");
+    return `${inflightHtml}
+    <div class="panel"><h3 class="sec">New analysis <small>queued to the worker pipeline — stub mode runs free, live runs are billed per token</small></h3>
+      <div class="frow">
+        <input id="f-ticker" placeholder="Ticker (e.g. NVDA)" maxlength="16">
+        <input id="f-date" type="date" value="${new Date().toISOString().slice(0, 10)}">
+        <select id="f-depth"><option value="fast">fast</option><option value="standard" selected>standard</option><option value="deep">deep</option></select>
+        <button class="btn primary" onclick="submitFromForm()">Run</button>
+      </div>
+      <div class="frow" style="margin-top:8px"><input id="f-instr" placeholder="Custom instructions (optional, ≤4000 chars)" style="flex:1" maxlength="4000"></div>
+      <div id="submit-out" class="faint" style="margin-top:10px;font-size:12px"></div></div>
+    <div class="panel"><h3 class="sec">Live trace <small>node-level pipeline events for the watched run</small></h3><div id="floor">
+      <div class="empty">Submit an analysis — or hit "live trace" on an in-flight run — to watch the pipeline live.</div></div></div>
+    <div class="panel"><h3 class="sec">Recent decisions</h3>
       <table><tr><th>Date · Ticker</th><th>Rating</th><th>5d ret</th><th>5d alpha</th><th>Status</th></tr>
       ${d || '<tr><td colspan="5" class="empty">No decisions yet — run your first analysis.</td></tr>'}</table></div>`;
   },
@@ -691,14 +764,14 @@ const pages = {
       ["Street-estimate availability", "Estimates come from S&P Global Market Intelligence via Yahoo. Yahoo can rate-limit cloud egress (Render IPs); when that happens the Earnings tab says so instead of showing blank tables. EBIT estimates are not exposed by any free source.", "degraded at times"],
       ["News & announcements pagination", "find-news has no cursor — latest ~50 items per type. Load-more beyond that isn't possible.", "API limit"],
       ["Announcement category chips", "Earnings/Transactions/Shareholding/Events are derived from filing titles client-side, not authoritative tags.", "approximation"],
-      ["Revenue segment names", "Returned provider-localized — some US segment names may appear in Chinese. Displayed as returned.", "API behavior"],
+      ["Revenue segment names", "Provider-localized (some US filers return Chinese names, e.g. MSFT). A curated zh→en dictionary is applied server-side; unmapped names pass through.", "mostly mapped"],
       ["Order-book ladder & trades tape", "order-book and rt-ticker endpoints are verified (app-parity modules) but not rendered on the site yet.", "backlog"],
       ["Dividends history page", "corporate-actions/dividends is available (US supported); no UI yet.", "backlog"],
       ["Shareholders (institutions, insiders, holders, changes)", "Five verified endpoints; no UI yet.", "backlog"],
       ["Short interest & daily short volume", "US short APIs verified; no UI yet.", "backlog"],
       ["Valuation bands (PE/PB/PS percentile vs history & sector)", "valuation/detail verified; no UI yet.", "backlog"],
       ["Morningstar report (stars, fair value, moat)", "research/morningstar verified; no UI yet.", "backlog"],
-      ["Chart extras: native quarterly bars, drawings, alerts, compare", "1Q is aggregated from daily bars; history-kline has no quarter ktype. Drawing tools are client-heavy and unplanned.", "partial"],
+      ["Chart extras: alerts, compare, native quarterly bars", "Candles/area, wheel zoom + pan, drawing tools (trend / h-line / ray / vertical / parallel / fib) and MA(5-60) / EMA / BOLL / MACD / RSI / KDJ / CCI / WR / ROC / BIAS indicators are live via the embedded KLineChart engine. 1Q is aggregated from daily bars; alerts & compare unplanned.", "partial"],
       ["Options greeks beyond delta (gamma/vega/theta/rho) & bid/ask sizes per row", "Greeks are in the contract snapshot; per-row depth would need one order-book call per strike.", "backlog"],
       ["Splits & buybacks for US stocks", "corporate-actions/splits and /buybacks are HK/A-share only per moomoo docs.", "not available for US"],
       ["Watchlist sync with moomoo accounts", "The star uses TradingAgents' own watchlist. moomoo watchlist writes (modify-user-security) are outside this app's read-only scope.", "by design"],
@@ -1117,6 +1190,7 @@ async function submitAnalysis(ticker, depth) {
 }
 async function openReport(ref) {
   if (state.poll) { clearInterval(state.poll); state.poll = null; }
+  stkChartTeardown();
   state.reportRef = ref;
   document.querySelectorAll(".nav button").forEach(b => b.classList.remove("on"));
   $("#page").innerHTML = '<div class="empty">Building report…</div>';
@@ -1213,7 +1287,7 @@ const STK_ANN_CATS = ["All","Earnings","Transactions","Shareholding","Events","O
 function stkState() {
   if (!window.__stk) window.__stk = { sym: null, tab: "overview", finTab: "earnings",
     finAnnual: false, stmtCount: 0, yoy: true, hideBlank: true, newsTab: "news", annCat: "All",
-    revPeriod: null, chart: { src: "intraday", range: "D", kind: "FULL", mode: "line", ma: true, boll: false },
+    revPeriod: null, chart: { src: "intraday", range: "D", kind: "FULL", mode: "line", ma: true, ema: false, boll: false, sub: "VOL" },
     expiry: "auto", chainSort: null, optFilter: "all", optRange: "all", trendPeriod: "intraday",
     quote: null, showStats: true };
   return window.__stk;
@@ -1239,7 +1313,13 @@ function openStock(sym, tab) {
 window.openStock = openStock;
 
 function stkSet(k, v) { stkState()[k] = v; renderStock(); }
-function stkChartSet(patch) { Object.assign(stkState().chart, patch); renderStock(); }
+function stkChartSet(patch) {
+  Object.assign(stkState().chart, patch);
+  if (!document.getElementById("stk-kc")) { renderStock(); return; }
+  stkSyncChartUI();
+  stkApplyChartOpts();
+  if ("src" in patch || "range" in patch || "kind" in patch) stkLoadChart();
+}
 
 function stkFmt(v, dp) { return v == null ? "—" : Number(v).toLocaleString(undefined, { maximumFractionDigits: dp ?? 2 }); }
 function stkMoney(v) {
@@ -1257,13 +1337,22 @@ function stkTime(ms) {
   const d = new Date(Number(ms));
   return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
-function stkStmtVal(name, v) {
-  const n = Number(v);
-  if (v == null || isNaN(n)) return null;
-  if (/ratio|margin|roe|roa|growth|return|yield|turnover rate/i.test(name)) return (n > 0 && n < 1 ? n * 100 : n).toFixed(2) + "%";
-  if (/eps|per share/i.test(name)) return n.toFixed(2);
-  if (Math.abs(n) < 1e4) return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  return stkMoney(n);
+function stkStmtNum(it) { return it == null ? null : Number(it.data ?? it.value); }
+function stkStmtVal(name, it) {
+  // Statement figures live in `data` (live moomoo shape; a few records only
+  // carry the legacy `value`). Classify by display name — the old substring
+  // match was word-unbounded, so "ratio" matched inside "Continuing
+  // OpeRATIOns" and rendered a currency row as a percentage.
+  const raw = stkStmtNum(it);
+  if (raw == null || isNaN(raw)) return null;
+  const nm = String(name || "");
+  if (/per share|\beps\b/i.test(nm)) return raw.toFixed(2);
+  if (/coverage/i.test(nm)) return raw.toFixed(1) + "×";
+  if (/\b(margin|roe|roa|growth|return|yield|payout|expense ratio|tax rate|turnover rate|equity ratio|debt to asset|rate)\b/i.test(nm))
+    return (raw > 0 && raw < 1 ? raw * 100 : raw).toFixed(2) + "%";
+  if (/\b(ratio|turnover)\b/i.test(nm)) return raw.toFixed(2);
+  if (Math.abs(raw) < 1e4) return raw.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return stkMoney(raw);
 }
 
 async function renderStock() {
@@ -1332,6 +1421,7 @@ async function renderStock() {
     <div id="stk-tab">${await stkTabPage()}</div>
   </div>`;
   $("#page").innerHTML = head;
+  if (st.tab !== "overview") stkChartTeardown();
   if (st.tab === "overview") stkLoadChart();
   if (st.tab === "options") stkDrawChain();
 }
@@ -1382,19 +1472,25 @@ async function stkOverview() {
       <select onchange="stkChartSet({src:'intraday',kind:this.value})">
         ${STK_SESSIONS.map(([k, l]) => `<option value="${k}" ${st.chart.src === "intraday" && st.chart.kind === k ? "selected" : ""}>${l}</option>`).join("")}
       </select>
-      ${STK_RANGES.map(([k, l]) => `<button class="rng ${st.chart.src === "range" && st.chart.range === k ? "on" : ""}" onclick="stkChartSet({src:'range',range:'${k}'})">${l}</button>`).join("")}
-      <span class="mode" style="display:flex;gap:6px">
-        <button class="rng ${st.chart.mode === "line" ? "on" : ""}" onclick="stkChartSet({mode:'line'})">Time</button>
-        <button class="rng ${st.chart.mode === "candle" ? "on" : ""}" onclick="stkChartSet({mode:'candle'})">Candle</button>
-        <button class="rng ${st.chart.ma ? "on" : ""}" onclick="stkChartSet({ma:!stkState().chart.ma})">MA</button>
-        <button class="rng ${st.chart.boll ? "on" : ""}" onclick="stkChartSet({boll:!stkState().chart.boll})">BOLL</button>
+      ${STK_RANGES.map(([k, l]) => `<button class="rng ${st.chart.src === "range" && st.chart.range === k ? "on" : ""}" data-stk-range="${k}" onclick="stkChartSet({src:'range',range:'${k}'})">${l}</button>`).join("")}
+      <span class="mode" id="stk-modes" style="display:flex;gap:6px;margin-left:auto">
+        <button class="rng ${st.chart.mode === "line" ? "on" : ""}" data-mode="line" onclick="stkChartSet({mode:'line'})">Time</button>
+        <button class="rng ${st.chart.mode === "candle" ? "on" : ""}" data-mode="candle" onclick="stkChartSet({mode:'candle'})">Candle</button>
+        <button class="rng ${st.chart.ma ? "on" : ""}" data-toggle="ma" onclick="stkChartSet({ma:!stkState().chart.ma})">MA</button>
+        <button class="rng ${st.chart.ema ? "on" : ""}" data-toggle="ema" onclick="stkChartSet({ema:!stkState().chart.ema})">EMA</button>
+        <button class="rng ${st.chart.boll ? "on" : ""}" data-toggle="boll" onclick="stkChartSet({boll:!stkState().chart.boll})">BOLL</button>
       </span>
     </div>
+    <div class="stk-toolbar">
+      <span class="faint" style="font-size:10px;letter-spacing:1px;align-self:center">DRAW</span>
+      ${STK_TOOLS.map(([k, l, t]) => `<button class="rng" title="${esc(t)}" onclick="stkDrawTool('${k}')">${l}</button>`).join("")}
+      <select data-stk-sub style="margin-left:auto" onchange="stkChartSet({sub:this.value})">
+        ${STK_SUBS.map(([k, l]) => `<option value="${k}" ${st.chart.sub === k ? "selected" : ""}>${l}</option>`).join("")}
+      </select>
+    </div>
     <div class="chartbox">
-      <div class="readout" id="stk-readout">${esc(st.sym)} · hover the chart for detail</div>
-      <canvas id="stkMain" height="300"></canvas>
-      <canvas id="stkVol" height="56"></canvas>
-      <canvas id="stkSub" height="70"></canvas>
+      <div class="readout" id="stk-readout">${esc(st.sym)} · scroll to zoom · drag to pan · pick a DRAW tool, then click the chart</div>
+      <div id="stk-kc" style="height:480px"></div>
     </div>`;
   const dist = capital?.distribution || {};
   const buckets = [["XL", dist.capital_in_super, dist.capital_out_super, "Super-large"],
@@ -1440,8 +1536,101 @@ async function stkOverview() {
     </div>`;
 }
 
-// ── chart engine (sessions + periods; independent from report chart) ──
-const stkChartState = { bars: [], pts: [], prevClose: null, hover: null, hoverX: 0, loaded: "" };
+// ── chart engine (embedded KLineChart: sessions + periods, candles/area,
+//    MA/EMA/BOLL overlays, sub indicators, drawing tools, wheel zoom + pan) ──
+const stkChartState = { bars: [], pts: [], prevClose: null, loaded: "" };
+let __stkChart = null, __stkChartEl = null, __stkSubCur = null;
+const STK_SUBS = [["VOL", "Volume"], ["MACD", "MACD"], ["RSI", "RSI"], ["KDJ", "KDJ"],
+                  ["CCI", "CCI"], ["WR", "WR"], ["ROC", "ROC"], ["BIAS", "BIAS"]];
+const STK_TOOLS = [["cursor", "✛", "Cross cursor (default)"],
+                   ["segment", "╱ Trend", "Trend line — click two points"],
+                   ["hline", "─ H-Line", "Horizontal line"],
+                   ["ray", "↗ Ray", "Ray line"],
+                   ["vline", "│ V-Line", "Vertical line"],
+                   ["channel", "∥ Channel", "Parallel channel line"],
+                   ["fib", "⑂ Fib", "Fibonacci retracement"],
+                   ["clear", "✕ Clear", "Remove all drawings"]];
+const STK_OVERLAYS = { segment: "segment", hline: "horizontalStraightLine", ray: "rayLine",
+                       vline: "verticalStraightLine", channel: "parallelStraightLine", fib: "fibonacciLine" };
+const STK_MA_COLORS = [{ color: "#f2c14e" }, { color: "#3fc1c9" }, { color: "#e05fa0" },
+                       { color: "#a06bfa" }, { color: "#9aa7ff" }];
+const STK_EMA_COLORS = [{ color: "#f2c14e" }, { color: "#e05fa0" }, { color: "#9aa7ff" }];
+
+function stkChartTeardown() {
+  if (__stkChart) { try { __stkChart.destroy(); } catch (e) {} }
+  __stkChart = null; __stkChartEl = null; __stkSubCur = null;
+}
+
+function stkMapData() {
+  const S = stkChartState;
+  return (S.bars.length ? S.bars : S.pts).map(x => ({
+    timestamp: +x.t, open: +x.o, high: +x.h, low: +x.l, close: +x.c,
+    volume: +x.v || 0, turnover: +x.to || 0 }));
+}
+
+function stkApplyChartTheme() {
+  __stkChart.setStyles({
+    grid: { horizontal: { color: "#141d2a" }, vertical: { color: "#101823" } },
+    candle: {
+      bar: { upColor: "#26c68c", downColor: "#f0544f", noChangeColor: "#8ba0b8",
+             upWickColor: "#26c68c", downWickColor: "#f0544f", noChangeWickColor: "#8ba0b8",
+             upBorderColor: "#26c68c", downBorderColor: "#f0544f", noChangeBorderColor: "#8ba0b8" },
+      area: { lineSize: 2, lineColor: "#26c68c", value: "open",
+              backgroundColor: [{ offset: 0, color: "rgba(38,198,140,.16)" },
+                                 { offset: 1, color: "rgba(38,198,140,.01)" }] },
+      priceMark: { high: { color: "#5c6f86" }, low: { color: "#5c6f86" },
+                   last: { upColor: "#26c68c", downColor: "#f0544f" } },
+    },
+    xAxis: { axisLine: { color: "#1e2a3b" }, tickLine: { color: "#1e2a3b" }, tickText: { color: "#5c6f86" } },
+    yAxis: { axisLine: { color: "#1e2a3b" }, tickLine: { color: "#1e2a3b" }, tickText: { color: "#5c6f86" } },
+    crosshair: { line: { color: "#5c6f86" }, text: { backgroundColor: "#26344a", color: "#dce5f1" } },
+    separator: { color: "#1e2a3b" },
+  });
+}
+
+function stkApplyChartOpts() {
+  const ch = stkState().chart, c = __stkChart;
+  if (!c) return;
+  c.setStyles({ candle: { type: ch.mode === "line" ? "area" : "candle_solid" } });
+  [["MA", ch.ma, { name: "MA", calcParams: [5, 10, 20, 30, 60], styles: { lines: STK_MA_COLORS } }],
+   ["EMA", ch.ema, { name: "EMA", calcParams: [12, 26, 50], styles: { lines: STK_EMA_COLORS } }],
+   ["BOLL", ch.boll, { name: "BOLL", calcParams: [20, 2] }]].forEach(([name, on, value]) => {
+    const has = !!c.getIndicatorByPaneId("candle_pane", name);
+    if (on && !has) c.createIndicator(value, false, { id: "candle_pane" });
+    if (!on && has) c.removeIndicator("candle_pane", name);
+  });
+  if (__stkSubCur !== ch.sub) {
+    if (__stkSubCur) c.removeIndicator("stk_sub", __stkSubCur);
+    if (ch.sub) c.createIndicator(ch.sub === "VOL"
+      ? { name: "VOL", styles: { bars: [{ upColor: "rgba(38,198,140,.55)", downColor: "rgba(240,84,79,.5)", noChangeColor: "rgba(139,160,184,.4)" }] } }
+      : ch.sub, false, { id: "stk_sub", height: 92 });
+    __stkSubCur = ch.sub;
+  }
+}
+
+function stkDrawPrevLine() {
+  const c = __stkChart;
+  if (!c) return;
+  if (c.getOverlayById("stk_prevc")) c.removeOverlay("stk_prevc");
+  if (stkState().chart.src === "intraday" && stkChartState.prevClose && stkChartState.pts.length)
+    c.createOverlay({ id: "stk_prevc", name: "horizontalStraightLine",
+      points: [{ value: stkChartState.prevClose }],
+      styles: { line: { color: "rgba(139,160,184,.5)", dashValue: [4, 4], size: 1 } } });
+}
+
+function stkCrosshair(d) {
+  try {
+    const ro = document.getElementById("stk-readout");
+    if (!ro) return;
+    const p = d?.kLineData;
+    if (!p) { ro.textContent = stkState().sym + " · scroll to zoom · drag to pan · pick a DRAW tool, then click the chart"; return; }
+    const list = __stkChart.getDataList(), i = list.indexOf(p);
+    const prev = i > 0 ? list[i - 1] : null;
+    const chg = prev ? (p.close - prev.close) / prev.close * 100 : null;
+    ro.innerHTML = `<b>${esc(stkTime(p.timestamp))}</b> · O <b>${Number(p.open).toFixed(2)}</b> H <b>${Number(p.high).toFixed(2)}</b> L <b>${Number(p.low).toFixed(2)}</b> C <b>${Number(p.close).toFixed(2)}</b>${chg != null ? ` · Chg <b class="${chg >= 0 ? "g" : "r"}">${stkPct(chg)}</b>` : ""} · Vol <b>${stkMoney(p.volume)}</b> · Turnover <b>${stkMoney(p.turnover)}</b>`;
+  } catch (e) {}
+}
+
 async function stkLoadChart() {
   const st = stkState(), ch = st.chart;
   const key = ch.src + ":" + (ch.src === "intraday" ? ch.kind : ch.range) + ":" + st.sym;
@@ -1460,140 +1649,53 @@ async function stkLoadChart() {
   }
   stkChartState.prevClose = stkQ().prev_close_price || null;
   stkChartState.loaded = key;
-  stkChartState.hover = null;
-  stkDraw();
+  stkInitChart();
 }
-function stkBind() {
-  ["stkMain", "stkVol", "stkSub"].forEach(id => {
-    const c = document.getElementById(id); if (!c) return;
-    c.onmousemove = e => {
-      const r = c.getBoundingClientRect();
-      const n = stkChartState.bars.length || stkChartState.pts.length;
-      const bw = (r.width - 72) / Math.max(n, 1);
-      stkChartState.hoverX = e.clientX - r.left;
-      stkChartState.hover = Math.max(0, Math.min(n - 1, Math.floor((e.clientX - r.left - 8) / bw)));
-      stkDraw();
-    };
-    c.onmouseleave = () => { stkChartState.hover = null; stkDraw();
-      const ro = document.getElementById("stk-readout");
-      if (ro) ro.textContent = stkState().sym + " · hover the chart for detail"; };
-  });
-  window.onresize = () => stkDraw();
-}
-function stkSetup(id) {
-  const c = document.getElementById(id); if (!c) return null;
-  const d = window.devicePixelRatio || 1, w = c.parentElement.clientWidth || 900;
-  c.width = w * d; c.height = +c.getAttribute("height") * d; c.style.height = c.getAttribute("height") + "px";
-  const x = c.getContext("2d"); x.setTransform(d, 0, 0, d, 0, 0);
-  return { x, w, h: +c.getAttribute("height") };
-}
-function stkDraw() {
-  try { stkDrawImpl(); } catch (e) { console.error("stock chart draw:", e); }
-}
-function stkDrawImpl() {
-  const m = stkSetup("stkMain"), v = stkSetup("stkVol"), s = stkSetup("stkSub");
-  if (!m) return;
-  const ch = stkState().chart, S = stkChartState;
-  const isK = S.bars.length > 0;
-  const data = isK ? S.bars : S.pts;
+
+function stkInitChart() {
+  const el = document.getElementById("stk-kc");
+  if (!el) return;
+  if (__stkChart && __stkChartEl !== el) stkChartTeardown();
+  const data = stkMapData();
   if (!data.length) {
-    m.x.fillStyle = "#5c6f86"; m.x.font = "12px sans-serif";
-    m.x.fillText("No chart data (moomoo not configured, or market closed for this session).", 20, m.h / 2);
+    el.innerHTML = '<div class="empty" style="padding:30px 20px">No chart data (moomoo not configured, or market closed for this session).</div>';
     return;
   }
-  const padL = 8, padR = 64, iw = m.w - padL - padR, bw = Math.max(iw / data.length, .8);
-  const lo = Math.min(...data.map(x => isK ? x.l : x.c)), hi = Math.max(...data.map(x => isK ? x.h : x.c));
-  const pad = (hi - lo) * .06 || 1;
-  const y = val => m.h - ((val - (lo - pad)) / ((hi + pad) - (lo - pad))) * m.h;
-  // grid
-  m.x.strokeStyle = "#141d2a"; m.x.fillStyle = "#5c6f86"; m.x.font = "10px monospace";
-  for (let i = 0; i <= 5; i++) {
-    const p = (lo - pad) + (hi + pad - (lo - pad)) * i / 5, yy = y(p);
-    m.x.beginPath(); m.x.moveTo(padL, yy); m.x.lineTo(m.w - padR, yy); m.x.stroke();
-    m.x.fillText(p.toFixed(2), m.w - padR + 6, yy + 3);
+  const KC = window.klinecharts;
+  if (!KC) {
+    el.innerHTML = '<div class="empty" style="padding:30px 20px">Chart engine failed to load (vendor/klinecharts.min.js).</div>';
+    return;
   }
-  // intraday prev-close baseline
-  if (!isK && S.prevClose) {
-    m.x.strokeStyle = "rgba(139,160,184,.5)"; m.x.setLineDash([4, 4]);
-    m.x.beginPath(); m.x.moveTo(padL, y(S.prevClose)); m.x.lineTo(m.w - padR, y(S.prevClose)); m.x.stroke();
-    m.x.setLineDash([]);
+  if (!__stkChart) {
+    __stkChart = KC.init(el);
+    __stkChartEl = el;
+    try { __stkChart.setLocale("en-US"); __stkChart.setPriceVolumePrecision(2, 0); } catch (e) {}
+    stkApplyChartTheme();
+    __stkChart.subscribeAction("onCrosshair", stkCrosshair);
+    window.onresize = () => { if (__stkChart) __stkChart.resize(); };
   }
-  const upAll = data[data.length - 1].c >= (isK ? data[0].o : (S.prevClose || data[0].c));
-  if (ch.mode === "line" || !isK) {
-    const col = upAll ? "#26c68c" : "#f0544f";
-    m.x.beginPath();
-    data.forEach((p, i) => { const cx = padL + i * bw + bw / 2; i ? m.x.lineTo(cx, y(p.c)) : m.x.moveTo(cx, y(p.c)); });
-    m.x.strokeStyle = col; m.x.lineWidth = 1.4; m.x.stroke(); m.x.lineWidth = 1;
-    m.x.lineTo(m.w - padR, m.h); m.x.lineTo(padL, m.h); m.x.closePath();
-    m.x.fillStyle = upAll ? "rgba(38,198,140,.10)" : "rgba(240,84,79,.10)"; m.x.fill();
-  } else {
-    data.forEach((x, i) => {
-      const cx = padL + i * bw + bw / 2, up = x.c >= x.o;
-      m.x.strokeStyle = up ? "#26c68c" : "#f0544f"; m.x.fillStyle = up ? "rgba(38,198,140,.85)" : "rgba(240,84,79,.85)";
-      m.x.beginPath(); m.x.moveTo(cx, y(x.h)); m.x.lineTo(cx, y(x.l)); m.x.stroke();
-      const t = y(Math.max(x.o, x.c)), bt = y(Math.min(x.o, x.c));
-      m.x.fillRect(cx - Math.max(bw * .32, .8), t, Math.max(bw * .64, 1.6), Math.max(bt - t, 1));
-    });
-  }
-  if (isK && ch.ma) {
-    const line = (arr, color) => {
-      m.x.strokeStyle = color; m.x.lineWidth = 1.1; m.x.beginPath(); let st = false;
-      arr.forEach((val, i) => { if (val == null) { st = false; return; }
-        const cx = padL + i * bw + bw / 2; st ? m.x.lineTo(cx, y(val)) : (m.x.moveTo(cx, y(val)), st = true); });
-      m.x.stroke(); m.x.lineWidth = 1; };
-    line(sma(S.bars, 5, x => x.c), "#f2c14e");
-    line(sma(S.bars, 20, x => x.c), "#e05fa0");
-    line(sma(S.bars, 60, x => x.c), "#3fc1c9");
-  }
-  if (isK && ch.boll) {
-    const bo = boll(S.bars.map(x => ({ c: x.c })));
-    const bl = (arr, color) => { m.x.strokeStyle = color; m.x.beginPath(); let st = false;
-      arr.forEach((val, i) => { if (val == null) { st = false; return; }
-        const cx = padL + i * bw + bw / 2; st ? m.x.lineTo(cx, y(val)) : (m.x.moveTo(cx, y(val)), st = true); });
-      m.x.stroke(); };
-    bl(bo.up, "rgba(63,193,201,.7)"); bl(bo.m, "rgba(63,193,201,.45)"); bl(bo.lo, "rgba(63,193,201,.7)");
-  }
-  // volume pane
-  const vmax = Math.max(...data.map(x => x.v || 0)) || 1;
-  data.forEach((x, i) => {
-    const cx = padL + i * bw + bw / 2, h = (x.v / vmax) * (v.h - 8);
-    const up = isK ? x.c >= x.o : true;
-    v.x.fillStyle = up ? "rgba(38,198,140,.55)" : "rgba(240,84,79,.5)";
-    v.x.fillRect(cx - Math.max(bw * .32, .8), v.h - h, Math.max(bw * .64, 1.6), h);
-  });
-  v.x.fillStyle = "#5c6f86"; v.x.font = "9px sans-serif"; v.x.fillText("VOLUME", 6, 11);
-  // sub pane: turnover-rate (klines) / per-minute turnover (intraday)
-  s.x.fillStyle = "#5c6f86"; s.x.font = "9px sans-serif";
-  if (isK) {
-    s.x.fillText("TURNOVER %", 6, 11);
-    const trs = S.bars.map(x => x.tr);
-    const tmax = Math.max(...trs.filter(x => x != null)) || 1;
-    const sl = arr => { s.x.strokeStyle = "#a06bfa"; s.x.beginPath(); let st = false;
-      arr.forEach((val, i) => { if (val == null) { st = false; return; }
-        const cx = padL + i * bw + bw / 2, cy = s.h - 8 - (val / tmax) * (s.h - 18);
-        st ? s.x.lineTo(cx, cy) : (s.x.moveTo(cx, cy), st = true); }); s.x.stroke(); };
-    sl(trs);
-  } else {
-    s.x.fillText("TURNOVER", 6, 11);
-    const tomax = Math.max(...data.map(x => x.to || 0)) || 1;
-    data.forEach((x, i) => {
-      const cx = padL + i * bw + bw / 2, h = ((x.to || 0) / tomax) * (s.h - 14);
-      s.x.fillStyle = "rgba(160,107,250,.55)";
-      s.x.fillRect(cx - Math.max(bw * .32, .8), s.h - h, Math.max(bw * .64, 1.6), h);
-    });
-  }
-  // crosshair + readout
-  if (S.hover != null) {
-    const i = S.hover, x0 = S.hoverX;
-    [m, v, s].forEach(c => { c.x.strokeStyle = "rgba(139,160,184,.35)"; c.x.setLineDash([3, 3]);
-      c.x.beginPath(); c.x.moveTo(x0, 0); c.x.lineTo(x0, c.h); c.x.stroke(); c.x.setLineDash([]); });
-    const p = data[i], ro = document.getElementById("stk-readout");
-    if (ro) {
-      if (isK) ro.innerHTML = `<b>${esc(stkTime(p.t))}</b> · O <b>${p.o.toFixed(2)}</b> H <b>${p.h.toFixed(2)}</b> L <b>${p.l.toFixed(2)}</b> C <b>${p.c.toFixed(2)}</b> · Chg <b class="${(p.chg ?? 0) >= 0 ? "g" : "r"}">${stkPct(p.chg)}</b> · Vol <b>${stkMoney(p.v)}</b> · Turnover <b>${stkMoney(p.to)}</b>${p.tr != null ? ` · Turnover% <b>${p.tr.toFixed(2)}%</b>` : ""}`;
-      else ro.innerHTML = `<b>${esc(stkTime(p.t))}</b> · <b>${p.c.toFixed(2)}</b> · Vol <b>${stkMoney(p.v)}</b> · Turnover <b>${stkMoney(p.to)}</b>`;
-    }
-  }
-  stkBind();
+  __stkChart.applyNewData(data);
+  stkApplyChartOpts();
+  stkDrawPrevLine();
+}
+
+function stkSyncChartUI() {
+  const ch = stkState().chart;
+  document.querySelectorAll("[data-stk-range]").forEach(b =>
+    b.classList.toggle("on", ch.src === "range" && ch.range === b.dataset.stkRange));
+  document.querySelectorAll("#stk-modes [data-mode]").forEach(b =>
+    b.classList.toggle("on", ch.mode === b.dataset.mode));
+  document.querySelectorAll("#stk-modes [data-toggle]").forEach(b =>
+    b.classList.toggle("on", !!ch[b.dataset.toggle]));
+  const sel = document.querySelector("[data-stk-sub]");
+  if (sel) sel.value = ch.sub;
+}
+
+function stkDrawTool(t) {
+  const c = __stkChart;
+  if (!c) return;
+  if (t === "clear") { c.removeOverlay(); stkDrawPrevLine(); return; }
+  if (STK_OVERLAYS[t]) c.createOverlay({ name: STK_OVERLAYS[t] });
 }
 
 // ── news item renderer (shared by overview + news tab) ───────────────
@@ -1734,15 +1836,15 @@ function stkIndicatorsTab(stmts) {
     if (!names.includes(it.display_name)) names.push(it.display_name);
   }));
   const cards = names.slice(0, 16).map(name => {
-    const vals = periods.map(p => (p.item_list || []).find(x => x.display_name === name)?.value ?? null);
-    const latest = vals[0], yoy = (periods[0].item_list || []).find(x => x.display_name === name)?.yoy;
-    const mx = Math.max(...vals.map(v => Math.abs(Number(v) || 0)), 1e-9);
-    const spark = vals.slice(0, 8).reverse().map(v => {
-      const h = Math.max(4, Math.abs(Number(v) || 0) / mx * 34);
-      return `<div style="width:9px;height:${h.toFixed(0)}px;background:${(Number(v) || 0) >= 0 ? "#26c68c" : "#f0544f"};border-radius:2px;opacity:.8"></div>`;
+    const items = periods.map(p => (p.item_list || []).find(x => x.display_name === name) || null);
+    const yoy = items[0]?.yoy;
+    const mx = Math.max(...items.map(it => Math.abs(stkStmtNum(it) || 0)), 1e-9);
+    const spark = items.slice(0, 8).reverse().map(it => {
+      const n = stkStmtNum(it) || 0;
+      return `<div style="width:9px;height:${Math.max(4, Math.abs(n) / mx * 34).toFixed(0)}px;background:${n >= 0 ? "#26c68c" : "#f0544f"};border-radius:2px;opacity:.8"></div>`;
     }).join("");
     return `<div class="ind-card"><div class="nm">${esc(name)}</div>
-      <div class="v">${stkStmtVal(name, latest)}</div>
+      <div class="v">${stkStmtVal(name, items[0]) ?? "—"}</div>
       <div class="yy ${ (yoy ?? 0) >= 0 ? "g" : "r"}">YoY ${stkPct(yoy)}</div>
       <div style="display:flex;gap:3px;align-items:flex-end;height:36px;margin-top:6px">${spark}</div></div>`;
   }).join("");
@@ -1764,12 +1866,12 @@ function stkStmtTable(stmts) {
   const rows = names.map(name => {
     const vals = cols.map(p => {
       const it = (p.item_list || []).find(x => x.display_name === name);
-      return it ? { v: (it.data ?? it.value), yoy: it.yoy } : { v: null, yoy: null };
+      return { it: it || null, yoy: it?.yoy ?? null };
     });
-    if (st.hideBlank && vals.every(x => x.v == null || x.v === 0 || isNaN(Number(x.v)))) return "";
+    if (st.hideBlank && vals.every(x => !(stkStmtNum(x.it) > 0 || stkStmtNum(x.it) < 0))) return "";
     const tds = vals.map(x => {
-      if (x.v == null || isNaN(Number(x.v))) return "<td class='dim'>—</td>";
-      const main = stkStmtVal(name, x.v);
+      if (stkStmtVal(name, x.it) == null) return "<td class='dim'>—</td>";
+      const main = stkStmtVal(name, x.it);
       const yoy = st.yoy && x.yoy != null ? ` <span class="${x.yoy >= 0 ? "g" : "r"}" style="font-size:10px">${stkPct(x.yoy, 1)}</span>` : "";
       return `<td>${main}${yoy}</td>`;
     }).join("");
@@ -2073,6 +2175,7 @@ async function showPage(p) {
   // Leaving the stock page: clear its hash so back-nav lands on Market Pulse.
   if (/^#\/stock\//.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
   state.page = p;
+  stkChartTeardown();
   document.querySelectorAll(".nav button").forEach(b =>
     b.classList.toggle("on", b.dataset.page === p || (b.dataset.page === "quotes" && p === "stock")));
   if (state.poll) { clearInterval(state.poll); state.poll = null; }

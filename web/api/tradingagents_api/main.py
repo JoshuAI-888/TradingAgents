@@ -815,6 +815,55 @@ def stock_statements(symbol: str, statement_type: int = 1, financial_type: int =
     return {"available": True, "periods": out}
 
 
+# Moomoo returns revenue segment names provider-localized — Chinese even for US
+# filers (e.g. MSFT's segments arrive as 智能云). The revenue-breakdown endpoint
+# has no language parameter (unlike find-news's lang=en), so known names are
+# mapped to English here; anything unmapped passes through untouched.
+_ZH_SEGMENT_EN = {
+    # countries / regions
+    "美国": "United States", "中国": "China", "中国大陆": "Mainland China",
+    "其他国家": "Other Countries", "其他国家/地区": "Other Countries/Regions",
+    "其他地区": "Other Regions", "海外": "Overseas", "国际": "International",
+    "国内": "Domestic", "中国香港": "Hong Kong", "中国台湾": "Taiwan",
+    "中国澳门": "Macao", "日本": "Japan", "韩国": "South Korea", "印度": "India",
+    "新加坡": "Singapore", "德国": "Germany", "英国": "United Kingdom",
+    "法国": "France", "荷兰": "Netherlands", "爱尔兰": "Ireland",
+    "瑞士": "Switzerland", "瑞典": "Sweden", "西班牙": "Spain", "意大利": "Italy",
+    "加拿大": "Canada", "澳大利亚": "Australia", "巴西": "Brazil",
+    "墨西哥": "Mexico", "亚洲": "Asia", "欧洲": "Europe", "北美洲": "North America",
+    "南美洲": "South America", "中东": "Middle East", "非洲": "Africa",
+    "大洋洲": "Oceania", "全球": "Global",
+    # common business / product segments
+    "智能云": "Intelligent Cloud", "生产力与业务流程": "Productivity and Business Processes",
+    "生产力和业务流程": "Productivity and Business Processes",
+    "更多个人计算": "More Personal Computing", "更加个人计算": "More Personal Computing",
+    "个人计算": "Personal Computing", "服务及其他": "Services and Other",
+    "服务": "Services", "产品": "Products", "硬件": "Hardware", "软件": "Software",
+    "广告": "Advertising", "广告服务": "Advertising Services",
+    "云服务": "Cloud Services", "电子商务": "E-commerce", "游戏": "Gaming",
+    "数据中心": "Data Center", "专业可视化": "Professional Visualization",
+    "汽车": "Automotive", "汽车业务": "Automotive",
+    "能源生产及储存": "Energy Generation and Storage",
+    "可穿戴、家居及配件": "Wearables, Home and Accessories",
+    "可穿戴设备、家居及配件": "Wearables, Home and Accessories",
+    "谷歌服务": "Google Services", "谷歌云": "Google Cloud", "其他赌注": "Other Bets",
+    "网络服务": "Web Services", "金融科技": "Fintech", "数字内容": "Digital Content",
+    "流媒体": "Streaming", "其他": "Others", "其他业务": "Other Businesses",
+    "未分配": "Unallocated", "抵销": "Eliminations",
+    "公司间抵销": "Intersegment Eliminations", "总计": "Total", "合计": "Total",
+}
+
+
+def _en_segment_name(name):
+    """zh segment names → English where mapped; pass through otherwise."""
+    if not isinstance(name, str) or not name:
+        return name
+    n = name.strip()
+    if not any("\u4e00" <= ch <= "\u9fff" for ch in n):
+        return name
+    return _ZH_SEGMENT_EN.get(n, name)
+
+
 @app.get("/api/stock/{symbol}/financials/revenue")
 def stock_revenue(symbol: str, date: int | None = None, financial_type: int | None = None):
     """Live shape: breakdown_list[type: 1=Product 2=Industry 4=Region 8=Business],
@@ -827,6 +876,12 @@ def stock_revenue(symbol: str, date: int | None = None, financial_type: int | No
         return _stock_out(None)
     if _is_unavailable(out):
         return out
+    if isinstance(out, dict):
+        for br in out.get("breakdown_list") or []:
+            if isinstance(br, dict):
+                for it in br.get("item_list") or []:
+                    if isinstance(it, dict) and "name" in it:
+                        it["name"] = _en_segment_name(it["name"])
     out.setdefault("available", True)
     return out
 
