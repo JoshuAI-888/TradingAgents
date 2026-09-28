@@ -186,3 +186,12 @@ def test_stock_code_normalization():
     assert api._stock_code("CHE-US") == "US.CHE"
     assert api._stock_code("che") == "US.CHE"
     assert api._stock_code("HK.00700") == "HK.00700"
+
+
+def test_sectors_and_members(client):
+    s = client.get("/api/sectors", params={"market": "US"}).json()
+    assert s["available"] is True and s["sectors"][0]["plate_name"] == "Pharmaceuticals"
+    r = client.get("/api/sectors/stocks",
+                   params={"plate": "US.LIST2470"}).json()
+    assert r["available"] is True and r["rows"][0]["symbol"] == "NVDA"
+    assert "price" in r["rows"][0] and "pct" in r["rows"][0]

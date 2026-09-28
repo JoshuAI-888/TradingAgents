@@ -245,17 +245,35 @@ class MoomooClient:
         return self._get(f"/quote/{symbol}/company/executives")
 
     def find_community(self, keyword: str, community_type: int = 1,
-                       sort_type: int = 2, size: int = 20) -> list:
+                       sort_type: int = 2, size: int = 20, lang: str | None = None) -> list:
         """Community search (FEED/TOPIC/LIVE); no pagination — latest N only.
+        `lang` en/zh-CN/zh-HK/ja (results come provider-localized without it).
         Live data is a BARE LIST (no container key)."""
-        out = self.call("GET", "/quote/find-community",
-                        query={"symbol": keyword, "community_type": community_type,
-                               "sort_type": sort_type, "size": min(size, 50)})
+        q = {"symbol": keyword, "community_type": community_type,
+             "sort_type": sort_type, "size": min(size, 50)}
+        if lang:
+            q["lang"] = lang
+        out = self.call("GET", "/quote/find-community", query=q)
         if isinstance(out, list):
             return out
         if not isinstance(out, dict):
             return []
         return out.get("community_list") or out.get("list") or []
+
+    def plate_list(self, market: str, plate_class: str = "INDUSTRY") -> list:
+        """Sector/plate list for a market (class: ALL/INDUSTRY/REGION/CONCEPT/OTHER;
+        REGION is SH/SZ only). Live container: plate_list."""
+        out = self.call("GET", "/quote/plate-list",
+                        query={"market": market, "plate_class": plate_class})
+        return (out or {}).get("plate_list") or [] if isinstance(out, dict) else []
+
+    def plate_stocks(self, plate_code: str, limit: int = 60) -> list:
+        """Members of a plate, sorted by market cap desc. Live container: stock_list."""
+        out = self.call("GET", "/quote/plate-stock",
+                        query={"plate_code": plate_code,
+                               "sort_field": "MarketCapital",
+                               "ascend": "false", "limit": min(limit, 1000)})
+        return (out or {}).get("stock_list") or [] if isinstance(out, dict) else []
 
     @staticmethod
     def server_clock_offset_ms() -> int:

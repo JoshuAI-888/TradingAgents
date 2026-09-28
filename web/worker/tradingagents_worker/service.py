@@ -170,7 +170,7 @@ def run_forever():
     while True:
         job = None
         try:
-            job = db.claim_job(wid, types=["analysis"])
+            job = db.claim_job(wid, types=["analysis", "universe_refresh"])
         except Exception as e:  # queue hiccup: back off, keep alive
             print(f"claim error: {e}", flush=True)
             threading.Event().wait(SETTINGS.poll_interval_s)
@@ -183,6 +183,17 @@ def run_forever():
         try:
             emit = Emitter(db, str(job["id"]))
             payload = job.get("payload") or {}
+            if job.get("job_type") == "universe_refresh":
+                market = payload.get("market", "US")
+                emit.emit("universe", "started", f"universe refresh ({market})")
+                from .moomoo import MoomooClient
+                from .universe_refresh import UniverseRefresher
+                client = MoomooClient(SETTINGS.moomoo_appkey, SETTINGS.moomoo_private_key)
+                out = UniverseRefresher(db, client, market, emit=emit).run()
+                db.finish_job(str(job["id"]), "succeeded")
+                emit.emit("universe", "done",
+                          f"{out.get('quotes', {}).get('quotes')} quotes · {out.get('enum', {}).get('codes', 'cached')} codes")
+                continue
             ticker, trade_date = payload["ticker"], payload["trade_date"]
             depth = payload.get("depth", "standard")
             emit.emit("analysts", "started", f"{ticker} @ {trade_date} (depth={depth})")

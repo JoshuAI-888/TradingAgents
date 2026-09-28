@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 
 from tradingagents_worker.config import SETTINGS
 from tradingagents_worker.db import Db
+from tradingagents_worker.screener_rows import snapshot_to_row as _snapshot_to_row
 
 app = FastAPI(title="TradingAgents Portal API", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=[o for o in os.getenv(
@@ -299,43 +300,6 @@ PRESET_SCREENERS = [
 ]
 
 
-def _snapshot_to_row(s: dict) -> dict:
-    """A moomoo snapshot item → a screener row with normalized fields."""
-    last, prev = s.get("last_price"), s.get("prev_close_price")
-    pct = s.get("pct_change")
-    if pct is None and last is not None and prev:
-        pct = (float(last) - float(prev)) / float(prev) * 100
-    return {
-        "symbol": (s.get("code") or "").split(".")[-1],
-        "code": s.get("code"),
-        "name": s.get("name") or s.get("sc_name") or "",
-        "price": last,
-        "pct": None if pct is None else round(float(pct), 2),
-        "chg": None if (last is None or prev is None) else round(float(last) - float(prev), 3),
-        "market_cap": s.get("total_market_val"),
-        "float_cap": s.get("circular_market_val"),
-        "shares": s.get("outstanding_shares"),
-        "volume": s.get("volume"),
-        "turnover": s.get("turnover"),
-        "turnover_rate": s.get("turnover_rate"),
-        "volume_ratio": s.get("volume_ratio"),
-        "pe": s.get("pe_ratio") or None,
-        "pe_ttm": s.get("pe_ttm_ratio") or None,
-        "pb": s.get("pb_ratio") or None,
-        "div_yield": s.get("dividend_ratio_ttm") or None,
-        "div_ttm": s.get("dividend_ttm") or None,
-        "eps": s.get("earning_per_share") or None,
-        "amplitude": s.get("amplitude"),
-        "bid_ask_ratio": s.get("bid_ask_ratio"),
-        "high52": s.get("highest52weeks_price"),
-        "low52": s.get("lowest52weeks_price"),
-        "new_high": bool(s.get("highest52weeks_price") and last
-                         and float(last) >= float(s["highest52weeks_price"]) * 0.999),
-        "new_low": bool(s.get("lowest52weeks_price") and last
-                        and float(last) <= float(s["lowest52weeks_price"]) * 1.001),
-    }
-
-
 def _apply_filters(rows: list[dict], filters: list[dict]) -> list[dict]:
     def keep(r: dict) -> bool:
         for f in filters or []:
@@ -439,12 +403,23 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
     cache = _cache()
     universe_key = cache.key("quotes", "screener-universe", market, watchlist_only, sort, direction)
     rows = cache.get("quotes", universe_key)
+    universe_loaded = False
+    universe_as_of = None
+    if rows is None and not watchlist_only:
+        # Preferred whole-market source: the stored universe (loaded by the
+        # universe_refresh job) — zero moomoo calls at view time.
+        stored = db.select("screener_quotes", {"market": f"eq.{market}"}, "row,updated_at")
+        if stored:
+            rows = [r["row"] for r in stored if isinstance(r.get("row"), dict)]
+            stamps = [r.get("updated_at") for r in stored if r.get("updated_at")]
+            universe_as_of = max(stamps) if stamps else None
+            universe_loaded = True
     if rows is None:
         if watchlist_only:
             symbols = _watchlist_symbols()
             if not symbols:
                 return {"available": True, "rows": [], "universe": "watchlist", "count": 0,
-                        "presets": PRESET_SCREENERS}
+                        "presets": PRESET_SCREENERS, "watchlist": _watchlist_symbols()}
             snap = (client.snapshot([f"{market}.{s}" for s in symbols[:400]])
                     or {}).get("snapshot_list") or []
             rows = [_snapshot_to_row(s) for s in snap]
@@ -468,40 +443,73 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
     # are in the universe; global ordering across the union happens here.
     rows = _sort_rows(rows, sort, direction)
     matched = len(rows)
-    rows = rows[:max(1, min(limit, 1200))]
+    rows = rows[:max(1, min(limit, 2000))]
     return {"available": True, "universe": "watchlist" if watchlist_only else market,
             "rows": rows, "count": matched, "matched": matched, "shown": len(rows),
+            "universe_loaded": universe_loaded or bool(rows), "universe_as_of": universe_as_of,
             "presets": PRESET_SCREENERS,
             "watchlist": _watchlist_symbols()}
 
 
 @app.get("/api/screener/presets")
-def screener_presets(market: str = "US", page: int = 0):
-    """Recommended screeners (both pages) with each preset's top-3 from the
-    watchlist universe — the moomoo screener rail, on our data."""
+def screener_presets(market: str = "US", universe: str = "auto"):
+    """ALL recommended screeners (one list) scored over the ACTIVE universe —
+    whole-market (stored universe first, live slices as fallback) or watchlist."""
     client = _market_client()
     if client is None:
         return {"available": False, "presets": []}
     cache = _cache()
-    uk = cache.key("quotes", "screener-universe", market, 1, "market_cap", 2)
-    rows = cache.get("quotes", uk)
-    if rows is None:
-        symbols = _watchlist_symbols()
-        if symbols:
-            snap = (client.snapshot([f"{market}.{s}" for s in symbols[:400]])
-                    or {}).get("snapshot_list") or []
-            rows = [_snapshot_to_row(s) for s in snap]
+    if universe == "watchlist":
+        uk = cache.key("quotes", "screener-universe", market, 1, "market_cap", 2)
+        rows = cache.get("quotes", uk)
+        if rows is None:
+            symbols = _watchlist_symbols()
+            if symbols:
+                snap = (client.snapshot([f"{market}.{s}" for s in symbols[:400]])
+                        or {}).get("snapshot_list") or []
+                rows = [_snapshot_to_row(s) for s in snap]
+            else:
+                rows = []
+            cache.put("quotes", uk, rows)
+    else:
+        stored = db.select("screener_quotes", {"market": f"eq.{market}"}, "row")
+        if stored:
+            rows = [r["row"] for r in stored if isinstance(r.get("row"), dict)]
         else:
-            rows = []
-        cache.put("quotes", uk, rows)
+            uk = cache.key("quotes", "screener-universe", market, 0, "market_cap", 2)
+            rows = cache.get("quotes", uk)
+            if rows is None:
+                try:
+                    rows = _market_rows(market, "market_cap", 2, client)
+                except Exception:
+                    rows = []
+                cache.put("quotes", uk, rows)
     out = []
     for preset in PRESET_SCREENERS:
-        if page and preset["page"] != page:
-            continue
         picked = _sort_rows(_apply_filters(rows, preset["filters"]), "pct", 2)[:3]
-        out.append({**preset, "top": [{"symbol": r["symbol"], "name": r["name"][:22],
-                                       "pct": r["pct"]} for r in picked]})
-    return {"available": True, "presets": out}
+        out.append({**preset,
+                    "top": [{"symbol": r["symbol"], "name": str(r.get("name") or "")[:22],
+                             "pct": r.get("pct")} for r in picked]})
+    return {"available": True, "presets": out, "universe_rows": len(rows)}
+
+
+@app.post("/api/screener/refresh")
+def screener_refresh(market: str = "US"):
+    """Queue a full-market universe refresh as a worker job; progress streams
+    to job_events ('universe' stage) — the UI polls it for the progress bar."""
+    for status in ("pending", "running"):
+        live = db.select("jobs", {"job_type": f"eq.universe_refresh", "status": f"eq.{status}"},
+                         "id,status")
+        if live:
+            return {"queued": True, "job_id": live[0]["id"], "already_running": True}
+    user = os.getenv("DEFAULT_USER_ID") or None
+    row = db.insert("jobs", {
+        "job_type": "universe_refresh", "user_id": user,
+        "payload": {"market": market},
+        "idempotency_key": f"universe-refresh:{market}:{uuid.uuid4()}",
+    }, prefer="return=representation")
+    job = row if isinstance(row, dict) else (row or [{}])[0]
+    return {"queued": True, "job_id": job.get("id")}
 
 
 @app.post("/api/watchlist/{symbol}")
@@ -883,10 +891,55 @@ def stock_company(symbol: str):
 def stock_community(symbol: str):
     kw = _stock_code(symbol).split(".")[-1]
     out = _stock_fetch("community", symbol, "other",
-                       lambda c: {"community_list": c.find_community(kw)})
+                       lambda c: {"community_list": c.find_community(kw, lang="en")})
     if isinstance(out, dict):
         out.setdefault("available", True)
     return _stock_out(out)
+
+
+# ── symbol directory for the Quotes picker / ticker switcher ─────────
+
+@app.get("/api/sectors")
+def sectors(market: str = "US", plate_class: str = "INDUSTRY"):
+    """Sector (plate) list for the picker dropdown. Weekly-fresh data, cached."""
+    out = _stock_fetch(f"plates:{market}:{plate_class}", market, "other",
+                       lambda c: c.plate_list(market.upper(), plate_class))
+    if out is None:
+        return _stock_out(None)
+    if _is_unavailable(out):
+        return out
+    return {"available": True, "sectors": out}
+
+
+@app.get("/api/sectors/stocks")
+def sector_stocks(plate: str, limit: int = 60):
+    """Members of a sector, market-cap desc, snapshot-enriched (price/pct)."""
+    code = plate.strip().upper()
+
+    def fetch(c):
+        members = c.plate_stocks(code, limit=min(limit, 100))
+        codes = [m.get("code") for m in members if m.get("code")]
+        snap = (c.snapshot(codes) or {}).get("snapshot_list") or [] if codes else []
+        by = {s.get("code"): s for s in snap if isinstance(s, dict)}
+        rows = []
+        for m in members:
+            s = by.get(m.get("code")) or {}
+            last, prev = s.get("last_price"), s.get("prev_close_price")
+            pct = s.get("pct_change")
+            if pct is None and last is not None and prev:
+                pct = (float(last) - float(prev)) / float(prev) * 100
+            rows.append({"symbol": (m.get("code") or "").split(".")[-1],
+                         "name": m.get("name") or s.get("name") or "",
+                         "price": last, "pct": None if pct is None else round(float(pct), 2),
+                         "market_cap": s.get("total_market_val")})
+        return rows
+
+    out = _stock_fetch(f"plate-stocks:{code}", plate, "quotes", fetch)
+    if out is None:
+        return _stock_out(None)
+    if _is_unavailable(out):
+        return out
+    return {"available": True, "rows": out}
 
 
 def _estimates_fetch(symbol: str) -> dict:

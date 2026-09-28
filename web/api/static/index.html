@@ -289,6 +289,25 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .comm-card .t{font-size:12.5px;font-weight:600}
 .comm-card .m{font-size:10.5px;color:var(--faint);margin-top:3px}
 .delay-note{font-size:10px;color:var(--amber);background:rgba(232,163,61,.08);border:1px solid rgba(232,163,61,.25);border-radius:7px;padding:4px 9px;display:inline-block}
+/* ticker switcher + picker */
+.stk-switch{position:relative;min-width:240px}
+.stk-switch input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 11px;font-size:12.5px}
+.stk-switch input:focus{outline:none;border-color:#3a76dd}
+.stk-drop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#0d1420;border:1px solid var(--line);border-radius:9px;z-index:50;max-height:320px;overflow:auto;display:none;box-shadow:0 10px 28px rgba(0,0,0,.5)}
+.stk-drop .dr{display:flex;gap:9px;align-items:baseline;padding:7px 11px;cursor:pointer;border-bottom:1px solid rgba(38,52,74,.35)}
+.stk-drop .dr:hover{background:var(--panel2)}
+.stk-drop .dr .s{font-family:var(--mono);font-weight:700;font-size:12px;min-width:64px}
+.stk-drop .dr .n{font-size:11px;color:var(--dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stk-drop .dr .p{font-family:var(--mono);font-size:11px}
+.pk-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.pk-toolbar select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:6px 10px;font-size:12px}
+.pk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:9px}
+.pk-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.pk-card:hover{border-color:#3a76dd;background:rgba(58,118,221,.08)}
+.pk-card .s{font-size:13.5px;font-weight:800;font-family:var(--mono)}
+.pk-card .n{font-size:11px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:2px 0 6px}
+.pk-card .m{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11.5px}
+.pk-card .star{float:right;color:var(--amber)}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:#26344a;border-radius:5px}
@@ -302,6 +321,7 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
     <h1>TRADINGAGENTS <b>GLOBAL RESEARCH</b></h1>
     <div class="nav">
       <button data-page="home" class="on">Market Pulse</button>
+      <button data-page="quotes">Quotes</button>
       <button data-page="analyze">Analyze</button>
       <button data-page="ledger">Ledger</button>
       <button data-page="settings">Settings</button>
@@ -357,7 +377,11 @@ function scrApplyPreset(key) {
 }
 async function toggleWatch(symbol) {
   try { await api("/api/watchlist/" + symbol, { method: "POST" }); } catch (e) {}
-  showPage("home");
+  const syms = window.__scr?.watchlistSyms;
+  if (syms && !syms.includes(symbol)) syms.push(symbol);  // optimistic star state
+  // Stay in context: re-render the stock page in place, refresh the screener otherwise.
+  if (state.page === "stock" && stkState().sym) renderStock();
+  else showPage("home");
 }
 let scrDraft = [];
 let scrTab = "quotes";
@@ -511,7 +535,7 @@ const pages = {
     const cap = v => v == null ? "—" : "$" + fmtBig(v);
     const body = rows.map((r, i) => `<tr>
       <td class="mono dim">${i + 1}</td>
-      <td><a href="#" onclick="openStock('${esc(r.symbol)}');return false" class="mono sym" title="open stock page">${esc(r.symbol)}</a></td>
+      <td><a href="#" onclick="event.preventDefault();openStock('${esc(r.symbol)}')" class="mono sym" title="open stock page">${esc(r.symbol)}</a></td>
       <td class="dim" title="${esc(r.name)}">${esc(String(r.name || "").slice(0, 26))}</td>
       <td class="mono">${num(r.price, 2)}</td>
       <td class="mono ${r.pct >= 0 ? "g" : "r"}">${r.pct != null ? (r.pct >= 0 ? "+" : "") + r.pct.toFixed(2) + "%" : "—"}</td>
@@ -1204,8 +1228,9 @@ function openStock(sym, tab) {
   if (tab) st.tab = tab;
   if (state.poll) { clearInterval(state.poll); state.poll = null; }
   state.page = "stock";
-  document.querySelectorAll(".nav button").forEach(b => b.classList.remove("on"));
-  if (!location.hash.startsWith("#/stock/"))
+  document.querySelectorAll(".nav button").forEach(b =>
+    b.classList.toggle("on", b.dataset.page === "quotes"));
+  if (!/^#\/stock\//.test(location.hash))
     history.replaceState(null, "", "#/stock/" + st.sym + "-US");
   $("#page").innerHTML = '<div class="empty">Loading ' + esc(st.sym) + '…</div>';
   renderStock().catch(e => { $("#page").innerHTML =
@@ -1289,11 +1314,13 @@ async function renderStock() {
         </div>
       </div>
       <div class="stk-cap">
-        <div style="display:flex;gap:18px">
+        <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+          <div>${await stkHeaderSwitch(st.sym)}</div>
           <div><div class="v">${stkMoney(q.total_market_val)}</div><div class="k">Market Cap</div></div>
           <div><div class="v">${stkFmt(q.pe_ttm_ratio, 2)}</div><div class="k">P/E (TTM)</div></div>
           <div><button class="starbtn ${stars.includes(st.sym) ? "on" : ""}" onclick="toggleWatch('${esc(st.sym)}')">${stars.includes(st.sym) ? "★" : "☆"}</button>
-            <button class="btn ghost" style="padding:3px 9px;font-size:10.5px" onclick="submitAnalysis('${esc(st.sym)}','standard')">Analyze</button></div>
+            <button class="btn ghost" style="padding:3px 9px;font-size:10.5px" onclick="submitAnalysis('${esc(st.sym)}','standard')">Analyze</button>
+            <button class="btn ghost" style="padding:3px 9px;font-size:10.5px" onclick="openStockPicker()" title="All quotes — search / sectors / watchlist">All quotes</button></div>
         </div>
       </div>
     </div>
@@ -1913,14 +1940,150 @@ async function stkComments() {
   <div class="faint" style="font-size:10px">Latest discussions via moomoo find-community (search API; threads & posting live on moomoo.com).</div>`;
 }
 
+// ── ticker switcher + Quotes picker (search / sector / market / watchlist) ──
+window.__stkUniverse = { rows: null, at: 0, market: "US" };
+async function stkUniverse(market) {
+  const U = window.__stkUniverse;
+  market = (market || U.market || "US").toUpperCase();
+  if (U.rows && U.market === market && Date.now() - U.at < 5 * 60 * 1000) return U.rows;
+  const r = await api("/api/screener?market=" + market + "&watchlist_only=0&sort=market_cap&direction=2&limit=1200")
+    .catch(() => ({ rows: [] }));
+  U.rows = (r.rows || []).filter(x => x.symbol);
+  U.market = market; U.at = Date.now();
+  return U.rows;
+}
+function stkMatches(q, rows, n) {
+  const s = q.trim().toUpperCase();
+  if (!s) return rows.slice(0, n);
+  const sym = [], name = [];
+  for (const r of rows) {
+    if (r.symbol === s || sym.length < n && r.symbol.startsWith(s)) sym.push(r);
+    else if (name.length < n && (r.name || "").toUpperCase().includes(s)) name.push(r);
+    if (sym.length >= n && name.length >= n) break;
+  }
+  return sym.concat(name).slice(0, n);
+}
+function stkDropRow(r) {
+  return `<div class="dr" onclick="openStock('${esc(r.symbol)}')">
+    <span class="s">${esc(r.symbol)}</span><span class="n">${esc(r.name || "")}</span>
+    <span class="p ${r.pct >= 0 ? "g" : "r"}">${stkFmt(r.price, 2)} ${stkPct(r.pct)}</span></div>`;
+}
+async function stkHeaderSwitch(sym) {
+  const rows = await stkUniverse().catch(() => []);
+  const matches = stkMatches("", rows, 0);  // preload
+  return `<div class="stk-switch">
+    <input id="stk-search" placeholder="Search ticker / company…" autocomplete="off"
+      oninput="stkSearchDrop(this.value)" onfocus="stkSearchDrop(this.value)"
+      onkeydown="stkSearchKey(event)">
+    <div id="stk-drop" class="stk-drop"></div></div>`;
+}
+let __stkDropRows = [];
+async function stkSearchDrop(q) {
+  const drop = document.getElementById("stk-drop"); if (!drop) return;
+  const rows = await stkUniverse().catch(() => []);
+  __stkDropRows = stkMatches(q, rows, 9);
+  drop.innerHTML = __stkDropRows.map(stkDropRow).join("")
+    || '<div class="dr"><span class="n">No matches — try the full symbol (e.g. MSFT).</span></div>';
+  drop.style.display = "block";
+}
+function stkSearchKey(ev) {
+  const drop = document.getElementById("stk-drop"); if (!drop) return;
+  if (ev.key === "Escape") { drop.style.display = "none"; return; }
+  if (ev.key === "Enter") {
+    const first = __stkDropRows[0];
+    const q = (ev.target.value || "").trim().toUpperCase();
+    const exact = __stkDropRows.find(r => r.symbol === q) || first;
+    if (exact) { drop.style.display = "none"; openStock(exact.symbol); }
+  }
+}
+document.addEventListener("click", ev => {
+  const drop = document.getElementById("stk-drop");
+  if (drop && !ev.target.closest(".stk-switch")) drop.style.display = "none";
+});
+
+// ── Quotes picker page (browse by search / sector / market / watchlist) ──
+window.__pk = { q: "", market: "US", watchlist: false, sector: "", rows: null };
+function pkSet(k, v) { window.__pk[k] = v; openStockPicker(); }
+async function stkPickerPage() {
+  const pk = window.__pk;
+  const [universe, sectorsR, wlR] = await Promise.all([
+    stkUniverse(pk.market).catch(() => []),
+    api("/api/sectors?market=" + pk.market).catch(() => null),
+    api("/api/screener?market=" + pk.market + "&watchlist_only=1&limit=300").catch(() => null),
+  ]);
+  const stars = (wlR?.rows || []).map(r => r.symbol);
+  window.__scr = window.__scr || {}; window.__scr.watchlistSyms = stars;
+  let rows = universe || [];
+  if (pk.watchlist) rows = rows.filter(r => stars.includes(r.symbol));
+  if (pk.sector) {
+    const sr = await api("/api/sectors/stocks?plate=" + encodeURIComponent(pk.sector) + "&limit=100").catch(() => null);
+    rows = (sr?.rows || []);
+  }
+  if (pk.q.trim()) rows = stkMatches(pk.q, rows, 200);
+  window.__pkRows = rows;
+  const cards = rows.slice(0, 120).map(r => `<div class="pk-card" onclick="openStock('${esc(r.symbol)}')">
+    ${stars.includes(r.symbol) ? '<span class="star">★</span>' : ""}
+    <div class="s">${esc(r.symbol)}</div><div class="n" title="${esc(r.name || "")}">${esc(r.name || "")}</div>
+    <div class="m"><span>${stkFmt(r.price, 2)}</span>
+    <span class="${(r.pct ?? 0) >= 0 ? "g" : "r"}">${stkPct(r.pct)}</span></div></div>`).join("");
+  const secOpts = ((sectorsR?.sectors) || []).map(s =>
+    `<option value="${esc(s.code)}" ${pk.sector === s.code ? "selected" : ""}>${esc(s.plate_name || s.code)}</option>`).join("");
+  return `
+  <div class="panel">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <h2 style="margin:0">Quotes</h2>
+      <div class="stk-switch" style="flex:1;min-width:260px">
+        <input id="pk-search" placeholder="Search ticker or company name…" autocomplete="off" value="${esc(pk.q)}"
+          oninput="pkSet('q', this.value)" onfocus="this.select()">
+      </div>
+    </div>
+    <div class="pk-toolbar" style="margin-top:12px">
+      <label class="faint" style="font-size:11px">Market</label>
+      <select onchange="pkSet('market', this.value); pkSet('sector','')">
+        <option ${pk.market === "US" ? "selected" : ""}>US</option>
+        <option ${pk.market === "HK" ? "selected" : ""}>HK</option>
+      </select>
+      <label class="switch"><input type="checkbox" ${pk.watchlist ? "checked" : ""}
+        onchange="pkSet('watchlist', this.checked)"><i></i> Watchlist only</label>
+      <label class="faint" style="font-size:11px">Sector</label>
+      <select onchange="pkSet('sector', this.value)" style="max-width:280px">
+        <option value="">All sectors</option>${secOpts}
+      </select>
+      <span class="faint mono" style="margin-left:auto;font-size:11px">${rows.length} matches</span>
+    </div>
+    ${sectorsR && sectorsR.available === false ? '<div class="delay-note">Sector list needs moomoo keys on this deployment.</div>' : ""}
+    <div class="pk-grid">${cards || '<div class="empty">No matches. Clear the search or switch market.</div>'}</div>
+    ${rows.length > 120 ? `<div class="faint" style="font-size:10.5px;margin-top:8px">Showing first 120 of ${rows.length} — refine the search.</div>` : ""}
+    <div class="faint" style="font-size:10px;margin-top:10px">Universe: moomoo stock-screen top slices (market-cap ordered, ~1,200 per market) + your watchlist + sector members. Real-time quotes per symbol on the stock page.</div>
+  </div>`;
+}
+function openStockPicker() {
+  if (state.poll) { clearInterval(state.poll); state.poll = null; }
+  state.page = "quotes";
+  history.replaceState(null, "", "#/stocks");
+  document.querySelectorAll(".nav button").forEach(b =>
+    b.classList.toggle("on", b.dataset.page === "quotes"));
+  $("#page").innerHTML = '<div class="empty">Loading directory…</div>';
+  stkPickerPage().then(h => { $("#page").innerHTML = h; })
+    .catch(e => { $("#page").innerHTML = `<div class="panel"><div class="empty">Picker failed: ${esc(e.message || e)}</div></div>`; });
+}
+window.openStockPicker = openStockPicker;
+
 async function showPage(p) {
   // Leaving the stock page: clear its hash so back-nav lands on Market Pulse.
-  if (location.hash.startsWith("#/stock/")) history.replaceState(null, "", location.pathname + location.search);
+  if (/^#\/stock\//.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
   state.page = p;
-  document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("on", b.dataset.page === p));
+  document.querySelectorAll(".nav button").forEach(b =>
+    b.classList.toggle("on", b.dataset.page === p || (b.dataset.page === "quotes" && p === "stock")));
   if (state.poll) { clearInterval(state.poll); state.poll = null; }
   $("#page").innerHTML = '<div class="empty">Loading…</div>';
   try {
+    if (p === "quotes") {  // last-viewed symbol, else the ticker picker
+      const sym = stkState().sym;
+      if (sym) { openStock(sym); return; }
+      $("#page").innerHTML = await stkPickerPage();
+      return;
+    }
     if (p === "report") { $("#page").innerHTML = await reportPage(state.reportRef); chartInit(); return; }
     $("#page").innerHTML = await pages[p]();
     if (p === "settings") {
@@ -1939,11 +2102,12 @@ loadHealth();
 api("/api/meta").then(m => {
   $("#spend").textContent = `$${Number(m.spend?.cost_usd || 0).toFixed(3)} · ${m.spend?.runs || 0} runs`;
 }).catch(() => {});
-// stock-page routing: #/stock/{SYM}-US or the pretty /stock/{SYM}-US path; #/info
+// stock-page routing: #/stock/{SYM}-US or the pretty /stock/{SYM}-US path; #/info; #/stocks
 function stkRoute() {
   let m = location.hash.match(/^#\/stock\/([A-Za-z0-9.%_-]+)/);
   if (m) return { stock: decodeURIComponent(m[1]) };
   if (/^#\/info$/.test(location.hash)) return { info: true };
+  if (/^#\/stocks\b/.test(location.hash)) return { picker: true };
   m = location.pathname.match(/\/stock\/([A-Za-z0-9.%_-]+)/);
   return m ? { stock: decodeURIComponent(m[1]) } : null;
 }
@@ -1951,10 +2115,12 @@ window.addEventListener("hashchange", () => {
   const r = stkRoute();
   if (r?.stock) openStock(r.stock);
   else if (r?.info) showPage("info");
+  else if (r?.picker) openStockPicker();
 });
 { const r0 = stkRoute();
   if (r0?.stock) openStock(r0.stock);
   else if (r0?.info) showPage("info");
+  else if (r0?.picker) openStockPicker();
   else showPage("home"); }
 setInterval(loadHealth, 15000);
 </script>

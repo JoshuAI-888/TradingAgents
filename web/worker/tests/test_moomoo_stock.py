@@ -89,3 +89,20 @@ def test_find_news_news_type_and_community(client):
     c = client.calls[-1]
     assert c["path"] == "/quote/find-community"
     assert c["query"] == {"symbol": "CHE", "community_type": 1, "sort_type": 1, "size": 50}
+
+
+def test_plate_endpoints(client):
+    client.plate_list("US", "INDUSTRY")
+    c = client.calls[-1]
+    assert c["path"] == "/quote/plate-list"
+    assert c["query"] == {"market": "US", "plate_class": "INDUSTRY"}
+    client.plate_stocks("US.LIST2470", limit=60)
+    c = client.calls[-1]
+    assert c["path"] == "/quote/plate-stock"
+    assert c["query"] == {"plate_code": "US.LIST2470", "sort_field": "MarketCapital",
+                          "ascend": "false", "limit": 60}
+
+
+def test_find_community_lang(client):
+    client.find_community("MSFT", lang="en")
+    assert client.calls[-1]["query"]["lang"] == "en"

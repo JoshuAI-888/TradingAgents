@@ -374,6 +374,20 @@ def payload(key: str, symbol: str):
                    "publish_time": 1751357760,
                    "url": "https://www.moomoo.com/community/feed/wall-street-today-114774232858637",
                    "img_url": ""}]},
+              "plates:US:INDUSTRY": [
+                  {"code": "US.LIST2499", "plate_id": "LIST2499",
+                   "plate_name": "Pharmaceuticals", "sc_name": "医药", "tc_name": "醫藥"},
+                  {"code": "US.LIST2476", "plate_id": "LIST2476",
+                   "plate_name": "Software", "sc_name": "软件", "tc_name": "軟件"},
+                  {"code": "US.LIST2470", "plate_id": "LIST2470",
+                   "plate_name": "Semiconductors", "sc_name": "半导体", "tc_name": "半導體"}],
+              "plate-stocks:US.LIST2470": [
+                  {"symbol": "NVDA", "name": "NVIDIA", "price": 174.2, "pct": 2.1,
+                   "market_cap": 4250000000000.0},
+                  {"symbol": "AMD", "name": "Advanced Micro Devices", "price": 232.5,
+                   "pct": 1.4, "market_cap": 376000000000.0},
+                  {"symbol": "MU", "name": "Micron Technology", "price": 128.0,
+                   "pct": -0.6, "market_cap": 142000000000.0}],
               }
     if key in quotes:
         return quotes[key]

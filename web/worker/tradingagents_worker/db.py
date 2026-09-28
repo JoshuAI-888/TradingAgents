@@ -68,6 +68,17 @@ class Db:
         self._call("POST", f"{table}?on_conflict={on_conflict}", body=row,
                    prefer="resolution=merge-duplicates,return=minimal")
 
+    def upsert_many(self, table: str, on_conflict: str, rows: list[dict], chunk: int = 400) -> int:
+        """Bulk merge-duplicates upsert; returns the number of rows sent.
+        Single-row upserts make a 9k-stock universe ~9k HTTP calls — this is ~24."""
+        sent = 0
+        for i in range(0, len(rows), chunk):
+            batch = rows[i:i + chunk]
+            self._call("POST", f"{table}?on_conflict={on_conflict}", body=batch,
+                       prefer="resolution=merge-duplicates,return=minimal")
+            sent += len(batch)
+        return sent
+
     def update(self, table: str, filter: str, row: dict) -> None:
         self._call("PATCH", f"{table}?{filter}", body=row)
 
