@@ -266,43 +266,133 @@ _SCREEN_SORT_IDS = {"market_cap": 2301, "price": 2201, "pct": 2210}
 _SCREEN_RETRIEVE_IDS = [2201, 2202, 2204, 2205, 2207, 2208, 2210, 2215, 2301]
 _SCREEN_MARKET_ENUM = {"US": 2, "HK": 1}
 
+# The 21 recommended screeners, transcribed 1:1 from moomoo's preset pages
+# ("Applied Filters" text + the Selected chips, 2026-09-28). Filters over
+# fields the snapshot doesn't carry (ROE, growth rates, margins, RSI, sector…)
+# stay in the definition for fidelity — the filter engine skips them until the
+# factor data lands, and responses report what was skipped.
 PRESET_SCREENERS = [
-    {"key": "penny", "page": 1, "name": "Penny Stocks", "filters": [{"field": "price", "max": 5}]},
+    {"key": "penny", "page": 1, "name": "Penny Stocks",
+     "description": "Spot undervalued, low-priced stocks for substantial returns.",
+     "filters": [{"field": "price", "max": 5}, {"field": "market_cap", "max": 3e8},
+                 {"field": "volume", "min": 1e5},
+                 {"field": "revenue_growth", "min": 10, "needs": 1},
+                 {"field": "net_profit_growth", "min": 5, "needs": 1},
+                 {"field": "debt_ratio", "max": 40, "needs": 1}]},
     {"key": "high-div", "page": 1, "name": "High Dividend Stocks",
-     "filters": [{"field": "div_yield", "min": 5}]},
+     "description": "Spot high-yield, stable dividend stocks for reliable income.",
+     "filters": [{"field": "market_cap", "min": 2e9}, {"field": "pe_ttm", "max": 12},
+                 {"field": "div_yield", "min": 8},
+                 {"field": "debt_ratio", "max": 30, "needs": 1},
+                 {"field": "revenue_growth", "min": 5, "needs": 1}]},
     {"key": "blue-chip", "page": 1, "name": "Blue Chip Stocks",
-     "filters": [{"field": "market_cap", "min": 5e10}]},
+     "description": "Spot blue-chip stocks from well-established companies for reliable returns and low volatility.",
+     "filters": [{"field": "price", "min": 50}, {"field": "market_cap", "min": 1e11},
+                 {"field": "debt_ratio", "max": 50, "needs": 1},
+                 {"field": "revenue_growth", "min": 5, "needs": 1}]},
     {"key": "buffett", "page": 1, "name": "Warren Buffett Strategy",
-     "filters": [{"field": "market_cap", "min": 1e10}, {"field": "pe_ttm", "min": 0.01, "max": 15},
-                 {"field": "div_yield", "min": 1}]},
+     "description": "Spot stocks with strong earnings, growth potential, and recognized value for strategic long-term investment.",
+     "filters": [{"field": "float_cap", "min": 5e8},
+                 {"field": "net_profit_growth", "min": 10, "needs": 1},
+                 {"field": "gross_margin", "min": 50, "needs": 1},
+                 {"field": "op_ebt", "min": 70, "needs": 1},
+                 {"field": "roe", "min": 15, "needs": 1},
+                 {"field": "roe_yoy", "min": 20, "needs": 1}]},
     {"key": "undervalued", "page": 1, "name": "Undervalued Stocks",
-     "filters": [{"field": "pe_ttm", "min": 0.01, "max": 15}, {"field": "pb", "min": 0.01, "max": 1.5}]},
+     "description": "Spot stable, undervalued stocks for long-term growth.",
+     "filters": [{"field": "pe_ttm", "max": 15}, {"field": "pb", "max": 1.5},
+                 {"field": "div_yield", "min": 4},
+                 {"field": "debt_ratio", "max": 30, "needs": 1},
+                 {"field": "roe", "min": 15, "needs": 1},
+                 {"field": "revenue_growth", "min": 3, "needs": 1}]},
     {"key": "growth", "page": 1, "name": "Best Growth Stocks",
-     "filters": [{"field": "pct", "min": 0}, {"field": "volume_ratio", "min": 1.2},
-                 {"field": "pe_ttm", "min": 0.01}]},
+     "description": "Spot stocks with growth potential and solid financial standing.",
+     "filters": [{"field": "float_cap", "min": 5e8},
+                 {"field": "net_profit_growth", "min": 15, "needs": 1},
+                 {"field": "gross_margin", "min": 50, "needs": 1},
+                 {"field": "roe", "min": 15, "needs": 1},
+                 {"field": "roe_yoy", "min": 50, "needs": 1}]},
     {"key": "pb-lt-1", "page": 1, "name": "P/B Ratio Less Than 1",
-     "filters": [{"field": "pb", "min": 0.01, "max": 1}]},
-    {"key": "lt-high-div", "page": 1, "name": "Best Long Term High Dividend Stocks",
-     "filters": [{"field": "div_yield", "min": 3}, {"field": "market_cap", "min": 2e9}]},
+     "description": "Spot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.",
+     "filters": [{"field": "pb", "max": 1}]},
     {"key": "high-pe", "page": 2, "name": "High P/E Ratio Stocks",
-     "filters": [{"field": "pe_ttm", "min": 100}]},
+     "description": "Spot stocks with high P/E ratios, which suggest a profitable and sustainable business.",
+     "filters": [{"field": "pe_ttm", "min": 25}, {"field": "roe_yoy", "min": 30, "needs": 1}]},
     {"key": "good-pe", "page": 2, "name": "Good P/E Ratio Stocks",
-     "filters": [{"field": "pe_ttm", "min": 5, "max": 25}]},
+     "description": "Spot stocks with solid fundamentals and high P/E ratios for consistent profitability and returns.",
+     "filters": [{"field": "pe_ttm", "min": 20}, {"field": "eps_growth", "min": 5, "needs": 1},
+                 {"field": "div_yield", "min": 2}, {"field": "net_margin", "min": 10, "needs": 1}]},
     {"key": "low-pe", "page": 2, "name": "Low P/E Ratio Stocks",
-     "filters": [{"field": "pe_ttm", "min": 0.01, "max": 10}]},
+     "description": "Spot stocks with low P/E ratios, which are potentially undervalued for stable gains and reduced risk.",
+     "filters": [{"field": "pe_ttm", "max": 5}, {"field": "pb", "max": 3},
+                 {"field": "debt_ratio", "max": 60, "needs": 1}]},
     {"key": "rsi-30", "page": 2, "name": "Below 30 RSI Stocks",
-     "filters": [{"field": "rsi14", "max": 30}]},
-    {"key": "junk", "page": 2, "name": "Junk Stocks", "filters": [{"field": "price", "max": 1}]},
+     "description": "Spot stocks with an RSI value under 30, which may indicate a rebound from negative market sentiment.",
+     "filters": [{"field": "rsi14", "max": 30, "needs": 1}]},
+    {"key": "junk", "page": 2, "name": "Junk Stocks",
+     "description": "Spot small, high-risk, yet undervalued stocks with the potential for significant returns.",
+     "filters": [{"field": "pe_ttm", "min": 0}, {"field": "price", "max": 5},
+                 {"field": "market_cap", "max": 1e8}]},
     {"key": "small-growth", "page": 2, "name": "Small Cap Stocks with Huge Growth Potential",
-     "filters": [{"field": "market_cap", "max": 2e9}, {"field": "pct", "min": 1}]},
+     "description": "Spot small-cap stocks with significant growth potential.",
+     "filters": [{"field": "price", "min": 1}, {"field": "market_cap", "min": 2.5e8, "max": 2e9},
+                 {"field": "revenue_growth", "min": 20, "needs": 1},
+                 {"field": "rsi14", "min": 50, "needs": 1}]},
     {"key": "blue-chip-div", "page": 2, "name": "Blue Chip Dividend Stocks",
-     "filters": [{"field": "market_cap", "min": 1e10}, {"field": "div_yield", "min": 2}]},
+     "description": "Spot familiar blue-chip stocks with high dividends for dependable income and value investment.",
+     "filters": [{"field": "price", "min": 50}, {"field": "market_cap", "min": 1e11},
+                 {"field": "debt_ratio", "max": 50, "needs": 1},
+                 {"field": "div_yield", "min": 4}]},
+    {"key": "speculative", "page": 3, "name": "Speculative Stocks",
+     "description": "Spot high-risk, high-return stocks, including those at their recent 10-day low that may be undervalued and ready to rebound.",
+     "filters": [{"field": "price", "min": 5}, {"field": "market_cap", "min": 1e8},
+                 {"field": "net_margin", "min": 10, "needs": 1},
+                 {"field": "debt_ratio", "max": 50, "needs": 1},
+                 {"field": "new_low_10d", "min": 1, "needs": 1}]},
+    {"key": "high-roe", "page": 3, "name": "High Return On Equity Stocks",
+     "description": "Spot high-quality stocks with solid profitability, growth, and attractive dividends for long-term stability.",
+     "filters": [{"field": "roe", "min": 20, "needs": 1},
+                 {"field": "revenue_growth", "min": 5, "needs": 1},
+                 {"field": "div_yield", "min": 2}, {"field": "pe_ttm", "max": 25}]},
+    {"key": "lt-high-div", "page": 3, "name": "Low P/E High Dividend Stocks",
+     "description": "Spot financially stable, consistently growing stocks for secure and steady long-term returns.",
+     "filters": [{"field": "pe_ttm", "max": 15}, {"field": "div_yield", "min": 4},
+                 {"field": "revenue_growth", "min": 3, "needs": 1},
+                 {"field": "debt_ratio", "max": 50, "needs": 1}]},
+    {"key": "undervalued-semi", "page": 3, "name": "Undervalued Semiconductor Stocks",
+     "description": "Spot semiconductor sector stocks that are well-valued, financially robust, and profitable for attractive long-term returns.",
+     "filters": [{"field": "sector", "needs": 1},
+                 {"field": "pe_ttm", "max": 18}, {"field": "pb", "max": 5},
+                 {"field": "roe", "min": 10, "needs": 1}]},
+    {"key": "undervalued-tech", "page": 3, "name": "Undervalued Tech Stocks",
+     "description": "Spot tech stocks that are undervalued by the market.",
+     "filters": [{"field": "sector", "needs": 1},
+                 {"field": "pe_ttm", "max": 15}, {"field": "pb", "max": 5},
+                 {"field": "roe", "min": 10, "needs": 1}]},
+    {"key": "undervalued-banks", "page": 3, "name": "Undervalued Bank Stocks",
+     "description": "Spot bank stocks that are financially sound, reasonably valued, and highly profitable.",
+     "filters": [{"field": "sector", "needs": 1},
+                 {"field": "pe_ttm", "max": 10}, {"field": "pb", "max": 1},
+                 {"field": "roe", "min": 12, "needs": 1}]},
+    {"key": "high-eps", "page": 3, "name": "High EPS Stocks",
+     "description": "Spot stocks with favorable financial footing and high profitability for investment.",
+     "filters": [{"field": "price", "min": 5}, {"field": "market_cap", "min": 1e8},
+                 {"field": "eps", "min": 10}, {"field": "debt_ratio", "max": 50, "needs": 1}]},
 ]
 
 
-def _apply_filters(rows: list[dict], filters: list[dict]) -> list[dict]:
+def _apply_filters(rows: list[dict], filters: list[dict]) -> tuple[list[dict], list[str]]:
+    """Filter rows; a field absent from the whole universe SKIPS its filter
+    instead of failing every row (moomoo presets carry fundamental/technical
+    factors the snapshot doesn't provide yet). Returns (rows, skipped_fields)."""
+    present: set[str] = set()
+    for r in rows[:50]:
+        present.update(k for k, v in r.items() if v is not None)
+    active, skipped = [], []
+    for f in filters or []:
+        (active if f.get("field") in present else skipped).append(f)
     def keep(r: dict) -> bool:
-        for f in filters or []:
+        for f in active:
             v = r.get(f.get("field"))
             lo, hi = f.get("min"), f.get("max")
             if v is None:
@@ -316,7 +406,7 @@ def _apply_filters(rows: list[dict], filters: list[dict]) -> list[dict]:
             if hi is not None and v > float(hi):
                 return False
         return True
-    return [r for r in rows if keep(r)]
+    return [r for r in rows if keep(r)], [f.get("field") for f in skipped]
 
 
 def _sort_rows(rows: list[dict], sort: str, direction: int) -> list[dict]:
@@ -408,7 +498,7 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
     if rows is None and not watchlist_only:
         # Preferred whole-market source: the stored universe (loaded by the
         # universe_refresh job) — zero moomoo calls at view time.
-        stored = db.select("screener_quotes", {"market": f"eq.{market}"}, "row,updated_at")
+        stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "row,updated_at")
         if stored:
             rows = [r["row"] for r in stored if isinstance(r.get("row"), dict)]
             stamps = [r.get("updated_at") for r in stored if r.get("updated_at")]
@@ -438,7 +528,7 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
             except Exception as e:
                 return {"available": False, "reason": str(e)[:120], "rows": []}
         cache.put("quotes", universe_key, rows)
-    rows = _apply_filters(rows, flt)
+    rows, skipped = _apply_filters(rows, flt)
     # Always display-sort in Python: the server-side slices decide WHICH stocks
     # are in the universe; global ordering across the union happens here.
     rows = _sort_rows(rows, sort, direction)
@@ -446,6 +536,7 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
     rows = rows[:max(1, min(limit, 2000))]
     return {"available": True, "universe": "watchlist" if watchlist_only else market,
             "rows": rows, "count": matched, "matched": matched, "shown": len(rows),
+            "skipped_filters": skipped,
             "universe_loaded": universe_loaded or bool(rows), "universe_as_of": universe_as_of,
             "presets": PRESET_SCREENERS,
             "watchlist": _watchlist_symbols()}
@@ -472,7 +563,7 @@ def screener_presets(market: str = "US", universe: str = "auto"):
                 rows = []
             cache.put("quotes", uk, rows)
     else:
-        stored = db.select("screener_quotes", {"market": f"eq.{market}"}, "row")
+        stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "row")
         if stored:
             rows = [r["row"] for r in stored if isinstance(r.get("row"), dict)]
         else:

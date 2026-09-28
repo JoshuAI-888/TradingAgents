@@ -91,7 +91,7 @@ class UniverseRefresher:
 
     # ── quotes ────────────────────────────────────────────────────────────
     def _stored_codes(self) -> list[str]:
-        rows = self.db.select("screener_universe", {"market": f"eq.{self.market}"}, "code")
+        rows = self.db.select_all("screener_universe", {"market": f"eq.{self.market}"}, "code")
         return [r["code"] for r in rows]
 
     def refresh_quotes(self) -> dict:

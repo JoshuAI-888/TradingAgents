@@ -1554,9 +1554,11 @@ const STK_TOOLS = [["cursor", "✛", "Cross cursor (default)"],
                    ["clear", "✕ Clear", "Remove all drawings"]];
 const STK_OVERLAYS = { segment: "segment", hline: "horizontalStraightLine", ray: "rayLine",
                        vline: "verticalStraightLine", channel: "parallelStraightLine", fib: "fibonacciLine" };
-const STK_MA_COLORS = [{ color: "#f2c14e" }, { color: "#3fc1c9" }, { color: "#e05fa0" },
-                       { color: "#a06bfa" }, { color: "#9aa7ff" }];
-const STK_EMA_COLORS = [{ color: "#f2c14e" }, { color: "#e05fa0" }, { color: "#9aa7ff" }];
+// dashedValue is required — the draw pass reads dashedValue[0] on every segment.
+const STK_LINE = color => ({ style: "solid", smooth: false, color, size: 1.1, dashedValue: [4, 4] });
+const STK_MA_COLORS = [STK_LINE("#f2c14e"), STK_LINE("#3fc1c9"), STK_LINE("#e05fa0"),
+                       STK_LINE("#a06bfa"), STK_LINE("#9aa7ff")];
+const STK_EMA_COLORS = [STK_LINE("#f2c14e"), STK_LINE("#e05fa0"), STK_LINE("#9aa7ff")];
 
 function stkChartTeardown() {
   if (__stkChart) { try { __stkChart.destroy(); } catch (e) {} }
@@ -1605,15 +1607,17 @@ function stkApplyChartOpts(forceRebuild) {
   [["MA", ch.ma, { name: "MA", calcParams: [5, 10, 20, 30, 60], styles: { lines: STK_MA_COLORS } }],
    ["EMA", ch.ema, { name: "EMA", calcParams: [12, 26, 50], styles: { lines: STK_EMA_COLORS } }],
    ["BOLL", ch.boll, { name: "BOLL", calcParams: [20, 2] }]].forEach(([name, on, value]) => {
-    const has = !!c.getIndicatorByPaneId("candle_pane", name);
-    if (on && !has) c.createIndicator(value, false, { id: "candle_pane" });
+    let has = !!c.getIndicatorByPaneId("candle_pane", name);
+    // isStack=true stacks into the pane — isStack=false would REPLACE the
+    // pane's whole indicator set and drop the previously created lines.
+    if (on && !has) has = !!c.createIndicator(value, true, { id: "candle_pane" });
     if (!on && has) c.removeIndicator("candle_pane", name);
   });
   if (__stkSubCur !== ch.sub) {
     if (__stkSubCur) c.removeIndicator("stk_sub", __stkSubCur);
     // Plain name only — a partial styles object replaces the built-in one and
     // breaks the VOL indicator's own MA overlay (draw reads styles.lines[0]).
-    if (ch.sub) c.createIndicator(ch.sub, false, { id: "stk_sub", height: 92 });
+    if (ch.sub) c.createIndicator(ch.sub, true, { id: "stk_sub", height: 92 });
     __stkSubCur = ch.sub;
   }
 }
@@ -1690,6 +1694,7 @@ function stkInitChartWithData(el, data) {
     __stkChart.subscribeAction("onCrosshair", stkCrosshair);
     window.onresize = () => { if (__stkChart) __stkChart.resize(); };
   }
+  stkApplyChartOpts();
   __stkChart.applyNewData(data);
   stkApplyChartOpts();
   stkDrawPrevLine();

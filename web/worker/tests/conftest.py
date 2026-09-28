@@ -58,6 +58,8 @@ class FakeSupa(Db):
                 rows.sort(key=lambda r: str(r.get(col, "")), reverse=direction == "desc")
             elif k == "limit":
                 rows = rows[: int(v)]
+            elif k == "offset":
+                rows = rows[int(v):]
             elif v.startswith("eq."):
                 rows = [r for r in rows if str(r.get(k)) == v[3:]]
             elif v.startswith("lte."):

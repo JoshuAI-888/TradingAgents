@@ -87,6 +87,23 @@ class Db:
         out = self._call("GET", table, query=q)
         return out if isinstance(out, list) else []
 
+    def select_all(self, table: str, query: dict | None = None, columns: str = "*",
+                   page: int = 1000, cap: int = 20000) -> list:
+        """Read past PostgREST's default row cap by paging with limit/offset.
+        Postgres row-level caps silently truncate big tables (a 5.8k-stock
+        universe read back as 1000)."""
+        base = {k: v for k, v in (query or {}).items() if k != "limit"}
+        out: list = []
+        offset = 0
+        while offset < cap:
+            rows = self.select(table, {**base, "limit": str(page), "offset": str(offset)},
+                               columns)
+            out.extend(rows)
+            if len(rows) < page:
+                return out
+            offset += page
+        return out
+
     # ── helper RPCs (installed by 0002) ──────────────────────────────────
     def requeue_rpc_exists(self) -> bool:
         try:
