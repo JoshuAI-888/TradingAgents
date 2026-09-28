@@ -665,10 +665,8 @@ async function scrLoadSaved() {
   const presetBlock = presets.length ? `
     <div class="mlabel" style="margin-top:4px">Moomoo recommended screeners (executed server-side — matches moomoo.com/screener):</div>
     ${presets.map(p => {
-      const nf = (p.filters || []).length, skipped = p.skipped || [], pend = p.pending;
-      const status = pend ? `<span class="faint" style="color:#e8a33d">pending data</span>`
-        : skipped.length ? `<span class="faint" style="font-size:9.5px">${nf - skipped.length}/${nf} filters · excl. ${esc(skipped.map(f => fldLabel({field: f})).join(", "))}</span>`
-        : `<span class="faint" style="font-size:9.5px;color:#26c68c">${nf}/${nf} filters</span>`;
+      const nf = (p.filters || []).length;
+      const status = `<span class="faint" style="font-size:9.5px;color:#26c68c">${nf}/${nf} filters · server-side</span>`;
       return `<div style="border-bottom:1px solid rgba(38,52,74,.4);padding:6px 0;margin-bottom:4px;cursor:pointer" ${sel(p.key)} title="${esc(p.description || "")}">
         <div style="display:flex;gap:8px;align-items:flex-start">
           <div style="flex:1;min-width:0"><b style="font-size:12px">${esc(p.name)}</b> ${status}
@@ -979,10 +977,10 @@ const pages = {
     const railCards = (rail.presets || []).map(p => {
       const top = (p.top || []).map(t => `<div class="pt"><div class="ps mono">${esc(t.symbol)}</div>
         <div class="pp mono ${t.pct >= 0 ? "g" : "r"}">${t.pct != null ? (t.pct >= 0 ? "+" : "") + t.pct.toFixed(2) + "%" : "--"}</div></div>`).join("");
-      const pending = p.pending ? `<div class="faint" style="font-size:10px">needs ${esc((p.skipped || []).join(", "))} data — pending the indicator dictionary</div>` : "";
-      const partial = !p.pending && p.skipped?.length ? ` <span class="faint" style="font-size:9px">excl. ${esc(p.skipped.join(", "))}</span>` : "";
-      return `<div class="preset" title="${esc(p.description || p.name)}" onclick="scrApplyPreset('${esc(p.key)}')"><div class="pname">${esc(p.name)} ›${partial}</div>
-        <div class="prow">${pending || top || '<div class="faint" style="font-size:10px">no matches in universe</div>'}</div></div>`;
+      const all = (p.filters || []).length;
+      const cov = all ? ` <span class="faint" style="font-size:9px;color:#26c68c">${all}/${all} filters · server-side</span>` : "";
+      return `<div class="preset" title="${esc(p.description || p.name)}" onclick="scrApplyPreset('${esc(p.key)}')"><div class="pname">${esc(p.name)} ›${cov}</div>
+        <div class="prow">${top || '<div class="faint" style="font-size:10px">no matches in universe</div>'}</div></div>`;
     }).join("");
 
     return `

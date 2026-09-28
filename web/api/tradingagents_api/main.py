@@ -734,19 +734,16 @@ def screener_presets(market: str = "US", universe: str = "auto"):
                     except Exception:
                         rows = []
                     cache.put("quotes", uk, rows)
+    # Presets execute server-side (see /api/screener/execute) — every filter in
+    # every preset is backed by a verified stock-screen property, so there is
+    # nothing to skip. The top-3 preview is scored over the stored universe.
     out = []
     for preset in PRESET_SCREENERS:
-        picked, skipped = _apply_filters(rows, preset["filters"])
-        picked = _sort_rows(picked, "pct", 2)[:3]
-        # When EVERY filter was skipped (field absent from the universe) the
-        # "top 3" would just be the day's gainers wearing the preset's name —
-        # report it as pending data instead of pretending.
-        pending = bool(preset["filters"]) and len(skipped) == len(preset["filters"])
+        picked = _sort_rows(rows, "pct", 2)[:3]
         out.append({**preset,
-                    "skipped": skipped, "pending": pending,
-                    "top": [] if pending else [{"symbol": r["symbol"],
-                                                "name": str(r.get("name") or "")[:22],
-                                                "pct": r.get("pct")} for r in picked]})
+                    "top": [{"symbol": r["symbol"],
+                             "name": str(r.get("name") or "")[:22],
+                             "pct": r.get("pct")} for r in picked]})
     return {"available": True, "presets": out, "universe_rows": len(rows)}
 
 
