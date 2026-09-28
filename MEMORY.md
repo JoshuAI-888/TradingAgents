@@ -87,6 +87,20 @@ for the green confirmation.
 
 ---
 
+## 2026-09-29 — Market Pulse 'r3 is not defined' after clicking a preset (production)
+
+ Screener preset round (70b1d18) left a destructure/read mismatch in `pages.home()`'s
+ active-preset branch: `const [r0, r1, r2, r4, ex] = await Promise.allSettled(...)` named the
+ presets result **r4**, but the rail line read **r3** → ReferenceError killed the entire page
+ render ("Failed to load: r3 is not defined") whenever `st.activePreset` was set. Only the
+ preset path crashed; the no-preset branch used a different settled/val pattern. One-line
+ rename (r4→r3), committed surgically (27ef48e) on top of HEAD without sweeping concurrent
+ WIP (temp-copy dance: commit HEAD+fix, restore working tree). Verified live: fixture-mode
+ render with activePreset set → full page, no error banner; production serves the fixed line.
+ Lesson: this page has no test harness — the error surfaced only through user clicks. The
+ visible script-error banner + `window.__lastScriptError` remain the best first probe.
+---
+
 ## 2026-09-27 — Portal aligned to approved v2 mockup (report dossier shipped)
 
 **Gap closure** (owner: "compare to mockup, fix gaps"): the live portal showed only

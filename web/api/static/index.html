@@ -124,7 +124,7 @@ details .body p,.turn-b,.trace,.thesis,.news .d{overflow-wrap:anywhere}
 /* debate transcript: one card per speaker turn */
 .turn{border:1px solid var(--line);border-left-width:3px;border-radius:9px;padding:10px 14px;margin:0 0 10px;background:var(--panel2)}
 .turn .sp{font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;display:inline-block;padding:2px 8px;border-radius:4px;margin-bottom:7px}
-.turn-b{font-size:13px;line-height:1.75;color:#c3cfdf}
+.turn-b{font-size:13px;line-height:1.75;color:#c3cfdf;max-width:92ch}
 .sp-bull{background:rgba(38,198,140,.15);color:var(--green)} .turn.b-bull{border-left-color:var(--green)}
 .sp-bear{background:rgba(240,84,79,.15);color:var(--red)} .turn.b-bear{border-left-color:var(--red)}
 .sp-agg{background:rgba(38,198,140,.15);color:var(--green)} .turn.b-agg{border-left-color:var(--green)}
@@ -519,6 +519,19 @@ function scrResetAll() {
   st.filters = []; st.colFilters = {}; st.sort = "market_cap"; st.dir = 2;
   scrPersist(); showPage("home");
 }
+function scrToggleColPick() {
+  const existing = document.getElementById("scr-colpick");
+  if (existing) { existing.remove(); return; }
+  const m = document.createElement("div"); m.id = "scr-colpick";
+  m.innerHTML = `<div style="position:fixed;inset:0;z-index:60" onclick="scrColPickClose()"></div>
+    <div class="mbox" style="width:270px;max-height:none;position:fixed;top:16%;right:14px;left:auto;z-index:61">
+      <div class="mhead"><b>Columns</b> <button class="btn ghost" onclick="scrColPickClose()">✕</button></div>
+      <div class="msvwrap">${Object.entries(SCR_COLS).map(([k, [label]]) =>
+        `<label class="msv"><input type="checkbox" ${window.__scr.cols.includes(k) ? "checked" : ""} onchange="scrToggleCol('${k}')"> ${esc(label)}</label>`).join("")}</div>
+    </div>`;
+  document.body.appendChild(m);
+}
+function scrColPickClose() { const m = document.getElementById("scr-colpick"); if (m) m.remove(); }
 function scrToggleCol(k) {
   const st = window.__scr, i = st.cols.indexOf(k);
   if (i >= 0) { if (st.cols.length > 1) st.cols.splice(i, 1); } else st.cols.push(k);
@@ -682,9 +695,9 @@ async function scrLoadSaved() {
     window.__savedScreeners = savedRows;
   } catch (e) { dbDown = true; }
   const presets = window.__scrPresets || [];
-  const sel = id => `onclick="scrApplyPreset('${esc(id)}')"`;
+  const sel = id => `onclick="scrPresetEdit('${esc(id)}')"`;
   const presetBlock = presets.length ? `
-    <div class="mlabel" style="margin-top:4px">Moomoo recommended screeners (executed server-side — matches moomoo.com/screener):</div>
+    <div class="mlabel" style="margin-top:4px">Moomoo recommended screeners — click one to view, tune and save its filters:</div>
     ${presets.map(p => {
       const nf = (p.filters || []).length;
       const status = `<span class="faint" style="font-size:9.5px;color:#26c68c">${nf}/${nf} filters · server-side</span>`;
@@ -707,7 +720,7 @@ async function scrLoadSaved() {
           <div class="faint mono" style="font-size:10px">${esc(s.market)}${s.watchlist_only ? " · watchlist" : " · full market"} · ${(s.filters || []).length} filters · ${(s.filters || []).map(fldStr).join(" · ")}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-          <button class="btn ghost" style="padding:3px 9px;font-size:10.5px" onclick="scrApplySaved('${esc(s.id)}')">Apply</button>
+          <button class="btn ghost" style="padding:3px 9px;font-size:10.5px" onclick="scrSavedEditPane('${esc(s.id)}')">Open</button>
           <button class="btn ghost" style="padding:3px 9px;font-size:10.5px" onclick="scrEditSaved('${esc(s.id)}')">Edit</button>
           ${window.__scrEditId === s.id ? `<button class="btn primary" style="padding:3px 9px;font-size:10.5px" onclick="scrUpdateSaved('${esc(s.id)}')">Update</button>` : ""}
           <button class="btn ghost" style="padding:3px 9px;font-size:10.5px;color:#f0a4a0" onclick="scrDeleteSaved('${esc(s.id)}')">Delete</button>
@@ -716,7 +729,9 @@ async function scrLoadSaved() {
       : '<div class="faint" style="font-size:11px;margin-top:10px">No saved screeners yet — set filters on the screener, then save them with the box below.</div>');
   const editNote = window.__scrEditId
     ? `<div class="mnote">Editing a saved screener — adjust the filters on the Quotes tab, then press Update on its row. <a href="#" onclick="window.__scrEditId=null;scrRenderModal();return false">cancel</a></div>` : "";
-  host.innerHTML = editNote + presetBlock + savedBlock
+  host.innerHTML = `<div style="display:grid;grid-template-columns:1fr 300px;gap:14px;align-items:start">
+    <div>${editNote}${presetBlock}${savedBlock}</div>
+    <div id="scr-editpane"><div class="mlabel">← Click a screener to view, tune and save its filters.</div></div></div>`
     + `<div class="faint" style="font-size:10px;margin-top:8px">Saving captures the current screener: ${esc(st.market)} · ${st.watchlistOnly ? "watchlist" : "full market"} · ${st.filters.length} filters · sort ${esc(st.sort)} ${st.dir === 2 ? "down" : "up"}</div>`;
 }
 function scrCurrentScreenerState() {
@@ -748,6 +763,69 @@ async function scrApplySaved(id) {
   if (s.direction) st.dir = s.direction;
   scrModalClose();
   showPage("home");
+}
+function scrPresetEdit(key) {
+  const p = (window.__scrPresets || []).find(x => x.key === key);
+  if (!p) return;
+  window.__presetDraft = { key, name: p.name, description: p.description || "",
+                           filters: JSON.parse(JSON.stringify(p.filters || [])) };
+  scrRenderEditPane();
+}
+function scrSavedEditPane(id) {
+  const s = (window.__savedScreeners || []).find(x => x.id === id);
+  if (!s) return;
+  window.__presetDraft = { key: "saved:" + s.id, name: s.name, description: s.description || "",
+                           filters: JSON.parse(JSON.stringify(s.filters || [])), savedId: s.id };
+  scrRenderEditPane();
+}
+function scrRenderEditPane() {
+  const host = document.getElementById("scr-editpane");
+  const d = window.__presetDraft;
+  if (!host || !d) return;
+  const rows = d.filters.map((f, i) => `<div style="margin-bottom:9px">
+    <div style="font-size:11.5px;font-weight:600;margin-bottom:3px">${esc(fldLabel(f))}</div>
+    <div style="display:flex;gap:6px">
+      <input type="number" placeholder="min" value="${f.min ?? ""}" style="flex:1;background:var(--panel2);border:1px solid var(--line);color:#dbe6f3;border-radius:6px;padding:4px 6px;font-size:11px" oninput="scrDraftFilterVal(${i},'min',this.value)">
+      <input type="number" placeholder="max" value="${f.max ?? ""}" style="flex:1;background:var(--panel2);border:1px solid var(--line);color:#dbe6f3;border-radius:6px;padding:4px 6px;font-size:11px" oninput="scrDraftFilterVal(${i},'max',this.value)">
+    </div></div>`).join("") || '<div class="faint" style="font-size:11px">This screener has no editable filters.</div>';
+  host.innerHTML = `<div class="mlabel" style="margin-bottom:6px">Edit filters</div>
+    <div style="max-height:300px;overflow:auto">${rows}</div>
+    <div style="margin:10px 0 6px"><input id="scr-ed-name" placeholder="Name" value="${esc(d.name)}" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:#dbe6f3;border-radius:6px;padding:5px 8px;font-size:11.5px"></div>
+    <div style="margin-bottom:10px"><input id="scr-ed-desc" placeholder="Description (optional)" value="${esc(d.description)}" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:#dbe6f3;border-radius:6px;padding:5px 8px;font-size:11px"></div>
+    <div class="actions" style="flex-wrap:wrap;gap:6px">
+      <button class="btn primary" style="padding:4px 10px;font-size:11px" onclick="scrEditApply()">Apply to table</button>
+      <button class="btn" style="padding:4px 10px;font-size:11px" onclick="scrEditSave()">${d.savedId ? "Update saved" : "Save screener"}</button>
+    </div>
+    <div id="scr-edit-out" class="faint" style="font-size:10.5px;margin-top:6px"></div>`;
+}
+function scrDraftFilterVal(i, k, v) {
+  const d = window.__presetDraft;
+  if (d && d.filters[i]) d.filters[i][k] = v === "" ? null : Number(v);
+}
+function scrEditApply() {
+  const d = window.__presetDraft;
+  if (!d) return;
+  const st = window.__scr;
+  st.filters = JSON.parse(JSON.stringify(d.filters));
+  st.activePreset = null;
+  scrPersist();
+  scrModalClose();
+  showPage("home");
+}
+async function scrEditSave() {
+  const d = window.__presetDraft;
+  if (!d) return;
+  const out = document.getElementById("scr-edit-out");
+  const body = { name: document.getElementById("scr-ed-name").value || d.name,
+                 description: document.getElementById("scr-ed-desc").value || null,
+                 market: window.__scr.market || "US", watchlist_only: !!window.__scr.watchlistOnly,
+                 filters: d.filters, sort: window.__scr.sort || "market_cap",
+                 direction: window.__scr.dir || 2 };
+  try {
+    if (d.savedId) await api("/api/screeners/" + d.savedId, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    else await api("/api/screeners", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (out) out.textContent = d.savedId ? "updated ✓" : "saved ✓ — find it under Your saved screeners";
+  } catch (e) { if (out) out.textContent = "save failed: " + (e.message || e); }
 }
 function scrEditSaved(id) {
   const s = (window.__savedScreeners || []).find(x => x.id === id);
@@ -988,9 +1066,7 @@ const pages = {
       return `<span class="chip-f">${esc(label)}: ${esc(val)}<a href="#" onclick="scrClearColFilter('${k}');return false" class="chip-x">×</a></span>`;
     }).join("");
     const allChips = colChips + colFilChips;
-    const colMenu = `<details class="colpick"><summary class="btn ghost" style="display:inline-flex">Columns (${st.cols.length})</summary>
-      <div class="colpick-list">${Object.entries(SCR_COLS).map(([k, [label]]) =>
-        `<label class="msv"><input type="checkbox" ${st.cols.includes(k) ? "checked" : ""} onchange="scrToggleCol('${k}')"> ${esc(label)}</label>`).join("")}</div></details>`;
+    const colMenu = `<button class="btn ghost" onclick="scrToggleColPick()">Columns (${st.cols.length})</button>`;
     const table = `<table class="scr-table"><tr><th>No.</th>${st.cols.map(th).join("")}<th></th></tr>
       ${body || '<tr><td colspan="' + (st.cols.length + 2) + '" class="empty">No rows match — loosen or reset the filters (Reset all in the toolbar).</td></tr>'}</table>`;
 
@@ -1240,13 +1316,15 @@ const TURN_SPEAKERS = [
 ];
 function parseTurns(content) {
   const names = TURN_SPEAKERS.flatMap(s => [s[0], s[0].replace(/ /g, "")]);
-  const re = new RegExp("(^|[\\n\\s])(" + names.join("|") + "):", "g");
+  // boundary = start or any non-letter: handles "text\nBull Analyst:" and the
+  // spaceless legacy form "...position.BearAnalyst:..." alike
+  const re = new RegExp("(^|[^A-Za-z])(" + names.join("|") + "):", "g");
   const text = String(content || "");
   const starts = [];  // index where each "Speaker:" label begins
   let m;
   while ((m = re.exec(text)) !== null) {
     starts.push(m.index + m[1].length);
-    re.lastIndex = m.index + m[1].length + m[2].length + 1;  // labels abut in legacy run-on text
+    re.lastIndex = m.index + m[0].length;
   }
   if (!starts.length) return [{ speaker: null, text: text }];
   const turns = [];
@@ -1261,24 +1339,31 @@ function parseTurns(content) {
 }
 function approxSpacing(text) {
   // Legacy rows lost every space at write time; reintroduce word boundaries
-  // heuristically (lowercase→Capital, around punctuation, letter→digit).
-  // Approximate by nature — panels show a notice when applied.
-  return text
-    .replace(/([a-z]{2})(?=[A-Z])/g, "$1 ")
-    .replace(/([.:;!?\u2014])(?=[A-Za-z])/g, "$1 ")
-    .replace(/([a-z])(?=\d)/g, "$1 ")
-    .replace(/(\d|%)(?=[A-Z][a-z])/g, "$1 ")
+  // heuristically (case changes, punctuation, digit/letter edges). Approximate
+  // by nature — all-lowercase runs stay fused; panels show a notice when used.
+  const spaced = text
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/([.:;!?\u2014,])([A-Za-z])/g, "$1 $2")
+    .replace(/([A-Za-z])(\d)/g, "$1 $2")
+    .replace(/(\d)([A-Za-z])/g, "$1 $2")
     .replace(/\s+/g, " ")
     .trim();
+  // paragraph the turn every ~2 sentences so it doesn't reform as a wall
+  const sentences = spaced.split(/(?<=[.!?])\s+(?=[A-Z])/);
+  const paras = [];
+  for (let i = 0; i < sentences.length; i += 2) paras.push(sentences.slice(i, i + 2).join(" "));
+  return paras.join("\n\n");
 }
 function debateTurnsHtml(content) {
-  const turns = parseTurns(content);
-  const legacy = turns.some(t => !t.text.includes(" ") && t.text.length > 60);
+  const text0 = String(content || "");
+  const turns = parseTurns(text0);
+  // legacy = stored by the pre-fix build: long text with almost no spaces
+  const legacy = text0.length > 400 && (text0.match(/ /g) || []).length / text0.length < 0.05;
   const html = turns.map(t => {
-    const text = t.text.includes(" ") ? t.text : approxSpacing(t.text);
+    const body = legacy && !t.text.includes(" ") ? approxSpacing(t.text) : t.text;
     const s = t.speaker || ["", "open", "Opening"];
     return `<div class="turn b-${s[1]}"><span class="sp sp-${s[1]}">${esc(s[2] || s[0])}</span>
-      <div class="turn-b">${md(text)}</div></div>`;
+      <div class="turn-b">${md(body)}</div></div>`;
   }).join("");
   return (legacy ? `<div class="delay-note" style="margin-bottom:10px">Stored by the pre-fix pipeline build, which stripped word spacing; speaker turns and approximate spacing restored here — wording is exact, gaps are best-effort.</div>` : "") + html;
 }
@@ -1321,16 +1406,35 @@ async function reportPage(ref) {
 
   const reportStages = ["analyst_market", "analyst_social", "analyst_news", "analyst_fundamentals", "research_manager", "trader", "portfolio_manager"];
   const reportMap = {}; (r.reports || []).forEach(x => reportMap[x.stage] = x);
-  const agents = [];
-  for (const st of reportStages) if (reportMap[st]) {
-    const open = st === "portfolio_manager" || st === "analyst_market" ? " open" : "";
-    agents.push(`<details${open}><summary>${agentLabel(st)}<span class="m">${reportMap[st].quality_grade ? "grade " + esc(reportMap[st].quality_grade) + " · " : ""}${esc(reportMap[st].content_markdown.length)} chars</span></summary><div class="body">${md(reportMap[st].content_markdown)}</div></details>`);
-  }
   const deb = dt => (r.debates || []).filter(x => x.debate_type === dt);
-  if (deb("research").length) agents.push(`<details><summary>Bull / Bear debate — full transcript<span class="m">${deb("research").length} message(s)</span></summary><div class="body">${deb("research").map(x => `<p class="bubble-u">${md(x.content)}</p>`).join("")}</div></details>`);
-  if (deb("risk").length) agents.push(`<details><summary>Risk debate — Aggressive / Conservative / Neutral<span class="m">${deb("risk").length} message(s)</span></summary><div class="body">${deb("risk").map(x => `<p>${md(x.content)}</p>`).join("")}</div></details>`);
   const rawDecision = dec?.full_decision?.raw;
-  if (rawDecision && !reportMap.portfolio_manager) agents.push(`<details open><summary>Portfolio Manager — final decision<span class="m">raw engine output</span></summary><div class="body">${md(rawDecision)}</div></details>`);
+  const sec = (label, sub) => `<div class="agent-sec"><span class="kick">${label}</span>${sub ? `<span class="faint" style="font-size:10.5px">${esc(sub)}</span>` : ""}</div>`;
+  const reportCard = (st, label, open) => `<details${open ? " open" : ""}><summary>${esc(label)}<span class="m">${reportMap[st].quality_grade ? "grade " + esc(reportMap[st].quality_grade) + " · " : ""}${esc(reportMap[st].content_markdown.length)} chars</span></summary><div class="body">${md(reportMap[st].content_markdown)}</div></details>`;
+
+  // Decision first, then the reasoning chain that produced it (research → plan
+  // → risk), then the underlying analyst reports. Sections, not a flat list.
+  const agents = [];
+  if (reportMap.portfolio_manager)
+    agents.push(sec("Final decision", "the call, in the portfolio manager's own words"),
+      `<details open><summary>Portfolio Manager — final decision<span class="m">${reportMap.portfolio_manager.quality_grade ? "grade " + esc(reportMap.portfolio_manager.quality_grade) + " · " : ""}${esc(reportMap.portfolio_manager.content_markdown.length)} chars</span></summary><div class="body">${md(reportMap.portfolio_manager.content_markdown)}</div></details>`);
+  else if (rawDecision)
+    agents.push(sec("Final decision", "the call, in the portfolio manager's own words"),
+      `<details open><summary>Portfolio Manager — final decision<span class="m">raw engine output</span></summary><div class="body">${md(rawDecision)}</div></details>`);
+  if (deb("research").length)
+    agents.push(sec("Reasoning — bull vs bear", "the debate the decision was argued from"),
+      `<details><summary>Bull / Bear debate — full transcript<span class="m">${deb("research").length} message(s)</span></summary><div class="body">${deb("research").map(x => debateTurnsHtml(x.content)).join("")}</div></details>`);
+  if (reportMap.research_manager)
+    agents.push(reportCard("research_manager", "Research Manager — synthesis & plan"));
+  if (reportMap.trader)
+    agents.push(reportCard("trader", "Trader — proposal"));
+  if (deb("risk").length)
+    agents.push(sec("Reasoning — risk debate", "aggressive / conservative / neutral weigh the proposal"),
+      `<details><summary>Risk debate — full transcript<span class="m">${deb("risk").length} message(s)</span></summary><div class="body">${deb("risk").map(x => debateTurnsHtml(x.content)).join("")}</div></details>`);
+  const analystCards = ["analyst_market", "analyst_social", "analyst_news", "analyst_fundamentals"]
+    .filter(st => reportMap[st])
+    .map(st => reportCard(st, agentLabel(st), st === "analyst_market"));
+  if (analystCards.length)
+    agents.push(sec("Reasoning — analyst reports", "the raw evidence each analyst gathered"), ...analystCards);
 
   const trace = (r.events || []).slice(-60).map(e => {
     const cls = /qc|gate|settle/i.test(e.stage) ? "sys" : /fail/i.test(e.status || "") || /error/i.test(e.message || "") ? "bad" : /start|progress/i.test(e.status || "") ? "ag" : "sys";
@@ -1453,7 +1557,7 @@ async function reportPage(ref) {
         ${dg?.news?.length ? `<div style="margin-top:10px" class="faint">${(dg.news.filter(n => !newsClassFor(n.title))).length} classified item(s) not in the stored feed shown above.</div>` : ""}
       </div>
 
-      <div class="panel"><h3 class="sec">Agent outputs — complete <small>all reports &amp; debates, unedited</small></h3>
+      <div class="panel"><h3 class="sec">Agent outputs — complete <small>final decision first, then the full reasoning chain · all reports &amp; debates unedited</small></h3>
         ${agents.length ? agents.join("") : '<div class="empty">Agent reports persist when the run completes.</div>'}
       </div>
 

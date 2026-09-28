@@ -682,6 +682,11 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
         cache.put("quotes", universe_key, rows)
     if rows:
         rows = _merge_universe_meta(rows, market)
+    # Parity with moomoo's screener count: their 9,381 is common stocks only.
+    # Our stored universe also holds ETFs/indices/warrants (for stock pages);
+    # restrict to STOCK unless the user explicitly filters Type.
+    if not any(f.get("field") == "stock_type" for f in flt):
+        rows = [r for r in rows if r.get("stock_type") in ("STOCK", None)]
     rows, skipped = _apply_filters(rows, flt)
     # Always display-sort in Python: the server-side slices decide WHICH stocks
     # are in the universe; global ordering across the union happens here.
@@ -736,7 +741,9 @@ def screener_presets(market: str = "US", universe: str = "auto"):
                     cache.put("quotes", uk, rows)
     # Presets execute server-side (see /api/screener/execute) — every filter in
     # every preset is backed by a verified stock-screen property, so there is
-    # nothing to skip. The top-3 preview is scored over the stored universe.
+    # nothing to skip. The top-3 preview is scored over the stored universe,
+    # restricted to common stocks for parity with moomoo's screener count.
+    rows = [r for r in rows if r.get("stock_type") in ("STOCK", None)]
     out = []
     for preset in PRESET_SCREENERS:
         picked = _sort_rows(rows, "pct", 2)[:3]
