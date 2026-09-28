@@ -47,7 +47,10 @@ def test_legacy_detector_and_sanity():
     assert is_legacy_row(MANGLED) and not is_legacy_row("normal spaced text " * 40)
     assert _plausibly_same("AB cdef.", "ab CD ef . ")
     assert not _plausibly_same("abcdef", "abcxef")
-    assert list(_chunks("a" * 50, cap=20)) == ["a" * 20, "a" * 20, "a" * 10]
+    chunks = list(_chunks("a" * 50, cap=20))
+    assert chunks == ["a" * 20, "a" * 20, "a" * 10]
+    # chunks stay small enough for a verbatim LLM echo
+    assert all(len(c) <= 2000 for c in _chunks("x" * 10000))
 
 
 def test_rehydrate_restores_preserves_and_summarizes(monkeypatch, fake_db):

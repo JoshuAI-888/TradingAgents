@@ -17,7 +17,7 @@ import time
 
 from .db import Db
 
-_CHUNK = 7000
+_CHUNK = 2000  # the echo must be verbatim; flash models start dropping text well above this
 _MAX_ROWS_PER_PASS = 4
 
 
@@ -53,8 +53,9 @@ def _restore_spacing(client, text: str) -> str | None:
             messages=[{"role": "system", "content": _SYSTEM},
                       {"role": "user", "content": chunk}])
         fixed = (resp.choices[0].message.content or "").strip()
+        finish = getattr(resp.choices[0], "finish_reason", None)
         print(f"[rehydrate] chunk {i}/{len(chunks)} ({len(chunk)} chars) -> "
-              f"{len(fixed)} chars in {time.monotonic() - t0:.0f}s", flush=True)
+              f"{len(fixed)} chars in {time.monotonic() - t0:.0f}s (finish={finish})", flush=True)
         # sanity: restoration only ever adds spaces — reject wild rewrites
         if not fixed or not _plausibly_same(chunk, fixed):
             print(f"[rehydrate] chunk {i} rejected (rewrite check failed)", flush=True)
