@@ -1348,6 +1348,7 @@ function stkStmtVal(name, it) {
   const nm = String(name || "");
   if (/per share|\beps\b/i.test(nm)) return raw.toFixed(2);
   if (/coverage/i.test(nm)) return raw.toFixed(1) + "×";
+  if (/debt to equity/i.test(nm)) return raw.toFixed(2);  // a multiple — "…Equity Ratio" substring would misfire as %
   if (/\b(margin|roe|roa|growth|return|yield|payout|expense ratio|tax rate|turnover rate|equity ratio|debt to asset|rate)\b/i.test(nm))
     return (raw > 0 && raw < 1 ? raw * 100 : raw).toFixed(2) + "%";
   if (/\b(ratio|turnover)\b/i.test(nm)) return raw.toFixed(2);

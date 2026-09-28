@@ -189,7 +189,7 @@ def run_forever():
                 from .moomoo import MoomooClient
                 from .universe_refresh import UniverseRefresher
                 client = MoomooClient(SETTINGS.moomoo_appkey, SETTINGS.moomoo_private_key)
-                out = UniverseRefresher(db, client, market, emit=emit).run()
+                out = UniverseRefresher(db, client, market, emit=emit.emit).run()
                 db.finish_job(str(job["id"]), "succeeded")
                 emit.emit("universe", "done",
                           f"{out.get('quotes', {}).get('quotes')} quotes · {out.get('enum', {}).get('codes', 'cached')} codes")
