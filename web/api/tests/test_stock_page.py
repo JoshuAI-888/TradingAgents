@@ -10,10 +10,45 @@ from fastapi.testclient import TestClient
 from tradingagents_api import main as api
 
 
+class _StubDb:
+    """Offline Db: the real one snapshots SUPABASE_URL at import time."""
+    def __init__(self):
+        self.tables = {}
+    def _t(self, n): return self.tables.setdefault(n, [])
+    def select(self, table, query=None, columns="*"):
+        rows = [dict(r) for r in self._t(table)]
+        for k, v in (query or {}).items():
+            if v.startswith("eq."):
+                col, val = k, v[3:]
+                rows = [r for r in rows if str(r.get(col)) == val]
+            elif k == "order":
+                rows = rows  # ordering not needed by these tests
+        return rows
+    def insert(self, table, row, prefer="return=representation"):
+        row = {**row, "id": f"{table}-{len(self._t(table)) + 1}"}
+        self._t(table).append(row)
+        return [row]
+    def update(self, table, filter, row):
+        col, _, val = filter.partition("=eq.")
+        for r in self._t(table):
+            if str(r.get(col)) == val:
+                r.update(row)
+        return None
+    def delete(self, table, filter):
+        col, _, val = filter.partition("=eq.")
+        self._t(table)[:] = [r for r in self._t(table) if str(r.get(col)) != val]
+        return None
+    def upsert(self, *a, **k): return None
+    def upsert_many(self, *a, **k): return 0
+
+
 @pytest.fixture()
 def client(monkeypatch, tmp_path):
     monkeypatch.setenv("TA_STOCK_FIXTURES", "1")
+    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test")
     monkeypatch.setattr(api, "_screener_cache", None)
+    monkeypatch.setattr(api, "db", _StubDb())
     monkeypatch.chdir(tmp_path)
     with TestClient(api.app) as c:
         yield c
@@ -195,3 +230,74 @@ def test_sectors_and_members(client):
                    params={"plate": "US.LIST2470"}).json()
     assert r["available"] is True and r["rows"][0]["symbol"] == "NVDA"
     assert "price" in r["rows"][0] and "pct" in r["rows"][0]
+
+
+def test_preset_screeners_moomoo_exact():
+    """The 21 recommended screeners carry moomoo's actual filter sets."""
+    names = {p["key"]: p for p in api.PRESET_SCREENERS}
+    assert len(api.PRESET_SCREENERS) == 21
+    assert names["penny"]["filters"] == [
+        {"field": "price", "max": 5}, {"field": "market_cap", "max": 3e8},
+        {"field": "volume", "min": 1e5},
+        {"field": "revenue_growth", "min": 10, "needs": 1},
+        {"field": "net_profit_growth", "min": 5, "needs": 1},
+        {"field": "debt_ratio", "max": 40, "needs": 1}]
+    assert names["buffett"]["filters"] == [
+        {"field": "float_cap", "min": 5e8},
+        {"field": "net_profit_growth", "min": 10, "needs": 1},
+        {"field": "gross_margin", "min": 50, "needs": 1},
+        {"field": "op_ebt", "min": 70, "needs": 1},
+        {"field": "roe", "min": 15, "needs": 1},
+        {"field": "roe_yoy", "min": 20, "needs": 1}]
+    assert names["undervalued-banks"]["filters"] == [
+        {"field": "sector", "needs": 1},
+        {"field": "pe_ttm", "max": 10}, {"field": "pb", "max": 1},
+        {"field": "roe", "min": 12, "needs": 1}]
+    assert names["speculative"]["filters"][-1] == {"field": "new_low_10d", "min": 1, "needs": 1}
+
+
+def test_apply_filters_skips_absent_fields():
+    rows = [{"price": 4, "pb": 0.8, "pe_ttm": 9}, {"price": 9, "pb": 2.5, "pe_ttm": 30}]
+    out, skipped = api._apply_filters(rows, [
+        {"field": "price", "max": 5}, {"field": "pb", "max": 1},
+        {"field": "roe", "min": 15, "needs": 1}, {"field": "debt_ratio", "max": 40}])
+    assert [r["price"] for r in out] == [4]
+    assert sorted(skipped) == ["debt_ratio", "roe"]
+
+
+def test_apply_filters_applies_when_present():
+    rows = [{"price": 4, "roe": 20}, {"price": 4, "roe": 5}, {"price": 9, "roe": 20}]
+    out, skipped = api._apply_filters(rows, [{"field": "price", "max": 5},
+                                             {"field": "roe", "min": 15}])
+    assert [r["roe"] for r in out] == [20]
+    assert skipped == []
+
+
+def test_saved_screeners_crud(client, monkeypatch):
+    monkeypatch.setenv("DEFAULT_USER_ID", "user-1")
+    # create
+    r = client.post("/api/screeners", json={
+        "name": "My Value Picks", "description": "cheap and solid",
+        "market": "US", "watchlist_only": True,
+        "filters": [{"field": "pe_ttm", "max": 12}, {"field": "pb", "max": 1.2}],
+        "sort": "market_cap", "direction": 2})
+    assert r.status_code == 200 and r.json()["saved"] is True
+    sid = r.json()["screener"]["id"]
+    # list
+    rows = client.get("/api/screeners").json()["screeners"]
+    assert [s["name"] for s in rows] == ["My Value Picks"]
+    assert rows[0]["filters"][0]["field"] == "pe_ttm"
+    # update
+    r = client.put(f"/api/screeners/{sid}", json={
+        "name": "My Value Picks II", "market": "US", "watchlist_only": False,
+        "filters": [{"field": "pe_ttm", "max": 10}], "sort": "pct", "direction": 2})
+    assert r.json()["saved"] is True
+    rows = client.get("/api/screeners").json()["screeners"]
+    assert rows[0]["name"] == "My Value Picks II" and rows[0]["sort"] == "pct"
+    # delete
+    assert client.delete(f"/api/screeners/{sid}").json()["deleted"] is True
+    assert client.get("/api/screeners").json()["screeners"] == []
+    # ownership + 404s
+    assert client.put("/api/screeners/nope", json={
+        "name": "x", "market": "US", "filters": []}).status_code == 404
+    assert client.delete("/api/screeners/nope").status_code == 404

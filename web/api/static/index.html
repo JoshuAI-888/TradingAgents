@@ -442,22 +442,120 @@ function scrRenderModal() {
   const tech = SCR_TECH.map(f => `<button class="mfld off" disabled>${f}</button>`).join("");
   const fin = SCR_FIN.map(f => `<button class="mfld off" disabled>${f}</button>`).join("");
   const tabBtn = (id, label) => `<button class="mtab ${scrTab === id ? "on" : ""}" onclick="scrModalTab('${id}')">${label}</button>`;
-  const tabs = scrTab === "quotes" ? quotes : scrTab === "tech" ? tech : fin;
-  const note = scrTab !== "quotes"
+  const tabs = scrTab === "quotes" ? quotes : scrTab === "tech" ? tech : scrTab === "fin" ? fin : "";
+  const note = (scrTab === "tech" || scrTab === "fin")
     ? `<div class="mnote">These ${esc(scrTab)} filters exist in moomoo's screen API but the indicator/financial property dictionary is undocumented — they light up once mapped. Quotes filters are live.</div>` : "";
   const sel = scrDraft.map((f, i) => `<div class="msel"><b>${esc(SCR_FIELDS[f.field] || f.field)}</b>
       <input type="number" placeholder="min" value="${f.min ?? ""}" oninput="scrDraftVal(${i},'min',this.value)">
       <input type="number" placeholder="max" value="${f.max ?? ""}" oninput="scrDraftVal(${i},'max',this.value)">
       <a href="#" onclick="scrDraftRemove(${i});return false" class="chip-x">×</a></div>`).join("")
     || '<div class="faint" style="font-size:11px">Click fields on the left to add filters.</div>';
+  const body = scrTab === "screeners"
+    ? `<div class="mselwrap" style="max-height:60vh" id="scr-saved-list"><div class="faint" style="font-size:11px">Loading saved screeners…</div></div>`
+    : `<div class="mbody"><div class="mfields">${tabs}${note}</div>
+        <div class="mselwrap"><div class="mlabel">Selected: (${scrDraft.length})</div>${sel}</div></div>`;
+  const foot = scrTab === "screeners"
+    ? `<div class="mfoot" style="align-items:center;gap:8px">
+        <input id="scr-save-name" placeholder="Screener name" style="flex:1;background:var(--panel2);border:1px solid var(--line);color:#dbe6f3;border-radius:7px;padding:6px 9px;font-size:12px">
+        <button class="btn primary" onclick="scrSaveCurrent()">Save current filters</button></div>`
+    : `<div class="mfoot"><button class="btn ghost" onclick="scrModalClose()">Cancel</button>
+        <button class="btn primary" onclick="scrModalConfirm()">Confirm</button></div>`;
   m.innerHTML = `<div class="mbox">
     <div class="mhead"><b>Add Filter</b> <button class="btn ghost" onclick="scrModalClose()">✕</button></div>
-    <div class="mtabs">${tabBtn("quotes", "Quotes")}${tabBtn("tech", "Technical")}${tabBtn("fin", "Financial")}</div>
-    <div class="mbody"><div class="mfields">${tabs}${note}</div>
-      <div class="mselwrap"><div class="mlabel">Selected: (${scrDraft.length})</div>${sel}</div></div>
-    <div class="mfoot"><button class="btn ghost" onclick="scrModalClose()">Cancel</button>
-      <button class="btn primary" onclick="scrModalConfirm()">Confirm</button></div>
+    <div class="mtabs">${tabBtn("quotes", "Quotes")}${tabBtn("tech", "Technical")}${tabBtn("fin", "Financial")}${tabBtn("screeners", "Screeners")}</div>
+    ${body}
+    ${foot}
   </div>`;
+  if (scrTab === "screeners") scrLoadSaved();
+}
+
+// ── saved screeners (CRUD over /api/screeners) ────────────────────────
+async function scrLoadSaved() {
+  const host = document.getElementById("scr-saved-list");
+  if (!host) return;
+  const st = window.__scr;
+  try {
+    const r = await api("/api/screeners");
+    window.__savedScreeners = r.screeners || [];
+  } catch (e) {
+    host.innerHTML = `<div class="mnote">Saved screeners need the database (${esc(String(e.message || e).slice(0, 80))}).</div>`;
+    return;
+  }
+  const rows = window.__savedScreeners;
+  const editNote = window.__scrEditId
+    ? `<div class="mnote">Editing a saved screener — adjust the filters on the Quotes tab, then press Update on its row. <a href="#" onclick="window.__scrEditId=null;scrRenderModal();return false">cancel</a></div>` : "";
+  host.innerHTML = editNote + (rows.length ? rows.map(s => `
+    <div style="border-bottom:1px solid rgba(38,52,74,.4);padding-bottom:8px;margin-bottom:8px">
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <div style="flex:1;min-width:0"><b style="font-size:12.5px">${esc(s.name)}</b>
+          <div class="faint" style="font-size:10.5px;margin:2px 0">${esc(s.description || "")}</div>
+          <div class="faint mono" style="font-size:10px">${esc(s.market)}${s.watchlist_only ? " · watchlist" : " · full market"} · ${(s.filters || []).length} filters · ${(s.filters || []).map(f => esc(SCR_FIELDS[f.field] || f.field) + (f.min != null ? ">=" + f.min : "") + (f.min != null && f.max != null ? "~" : "") + (f.max != null ? "<=" + f.max : "")).join(", ")}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+          <button class="btn ghost" style="padding:3px 9px;font-size:10.5px" onclick="scrApplySaved('${esc(s.id)}')">Apply</button>
+          <button class="btn ghost" style="padding:3px 9px;font-size:10.5px" onclick="scrEditSaved('${esc(s.id)}')">Edit</button>
+          ${window.__scrEditId === s.id ? `<button class="btn primary" style="padding:3px 9px;font-size:10.5px" onclick="scrUpdateSaved('${esc(s.id)}')">Update</button>` : ""}
+          <button class="btn ghost" style="padding:3px 9px;font-size:10.5px;color:#f0a4a0" onclick="scrDeleteSaved('${esc(s.id)}')">Delete</button>
+        </div>
+      </div></div>`).join("")
+    : '<div class="faint" style="font-size:11px">No saved screeners yet — set filters on the screener, then save them with the box below.</div>')
+    + `<div class="faint" style="font-size:10px;margin-top:6px">Saving captures the current screener: ${esc(st.market)} · ${st.watchlistOnly ? "watchlist" : "full market"} · ${st.filters.length} filters · sort ${esc(st.sort)} ${st.dir === 2 ? "down" : "up"}</div>`;
+}
+function scrCurrentScreenerState() {
+  const st = window.__scr;
+  const src = scrDraft.length ? scrDraft : st.filters;
+  return { name: (document.getElementById("scr-save-name")?.value || "").trim(),
+    market: st.market, watchlist_only: st.watchlistOnly,
+    filters: (src.length ? src : st.filters).filter(f => f.min != null || f.max != null),
+    sort: st.sort, direction: st.dir };
+}
+async function scrSaveCurrent() {
+  const body = scrCurrentScreenerState();
+  if (!body.name) { const el = document.getElementById("scr-save-name"); if (el) { el.focus(); el.placeholder = "Name required"; } return; }
+  if (!body.filters.length) return;
+  try {
+    await api("/api/screeners", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body) });
+    scrTab = "screeners"; scrRenderModal();
+  } catch (e) { alert("Save failed: " + (e.message || e)); }
+}
+async function scrApplySaved(id) {
+  const s = (window.__savedScreeners || []).find(x => x.id === id);
+  if (!s) return;
+  const st = window.__scr;
+  st.filters = JSON.parse(JSON.stringify(s.filters || []));
+  st.market = s.market || st.market;
+  st.watchlistOnly = !!s.watchlist_only;
+  if (s.sort) st.sort = s.sort;
+  if (s.direction) st.dir = s.direction;
+  scrModalClose();
+  showPage("home");
+}
+function scrEditSaved(id) {
+  const s = (window.__savedScreeners || []).find(x => x.id === id);
+  if (!s) return;
+  window.__scrEditId = id;
+  scrDraft = JSON.parse(JSON.stringify(s.filters || []));
+  const st = window.__scr; st.market = s.market || st.market; st.watchlistOnly = !!s.watchlist_only;
+  scrTab = "quotes"; scrRenderModal();
+}
+async function scrUpdateSaved(id) {
+  const s = (window.__savedScreeners || []).find(x => x.id === id);
+  if (!s) return;
+  const st = window.__scr;
+  try {
+    await api("/api/screeners/" + id, { method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: s.name, description: s.description, market: st.market,
+        watchlist_only: st.watchlistOnly,
+        filters: (scrDraft.length ? scrDraft : st.filters).filter(f => f.min != null || f.max != null),
+        sort: st.sort, direction: st.dir }) });
+    window.__scrEditId = null;
+    scrTab = "screeners"; scrRenderModal();
+  } catch (e) { alert("Update failed: " + (e.message || e)); }
+}
+async function scrDeleteSaved(id) {
+  try { await api("/api/screeners/" + id, { method: "DELETE" }); } catch (e) {}
+  scrTab = "screeners"; scrRenderModal();
 }
 </script>
 <script>
@@ -506,12 +604,16 @@ const pages = {
     const st = window.__scr;
     const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
       filters: JSON.stringify(st.filters), sort: st.sort, direction: st.dir });
-    const [cands, decs, ms, scr, rail] = await Promise.all([
+        const settled = await Promise.allSettled([
       api("/api/candidates"), api("/api/decisions?limit=8"),
       api("/api/market/state").catch(() => ({ available: false })),
       api("/api/screener?" + qs).catch(() => ({ available: false, rows: [] })),
-      api("/api/screener/presets?market=" + st.market + "&universe=" + (st.watchlistOnly ? "watchlist" : "auto")).catch(() => ({ presets: [] })),
+      api("/api/screener/presets?market=" + st.market).catch(() => ({ presets: [] })),
     ]);
+    const val = (i, fb) => settled[i].status === "fulfilled" ? settled[i].value : fb;
+    const cands = val(0, { candidates: [] }), decs = val(1, { decisions: [] }),
+          ms = val(2, { available: false }), scr = val(3, { available: false, rows: [] }),
+          rail = val(4, { presets: [] });
     // universe refresh progress (queued by the Load full market button)
     let prog = null;
     if (window.__scrRefreshJob) {
@@ -611,7 +713,7 @@ const pages = {
         <div class="pp mono ${t.pct >= 0 ? "g" : "r"}">${t.pct != null ? (t.pct >= 0 ? "+" : "") + t.pct.toFixed(2) + "%" : "--"}</div></div>`).join("");
       const pending = p.pending ? `<div class="faint" style="font-size:10px">needs ${esc((p.skipped || []).join(", "))} data — pending the indicator dictionary</div>` : "";
       const partial = !p.pending && p.skipped?.length ? ` <span class="faint" style="font-size:9px">excl. ${esc(p.skipped.join(", "))}</span>` : "";
-      return `<div class="preset" onclick="scrApplyPreset('${esc(p.key)}')"><div class="pname">${esc(p.name)} ›${partial}</div>
+      return `<div class="preset" title="${esc(p.description || p.name)}" onclick="scrApplyPreset('${esc(p.key)}')"><div class="pname">${esc(p.name)} ›${partial}</div>
         <div class="prow">${pending || top || '<div class="faint" style="font-size:10px">no matches in universe</div>'}</div></div>`;
     }).join("");
 
@@ -632,6 +734,7 @@ const pages = {
           <span class="mono dim" style="margin-left:auto">Result: ${scr.matched ?? rows.length} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown : ""}</span>
         </div>
         ${st.filters.length ? `<div class="scr-chips">${chips}</div>` : ""}
+        ${(scr.skipped_filters || []).length ? `<div class="delay-note" style="margin-bottom:8px">${scr.skipped_filters.length} filter(s) skipped until factor data lands: ${scr.skipped_filters.map(f => esc(SCR_FIELDS[f] || f)).join(", ")}</div>` : ""}
         ${prog ? `<div class="scr-prog"><div class="bar"><i style="width:${(progPct || 5).toFixed(0)}%;background:#3a76dd"></i><i style="width:${100 - (progPct || 5)}%;background:#33415a"></i></div><span class="mono faint">${esc(prog.msg)}${prog.status ? " · " + esc(prog.status) : ""}</span></div>` : ""}
         <div class="scr-scroll">${table}</div>
         <div class="faint" style="font-size:10px;margin-top:6px">${st.watchlistOnly
@@ -1471,13 +1574,6 @@ function openStock(sym, tab) {
 window.openStock = openStock;
 
 function stkSet(k, v) { stkState()[k] = v; renderStock(); }
-function stkChartSet(patch) {
-  Object.assign(stkState().chart, patch);
-  if (!document.getElementById("stk-kc")) { renderStock(); return; }
-  stkSyncChartUI();
-  stkApplyChartOpts(!!patch.mode);
-  if ("src" in patch || "range" in patch || "kind" in patch) stkLoadChart();
-}
 
 function stkFmt(v, dp) { return v == null ? "—" : Number(v).toLocaleString(undefined, { maximumFractionDigits: dp ?? 2 }); }
 function stkMoney(v) {

@@ -545,36 +545,41 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
 @app.get("/api/screener/presets")
 def screener_presets(market: str = "US", universe: str = "auto"):
     """ALL recommended screeners (one list) scored over the ACTIVE universe —
-    whole-market (stored universe first, live slices as fallback) or watchlist."""
+    whole-market (stored universe first, live slices as fallback) or watchlist.
+    The stored universe needs no moomoo keys; only the live fallback does."""
     client = _market_client()
-    if client is None:
-        return {"available": False, "presets": []}
     cache = _cache()
     if universe == "watchlist":
         uk = cache.key("quotes", "screener-universe", market, 1, "market_cap", 2)
         rows = cache.get("quotes", uk)
         if rows is None:
             symbols = _watchlist_symbols()
-            if symbols:
+            if client is None or not symbols:
+                rows = []
+            else:
                 snap = (client.snapshot([f"{market}.{s}" for s in symbols[:400]])
                         or {}).get("snapshot_list") or []
                 rows = [_snapshot_to_row(s) for s in snap]
-            else:
-                rows = []
             cache.put("quotes", uk, rows)
     else:
-        stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "row")
+        try:
+            stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "row")
+        except Exception:
+            stored = []
         if stored:
             rows = [r["row"] for r in stored if isinstance(r.get("row"), dict)]
         else:
             uk = cache.key("quotes", "screener-universe", market, 0, "market_cap", 2)
             rows = cache.get("quotes", uk)
             if rows is None:
-                try:
-                    rows = _market_rows(market, "market_cap", 2, client)
-                except Exception:
+                if client is None:
                     rows = []
-                cache.put("quotes", uk, rows)
+                else:
+                    try:
+                        rows = _market_rows(market, "market_cap", 2, client)
+                    except Exception:
+                        rows = []
+                    cache.put("quotes", uk, rows)
     out = []
     for preset in PRESET_SCREENERS:
         picked, skipped = _apply_filters(rows, preset["filters"])
