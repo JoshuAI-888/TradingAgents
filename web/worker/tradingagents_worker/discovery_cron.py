@@ -22,6 +22,6 @@ if SETTINGS.moomoo_appkey and SETTINGS.moomoo_private_key:
 else:
     print("moomoo keys not set — discovery runs with watchlist candidates only")
 
-cache = TtlCache(root=os.path.join(SETTINGS.cache_dir or "/data/cache", "ttl"))
+cache = TtlCache(root=os.path.join(SETTINGS.cache_dir, "ttl"))
 cands = sweep(db, mm, cache, watchlist=["NVDA", "MSFT", "0700.HK", "CSL.AX"])
 print(f"discovery: {len(cands)} new candidates stored")

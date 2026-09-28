@@ -272,8 +272,10 @@ def payload(key: str, symbol: str):
                    "pub_type": 1, "open_price": 512.0, "close_price": 507.9,
                    "highest_price": 517.3, "lowest_price": 502.1,
                    "last_close_price": 513.6, "predict_vola_v": 5.0}]},
-              "research": {"consensus": {"rating": 4, "total": 4, "strong_buy": 0.0,
-                                         "buy": 50.0, "hold": 50.0, "underperform": 0.0,
+              # US/CA consensus returns only 3 tiers — buy/underperform are
+              # HK/CN/SG/MY/AU/JP fields (handbook §analyst-consensus).
+              "research": {"consensus": {"rating": 4, "total": 4, "strong_buy": 50.0,
+                                         "hold": 50.0,
                                          "sell": 0.0, "average": 584.5, "highest": 650.0,
                                          "lowest": 548.0, "num_of_target_analysts": 4,
                                          "update_time": 1758888000,

@@ -1652,6 +1652,33 @@ function stkMoney(v) {
   return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 function stkPct(v, dp) { return v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(dp ?? 2) + "%"; }
+// Moomoo analyst consensus: US/CA return only 3 tiers (strong_buy/hold/sell —
+// the buy/underperform fields are HK/CN/SG/MY/AU/JP only), so render every
+// tier that is present instead of hard-coding buy/hold/sell. Some responses
+// carry tier counts rather than proportions — normalize to %.
+const STK_TIERS = [["strong_buy", "Strong Buy", "#0f9d6a"], ["buy", "Buy", "#26c68c"],
+                   ["hold", "Hold", "#e8a33d"], ["underperform", "Underperform", "#e07a3d"],
+                   ["sell", "Sell", "#f0544f"]];
+const STK_CONSENSUS = { 1: "Sell", 2: "Underperform", 3: "Hold", 4: "Buy", 5: "Strong Buy" };
+function stkTiers(c) {
+  const tiers = STK_TIERS.map(([k, label, color]) => ({ label, color, v: Number(c?.[k]) || 0 }));
+  const sum = tiers.reduce((s2, t) => s2 + t.v, 0);
+  if (sum > 0 && c?.total > 0 && Math.abs(sum - 100) > 1 && sum <= c.total + 0.5)
+    tiers.forEach(t => { t.v = t.v / c.total * 100; });
+  return tiers;
+}
+function stkRatingBar(c) {
+  const tiers = stkTiers(c).filter(t => t.v > 0);
+  const segs = tiers.map(t =>
+    `<div style="width:${t.v.toFixed(1)}%;background:${t.color}">${Math.round(t.v)}%</div>`).join("");
+  const legend = tiers.map(t =>
+    `<span style="color:${t.color}">● ${t.label} ${Math.round(t.v)}%</span>`).join(" ");
+  return `<div class="rating-bar" style="margin-top:8px">${segs || '<div style="width:100%;color:var(--faint)">no tier breakdown published</div>'}</div>
+    <div class="rt-row">${legend || '<span class="faint">no tier breakdown published</span>'}</div>`;
+}
+function stkConsensusTag(c) {
+  return c?.rating ? ` · consensus <b>${esc(STK_CONSENSUS[c.rating] || c.rating)}</b> (${esc(c.rating)}/5)` : "";
+}
 function stkTime(ms) {
   if (!ms) return "—";
   const d = new Date(Number(ms));
@@ -1778,13 +1805,9 @@ async function stkOverview() {
   ]);
   st.__research = research; st.__capital = capital;
   const c = research?.consensus;
-  const seg = (v, color) => v > 0 ? `<div style="width:${v}%;background:${color}">${v}%</div>` : "";
   const ratings = `
-    <div class="rt-row"><b>${stkFmt(c?.total, 0)}</b> analysts · last updated ${esc(c?.update_time_str || "—")}</div>
-    <div class="rating-bar" style="margin-top:8px">
-      ${seg(c?.buy ?? 0, "#26c68c")}${seg(c?.hold ?? 0, "#e8a33d")}${seg(c?.sell ?? 0, "#f0544f") || (c && !c.buy && !c.hold && !c.sell ? '<div style="width:100%;color:var(--faint)">no coverage</div>' : "")}
-    </div>
-    <div class="rt-row"><span class="g">● Buy ${stkPct(c?.buy ?? 0, 0)}</span><span style="color:var(--amber)">● Hold ${stkPct(c?.hold ?? 0, 0)}</span><span class="r">● Sell ${stkPct(c?.sell ?? 0, 0)}</span></div>
+    <div class="rt-row"><b>${stkFmt(c?.total, 0)}</b> analysts${stkConsensusTag(c)} · last updated ${esc(c?.update_time_str || "—")}</div>
+    ${stkRatingBar(c)}
     <div class="rt-row">12M price target — avg <b>${stkFmt(c?.average, 2)}</b> · max <b>${stkFmt(c?.highest, 2)}</b> · min <b>${stkFmt(c?.lowest, 2)}</b> · from <b>${stkFmt(c?.num_of_target_analysts, 0)}</b> analysts
       ${stkSpot() && c?.average ? `<span class="${c.average >= stkSpot() ? "g" : "r"}">${stkPct((c.average - stkSpot()) / stkSpot() * 100, 1)} vs spot</span>` : ""}</div>
     <div style="margin-top:8px"><a href="#" onclick="stkSet('tab','analysis');return false" style="font-size:11.5px">Detailed institutional ratings →</a></div>`;
@@ -1957,11 +1980,10 @@ async function stkAnalysis() {
       <td class="mono" style="text-align:right">${stkFmt(r.target_price, 2)}</td>
       <td class="mono dim" style="text-align:right">${esc(r.recommendation_date_str || "—")}</td></tr>`;
   }).join("");
-  const seg = (v, color) => v > 0 ? `<div style="width:${v}%;background:${color}">${v}%</div>` : "";
   return stkPanel(`${esc(st.sym)} Analyst Ratings, Forecast &amp; Price Target`,
       `${stkFmt(c.total, 0)} analysts · ${esc(c.update_time_str || "")}`, `
-    <div class="rating-bar">${seg(c.buy ?? 0, "#26c68c")}${seg(c.hold ?? 0, "#e8a33d")}${seg(c.sell ?? 0, "#f0544f")}</div>
-    <div class="rt-row"><span class="g">● Buy ${stkPct(c.buy ?? 0, 0)}</span><span style="color:var(--amber)">● Hold ${stkPct(c.hold ?? 0, 0)}</span><span class="r">● Sell ${stkPct(c.sell ?? 0, 0)}</span></div>
+    ${stkRatingBar(c)}
+    <div class="rt-row"><b>${stkFmt(c.total, 0)}</b> analysts${stkConsensusTag(c)}</div>
     <div class="rt-row">Average target <b>${stkFmt(c.average, 2)}</b> · high <b>${stkFmt(c.highest, 2)}</b> · low <b>${stkFmt(c.lowest, 2)}</b></div>
     <table class="est-t" style="margin-top:12px"><tr><th style="text-align:left">Institution</th><th>Rating</th><th>Target</th><th>Date</th></tr>${rows || '<tr><td colspan="4" class="empty">No detailed ratings.</td></tr>'}</table>
     <div class="faint" style="font-size:10px;margin-top:8px">Consensus &amp; per-institution ratings via moomoo research API (rating-summary, institution dimension).</div>`);

@@ -42,6 +42,23 @@ fullscreen, MA/EMA 5/20/50/100/200) → shipped:
 - Verified: 31 API + 46 worker tests green; fixture-mode browser walkthrough (candles on all
   ranges, MA 20/50/100/200 + EMA, MACD DIF/DEA, trend-line drawing, fullscreen, report-chart
   harness) — screenshots in session.
+- **Owner round 2** (live PBR): Time→Candle showed a BLANK pane — live rt-data points omit or
+  blank open/high/low on some points (docs list them; the wire doesn't always carry them), so
+  NaN hit the y-scale and killed the whole main pane. Fix: sanitize at fetch (derive
+  o/h/l from cur_price, drop points with dead closes) for both pts and klines; fixture now
+  carries 8 o/h/l-less session-start points to keep that path tested. Sub panes are now
+  ADDITIVE — a "＋ Panes ▾" multi-select (VOL/MACD/RSI/KDJ/CCI/WR/ROC/BIAS) stacks each
+  selection as its own pane below the candles (set changes rebuild the chart; removing an
+  indicator from a shared pane would leave dead space). Fullscreen exits via Esc and the ⤡
+  button. 35 API (fixture grew) + 46 worker tests green.
+- **"4 analysts but no ratings"** (live PBR): moomoo analyst-consensus returns only 3 tiers
+  for US/CA (strong_buy/hold/sell) — `buy`/`underperform` are HK/CN/SG/MY/AU/JP-only fields
+  (handbook gotcha, confirmed live). The frontend read only buy/hold/sell → 0% everywhere,
+  and its `!c.buy && !c.hold && !c.sell` fallback mislabeled covered stocks "no coverage".
+  Fix: render every tier present (stkTiers/stkRatingBar, 5-tier aware), normalize count-shaped
+  responses to %, show the composite consensus badge (rating 1–5 → Buy/Strong Buy/…), and
+  reserve "no tier breakdown published" for genuinely empty distributions. Fixture + test now
+  pin the US 3-tier shape (no buy/underperform keys).
 
 ---
 
@@ -669,3 +686,22 @@ Also: presets route no longer requires moomoo keys when the stored universe
 exists; home() uses Promise.allSettled (one dead endpoint no longer blanks the
 page); test_stock_page fixture got a _StubDb (was order-dependent on test_api's
 env). 85 tests green. Commits 99f40f5, a7d18d2-era… see git log.
+
+## 2026-09-29 — Universe widened to 13,585; NZ-time default; cadence setting; progress fix
+
+User review round: (1) "only 5,794 vs 9,381" — INDUSTRY plates cover common stocks
+only; loader v2 now enumerates INDUSTRY+CONCEPT+OTHER plates (469 plates) and unions
+6 server-side sort slices → **13,585 codes / 13,560 quote rows** (a superset of
+moomoo's screener count, which is their filtered stock view). No public moomoo
+endpoint lists all instruments (basicinfo requires code_list; plate-stock curated
+lists are tiny) — plate+slice union is the practical ceiling. (2) Progress bar:
+refresh used to re-render home each poll (page refetch flash); now scrPollProgress
+updates the bar DOM in place every 2s and re-renders exactly once on completion.
+(3) Refresh cadence: GET/PUT /api/screener/schedule (interval_h ∈ 1/2/4/8/12/24,
+stored in universe_state); the hourly cron skips when quotes are fresher; Settings
+→ Data & coverage card (rows, last refresh, cadence select). force=1 on
+/api/screener/refresh bypasses the skip (needed after loader-code changes).
+(4) All site times render via fmtTs/fmtClock — Pacific/Auckland with DST by
+default (localStorage tzmode=nz), UTC option in Settings→Display timezone.
+Settings slowness note: /api/screener/schedule does two paginated 13.5k-row reads;
+cache if it bothers anyone.

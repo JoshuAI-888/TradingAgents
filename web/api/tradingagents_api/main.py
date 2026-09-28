@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 
 from tradingagents_worker.config import SETTINGS
 from tradingagents_worker.db import Db
+from tradingagents_worker.runner import demangle_debate
 from tradingagents_worker.screener_rows import snapshot_to_row as _snapshot_to_row
 
 app = FastAPI(title="TradingAgents Portal API", version="0.1.0")
@@ -74,13 +75,73 @@ def submit(inp: AnalyzeIn, x_user_id: str = Header(default="")):
 
 @app.get("/api/analyses/{job_id}")
 def status(job_id: str):
-    jobs = db.select("jobs", {"id": f"eq.{job_id}"}, "id,status,run_id,last_error,created_at,finished_at")
+    jobs = db.select("jobs", {"id": f"eq.{job_id}"}, "id,status,payload,run_id,last_error,created_at,started_at,finished_at")
     if not jobs:
         raise HTTPException(404, "job not found")
     job = jobs[0]
     events = db.select("job_events", {"job_id": f"eq.{job_id}", "order": "seq.asc"},
                        "seq,ts,stage,status,message,payload")
-    return {"job": job, "events": events}
+    return {"job": job, "events": events, "queue": _queue_context(job)}
+
+
+def _worker_age() -> tuple[float | None, bool | None]:
+    """Seconds since the worker's last heartbeat, and whether it looks alive
+    (heartbeat refreshes every ~20s; 120s = six missed beats)."""
+    rows = db.select("app_settings", {"key": "eq.worker_state"}, "value")
+    if not rows or not (rows[0].get("value") or {}).get("at"):
+        return None, None
+    at = str(rows[0]["value"]["at"]).replace("Z", "+00:00")
+    try:
+        age = (datetime.now(timezone.utc) - datetime.fromisoformat(at)).total_seconds()
+    except ValueError:
+        return None, None
+    return round(max(age, 0)), age < 120
+
+
+def _eta_seconds(depth: str) -> tuple[float | None, int]:
+    """Median wall-clock of the last succeeded analysis jobs at this depth —
+    run row created (completion) minus job started (claim). None = no history."""
+    jobs = db.select("jobs", {"status": "eq.succeeded", "job_type": "eq.analysis",
+                              "payload->>depth": f"eq.{depth}",
+                              "order": "created_at.desc", "limit": "6"}, "id,started_at")
+    jobs = [j for j in jobs if j.get("started_at") and j.get("id")]
+    if not jobs:
+        return None, 0
+    ids = ",".join(j["id"] for j in jobs)
+    runs = db.select("runs", {"job_id": f"in.({ids})"}, "job_id,created_at")
+    started = {j["id"]: j["started_at"] for j in jobs}
+    elapsed = sorted(
+        (datetime.fromisoformat(str(r["created_at"]).replace("Z", "+00:00"))
+         - datetime.fromisoformat(str(started[r["job_id"]]).replace("Z", "+00:00"))
+         ).total_seconds()
+        for r in runs if r.get("job_id") in started and r.get("created_at"))
+    elapsed = [e for e in elapsed if e > 0]
+    if not elapsed:
+        return None, 0
+    return elapsed[len(elapsed) // 2], len(elapsed)
+
+
+def _queue_context(job: dict) -> dict:
+    """Queue position, ETA and worker liveness for the Analyze progress card."""
+    ctx: dict = {"position": None, "ahead": 0, "eta_seconds": None, "eta_basis": 0,
+                 "worker_age_s": None, "worker_alive": None}
+    try:
+        if job.get("status") == "pending":
+            pending = db.select("jobs", {"status": "eq.pending", "job_type": "eq.analysis",
+                                         "order": "created_at.asc"}, "id,priority,created_at")
+            pending.sort(key=lambda r: (-(int(r.get("priority") or 100)), str(r.get("created_at") or "")))
+            idx = next((i for i, r in enumerate(pending) if r.get("id") == job["id"]), None)
+            if idx is not None:
+                ctx["ahead"], ctx["position"] = idx, idx + 1
+        depth = "standard"
+        payload = job.get("payload")
+        if isinstance(payload, dict) and payload.get("depth"):
+            depth = payload["depth"]
+        ctx["eta_seconds"], ctx["eta_basis"] = _eta_seconds(depth)
+        ctx["worker_age_s"], ctx["worker_alive"] = _worker_age()
+    except Exception:
+        pass  # progress metadata is best-effort; the core status payload stands alone
+    return ctx
 
 
 @app.get("/api/analyses/{ref}/report")
@@ -99,6 +160,9 @@ def report(ref: str):
                         "stage,content_markdown,quality_grade,quality_score,created_at")
     debates = db.select("debate_messages", {"run_id": f"eq.{run['id']}", "order": "created_at.asc"},
                         "debate_type,speaker,round,content")
+    # Rows stored before the char-wise _join_history fix read one character per
+    # line; demangle at read time (detector is strict, normal rows pass through).
+    debates = [{**m, "content": demangle_debate(m.get("content") or "")} for m in debates]
     decision = db.select("decisions", {"run_id": f"eq.{run['id']}"}, "*")
     settlements = []
     if decision:
@@ -170,12 +234,18 @@ def decisions(limit: int = 50):
 
 @app.get("/api/jobs/active")
 def active_jobs():
-    """Analyses queued or running right now — the ledger's 'In flight' panel."""
-    jobs = db.select("jobs", {"status": "eq.pending", "order": "created_at.desc", "limit": "20"},
-                     "id,status,payload,created_at,locked_by")
-    jobs += db.select("jobs", {"status": "eq.running", "order": "created_at.desc", "limit": "20"},
-                      "id,status,payload,created_at,locked_by")
-    return {"jobs": jobs}
+    """Analyses queued or running right now — the ledger's 'In flight' panel.
+    Pending jobs carry their queue position (claim order: priority desc, then
+    created_at); worker tells the UI whether the pipeline is picking jobs up."""
+    pending = db.select("jobs", {"status": "eq.pending", "order": "created_at.asc", "limit": "20"},
+                        "id,status,payload,created_at,locked_by")
+    pending.sort(key=lambda j: (-(int(j.get("priority") or 100)), str(j.get("created_at") or "")))
+    for i, j in enumerate(pending):
+        j["position"] = i + 1
+    running = db.select("jobs", {"status": "eq.running", "order": "created_at.desc", "limit": "20"},
+                        "id,status,payload,created_at,locked_by")
+    age, alive = _worker_age()
+    return {"jobs": pending + running, "worker": {"age_s": age, "alive": alive}}
 
 
 _MARKET_INDICES = [("US.SPY", "S&P 500"), ("US.QQQ", "Nasdaq 100"), ("US.IWM", "Russell 2000"),
@@ -829,6 +899,116 @@ def put_settings(inp: SettingsIn):
     if inp.stub is not None:
         runtime = save_runtime_flags(db, inp.stub)
     return {"saved": True, "models": saved, "runtime": runtime}
+
+
+# ── agent prompt store (Settings → Agent prompts; versions + active choice) ──
+# The engine resolves saved versions per run (tradingagents.agents.prompts);
+# version 1 rows are seeded by the worker with the engine's stock text, so
+# this API stays DB-only (no engine import — the API image doesn't ship it).
+
+PROMPT_AGENTS = [
+    {"key": "market_analyst", "label": "Market / Technical Analyst", "model": "quick"},
+    {"key": "sentiment_analyst", "label": "Sentiment Analyst", "model": "quick"},
+    {"key": "news_analyst", "label": "News & Macro Analyst", "model": "quick"},
+    {"key": "fundamentals_analyst", "label": "Fundamentals Analyst", "model": "quick"},
+    {"key": "bull_researcher", "label": "Bull Researcher", "model": "quick"},
+    {"key": "bear_researcher", "label": "Bear Researcher", "model": "quick"},
+    {"key": "research_manager", "label": "Research Manager", "model": "deep"},
+    {"key": "trader", "label": "Trader", "model": "quick"},
+    {"key": "aggressive_analyst", "label": "Aggressive Risk Analyst", "model": "quick"},
+    {"key": "neutral_analyst", "label": "Neutral Risk Analyst", "model": "quick"},
+    {"key": "conservative_analyst", "label": "Conservative Risk Analyst", "model": "quick"},
+    {"key": "portfolio_manager", "label": "Portfolio Manager", "model": "deep"},
+]
+
+
+def _prompt_selection() -> dict:
+    rows = db.select("app_settings", {"key": "eq.prompts"}, "value")
+    return (rows[0].get("value") or {}) if rows else {}
+
+
+def _prompt_agents_payload(with_content: bool):
+    sel = _prompt_selection()
+    try:
+        versions = db.select_all("prompt_versions", {}, "agent_key,version,note,created_at,content")
+    except Exception:
+        return {"agents": []}  # migration 0009 not applied yet
+    by_agent: dict[str, list] = {}
+    for v in versions:
+        by_agent.setdefault(v["agent_key"], []).append(v)
+    agents = []
+    for meta in PROMPT_AGENTS:
+        key = meta["key"]
+        rows = sorted(by_agent.get(key, []), key=lambda v: v["version"])
+        active_version = sel.get(key)
+        active = next((v for v in rows if v["version"] == active_version), None)
+        stock = next((v for v in rows if v["note"] == "engine stock prompt"), None)
+        entry = {**meta, "active_version": active_version,
+                 "versions": [{k: v[k] for k in ("version", "note", "created_at", "content")}
+                              for v in rows]}
+        if with_content:
+            entry["active_content"] = (active or stock or {}).get("content")
+            entry["default_content"] = (stock or {}).get("content")
+        else:
+            for v in entry["versions"]:
+                v.pop("content", None)
+        agents.append(entry)
+    return {"agents": agents}
+
+
+@app.get("/api/prompts")
+def prompts_index():
+    return _prompt_agents_payload(with_content=True)
+
+
+class PromptVersionIn(BaseModel):
+    content: str = Field(min_length=1, max_length=40000)
+    note: str | None = Field(default=None, max_length=200)
+
+
+def _prompt_agent_key(key: str) -> str:
+    if key not in {a["key"] for a in PROMPT_AGENTS}:
+        raise HTTPException(404, "unknown agent")
+    return key
+
+
+@app.post("/api/prompts/{key}/versions")
+def prompt_save_version(key: str, inp: PromptVersionIn):
+    """Save the editor text as the next version and make it active — applies
+    to runs queued after this save."""
+    _prompt_agent_key(key)
+    try:
+        existing = db.select("prompt_versions", {"agent_key": f"eq.{key}"}, "version")
+    except Exception:
+        raise HTTPException(503, "prompt_versions table missing — run migration 0009")
+    next_version = max((int(v["version"]) for v in existing), default=0) + 1
+    db.insert("prompt_versions", {"agent_key": key, "version": next_version,
+                                  "content": inp.content, "note": inp.note},
+              prefer="return=minimal")
+    sel = _prompt_selection()
+    sel[key] = next_version
+    db.upsert("app_settings", "key", {"key": "prompts", "value": sel})
+    return {"saved": True, "agent_key": key, "version": next_version}
+
+
+class PromptActiveIn(BaseModel):
+    version: int | None = None  # null = back to the engine stock prompt
+
+
+@app.put("/api/prompts/{key}/active")
+def prompt_activate(key: str, inp: PromptActiveIn):
+    _prompt_agent_key(key)
+    sel = _prompt_selection()
+    if inp.version is None:
+        sel.pop(key, None)
+    else:
+        rows = db.select("prompt_versions", {"agent_key": f"eq.{key}",
+                                             "version": f"eq.{inp.version}"}, "version")
+        if not rows:
+            raise HTTPException(404, "version not found")
+        sel[key] = inp.version
+    db.upsert("app_settings", "key", {"key": "prompts", "value": sel})
+    return {"saved": True, "agent_key": key, "active_version": sel.get(key)}
 
 
 @app.post("/api/candidates/refresh")

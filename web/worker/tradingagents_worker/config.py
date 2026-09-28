@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from dataclasses import dataclass, field
 
 
@@ -42,9 +43,12 @@ class Settings:
     fred_api_key: str = field(default_factory=lambda: os.getenv("FRED_API_KEY", ""))
     fmp_api_key: str = field(default_factory=lambda: os.getenv("FMP_API_KEY", ""))
 
-    # Paths (mounted disk on Render)
-    cache_dir: str = field(default_factory=lambda: os.getenv("TRADINGAGENTS_CACHE_DIR", "/data/cache"))
-    results_dir: str = field(default_factory=lambda: os.getenv("TRADINGAGENTS_RESULTS_DIR", "/data/results"))
+    # Paths. Web services mount /tmp paths explicitly (render.yaml); Render
+    # CRON jobs have no disk and /data is not writable there, so an unset env
+    # falls back to a writable temp dir — the hard-coded /data default used to
+    # crash every discovery cron run at import (PermissionError, exit 1).
+    cache_dir: str = field(default_factory=lambda: _path("TRADINGAGENTS_CACHE_DIR", "/data/cache"))
+    results_dir: str = field(default_factory=lambda: _path("TRADINGAGENTS_RESULTS_DIR", "/data/results"))
 
     def missing_critical(self) -> list[str]:
         need = []
@@ -59,6 +63,21 @@ class Settings:
         ):
             need.append("one LLM API key (OPENROUTER_API_KEY or equivalent)")
         return need
+
+
+def _path(env_key: str, disk_path: str) -> str:
+    """Explicit env wins; otherwise use the disk path when writable, else /tmp."""
+    env = os.getenv(env_key)
+    if env:
+        return env
+    try:
+        os.makedirs(disk_path, exist_ok=True)
+        return disk_path
+    except OSError:
+        fallback = os.path.join(tempfile.gettempdir(), "tradingagents",
+                                disk_path.strip("/").replace("/", "-"))
+        os.makedirs(fallback, exist_ok=True)
+        return fallback
 
 
 SETTINGS = Settings()

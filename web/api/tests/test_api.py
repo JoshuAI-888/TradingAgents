@@ -255,3 +255,52 @@ def test_market_rows_unions_sort_slices(monkeypatch):
     assert rows[0]["symbol"] == "S0000" and rows[-1]["symbol"] == "S1199"
     # primary slice (caller's sort) leads the ordering
     assert [r["symbol"] for r in rows[:3]] == ["S0000", "S0001", "S0002"]
+
+
+def test_prompt_store_roundtrip():
+    api.db._t("prompt_versions").append({"agent_key": "trader", "version": 1,
+                                         "note": "engine stock prompt", "created_at": "t",
+                                         "content": "stock trader prompt"})
+    trader = next(a for a in client.get("/api/prompts").json()["agents"] if a["key"] == "trader")
+    assert trader["active_version"] is None
+    assert trader["default_content"] == "stock trader prompt"
+    assert trader["active_content"] == "stock trader prompt"  # falls back to stock
+    r = client.post("/api/prompts/trader/versions",
+                    json={"content": "custom prompt {grounding}", "note": "tighter risk language"}).json()
+    assert r["saved"] is True and r["version"] == 2
+    trader = next(a for a in client.get("/api/prompts").json()["agents"] if a["key"] == "trader")
+    assert trader["active_version"] == 2 and trader["active_content"] == "custom prompt {grounding}"
+    assert client.put("/api/prompts/trader/active", json={"version": 1}).json()["active_version"] == 1
+    assert client.put("/api/prompts/trader/active", json={"version": None}).json()["active_version"] is None
+    assert client.post("/api/prompts/nope/versions", json={"content": "x"}).status_code == 404
+    assert client.put("/api/prompts/trader/active", json={"version": 99}).status_code == 404
+
+
+def test_status_includes_queue_context():
+    r = client.post("/api/analyses", json={"ticker": "MSFT", "trade_date": "2026-09-29", "depth": "fast"})
+    body = client.get(f"/api/analyses/{r.json()['job_id']}").json()
+    assert body["job"]["status"] == "pending"
+    q = body["queue"]
+    assert q["position"] == 1 and q["ahead"] == 0
+    assert q["eta_seconds"] is None and q["worker_alive"] in (None, True, False)
+
+
+def test_report_repairs_mangled_debate_rows():
+    j = client.post("/api/analyses", json={"ticker": "TSLA", "trade_date": "2026-09-25", "depth": "fast"}).json()
+    api.db._t("runs").append({"id": "run-d", "job_id": j["job_id"], "user_id": None, "ticker_id": "tick-d",
+                              "trade_date": "2026-09-25", "config_hash": "abc", "status": "succeeded",
+                              "prompt_tokens": 10, "completion_tokens": 5, "cost_usd": 0.01,
+                              "framework_version": "0.5.1"})
+    api.db._t("tickers").append({"id": "tick-d", "symbol": "TSLA", "name": "Tesla"})
+    letters = "BullAnalyst:strongcase"
+    api.db._t("debate_messages").append({"run_id": "run-d", "debate_type": "research",
+                                         "speaker": "neutral", "round": 1,
+                                         "content": "\n\n".join(letters)})
+    api.db._t("debate_messages").append({"run_id": "run-d", "debate_type": "risk",
+                                         "speaker": "neutral", "round": 1,
+                                         "content": "Aggressive Analyst: keep it\n\nall on one line"})
+    r = client.get(f"/api/analyses/{j['job_id']}/report").json()
+    research = [d for d in r["debates"] if d["debate_type"] == "research"][0]
+    risk = [d for d in r["debates"] if d["debate_type"] == "risk"][0]
+    assert research["content"] == letters            # char-wise row rejoined
+    assert risk["content"] == "Aggressive Analyst: keep it\n\nall on one line"  # normal row untouched

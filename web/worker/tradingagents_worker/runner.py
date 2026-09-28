@@ -66,10 +66,20 @@ class EngineRunner:
 
     The model pair resolves per run: DB app_settings ('models') → env defaults.
     """
-    def __init__(self, model_pair_resolver=None):
+    def __init__(self, model_pair_resolver=None, prompts_resolver=None):
         self._pair_resolver = model_pair_resolver or (lambda: {
             "provider": SETTINGS.llm_provider, "quick": SETTINGS.quick_model, "deep": SETTINGS.deep_model})
+        self._prompts_resolver = prompts_resolver or (lambda: {})
         self._graphs: dict[str, object] = {}
+
+    def _apply_prompts(self) -> None:
+        """Saved prompt versions (Settings → Agent prompts) apply per run: nodes
+        resolve the registry at call time, so the cached graph needs no rebuild."""
+        try:
+            from tradingagents.agents import prompts as prompt_registry
+            prompt_registry.register(self._prompts_resolver() or {})
+        except Exception as e:
+            print(f"prompt overrides (non-fatal): {e}", flush=True)
 
     def _ensure_graph(self, depth: str):
         from tradingagents.graph.trading_graph import TradingAgentsGraph
@@ -96,6 +106,7 @@ class EngineRunner:
 
     def run(self, ticker, trade_date, depth, instructions, emit, cancel=None):
         emit.emit("analysts", "progress", f"engine run starting ({SETTINGS.llm_provider})")
+        self._apply_prompts()
         from . import llm_usage
         llm_usage.install()
         llm_usage.RECORDER.reset()
@@ -139,7 +150,12 @@ class EngineRunner:
 
 
 def _join_history(items) -> str:
-    """Debate history entries are plain strings in 0.5.1 (dicts in some forks) — accept both."""
+    """Debate history is ONE accumulated string in 0.5.1 (bull/bear/debator
+    nodes append with ``history + "\\n" + argument``); a list of messages in
+    some forks — accept both. Iterating a str char-by-char is exactly how the
+    report page once rendered transcripts one character per line."""
+    if isinstance(items, str):
+        return items.strip()
     parts: list[str] = []
     for m in items or []:
         if isinstance(m, dict):
@@ -147,6 +163,21 @@ def _join_history(items) -> str:
         elif m:
             parts.append(str(m))
     return "\n\n".join(p for p in parts if p.strip())
+
+
+def demangle_debate(text: str) -> str:
+    """Repair debate rows stored by the char-wise _join_history bug. The old
+    writer kept every non-whitespace character as its own "message" and joined
+    them with blank lines (word spacing was lost at write time — unrecoverable),
+    so rejoining the single-character tokens restores a legible transcript.
+    Strict detector — 40+ blank-line-separated tokens, every one a single
+    non-space character — real markdown cannot collide with it."""
+    if not isinstance(text, str) or text.count("\n\n") < 39:
+        return text
+    tokens = text.split("\n\n")
+    if any(len(t) != 1 or t.isspace() for t in tokens):
+        return text
+    return "".join(tokens)
 
 
 # Graph node → (trace stage, human label) for the live reasoning trace.
@@ -182,18 +213,19 @@ def node_event(node: str, delta: dict, elapsed_s: float) -> tuple[str, str] | No
     return stage, f"{label} done · {elapsed_s:.0f}s in{extra}"
 
 
-def get_runner(model_pair_resolver=None, stub_resolver=None) -> Runner:
+def get_runner(model_pair_resolver=None, stub_resolver=None, prompts_resolver=None) -> Runner:
     if stub_resolver is not None:
-        return RuntimeRunner(model_pair_resolver, stub_resolver)
-    return StubRunner() if SETTINGS.stub_mode else EngineRunner(model_pair_resolver)
+        return RuntimeRunner(model_pair_resolver, stub_resolver, prompts_resolver)
+    return StubRunner() if SETTINGS.stub_mode else EngineRunner(model_pair_resolver, prompts_resolver)
 
 
 class RuntimeRunner:
     """Picks stub or engine per run from a live flag (Settings toggle; env is the default)."""
 
-    def __init__(self, model_pair_resolver=None, stub_resolver=None):
+    def __init__(self, model_pair_resolver=None, stub_resolver=None, prompts_resolver=None):
         self._pair_resolver = model_pair_resolver
         self._stub_resolver = stub_resolver or (lambda: SETTINGS.stub_mode)
+        self._prompts_resolver = prompts_resolver
         self._stub = StubRunner()
         self._engine: EngineRunner | None = None
 
@@ -201,5 +233,5 @@ class RuntimeRunner:
         if self._stub_resolver():
             return self._stub.run(ticker, trade_date, depth, instructions, emit, cancel)
         if self._engine is None:
-            self._engine = EngineRunner(self._pair_resolver)
+            self._engine = EngineRunner(self._pair_resolver, self._prompts_resolver)
         return self._engine.run(ticker, trade_date, depth, instructions, emit, cancel)

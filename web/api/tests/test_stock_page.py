@@ -138,7 +138,9 @@ def test_research(client):
     body = client.get("/api/stock/CHE/research").json()
     assert body["available"] is True
     c = body["consensus"]
-    assert (c["buy"], c["hold"], c["sell"]) == (50.0, 50.0, 0.0)
+    # US/CA shape: 3 tiers only — no buy/underperform fields.
+    assert (c["strong_buy"], c["hold"], c["sell"]) == (50.0, 50.0, 0.0)
+    assert "buy" not in c and "underperform" not in c
     assert c["average"] == 584.5 and c["num_of_target_analysts"] == 4
     assert len(body["detail"]["inst_rating_summary_list"]) == 4
 

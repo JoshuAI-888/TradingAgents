@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import os
 import threading
+import time
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from .config import SETTINGS
 from .db import Db
 from .events import Emitter
+from .prompts_store import active_prompt_overrides, seed_prompt_defaults
 from .runner import Cancelled, get_runner
 from .settings import get_model_pair, get_runtime_flags
 
@@ -155,6 +157,21 @@ def rehydrate_crashed(db: Db, worker_id: str):
             db.update("jobs", f"id=eq.{row['id']}", {"status": "failed", "last_error": "worker restarted mid-run"})
 
 
+def beat(db: Db, worker_id: str, last: float, now: float) -> float:
+    """Heartbeat for the portal's queue view: app_settings.worker_state lets the
+    UI tell 'queued, worker polls every few seconds' from 'worker down'. ~20s
+    cadence; best-effort — never block the queue loop on it."""
+    if now - last < 20:
+        return last
+    try:
+        db.upsert("app_settings", "key", {"key": "worker_state", "value": {
+            "worker_id": worker_id, "at": datetime.now(timezone.utc).isoformat(),
+            "poll_interval_s": SETTINGS.poll_interval_s}})
+    except Exception as e:
+        print(f"heartbeat (non-fatal): {e}", flush=True)
+    return now
+
+
 def run_forever():
     wid = f"worker-{uuid.uuid4().hex[:8]}"
     _start_health_server()
@@ -164,10 +181,14 @@ def run_forever():
         raise SystemExit(f"missing env: {', '.join(missing)}")
     rehydrate_crashed(db, wid)
     runner = get_runner(model_pair_resolver=lambda: get_model_pair(db),
-                        stub_resolver=lambda: get_runtime_flags(db)["stub"])
+                        stub_resolver=lambda: get_runtime_flags(db)["stub"],
+                        prompts_resolver=lambda: active_prompt_overrides(db))
+    seed_prompt_defaults(db)
     inflight: dict[str, threading.Event] = {}
+    last_beat = 0.0
     print(f"[{datetime.utcnow().isoformat()}Z] worker {wid} up (stub_mode={SETTINGS.stub_mode})", flush=True)
     while True:
+        last_beat = beat(db, wid, last_beat, time.monotonic())
         job = None
         try:
             job = db.claim_job(wid, types=["analysis", "universe_refresh"])

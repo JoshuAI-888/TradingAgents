@@ -85,6 +85,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.8"
+      - key: TRADINGAGENTS_CACHE_DIR
+        value: /tmp/ta-cache   # crons have no disk; /data is not writable
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
@@ -101,6 +103,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.8"
+      - key: TRADINGAGENTS_CACHE_DIR
+        value: /tmp/ta-cache   # crons have no disk; /data is not writable
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
@@ -121,6 +125,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.8"
+      - key: TRADINGAGENTS_CACHE_DIR
+        value: /tmp/ta-cache   # crons have no disk; /data is not writable
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
@@ -141,6 +147,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.8"
+      - key: TRADINGAGENTS_CACHE_DIR
+        value: /tmp/ta-cache   # crons have no disk; /data is not writable
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
