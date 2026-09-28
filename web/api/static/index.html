@@ -363,6 +363,25 @@ window.addEventListener("error", ev => {
 </script>
 <script src="/vendor/klinecharts.min.js"></script>
 <script>
+// ── display timezone (NZ default incl. DST; UTC option in Settings) ──
+const TZ = () => localStorage.getItem("tzmode") || "nz";
+function setTZ(mode) { localStorage.setItem("tzmode", mode); showPage("settings"); }
+function fmtTs(v) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (isNaN(d)) return String(v);
+  if (TZ() === "nz") return d.toLocaleString("en-NZ", { timeZone: "Pacific/Auckland",
+    year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+  return d.toISOString().slice(0, 16).replace("T", " ") + " UTC";
+}
+function fmtClock(v) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (isNaN(d)) return String(v);
+  if (TZ() === "nz") return d.toLocaleString("en-NZ", { timeZone: "Pacific/Auckland",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  return String(v).slice(11, 19);
+}
 // ── screener state + helpers (moomoo-style Market Pulse screener) ──────
 window.__scr = { market: "US", watchlistOnly: false, filters: [], sort: "market_cap",
                  dir: 2, presetPage: 1, watchlistSyms: [] };
@@ -391,6 +410,45 @@ function scrApplyPreset(key) {
   showPage("home");
 }
 let __scrRefreshJob = null;
+function scrPollProgress(jobId) {
+  window.__scrPollActive = true;
+  api("/api/analyses/" + jobId).then(j => {
+    window.__scrPollActive = false;
+    const ev = (j.events || []).filter(e => e.stage === "universe").slice(-1)[0];
+    const prog = { status: j.job?.status, msg: ev?.message || j.job?.status || "" };
+    const el = document.getElementById("scr-prog");
+    if (el) {
+      let pct = 5;
+      let m = String(prog.msg).match(/plates \w+ (\d+)\/(\d+)/);
+      if (m) pct = 5 + 55 * (Number(m[1]) / Math.max(1, Number(m[2])));
+      m = String(prog.msg).match(/batch (\d+)\/(\d+)/);
+      if (m) pct = 60 + 38 * (Number(m[1]) / Math.max(1, Number(m[2])));
+      if (prog.status === "succeeded") pct = 100;
+      const bars = el.querySelectorAll(".bar i");
+      bars[0].style.width = pct + "%";
+      if (bars[1]) bars[1].style.width = (100 - pct) + "%";
+      el.querySelector("span").textContent = prog.msg + (prog.status ? " · " + prog.status : "");
+    }
+    if (prog.status === "succeeded" || prog.status === "failed") {
+      window.__scrRefreshJob = null;
+      showPage("home");  // single re-render to pull the fresh universe
+    } else if (state.page === "home") {
+      setTimeout(() => { if (window.__scrRefreshJob) scrPollProgress(jobId); }, 2000);
+    }
+  }).catch(() => setTimeout(() => {
+    window.__scrPollActive = false;
+    if (window.__scrRefreshJob && state.page === "home") scrPollProgress(jobId);
+  }, 3000));
+}
+async function saveSchedule() {
+  const h = Number(document.getElementById("scr-interval").value);
+  const out = document.getElementById("scr-sched-out");
+  try {
+    await api("/api/screener/schedule", { method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ interval_h: h }) });
+    if (out) out.textContent = "saved — effective for the next loader run";
+  } catch (e) { if (out) out.textContent = "save failed: " + (e.message || e); }
+}
 async function scrLoadUniverse(btn) {
   if (btn) btn.disabled = true;
   try {
@@ -614,21 +672,10 @@ const pages = {
     const cands = val(0, { candidates: [] }), decs = val(1, { decisions: [] }),
           ms = val(2, { available: false }), scr = val(3, { available: false, rows: [] }),
           rail = val(4, { presets: [] });
-    // universe refresh progress (queued by the Load full market button)
-    let prog = null;
-    if (window.__scrRefreshJob) {
-      const j = await api("/api/analyses/" + window.__scrRefreshJob).catch(() => null);
-      if (j) {
-        const ev = (j.events || []).filter(e => e.stage === "universe").slice(-1)[0];
-        prog = { status: j.job?.status, msg: ev?.message || j.job?.status || "" };
-        if (prog.status === "succeeded" || prog.status === "failed") {
-          window.__scrRefreshJob = null;
-          setTimeout(() => showPage("home"), 1200);
-        } else {
-          setTimeout(() => { if (state.page === "home" && window.__scrRefreshJob) showPage("home"); }, 2500);
-        }
-      }
-    }
+    // universe refresh progress (queued by the Load full market button):
+    // initial paint only — scrPollProgress updates the bar IN PLACE and the
+    // page is re-rendered exactly once, when the job finishes.
+    let prog = window.__scrRefreshJob ? { status: "running", msg: "refreshing universe…" } : null;
     const fmtPct = v => v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(2) + "%";
     window.__scrPresets = rail.presets || [];
     window.__scr.watchlistSyms = scr.watchlist || st.watchlistSyms;
@@ -658,7 +705,7 @@ const pages = {
         <div class="s">${esc(x.symbol)}</div><div class="v">${fmtPct(x.pct)}</div></div>`).join("");
       const cal = (ms.calendar || []).slice(0, 4).map(c => `<div class="cal"><div class="d">${esc(c.country || "—")} · ${"★".repeat(Math.max(1, Math.min(5, c.star || 1)))} · ${c.time ? new Date(c.time * 1000).toISOString().slice(0, 10) : ""}</div>
         <div class="t">${esc(String(c.event || "").slice(0, 80))}</div></div>`).join("");
-      msPanel = `<div class="panel"><h3 class="sec">Market state <small>moomoo real-time · as of ${esc(String(ms.as_of || "").slice(0, 16).replace("T", " "))} UTC</small></h3>
+      msPanel = `<div class="panel"><h3 class="sec">Market state <small>moomoo real-time · as of ${fmtTs(ms.as_of)}</small></h3>
         <div class="idxtape">${idx}</div>
         <div class="sector-heat">${sec}</div>
         <div class="faint" style="font-size:10px;margin-top:7px;line-height:1.5">SPY = S&amp;P 500 proxy · QQQ = Nasdaq-100 · IWM = Russell 2000 · VIXY = VIX proxy · HK.HSI = Hang Seng (when quoted). Sectors are the 11 SPDR ETFs: XLK Tech · XLC Comms · XLY Cons. Disc. · XLF Financials · XLV Health Care · XLI Industrials · XLP Staples · XLU Utilities · XLRE Real Estate · XLE Energy · XLB Materials. Index futures/bonds need entitlements moomoo hasn't granted this account, hence ETF proxies.</div>
@@ -721,7 +768,7 @@ const pages = {
     ${msPanel}
     <div class="scr-grid">
       <div class="panel scr-main">
-        <h3 class="sec">Screener <small>moomoo data · ${st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: " + (scr.universe_loaded ? "full " + esc(st.market) + " market" + (scr.universe_as_of ? " · as of " + esc(String(scr.universe_as_of).slice(0, 16).replace("T", " ")) + " UTC" : "") : "live slices — run ↻ Load full market") + ""}</small></h3>
+        <h3 class="sec">Screener <small>moomoo data · ${st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: " + (scr.universe_loaded ? "full " + esc(st.market) + " market" + (scr.universe_as_of ? " · quotes as of " + fmtTs(scr.universe_as_of) : "") : "live slices — run ↻ Load full market") + ""}</small></h3>
         <div class="scr-toolbar">
           <label class="faint">Market</label>
           <select id="scr-market" onchange="scrSet('market', this.value)">
@@ -763,7 +810,7 @@ const pages = {
     ]);
     const inflight = (act.jobs || []);
     const inflightHtml = inflight.length ? `<div class="panel"><h3 class="sec">In flight <small>${inflight.length} analysis(es) running now · decisions land in the ledger when they complete</small></h3>
-      ${inflight.map(j => { const p = j.payload || {}; return `<div class="fresh"><span>${esc(p.ticker || "?")} · ${esc(p.depth || "standard")} · queued ${esc(String(j.created_at || "").slice(11, 16))}Z</span>
+      ${inflight.map(j => { const p = j.payload || {}; return `<div class="fresh"><span>${esc(p.ticker || "?")} · ${esc(p.depth || "standard")} · queued ${fmtClock(j.created_at)}</span>
         <span class="warn">${esc(j.status)} · <a href="#" onclick="watch('${esc(j.id)}');return false">live trace →</a></span></div>`; }).join("")}
     </div>` : "";
     if (inflight.length) setTimeout(() => { if (state.page === "analyze" && !state.poll) showPage("analyze"); }, 8000);
@@ -841,6 +888,16 @@ const pages = {
           When off, every analysis is a real multi-agent run via OpenRouter (billed per token, ≈$0.14 on cheap defaults). </span>
         </label>
         <div id="s-runtime-out" class="faint" style="font-size:11px;margin-top:6px"></div></div>
+      <div class="panel"><h3 class="sec">Data &amp; coverage <small>moomoo screener universe loader</small></h3>
+        <div id="scr-sched" class="empty">loading…</div></div>
+      <div class="panel"><h3 class="sec">Display timezone <small>all times on this site</small></h3>
+        <label style="display:flex;gap:9px;align-items:flex-start;font-size:12.5px;cursor:pointer;margin-bottom:6px">
+          <input type="radio" name="tzmode" ${TZ() === "nz" ? "checked" : ""} onchange="setTZ('nz')" style="margin-top:2px">
+          <span><b>New Zealand</b> (default) — Pacific/Auckland, daylight saving applied automatically. Times render like "28 Sep, 21:33".</span></label>
+        <label style="display:flex;gap:9px;align-items:flex-start;font-size:12.5px;cursor:pointer">
+          <input type="radio" name="tzmode" ${TZ() === "utc" ? "checked" : ""} onchange="setTZ('utc')" style="margin-top:2px">
+          <span><b>UTC</b> — the exchange-agnostic default the API stores (shown with a Z suffix).</span></label>
+        <div class="faint" style="font-size:10.5px;margin-top:6px">Now: ${fmtTs(new Date().toISOString())}</div></div>
       <div class="panel"><h3 class="sec">System</h3><div id="sysmeta" class="empty">loading…</div></div>`;
   },
 
@@ -985,7 +1042,7 @@ async function reportPage(ref) {
 
   const trace = (r.events || []).slice(-60).map(e => {
     const cls = /qc|gate|settle/i.test(e.stage) ? "sys" : /fail/i.test(e.status || "") || /error/i.test(e.message || "") ? "bad" : /start|progress/i.test(e.status || "") ? "ag" : "sys";
-    return `<div><span class="t">${esc(String(e.ts || "").slice(11, 19))}</span> <span class="${cls}">${esc(e.stage.toUpperCase())}</span> — ${esc(e.message || e.status || "")}</div>`;
+    return `<div><span class="t">${fmtClock(e.ts)}</span> <span class="${cls}">${esc(e.stage.toUpperCase())}</span> — ${esc(e.message || e.status || "")}</div>`;
   }).join("");
 
   const tokPct = run.prompt_tokens ? Math.round((run.tokens_cached || 0) / run.prompt_tokens * 100) : 0;
@@ -1019,7 +1076,7 @@ async function reportPage(ref) {
   <div class="mast">
     <div class="mast-top">
       <div class="brand">TRADINGAGENTS <b>GLOBAL RESEARCH</b> — Multi-Agent Workstation</div>
-      <div class="right">run ${esc(String(run.id || "").slice(0, 8))} · ${esc(String(run.started_at || "").slice(0, 16).replace("T", " "))}Z · ${esc(run.framework_version || "0.5.1")} · <span class="pill ${r.job?.status === "succeeded" ? "pg" : "pa"}"><i></i>${esc(r.job?.status || "—")}</span></div>
+      <div class="right">run ${esc(String(run.id || "").slice(0, 8))} · ${fmtTs(run.started_at)} · ${esc(run.framework_version || "0.5.1")} · <span class="pill ${r.job?.status === "succeeded" ? "pg" : "pa"}"><i></i>${esc(r.job?.status || "—")}</span></div>
     </div>
     <div class="verdict">
       <div class="v-left">
@@ -2343,6 +2400,26 @@ async function showPage(p) {
     }
     if (p === "report") { $("#page").innerHTML = await reportPage(state.reportRef); chartInit(); return; }
     $("#page").innerHTML = await pages[p]();
+    if (p === "settings") {
+      api("/api/screener/schedule").then(s => {
+        const el = document.getElementById("scr-sched");
+        if (!el) return;
+        const last = s.last_quotes ? fmtTs(s.last_quotes) : "never";
+        el.className = "";
+        el.innerHTML = `<div class="trow"><span>Universe</span><b>${s.universe_rows.toLocaleString()} listings</b></div>
+          <div class="trow"><span>Quote rows</span><b>${s.quote_rows.toLocaleString()} · as of ${last}</b></div>
+          <div class="trow"><span>Refresh cadence</span>
+            <select id="scr-interval" style="background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:11.5px">
+              ${[1, 2, 4, 8, 12, 24].map(h => `<option value="${h}" ${s.interval_h === h ? "selected" : ""}>every ${h}h during US market hours</option>`).join("")}
+            </select></div>
+          <div class="actions" style="margin-top:8px"><button class="btn" onclick="saveSchedule()">Save cadence</button>
+          <span id="scr-sched-out" class="faint" style="font-size:11px"></span></div>
+          <div class="faint" style="font-size:10.5px;margin-top:6px">The loader runs hourly (cron, US market hours) and skips itself when quotes are fresher than this cadence. Full re-enumeration of listings runs daily.</div>`;
+      }).catch(() => {});
+    }
+    if (p === "home" && window.__scrRefreshJob && !window.__scrPollActive) {
+      setTimeout(() => { if (window.__scrRefreshJob) scrPollProgress(window.__scrRefreshJob); }, 400);
+    }
     if (p === "settings") {
       api("/api/meta").then(m => {
         const el = $("#sysmeta");

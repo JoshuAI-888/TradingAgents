@@ -43,10 +43,10 @@ class UniverseRefresher:
         self.emit = emit or (lambda *a, **k: None)
 
     # ── enumeration ───────────────────────────────────────────────────────
-    def _plates(self) -> list[dict]:
+    def _plates_for(self, cls: str) -> list[dict]:
         out = _budgeted(self.client.call, "GET", "/quote/plate-list",
-                        query={"market": self.market, "plate_class": "INDUSTRY"})
-        return out.get("plate_list") or []  # verified live: top-level plate_list, 145 for US
+                        query={"market": self.market, "plate_class": cls})
+        return out.get("plate_list") or []  # verified live: top-level plate_list
 
     def _plate_codes(self, plate_code: str) -> list[str]:
         codes: list[str] = []
@@ -64,30 +64,55 @@ class UniverseRefresher:
                 break
         return codes
 
+    # enum values verified live: simple_field 1 → 1=HK 2=US 3=BJ; sort ids
+    # 2301=market_cap, 2201=price, 2210=pct_change (values x1000)
+    SLICES = [(2301, 2), (2301, 1), (2201, 2), (2201, 1), (2210, 2), (2210, 1)]
+
     def enumerate_universe(self) -> dict:
-        plates = self._plates()
-        total = len(plates)
-        print(f"[universe] {self.market}: {total} industry plates", flush=True)
-        self.emit("universe", "progress", f"enumerating {total} industry plates")
         seen: dict[str, str] = {}
-        for i, p in enumerate(plates, 1):
-            pcode = p.get("code") or ""
-            pname = p.get("plate_name") or p.get("name") or ""
-            if not pcode:
-                continue
+        plate_total = 0
+        for cls in ("INDUSTRY", "CONCEPT", "OTHER"):
+            plates = _budgeted(self._plates_for, cls)
+            plate_total += len(plates)
+            self.emit("universe", "progress",
+                      f"plates {cls.lower()} {len(plates)} · {len(seen)} stocks so far")
+            for i, p in enumerate(plates, 1):
+                pcode = p.get("code") or ""
+                pname = p.get("plate_name") or p.get("name") or ""
+                if not pcode:
+                    continue
+                try:
+                    codes = _budgeted(self._plate_codes, pcode)
+                except Exception as e:
+                    print(f"[universe] plate {pcode} failed: {e}", flush=True)
+                    continue
+                for c in codes:
+                    seen.setdefault(c, pname)
+                if i % 25 == 0:
+                    self.emit("universe", "progress",
+                              f"plates {cls.lower()} {i}/{len(plates)} · {len(seen)} stocks so far")
+        # screen-slice union: the tail plates miss (OTC, ETFs, warrants, fresh IPOs)
+        sl = 0
+        for sort_id, direction in self.SLICES:
+            sl += 1
             try:
-                codes = _budgeted(self._plate_codes, pcode)
+                out = _budgeted(self.client.call, "POST", "/quote/stock-screen", body={
+                    "limit": 300,
+                    "screen_queries": [{"simple_field_query": {"simple_field": 1,
+                        "screen_value_list": [{"US": 2, "HK": 1}.get(self.market, 2)]}}],
+                    "sort": {"direction": direction, "simple_property": {"name": sort_id}}})
+                for it in (out.get("items") or []):
+                    c = it.get("code")
+                    if c:
+                        seen.setdefault(c, "screen-slice")
+                self.emit("universe", "progress",
+                          f"slice {sl}/{len(self.SLICES)} · {len(seen)} stocks so far")
             except Exception as e:
-                print(f"[universe] plate {pcode} failed: {e}", flush=True)
-                continue
-            for c in codes:
-                seen.setdefault(c, pname)
-            if i % 10 == 0 or i == total:
-                self.emit("universe", "progress", f"plates {i}/{total} · {len(seen)} stocks")
+                print(f"[universe] slice {sort_id}/{direction} failed: {e}", flush=True)
         rows = [{"market": self.market, "code": c, "name": None, "plate": plate}
                 for c, plate in seen.items()]
         self.db.upsert_many("screener_universe", "market,code", rows)
-        return {"plates": total, "codes": len(rows)}
+        return {"plates": plate_total, "slices": len(self.SLICES), "codes": len(rows)}
 
     # ── quotes ────────────────────────────────────────────────────────────
     def _stored_codes(self) -> list[str]:
@@ -115,6 +140,13 @@ class UniverseRefresher:
         out: dict = {"market": self.market, "started_at": datetime.now(timezone.utc).isoformat()}
         state = self._universe_state()
         need_enum = force_enum or not self._stored_codes() or self._enum_age_h(state) >= ENUM_TTL_H
+        interval_h = float(state.get("interval_h") or 1)
+        fresh = self._quotes_age_h(state) < interval_h
+        if fresh and not need_enum and not force_enum:
+            out["skipped"] = (f"quotes fresh ({self._quotes_age_h(state):.1f}h < "
+                              f"{interval_h:g}h interval) — nothing to do")
+            self.emit("universe", "done", out["skipped"])
+            return out
         if need_enum:
             out["enum"] = self.enumerate_universe()
             state = {**state, "last_enum": out["started_at"]}
@@ -130,6 +162,16 @@ class UniverseRefresher:
     def _universe_state(self) -> dict:
         rows = self.db.select("app_settings", {"key": "eq.universe_state"}, "value")
         return (rows[0].get("value") or {}) if rows else {}
+
+    def _quotes_age_h(self, state: dict) -> float:
+        raw = state.get("last_quotes")
+        if not raw:
+            return 1e9
+        try:
+            then = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+            return (datetime.now(timezone.utc) - then).total_seconds() / 3600
+        except ValueError:
+            return 1e9
 
     def _enum_age_h(self, state: dict) -> float:
         raw = state.get("last_enum")

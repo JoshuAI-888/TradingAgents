@@ -596,6 +596,33 @@ def screener_presets(market: str = "US", universe: str = "auto"):
     return {"available": True, "presets": out, "universe_rows": len(rows)}
 
 
+@app.get("/api/screener/schedule")
+def screener_schedule_get():
+    """Universe-refresh cadence + current loader state (settings page + cron)."""
+    state = _universe_state()
+    rows = db.select_all("screener_quotes", {"market": "eq.US"}, "code")
+    urows = db.select_all("screener_universe", {"market": "eq.US"}, "code")
+    return {"interval_h": float(state.get("interval_h") or 1),
+            "last_quotes": state.get("last_quotes"), "last_enum": state.get("last_enum"),
+            "last_result": state.get("last_result") or {},
+            "quote_rows": len(rows), "universe_rows": len(urows)}
+
+
+@app.put("/api/screener/schedule")
+def screener_schedule_put(inp: ScheduleIn):
+    if inp.interval_h not in (1, 2, 4, 8, 12, 24):
+        raise HTTPException(400, "interval_h must be one of 1, 2, 4, 8, 12, 24")
+    state = _universe_state()
+    state["interval_h"] = inp.interval_h
+    db.upsert("app_settings", "key", {"key": "universe_state", "value": state})
+    return {"saved": True, "interval_h": inp.interval_h}
+
+
+def _universe_state() -> dict:
+    rows = db.select("app_settings", {"key": "eq.universe_state"}, "value")
+    return (rows[0].get("value") or {}) if rows else {}
+
+
 @app.post("/api/screener/refresh")
 def screener_refresh(market: str = "US"):
     """Queue a full-market universe refresh as a worker job; progress streams
@@ -761,6 +788,10 @@ class ModelPairIn(BaseModel):
     provider: str = Field(default="openrouter", min_length=2, max_length=32)
     quick: str = Field(min_length=2, max_length=120)
     deep: str = Field(min_length=2, max_length=120)
+
+
+class ScheduleIn(BaseModel):
+    interval_h: int
 
 
 class SettingsIn(BaseModel):
