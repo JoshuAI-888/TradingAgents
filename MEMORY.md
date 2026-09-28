@@ -773,3 +773,21 @@ CLEANUP (same day): presets route + rail + Screeners tab no longer emit the
 stale skipped/pending hints — every preset filter has a verified server-side
 property, so the honest state is "all filters · server-side". Live: 22 presets,
 no stale fields; RSI<30 executes (60 rows, top ITFCY/BAC/MS). Commit 1bae3b6.
+
+## 2026-09-29 (evening) — Configurable columns + per-column sort/filter + security classification
+
+Screener table is now fully data-driven: 26-column catalog (SCR_COLS: key →
+label + kind text/num/multi/bool); Columns picker (show/hide, persisted in
+localStorage scrState with filters/sort); EVERY column sorts (click header —
+Python sorts the full matched set); per-column filter menu via the ⚈ icon —
+numeric ranges, multi-select checkboxes backed by GET /api/screener/facets
+(distinct values + counts over the universe, meta-merged), boolean toggles;
+chips show column filters; Reset all (toolbar) + per-menu Reset + chip ×.
+_apply_filters learned values[] (case-insensitive multi-select, same
+skip-semantics for absent fields). Loader enriches screener_universe with
+stock_type/exchange via /quote/stock-basicinfo (400-code batches, budgeted;
+migration 0010 columns) — verified facets: STOCK 8,807 · ETF 4,117 · IDX 551 ·
+WARRANT 162 over 15,487 matched rows. NOTE: a full loader run is now ~25 min
+(469 plates + 34 basicinfo + 34 snapshot batches) — pushes restart the worker
+and requeue the job ("worker restarted mid-run" x3 this round); never push
+while a loader job is in flight.
