@@ -791,3 +791,14 @@ WARRANT 162 over 15,487 matched rows. NOTE: a full loader run is now ~25 min
 (469 plates + 34 basicinfo + 34 snapshot batches) — pushes restart the worker
 and requeue the job ("worker restarted mid-run" x3 this round); never push
 while a loader job is in flight.
+
+## 2026-09-29 (night) — Stock-chart panes grow downward, candles never squeeze
+
+klinecharts divided a fixed container (#stk-kc 480px / #rep-kc 460px; fullscreen:
+stretched to 100vh via flex:1!important), so every added sub-pane compressed the
+candles. Fix: klineEnsure captures the host's base height once (h.baseH from the
+inline style); klineApply sets container height = baseH + 84×subs and chart.resize()
+— candles stay constant, panes stack downward, the page scrolls naturally.
+Fullscreen: removed the viewport-stretch rules; .kc-full keeps overflow:auto so a
+scrollbar appears only when panes exceed the screen. Verified live: COST chart
+564px → 732px after adding RSI+KDJ (+2×84 exact), candles unchanged.

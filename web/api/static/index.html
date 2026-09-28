@@ -118,6 +118,27 @@ details .body{padding:2px 16px 14px;font-size:12.5px;color:#b9c6d8;border-top:1p
 details .body p{margin-top:9px;white-space:pre-wrap}
 .bubble-b{border-left:3px solid var(--red);padding-left:10px}
 .bubble-u{border-left:3px solid var(--green);padding-left:10px}
+/* long unbroken text (legacy spaceless transcripts) must wrap, not push the grid */
+details .body p,.turn-b,.trace,.thesis,.news .d{overflow-wrap:anywhere}
+.ws>div{min-width:0}
+/* debate transcript: one card per speaker turn */
+.turn{border:1px solid var(--line);border-left-width:3px;border-radius:9px;padding:10px 14px;margin:0 0 10px;background:var(--panel2)}
+.turn .sp{font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;display:inline-block;padding:2px 8px;border-radius:4px;margin-bottom:7px}
+.turn-b{font-size:13px;line-height:1.75;color:#c3cfdf}
+.sp-bull{background:rgba(38,198,140,.15);color:var(--green)} .turn.b-bull{border-left-color:var(--green)}
+.sp-bear{background:rgba(240,84,79,.15);color:var(--red)} .turn.b-bear{border-left-color:var(--red)}
+.sp-agg{background:rgba(38,198,140,.15);color:var(--green)} .turn.b-agg{border-left-color:var(--green)}
+.sp-cons{background:rgba(240,84,79,.15);color:var(--red)} .turn.b-cons{border-left-color:var(--red)}
+.sp-neu{background:rgba(232,163,61,.15);color:var(--amber)} .turn.b-neu{border-left-color:var(--amber)}
+.sp-mgr{background:rgba(58,118,221,.18);color:#7dabff} .turn.b-mgr{border-left-color:var(--blue)}
+.sp-trader{background:rgba(160,107,250,.15);color:#c3a6ff} .turn.b-trader{border-left-color:var(--purple)}
+.sp-pm{background:rgba(63,193,201,.15);color:var(--cyan)} .turn.b-pm{border-left-color:var(--cyan)}
+.sp-open{background:rgba(139,160,184,.15);color:var(--dim)} .turn.b-open{border-left-color:var(--dim)}
+/* section separators inside the agent-outputs panel */
+.agent-sec{display:flex;align-items:baseline;gap:10px;margin:20px 0 10px}
+.agent-sec:first-child{margin-top:0}
+.agent-sec .kick{white-space:nowrap}
+.agent-sec:after{content:"";flex:1;border-top:1px solid var(--line)}
 .trace{background:#0a1017;border:1px solid var(--line);border-radius:10px;font-family:var(--mono);font-size:11px;line-height:1.8;padding:12px 16px;max-height:340px;overflow:auto}
 .trace .t{color:var(--faint)} .trace .ag{color:var(--blue);font-weight:700}
 .trace .tool{color:var(--cyan)} .trace .sys{color:var(--dim)} .trace .live{color:var(--amber)}
@@ -1203,6 +1224,64 @@ function pivots(bars) {
 }
 
 const RATING_COLOR = { buy: "var(--green)", overweight: "var(--green)", hold: "var(--amber)", underweight: "var(--red)", sell: "var(--red)" };
+
+// ── debate transcript rendering ──────────────────────────────────────
+// Turn labels both ways: the engine's spaced form ("Bull Analyst:") and the
+// spaceless legacy rows stored by the pre-fix build ("BullAnalyst:").
+const TURN_SPEAKERS = [
+  ["Bull Analyst", "bull", "Bull"],
+  ["Bear Analyst", "bear", "Bear"],
+  ["Aggressive Analyst", "agg", "Aggressive"],
+  ["Neutral Analyst", "neu", "Neutral"],
+  ["Conservative Analyst", "cons", "Conservative"],
+  ["Research Manager", "mgr", "Research Manager"],
+  ["Trader", "trader", "Trader"],
+  ["Portfolio Manager", "pm", "Portfolio Manager"],
+];
+function parseTurns(content) {
+  const names = TURN_SPEAKERS.flatMap(s => [s[0], s[0].replace(/ /g, "")]);
+  const re = new RegExp("(^|[\\n\\s])(" + names.join("|") + "):", "g");
+  const text = String(content || "");
+  const starts = [];  // index where each "Speaker:" label begins
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    starts.push(m.index + m[1].length);
+    re.lastIndex = m.index + m[1].length + m[2].length + 1;  // labels abut in legacy run-on text
+  }
+  if (!starts.length) return [{ speaker: null, text: text }];
+  const turns = [];
+  if (starts[0] > 0) turns.push({ speaker: null, text: text.slice(0, starts[0]) });
+  starts.forEach((at, i) => {
+    const label = text.slice(at, text.indexOf(":", at));
+    const speaker = TURN_SPEAKERS.find(s => s[0] === label || s[0].replace(/ /g, "") === label) || ["", "open", label];
+    const end = i + 1 < starts.length ? starts[i + 1] : text.length;
+    turns.push({ speaker, text: text.slice(text.indexOf(":", at) + 1, end).trim() });
+  });
+  return turns.filter(t => t.text.trim());
+}
+function approxSpacing(text) {
+  // Legacy rows lost every space at write time; reintroduce word boundaries
+  // heuristically (lowercase→Capital, around punctuation, letter→digit).
+  // Approximate by nature — panels show a notice when applied.
+  return text
+    .replace(/([a-z]{2})(?=[A-Z])/g, "$1 ")
+    .replace(/([.:;!?\u2014])(?=[A-Za-z])/g, "$1 ")
+    .replace(/([a-z])(?=\d)/g, "$1 ")
+    .replace(/(\d|%)(?=[A-Z][a-z])/g, "$1 ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function debateTurnsHtml(content) {
+  const turns = parseTurns(content);
+  const legacy = turns.some(t => !t.text.includes(" ") && t.text.length > 60);
+  const html = turns.map(t => {
+    const text = t.text.includes(" ") ? t.text : approxSpacing(t.text);
+    const s = t.speaker || ["", "open", "Opening"];
+    return `<div class="turn b-${s[1]}"><span class="sp sp-${s[1]}">${esc(s[2] || s[0])}</span>
+      <div class="turn-b">${md(text)}</div></div>`;
+  }).join("");
+  return (legacy ? `<div class="delay-note" style="margin-bottom:10px">Stored by the pre-fix pipeline build, which stripped word spacing; speaker turns and approximate spacing restored here — wording is exact, gaps are best-effort.</div>` : "") + html;
+}
 const fmtBig = v => v >= 1e12 ? (v / 1e12).toFixed(2) + "T" : v >= 1e9 ? (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v.toLocaleString();
 
 function agentLabel(stage) {
