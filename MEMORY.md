@@ -730,3 +730,41 @@ stored in universe_state); the hourly cron skips when quotes are fresher; Settin
 default (localStorage tzmode=nz), UTC option in Settings→Display timezone.
 Settings slowness note: /api/screener/schedule does two paginated 13.5k-row reads;
 cache if it bothers anyone.
+
+## 2026-09-28 — Screener reconciled to moomoo.com/screener (server-side execution)
+
+AUDIT: cycling all presets showed 12 missing fields (debt_ratio, revenue_growth,
+roe, net_profit_growth, roe_yoy, sector, gross_margin, net_margin, rsi14,
+op_ebt, eps_growth, new_low_10d) skipped in up to 9 presets each.
+
+DISCOVERY: (1) moomoo's web screener chunks hold the factor-KEY dictionary
+(77 keys: assetLiabilityRatio, operatingIncomeGrowthRate, grossProfitRate,
+roeYoYGrowthRate…); (2) their SSR strategy pages embed the CANONICAL
+stock-screen payloads per screener (window.__INITIAL_STATE__.hot_strategy_info
+.queries) — extracted all 22; (3) Futu's get-stock-screen docs give the enum
+system (FinancialProperty 4101+, term 100=annual). Live probes vs known
+NVDA/AAPL/Tencent figures pinned the dictionary:
+simple 2201 price / 2301 cap (x1000) · 2303 PE_TTM / 2304 P/B (x100000)
+· financial term=100: 4102 npGrowth 4106 revGrowth 4107 netMargin 4108
+grossMargin 4109 debt/asset 4110 ROE 4606 epsYoY 4607 opProfitYoY 4625 roeYoY
+4702 OP/EBT 4219 divYieldTTM 4801 basicEPS 4903 floatCap (pct & money x1000)
+· cumulative 3104 N-day avg volume (periodAverage), 3108 N-day change
+(new-low: days=10 upper<0) · RSI = indicatorPositionalQuery {position 1/2,
+period 11, firstIndicator 52, firstIndicatorParams [14], secondValue x1000}
+· sectors = plateQuery {plateList:[{plateIdList:[10002016,…]}]} (numeric ids
+from moomoo's own semi/tech/bank payloads).
+
+RESULT: ALL 22 presets (incl. the 22nd, Best LT High Dividend) now execute
+SERVER-SIDE via /api/screener/execute — moomoo's own screening backend, zero
+pending fields, results carry per-stock factor values. Reconciliation: penny
+executed with moomoo's exact payload anchors on USEI first-row (price asc)
+matching moomoo.com's own display; note moomoo's PUBLIC page count (3079)
+applies only the 3 quote filters (premium fundamental filters are not applied
+anonymous) — ours applies ALL filters per the definition. Stock-screen caps at
+300 rows/page and exposes no next_key on this tier → counts >300 shown as a
+full first page. Probe route left in place (POST /api/screener/probe, read-only
+pass-through) for future dictionary work. Screeners tab in the filter modal now
+lists all 22 with definitions + per-screener skip status + Run/Edit; presets
+run server-side (banner "server-side execution — matches moomoo.com/screener").
+99 tests green. RSI and OP/EBT: moomoo's own web UI locks RSI behind VIP — our
+account executes it server-side anyway.
