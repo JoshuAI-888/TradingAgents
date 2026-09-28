@@ -544,3 +544,38 @@ template + Retry-After sleeps; a full run is ~7 min (145 plate calls + ~24
 snapshot batches). db.upsert_many added (bulk merge-duplicates; single-row
 upserts would be 9k HTTP calls). Cron follows (hourly quotes, daily enum).
 FakeSupa upsert learned compound conflict keys ("market,code").
+
+## 2026-09-28 — Quotes in top nav + ticker switcher; Comments-tab triage
+
+USER REPORT: clicking Comments on the stock page "goes back to the screener".
+Triage on the current deploy: Comments itself is clean (programmatic stkSet +
+real-click probes never navigate; no overlay; navlog empty). Found and fixed
+the one control that DID kick back: the ☆ star — toggleWatch ended with
+showPage("home"). Now it re-renders the stock page in place (star state
+updated optimistically in window.__scr.watchlistSyms). Hardened screener row
+links with event.preventDefault() so a throwing handler can't follow href="#".
+If the report was on a pre-deploy build, 7522ab5+ supersede it.
+
+NEW: "Quotes" in the top nav — landing = last-viewed symbol, else the picker
+(#/stocks): search by ticker/company over the stock-screen universe (~1,200/mkt,
+5-min client cache), Market US/HK switch, Watchlist-only toggle, Sector browse
+via plate-list (145 US industry plates) → plate-stock members snapshot-enriched.
+Stock page header gained a ticker switcher (suggestion dropdown, Enter/click)
++ "All quotes" button. Routing: stkRoute handles #/stocks (regex tolerant of
+hash query suffixes); showPage('quotes') opens last symbol or picker; nav
+active-state maps stock→Quotes. openStock refreshes the hash on every switch
+(was keeping the previous symbol's URL).
+
+NEW worker wrappers: plate_list(market, class) → plate_list container;
+plate_stocks(code) → stock_list; find_community gained lang (route sends en —
+NOTE: MSFT's moomoo community feed is genuinely Chinese-language posts; lang=en
+doesn't translate, it's faithful data). Live fixes: plate-stock sort_field enum
+is MARKET_VAL ('MarketCapital' → -3); universe: /api/sectors +
+/api/sectors/stocks (TTL-cached).
+
+INCIDENT: `git add web/` swept the parallel session's in-progress
+universe_refresh/screener_rows/db/service files into 7522ab5+11b299a (their
+tests were mid-edit and flapped red→green as they committed cab8e11). Rule
+refined: stage explicit paths, never `git add web/` while another session is
+active in the same tree. Deploy: a7d18d2 live; picker/sectors verified on
+production (145 sectors; members w/ prices; switcher NVDA flow; Comments stays).
