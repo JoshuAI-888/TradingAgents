@@ -1291,9 +1291,14 @@ def candidates_refresh():
 
 from fastapi.responses import FileResponse  # noqa: E402
 
-_KLINE_WINDOWS = {"5D": ("candles:5D", 6, 8), "D": ("candles:D", 2, 380),
-                  "W": ("candles:W", 3, 1500), "M": ("candles:M", 4, 2500),
-                  "Q": ("candles:Q", 2, 105), "Y": ("candles:Y", 2, 380)}
+# ktype enum (verified): 2=Day 3=Week 4=Month 5=Year 6=5min 8=30min 9=60min.
+# The old set had Daily and 1Y both at ktype 2/~380d — identical data, so
+# switching horizons "did nothing". Each horizon now maps to distinct data.
+_KLINE_WINDOWS = {"5D": ("candles:5D", 6, 10), "1M": ("candles:1M", 8, 45),
+                  "3M": ("candles:3M", 9, 120), "Q": ("candles:Q", 2, 105),
+                  "6M": ("candles:6M", 2, 190), "Y": ("candles:Y", 2, 380),
+                  "W": ("candles:W", 3, 3400), "M": ("candles:M", 4, 4200),
+                  "10Y": ("candles:10Y", 5, 4200)}
 _SESSION_KINDS = {"FULL", "NORMAL", "PREMARKET", "AFTERHOURS"}
 _NEWS_TYPES = {"news": 1, "notice": 2, "report": 3}
 

@@ -184,6 +184,17 @@ def run_forever():
                         stub_resolver=lambda: get_runtime_flags(db)["stub"],
                         prompts_resolver=lambda: active_prompt_overrides(db))
     seed_prompt_defaults(db)
+
+    def _boot_rehydrate():
+        # drain the pre-fix debate-row backlog (bounded per pass) in the background
+        try:
+            from .rehydrate import rehydrate_debates
+            fixed = rehydrate_debates(db)
+            if fixed:
+                print(f"rehydrate: repaired {fixed} legacy debate row(s) at boot", flush=True)
+        except Exception as e:
+            print(f"rehydrate boot (non-fatal): {e}", flush=True)
+    threading.Thread(target=_boot_rehydrate, daemon=True, name="rehydrate").start()
     inflight: dict[str, threading.Event] = {}
     last_beat = 0.0
     print(f"[{datetime.utcnow().isoformat()}Z] worker {wid} up (stub_mode={SETTINGS.stub_mode})", flush=True)
@@ -243,6 +254,14 @@ def run_forever():
                     emit.emit("report_qc", "progress", f"digest skipped: {dig.get('reason')}")
             except Exception as e3:
                 print(f"digest (non-fatal): {e3}", flush=True)
+            try:
+                from .rehydrate import rehydrate_debates
+                fixed = rehydrate_debates(db)
+                if fixed:
+                    emit.emit("report_qc", "progress",
+                              f"repaired {fixed} legacy debate row(s) · spacing restored, originals preserved")
+            except Exception as e4:
+                print(f"rehydrate (non-fatal): {e4}", flush=True)
         except Cancelled:
             db.finish_job(str(job["id"]), "cancelled", error="cancelled")
         except Exception as e:

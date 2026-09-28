@@ -1854,8 +1854,10 @@ function klineSetData(h, data) {
 function klineTool(h, t) {
   const c = h.chart;
   if (!c) return;
-  c.removeOverlay();
-  if (STK_OVERLAYS[t]) c.createOverlay({ name: STK_OVERLAYS[t] });
+  // Clear is the only action that wipes — picking a drawing tool arms another
+  // overlay so previous drawings persist while you keep drawing.
+  if (!STK_OVERLAYS[t]) { c.removeOverlay(); klineDrawOverlays(h); return; }
+  c.createOverlay({ name: STK_OVERLAYS[t] });
   klineDrawOverlays(h);
 }
 
@@ -2228,7 +2230,7 @@ const STK_FIN_TABS = [["earnings","Earnings"],["revenue","Revenue Breakdown"],
   ["indicators","Financial Indicators"],["income","Income Statement"],
   ["balance","Balance Sheet"],["cashflow","Cash Flow"]];
 const STK_FIN_STMT = {income:1, balance:2, cashflow:3, indicators:4};
-const STK_RANGES = [["5D","5D"],["D","Daily"],["W","Weekly"],["M","Monthly"],["Q","1Q"],["Y","1Y"]];
+const STK_RANGES = [["5D","5D"],["1M","1M"],["3M","3M"],["Q","1Q"],["6M","6M"],["Y","1Y"],["W","Weekly"],["M","Monthly"],["10Y","10Y"]];
 const STK_SESSIONS = [["FULL","Full Hours"],["NORMAL","Real-Time"],["PREMARKET","Pre-Market"],["AFTERHOURS","After-Hours"]];
 const STK_ANN_CATS = ["All","Earnings","Transactions","Shareholding","Events","Other"];
 

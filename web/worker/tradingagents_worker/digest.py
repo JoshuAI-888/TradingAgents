@@ -18,6 +18,7 @@ _SYSTEM = (
 )
 
 _SCHEMA = """{
+  "debate_summary": "one short paragraph (<=120 words): what the bull case argued, what the bear case argued, and how the risk debate resolved",
   "evidence": [{"claim": "...", "stage": "market|news|social|fundamentals|research|risk", "support": "short quote or figure"}],
   "scenarios": {
     "bull": {"thesis": "...", "trigger": "...", "range": "fair-value band, e.g. $68-72"},
@@ -27,9 +28,10 @@ _SCHEMA = """{
   "news": [{"title": "...", "class": "catalyst|risk|assumption", "impact": "high|medium|low", "why": "..."}],
   "qc": [{"stage": "...", "score": 0-100, "verdict": "one line"}]
 }
-Rules: evidence <= 8 items, the load-bearing claims behind the decision; news
-covers only the items listed; qc scores each supplied stage report on
-evidence quality, internal consistency and bias, 0-100; ranges are strings."""
+Rules: debate_summary always present, in plain English, no bullet points; evidence
+<= 8 items, the load-bearing claims behind the decision; news covers only the
+items listed; qc scores each supplied stage report on evidence quality, internal
+consistency and bias, 0-100; ranges are strings."""
 
 
 def _clip(s: str | None, n: int) -> str:
@@ -53,7 +55,8 @@ def _parse_json(text: str) -> dict:
 
 def _norm(d: dict) -> dict:
     """Coerce the model's JSON to the portal's shape; never trust it blindly."""
-    out = {"evidence": [], "scenarios": {}, "news": [], "qc": []}
+    out = {"debate_summary": str(d.get("debate_summary") or "")[:1200],
+           "evidence": [], "scenarios": {}, "news": [], "qc": []}
     for ev in (d.get("evidence") or [])[:8]:
         if isinstance(ev, dict) and ev.get("claim"):
             out["evidence"].append({
