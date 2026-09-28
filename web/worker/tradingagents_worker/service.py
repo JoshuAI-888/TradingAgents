@@ -186,12 +186,19 @@ def run_forever():
     seed_prompt_defaults(db)
 
     def _boot_rehydrate():
-        # drain the pre-fix debate-row backlog (bounded per pass) in the background
+        # drain the pre-fix debate-row backlog: passes of a few rows each until
+        # nothing more is repaired (hard cap so a pathological row can't loop)
         try:
             from .rehydrate import rehydrate_debates
-            fixed = rehydrate_debates(db)
-            if fixed:
-                print(f"rehydrate: repaired {fixed} legacy debate row(s) at boot", flush=True)
+            total = 0
+            while total < 40:
+                fixed = rehydrate_debates(db)
+                if not fixed:
+                    break
+                total += fixed
+                time.sleep(2)
+            if total:
+                print(f"rehydrate: repaired {total} legacy debate row(s) at boot", flush=True)
         except Exception as e:
             print(f"rehydrate boot (non-fatal): {e}", flush=True)
     threading.Thread(target=_boot_rehydrate, daemon=True, name="rehydrate").start()
