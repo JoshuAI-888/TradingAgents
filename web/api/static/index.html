@@ -1222,7 +1222,7 @@ const TF_N = { "1M": 21, "3M": 63, "6M": 126, "1Y": 252, "ALL": 500 };
 const KC_LINE = color => ({ style: "solid", smooth: false, color, size: 1.1, dashedValue: [4, 4] });
 
 function klineHost(o) {
-  return Object.assign({ chart: null, subCur: null, maCur: null, emaCur: null,
+  return Object.assign({ chart: null, subsCur: null, maCur: null, emaCur: null,
                          builtType: null, staticOverlays: [] }, o);
 }
 const __kcHosts = [];
@@ -1271,14 +1271,14 @@ function klineTeardown(h) {
   if (h.chart) { try { h.chart.destroy(); } catch (e) {} }
   const i = __kcHosts.indexOf(h);
   if (i >= 0) __kcHosts.splice(i, 1);
-  h.chart = null; h.subCur = null; h.maCur = null; h.emaCur = null; h.builtType = null; h.staticOverlays = [];
+  h.chart = null; h.subsCur = null; h.maCur = null; h.emaCur = null; h.builtType = null; h.staticOverlays = [];
 }
 
-function klineCreate(h, value, paneId) {
+function klineCreate(h, value, paneId, paneOpts) {
   // isStack=true stacks into the pane — isStack=false would REPLACE the
   // pane's whole indicator set. Retry once: creation can race the draw pass.
   for (let k = 0; k < 2; k++) {
-    const id = h.chart.createIndicator(value, true, { id: paneId });
+    const id = h.chart.createIndicator(value, true, Object.assign({ id: paneId }, paneOpts || {}));
     if (id) return true;
   }
   return false;
@@ -1310,12 +1310,15 @@ function klineApply(h) {
   const hasBoll = !!c.getIndicatorByPaneId(h.paneId, "BOLL");
   if (st.boll && !hasBoll) klineCreate(h, "BOLL", h.paneId);
   if (!st.boll && hasBoll) c.removeIndicator(h.paneId, "BOLL");
-  if (h.subCur !== (st.sub || null)) {
-    if (h.subCur) c.removeIndicator(h.subPaneId, h.subCur);
-    // Plain name only — a partial styles object replaces the built-in one and
-    // breaks the VOL indicator's own MA overlay (draw reads styles.lines[0]).
-    if (st.sub) klineCreate(h, st.sub, h.subPaneId);
-    h.subCur = st.sub || null;
+  // Sub panes are ADDITIVE — every selected indicator gets its own pane below
+  // the candles. Changing the set on a live instance rebuilds the chart (a
+  // removed indicator would otherwise leave an empty pane of dead space).
+  const wantSubs = (Array.isArray(st.subs) ? st.subs : (st.sub ? [st.sub] : []))
+    .slice().sort((a, b) => STK_SUBS.findIndex(x => x[0] === a) - STK_SUBS.findIndex(x => x[0] === b));
+  if (h.subsCur != null && h.subsCur.join(",") !== wantSubs.join(",")) { klineRebuild(h); return; }
+  if (h.subsCur == null) {
+    wantSubs.forEach(sName => klineCreate(h, sName, h.subPaneId + "_" + sName, { height: 84 }));
+    h.subsCur = wantSubs.slice();
   }
   klineDrawOverlays(h);
 }
@@ -1386,7 +1389,9 @@ function klineControlsHTML(pfx, st) {
     <button class="rng ${on("ema") ? "on" : ""}" data-${pfx}-tog="ema">EMA</button>${menu("ema")}
     <button class="rng ${st.boll ? "on" : ""}" data-${pfx}-tog="boll">BOLL</button>
     <span class="kc-sep"></span>
-    <select data-${pfx}-sub>${STK_SUBS.map(([k, l]) => `<option value="${k}" ${st.sub === k ? "selected" : ""}>${l}</option>`).join("")}</select>
+    <span class="kc-mwrap"><button class="rng" data-${pfx}-menu="subs" title="Pick lower panes (stacks additively)">＋ Panes ▾</button>
+    <span class="kc-menu" data-${pfx}-panel="subs">${STK_SUBS.map(([k, l]) =>
+      `<label class="kc-mi"><input type="checkbox" data-${pfx}-s="${k}" ${on("subs") && st.subs.includes(k) ? "checked" : ""}> ${l}</label>`).join("")}</span></span>
     <span class="kc-sep"></span>
     ${STK_TOOLS.map(([k, l, t]) => `<button class="rng" title="${esc(t)}" data-${pfx}-tool="${k}">${l}</button>`).join("")}
     <button class="rng" data-kc-fullbtn data-${pfx}-full title="Fullscreen chart">⛶</button>`;
@@ -1415,8 +1420,12 @@ function klineBindControls(pfx, h) {
     arr = cb.checked ? [...new Set(arr.concat(+pc))].sort((a, b) => a - b) : arr.filter(x => x !== +pc);
     h.update(arr.length ? { [k]: arr, ["_" + k + "Last"]: arr } : { [k]: false, ["_" + k + "Last"]: arr });
   });
-  const sub = document.querySelector(`[data-${pfx}-sub]`);
-  if (sub) sub.onchange = () => h.update({ sub: sub.value });
+  all("s").forEach(cb => cb.onchange = () => {
+    const k = cb.getAttribute(`data-${pfx}-s`), st = h.state();
+    let arr = Array.isArray(st.subs) ? st.subs.slice() : [];
+    arr = cb.checked ? [...new Set(arr.concat(k))] : arr.filter(x => x !== k);
+    h.update({ subs: arr });
+  });
   all("tool").forEach(b => b.onclick = () => klineTool(h, b.getAttribute(`data-${pfx}-tool`)));
   all("full").forEach(b => b.onclick = () => klineFullscreen(h));
 }
@@ -1435,8 +1444,8 @@ function klineSyncControls(pfx, st) {
     const [k, pc] = cb.getAttribute(`data-${pfx}-p`).split(":");
     cb.checked = Array.isArray(st[k]) && st[k].includes(+pc);
   });
-  const sub = document.querySelector(`[data-${pfx}-sub]`);
-  if (sub) sub.value = st.sub;
+  document.querySelectorAll(`[data-${pfx}-s]`).forEach(cb =>
+    cb.checked = Array.isArray(st.subs) && st.subs.includes(cb.getAttribute(`data-${pfx}-s`)));
 }
 
 // ── report dossier chart (shared engine; stored daily bars + S/R overlay) ──
@@ -1444,7 +1453,7 @@ let __repBars = [];
 const repHost = klineHost({
   elId: "rep-kc", paneId: "candle_pane", subPaneId: "rep_sub",
   state: () => window.__repChart || (window.__repChart = { mode: "candle", ma: [20, 50], ema: false,
-    boll: true, sub: "VOL", tf: "6M", _maLast: [20, 50], _emaLast: [20, 50] }),
+    boll: true, subs: ["VOL"], tf: "6M", _maLast: [20, 50], _emaLast: [20, 50] }),
   data: () => { const n = TF_N[repHost.state().tf] || 500; return __repBars.slice(-n); },
   overlays: () => {
     const sr = (window.__reportData || {}).sr || {};
@@ -1605,7 +1614,7 @@ const STK_ANN_CATS = ["All","Earnings","Transactions","Shareholding","Events","O
 function stkState() {
   if (!window.__stk) window.__stk = { sym: null, tab: "overview", finTab: "earnings",
     finAnnual: false, stmtCount: 0, yoy: true, hideBlank: true, newsTab: "news", annCat: "All",
-    revPeriod: null, chart: { src: "intraday", range: "D", kind: "FULL", mode: "line", ma: [20, 50], ema: false, boll: false, sub: "VOL", _maLast: [20, 50], _emaLast: [20, 50] },
+    revPeriod: null, chart: { src: "intraday", range: "D", kind: "FULL", mode: "line", ma: [20, 50], ema: false, boll: false, subs: ["VOL"], _maLast: [20, 50], _emaLast: [20, 50] },
     expiry: "auto", chainSort: null, optFilter: "all", optRange: "all", trendPeriod: "intraday",
     quote: null, showStats: true };
   return window.__stk;
@@ -1881,14 +1890,27 @@ async function stkLoadChart() {
   if (ch.src === "intraday") {
     d = await api("/api/stock/" + st.sym + "/intraday?kind=" + ch.kind).catch(() => null);
     stkChartState.bars = [];
-    stkChartState.pts = ((d?.section_list || [])[0]?.point_list || [])
-      .map(p => ({ t: p.time, c: p.cur_price, o: p.open, h: p.high, l: p.low, v: p.volume, to: p.turnover }));
+    // Live rt-data points can omit or blank open/high/low (the docs list them;
+    // the wire does not always carry them) — derive from cur_price and drop
+    // dead points, or the candle pane's y-scale goes NaN and renders blank.
+    stkChartState.pts = ((d?.section_list || [])[0]?.point_list || []).flatMap(p => {
+      const c = Number(p.cur_price);
+      if (!Number.isFinite(c) || c <= 0) return [];
+      const pick = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : c; };
+      const o = pick(p.open), h2 = Math.max(pick(p.high), o, c), l2 = Math.min(pick(p.low), o, c);
+      return [{ t: p.time, c, o, h: h2, l: l2, v: Number(p.volume) || 0, to: Number(p.turnover) || 0 }];
+    });
   } else {
     d = await api("/api/stock/" + st.sym + "/candles?range=" + ch.range).catch(() => null);
     stkChartState.pts = [];
-    stkChartState.bars = (d?.bars || [])
-      .map(b => ({ t: b.time_key, o: b.open, h: b.high, l: b.low, c: b.close, v: b.volume,
-                   to: b.turnover, tr: b.turnover_rate, chg: b.change_rate }));
+    stkChartState.bars = (d?.bars || []).flatMap(b => {
+      const c = Number(b.close);
+      if (!Number.isFinite(c) || c <= 0) return [];
+      const pick = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : c; };
+      const o = pick(b.open), h2 = Math.max(pick(b.high), o, c), l2 = Math.min(pick(b.low), o, c);
+      return [{ t: b.time_key, c, o, h: h2, l: l2, v: Number(b.volume) || 0,
+                to: Number(b.turnover) || 0, tr: b.turnover_rate, chg: b.change_rate }];
+    });
   }
   stkChartState.prevClose = stkQ().prev_close_price || null;
   klineSetData(stkHost, stkMapData());

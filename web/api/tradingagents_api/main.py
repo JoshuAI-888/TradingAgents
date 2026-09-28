@@ -638,7 +638,7 @@ def screener_probe(body: dict):
 
 
 @app.post("/api/screener/refresh")
-def screener_refresh(market: str = "US"):
+def screener_refresh(market: str = "US", force: int = 0):
     """Queue a full-market universe refresh as a worker job; progress streams
     to job_events ('universe' stage) — the UI polls it for the progress bar."""
     for status in ("pending", "running"):
@@ -649,7 +649,7 @@ def screener_refresh(market: str = "US"):
     user = os.getenv("DEFAULT_USER_ID") or None
     row = db.insert("jobs", {
         "job_type": "universe_refresh", "user_id": user,
-        "payload": {"market": market},
+        "payload": {"market": market, **({"force": True} if force else {})},
         "idempotency_key": f"universe-refresh:{market}:{uuid.uuid4()}",
     }, prefer="return=representation")
     job = row if isinstance(row, dict) else (row or [{}])[0]

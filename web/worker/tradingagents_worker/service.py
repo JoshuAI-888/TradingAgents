@@ -189,10 +189,13 @@ def run_forever():
                 from .moomoo import MoomooClient
                 from .universe_refresh import UniverseRefresher
                 client = MoomooClient(SETTINGS.moomoo_appkey, SETTINGS.moomoo_private_key)
-                out = UniverseRefresher(db, client, market, emit=emit.emit).run()
+                out = UniverseRefresher(db, client, market, emit=emit.emit).run(
+                    force_enum=bool(payload.get("force")))
+                summary = out.get("skipped") or (
+                    f"{out.get('quotes', {}).get('quotes', 0)} quotes · "
+                    f"{out.get('enum', {}).get('codes', 'cached')} codes")
                 db.finish_job(str(job["id"]), "succeeded")
-                emit.emit("universe", "done",
-                          f"{out.get('quotes', {}).get('quotes')} quotes · {out.get('enum', {}).get('codes', 'cached')} codes")
+                emit.emit("universe", "done", summary)
                 continue
             ticker, trade_date = payload["ticker"], payload["trade_date"]
             depth = payload.get("depth", "standard")

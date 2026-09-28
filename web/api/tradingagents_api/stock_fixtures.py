@@ -75,9 +75,15 @@ def _rt_points() -> list:
     for i in range(391):
         w = ((i * 31) % 17 - 8) / 900
         p = round(503.12 * (1 + w + i / 391 * 0.018), 3)
-        pts.append({"time": t0 + i * 60000, "open": p, "high": round(p * 1.0008, 3),
-                    "low": round(p * 0.9992, 3), "cur_price": p,
-                    "volume": 380 + (i * 7717) % 2600, "turnover": round(p * 900, 2)})
+        pt = {"time": t0 + i * 60000, "open": p, "high": round(p * 1.0008, 3),
+              "low": round(p * 0.9992, 3), "cur_price": p,
+              "volume": 380 + (i * 7717) % 2600, "turnover": round(p * 900, 2)}
+        if i < 8:
+            # Live wire shape: session-start points can omit open/high/low
+            # (docs list them; observed missing on live PBR capture 2026-09-29).
+            for k in ("open", "high", "low"):
+                pt.pop(k)
+        pts.append(pt)
     return pts
 
 
