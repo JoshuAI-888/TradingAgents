@@ -1086,6 +1086,19 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60):
             for k, v in (by_code.get(r["code"]) or {}).items():
                 if r.get(k) is None:
                     r[k] = v
+        # The screen can match listings our plate enumeration never captured
+        # (OTC/pink-sheet tail) — one live snapshot call fills those gaps.
+        missing = [r["code"] for r in rows if r.get("price") is None]
+        if missing:
+            try:
+                snap = (client.snapshot(missing) or {}).get("snapshot_list") or []
+                live = {q.get("code"): q for q in (_snapshot_to_row(s) for s in snap)}
+                for r in rows:
+                    for k, v in (live.get(r["code"]) or {}).items():
+                        if r.get(k) is None:
+                            r[k] = v
+            except Exception:
+                pass
         _merge_universe_meta(rows, market)
     return {"available": True, "key": key, "name": name, "description": description,
             "market": market, "pending": pending, "rows": rows, "shown": len(rows)}

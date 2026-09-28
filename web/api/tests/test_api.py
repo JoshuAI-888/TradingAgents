@@ -327,7 +327,12 @@ def test_execute_hydrates_rows_from_stored_snapshot(monkeypatch):
         def call(self, method, path, body=None, query=None, retries=2):
             return {"items": [{"code": "US.ZEXE", "name": "Zexecute",
                                "results": [{"simple_property_result": {
-                                   "property": {"name": 2201}, "ival": None}}]}]}
+                                   "property": {"name": 2201}, "ival": None}}]},
+                              {"code": "US.ZOTC", "name": "Zotc Otc", "results": []}]}
+
+        def snapshot(self, codes):
+            return {"snapshot_list": [{"code": c, "last_price": 1.5, "pct_change": -1200}
+                                      for c in codes]}
 
     monkeypatch.setattr(api, "_market_client", lambda: _NullScreen())
     monkeypatch.setattr(api, "_universe_meta_cache", _NoCache())
@@ -338,10 +343,13 @@ def test_execute_hydrates_rows_from_stored_snapshot(monkeypatch):
                                            "stock_type": "STOCK", "plate": "Biotech",
                                            "exchange": "US"})
     r = client.get("/api/screener/execute?key=penny&market=US").json()
-    assert r["available"] is True and len(r["rows"]) == 1
+    assert r["available"] is True and len(r["rows"]) == 2
     row = r["rows"][0]
     assert row["price"] == 3.21 and row["pct"] == -1.4 and row["market_cap"] == 2.5e8
     assert row["stock_type"] == "STOCK" and row["plate"] == "Biotech"
+    # ZOTC isn't stored (enumeration-missed OTC tail) — live snapshot fallback
+    otc = r["rows"][1]
+    assert otc["symbol"] == "ZOTC" and otc["price"] == 1.5 and otc["pct"] == -1200.0
 
 
 def test_prompt_store_roundtrip():
