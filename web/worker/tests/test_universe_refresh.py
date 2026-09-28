@@ -18,7 +18,7 @@ class FakeMoomoo:
 
 def test_refresh_enumerates_then_quotes(fake_db):
     r = UniverseRefresher(fake_db, FakeMoomoo(), "US").run()
-    assert r["enum"]["plates"] == 2 and r["enum"]["codes"] == 2
+    assert r["enum"]["plates"] == 6 and r["enum"]["codes"] == 2  # 3 classes x 2 fake plates
     assert r["quotes"]["quotes"] == 2 and r["quotes"]["batches"] == 1
     syms = fake_db.select("screener_universe", {"market": "eq.US"})
     assert {s["code"] for s in syms} == {"US.PLTR", "US.NVDA"}
@@ -27,11 +27,12 @@ def test_refresh_enumerates_then_quotes(fake_db):
     assert abs(q[0]["row"]["pct"] - 5.26) < 0.01  # prev-close fallback
 
 
-def test_second_run_skips_enumeration_within_ttl(fake_db):
+def test_second_run_skips_when_fresh(fake_db):
     ref = UniverseRefresher(fake_db, FakeMoomoo(), "US")
     ref.run()
     r2 = UniverseRefresher(fake_db, FakeMoomoo(), "US").run()
-    assert "enum" not in r2 and r2["quotes"]["quotes"] == 2
+    # quotes are seconds old and interval_h defaults to 1h -> skip entirely
+    assert "skipped" in r2 and "enum" not in r2 and "quotes" not in r2
 
 
 def test_force_enum_reenumerates(fake_db):
