@@ -847,3 +847,19 @@ klineTool: removeOverlay only on "clear"; each tool pick arms another overlay
 (interceptor-verified: 3 picks → 0 removes). Note: a full deploy landed mid-
 loader-run this round and requeued the universe job (worker restart rule keeps
 biting — checks before push).
+
+## 2026-09-29 (late III) — Export cluster at top, loading overlay, column drag & drop
+
+Per user Q&A decisions: (1) exports are FOUR buttons at the top of the
+screener — ⬇CSV / ⬇CSV·all / ⬇Excel / ⬇Excel·all (scope=all|page param; page
+uses limit/offset, all = full filtered set cap 20k). (2) Loading: translucent
+overlay over the screener panel with spinner + operation-specific status
+("Fetching stocks + ETFs…", "Sorting by Market Cap descending…", "Loading
+page 3 of 18…"); body-attached so it survives the render swap; safety-net
+20s auto-clear; thin top loadbar still covers page switches. (3) Columns
+picker is STAGED (checkboxes + Apply/Cancel — one refresh per edit); items
+draggable onto the table to insert. Header drag: reorder with drop-side
+markers (drop-before/after via clientX vs th midpoint); drag a header onto
+the floating 🗑 chip to remove (chip appears only while dragging a table
+column); synthetic DragEvent + constructible DataTransfer verified end-to-end
+in Chromium (real drop moved %Chg before Price; overlay showed + cleared).
