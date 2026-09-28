@@ -5,11 +5,10 @@ from tradingagents_worker.universe_refresh import UniverseRefresher
 class FakeMoomoo:
     def call(self, method, path, body=None, query=None, retries=2):
         if path == "/quote/plate-list":
-            return {"data": {"list": [{"code": "US.LIST1", "plate_name": "Software"},
-                                       {"code": "US.LIST2", "plate_name": "Semis"}]}}
+            return {"plate_list": [{"code": "US.LIST1", "plate_name": "Software"},
+                                    {"code": "US.LIST2", "plate_name": "Semis"}]}
         if path == "/quote/plate-stock":
-            return {"data": {"stock_list": [{"code": "US.PLTR"}, {"code": "US.NVDA"}],
-                             "pagination": {"next_key": "-1"}}}
+            return {"stock_list": [{"code": "US.PLTR"}, {"code": "US.NVDA"}]}
         return {}
 
     def snapshot(self, codes):

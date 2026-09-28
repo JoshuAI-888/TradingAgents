@@ -1611,9 +1611,9 @@ function stkApplyChartOpts(forceRebuild) {
   });
   if (__stkSubCur !== ch.sub) {
     if (__stkSubCur) c.removeIndicator("stk_sub", __stkSubCur);
-    if (ch.sub) c.createIndicator(ch.sub === "VOL"
-      ? { name: "VOL", styles: { bars: [{ upColor: "rgba(38,198,140,.55)", downColor: "rgba(240,84,79,.5)", noChangeColor: "rgba(139,160,184,.4)" }] } }
-      : ch.sub, false, { id: "stk_sub", height: 92 });
+    // Plain name only — a partial styles object replaces the built-in one and
+    // breaks the VOL indicator's own MA overlay (draw reads styles.lines[0]).
+    if (ch.sub) c.createIndicator(ch.sub, false, { id: "stk_sub", height: 92 });
     __stkSubCur = ch.sub;
   }
 }
