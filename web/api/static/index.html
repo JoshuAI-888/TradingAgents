@@ -292,6 +292,16 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .comm-card .t{font-size:12.5px;font-weight:600}
 .comm-card .m{font-size:10.5px;color:var(--faint);margin-top:3px}
 .delay-note{font-size:10px;color:var(--amber);background:rgba(232,163,61,.08);border:1px solid rgba(232,163,61,.25);border-radius:7px;padding:4px 9px;display:inline-block}
+/* shared KLineChart controls (stock page + report dossier) */
+.kc-mwrap{position:relative;display:inline-flex}
+.kc-menu{position:absolute;top:calc(100% + 4px);left:0;background:#0d1420;border:1px solid var(--line);border-radius:9px;padding:8px 10px;z-index:55;display:none;flex-direction:column;gap:4px;min-width:112px;box-shadow:0 10px 28px rgba(0,0,0,.5)}
+.kc-mi{display:flex;gap:6px;align-items:center;font-size:11.5px;color:#c3cfdf;cursor:pointer;white-space:nowrap}
+.kc-mi input{accent-color:#3a76dd}
+.kc-sep{width:1px;height:18px;background:var(--line);margin:0 2px}
+.kcwrap{position:relative}
+.kcwrap.kc-full{position:fixed;inset:0;z-index:80;background:var(--bg);padding:12px 14px;overflow:auto}
+.kcwrap.kc-full .chartbox{height:calc(100vh - 96px);display:flex;flex-direction:column}
+.kcwrap.kc-full #stk-kc,.kcwrap.kc-full #rep-kc{flex:1;height:auto!important}
 /* ticker switcher + picker */
 .stk-switch{position:relative;min-width:240px}
 .stk-switch input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 11px;font-size:12.5px}
@@ -599,8 +609,10 @@ const pages = {
     const railCards = (rail.presets || []).map(p => {
       const top = (p.top || []).map(t => `<div class="pt"><div class="ps mono">${esc(t.symbol)}</div>
         <div class="pp mono ${t.pct >= 0 ? "g" : "r"}">${t.pct != null ? (t.pct >= 0 ? "+" : "") + t.pct.toFixed(2) + "%" : "--"}</div></div>`).join("");
-      return `<div class="preset" onclick="scrApplyPreset('${esc(p.key)}')"><div class="pname">${esc(p.name)} ›</div>
-        <div class="prow">${top || '<div class="faint" style="font-size:10px">no matches in universe</div>'}</div></div>`;
+      const pending = p.pending ? `<div class="faint" style="font-size:10px">needs ${esc((p.skipped || []).join(", "))} data — pending the indicator dictionary</div>` : "";
+      const partial = !p.pending && p.skipped?.length ? ` <span class="faint" style="font-size:9px">excl. ${esc(p.skipped.join(", "))}</span>` : "";
+      return `<div class="preset" onclick="scrApplyPreset('${esc(p.key)}')"><div class="pname">${esc(p.name)} ›${partial}</div>
+        <div class="prow">${pending || top || '<div class="faint" style="font-size:10px">no matches in universe</div>'}</div></div>`;
     }).join("");
 
     return `
@@ -963,36 +975,13 @@ async function reportPage(ref) {
     <div class="center">
       <div class="panel"><h3 class="sec">Price &amp; indicators <small>interactive · stored daily bars · indicators computed client-side</small></h3>
         <div class="tf-row">
-          <button class="tf" data-tf="1M">1M</button><button class="tf" data-tf="3M">3M</button><button class="tf on" data-tf="6M">6M</button><button class="tf" data-tf="1Y">1Y</button><button class="tf" data-tf="ALL">2Y</button>
-          <div class="chips">
-            <button class="chip on" data-ov="ema20" aria-pressed="true"><i style="background:#f2c14e"></i>EMA20</button>
-            <button class="chip on" data-ov="ema50" aria-pressed="true"><i style="background:#e05fa0"></i>EMA50</button>
-            <button class="chip" data-ov="wma20" aria-pressed="false"><i style="background:#9aa7ff"></i>WMA20</button>
-            <button class="chip on" data-ov="boll" aria-pressed="true"><i style="background:#3fc1c9"></i>BOLL(20,2)</button>
-            <button class="chip on" data-ov="sr" aria-pressed="true"><i style="background:#e8a33d"></i>S/R + entry</button>
-          </div>
+          <button class="tf" data-rep-tf="1M">1M</button><button class="tf" data-rep-tf="3M">3M</button><button class="tf on" data-rep-tf="6M">6M</button><button class="tf" data-rep-tf="1Y">1Y</button><button class="tf" data-rep-tf="ALL">2Y</button>
         </div>
-        <div class="tf-row">
-          <span class="faint" style="font-size:10.5px;letter-spacing:1px">LOWER PANEL</span>
-          <div class="chips" id="subsel">
-            <button class="chip on" data-sub="vol" aria-pressed="true">Volume</button>
-            <button class="chip" data-sub="rsi" aria-pressed="false">RSI(14)</button>
-            <button class="chip" data-sub="macd" aria-pressed="false">MACD 12·26·9 (DIF/DEA)</button>
-            <button class="chip" data-sub="kdj" aria-pressed="false">KDJ(9,3,3)</button>
-            <button class="chip" data-sub="atr" aria-pressed="false">ATR(14)</button>
-            <button class="chip" data-sub="cci" aria-pressed="false">CCI(20)</button>
-          </div>
-        </div>
-        <div class="chartbox">
-          <div class="readout" id="readout">${esc(sym.symbol)} · hover for OHLCV + indicators</div>
-          <canvas id="main" height="330"></canvas>
-          <canvas id="vol" height="62"></canvas>
-          <canvas id="sub" height="118"></canvas>
-          <div class="legend">
-            <span><i style="background:#f2c14e"></i>EMA20</span><span><i style="background:#e05fa0"></i>EMA50</span>
-            <span><i style="background:#9aa7ff"></i>WMA20</span><span><i style="background:#3fc1c9"></i>BOLL ±2σ</span>
-            <span><i style="background:#e8a33d"></i>S/R ladder</span>
-            <span style="margin-left:auto">indicators: EMA WMA BOLL RSI MACD(DIF/DEA) KDJ ATR CCI</span>
+        <div class="kcwrap">
+          <div class="tf-row" id="rep-ctl" style="flex-wrap:wrap;row-gap:6px"></div>
+          <div class="chartbox">
+            <div class="readout" id="readout">${esc(sym.symbol)} · hover for OHLCV · scroll to zoom · drag to pan · pick a DRAW tool, then click the chart</div>
+            <div id="rep-kc" style="height:460px"></div>
           </div>
         </div>
       </div>
@@ -1049,126 +1038,294 @@ async function reportPage(ref) {
   </div>`;
 }
 
-// ── chart engine (ported from the approved v2 mockup, real bars) ──────
-const sma=(b,n,f)=>b.map((_,i)=>i<n-1?null:b.slice(i-n+1,i+1).reduce((s,x)=>s+f(x),0)/n);
-const ema=(b,n)=>{const k=2/(n+1);let e=null;return b.map((x,i)=>{const c=x.c;e=e===null?c:c*k+e*(1-k);return i<n-1?null:e})};
-const wma=(b,n)=>b.map((_,i)=>{if(i<n-1)return null;let s=0,w=0;for(let j=0;j<n;j++){s+=b[i-j].c*(n-j);w+=j+1}return s/w});
-function boll(b,n=20,k=2){const m=sma(b,n,x=>x.c);return{m,up:b.map((_,i)=>{if(m[i]==null)return null;const v=b.slice(i-n+1,i+1);const sd=Math.sqrt(v.reduce((s,x)=>s+(x.c-m[i])**2,0)/n);return m[i]+k*sd}),lo:b.map((_,i)=>{if(m[i]==null)return null;const v=b.slice(i-n+1,i+1);const sd=Math.sqrt(v.reduce((s,x)=>s+(x.c-m[i])**2,0)/n);return m[i]-k*sd})}}
-function rsi(b,n=14){let g=0,l=0;return b.map((x,i)=>{if(i===0)return null;const d=x.c-b[i-1].c;
-  if(i<=n){g+=Math.max(d,0)/n;l+=Math.max(-d,0)/n;if(i<n)return null}else{g=(g*(n-1)+Math.max(d,0))/n;l=(l*(n-1)+Math.max(-d,0))/n}
-  return l===0?100:100-100/(1+g/l)})}
-function macd(b){const e12=ema(b,12),e26=ema(b,26);const dif=b.map((_,i)=>e12[i]!=null&&e26[i]!=null?e12[i]-e26[i]:null);
-  const valid=dif.map(d=>({c:d==null?0:d}));const dea=ema(valid,9).map((v,i)=>dif[i]==null?null:v);
-  const hist=dif.map((d,i)=>d!=null&&dea[i]!=null?2*(d-dea[i]):null);return{dif,dea,hist}}
-function kdj(b,n=9){let K=50,D=50;return b.map((x,i)=>{if(i<n-1)return{k:50,d:50,j:50};
-  const w=b.slice(i-n+1,i+1);const hh=Math.max(...w.map(v=>v.h)),ll=Math.min(...w.map(v=>v.l));
-  const rsv=hh===ll?50:(x.c-ll)/(hh-ll)*100;K=2/3*K+1/3*rsv;D=2/3*D+1/3*K;return{k:K,d:D,j:3*K-2*D}})}
-function atr(b,n=14){let a=null;return b.map((x,i)=>{if(i===0)return null;const tr=Math.max(x.h-x.l,Math.abs(x.h-b[i-1].c),Math.abs(x.l-b[i-1].c));
-  a=a===null?tr:(a*(n-1)+tr)/n;return i<n?null:a})}
-function cci(b,n=20){return b.map((_,i)=>{if(i<n-1)return null;const w=b.slice(i-n+1,i+1);const tp=w.map(v=>(v.h+v.l+v.c)/3);
-  const m=tp.reduce((a,b)=>a+b)/n;const md=tp.reduce((a,b)=>a+Math.abs(b-m),0)/n;return md===0?0:(tp[n-1]-m)/(0.015*md)})}
-const TF_N={"1M":21,"3M":63,"6M":126,"1Y":252,"ALL":400};
-let chart={bars:[],sr:null,tf:"6M",sub:"vol",ov:{ema20:1,ema50:1,wma20:0,boll:1,sr:1},hover:null,hoverX:0,sym:""};
+// ── chart engine (embedded KLineChart) — one engine for the stock page and
+//    the report dossier so both expose identical features: candles/area,
+//    MA & EMA period pickers (5/20/50/100/200), BOLL, sub indicators
+//    (VOL / MACD DIF·DEA / RSI / KDJ / CCI / WR / ROC / BIAS), drawing
+//    tools, wheel zoom + pan, crosshair readout and fullscreen. ──────────
+const STK_SUBS = [["VOL", "Volume"], ["MACD", "MACD (DIF/DEA)"], ["RSI", "RSI(14)"], ["KDJ", "KDJ(9,3,3)"],
+                  ["CCI", "CCI(20)"], ["WR", "WR(14)"], ["ROC", "ROC(12)"], ["BIAS", "BIAS(6/12/24)"]];
+const STK_MA_PERIODS = [5, 20, 50, 100, 200];
+const STK_MA_COLORS = { 5: "#f2c14e", 20: "#3fc1c9", 50: "#e05fa0", 100: "#a06bfa", 200: "#9aa7ff" };
+const STK_TOOLS = [["cursor", "✛", "Cross cursor (default)"],
+                   ["segment", "╱ Trend", "Trend line — click two points"],
+                   ["hline", "─ H-Line", "Horizontal line"],
+                   ["ray", "↗ Ray", "Ray line"],
+                   ["vline", "│ V-Line", "Vertical line"],
+                   ["channel", "∥ Channel", "Parallel channel line"],
+                   ["fib", "⑂ Fib", "Fibonacci retracement"],
+                   ["clear", "✕ Clear", "Remove all drawings"]];
+const STK_OVERLAYS = { segment: "segment", hline: "horizontalStraightLine", ray: "rayLine",
+                       vline: "verticalStraightLine", channel: "parallelStraightLine", fib: "fibonacciLine" };
+const TF_N = { "1M": 21, "3M": 63, "6M": 126, "1Y": 252, "ALL": 500 };
+// dashedValue is required — the draw pass reads dashedValue[0] on every segment.
+const KC_LINE = color => ({ style: "solid", smooth: false, color, size: 1.1, dashedValue: [4, 4] });
 
-function chartInit() {
-  const d = window.__reportData || {};
-  chart.bars = (d.bars || []).map(x => ({ d: x.bar_date, o: +x.open, h: +x.high, l: +x.low, c: +x.close, v: +x.volume || 0 }));
-  chart.sr = d.sr || {}; chart.sym = d.sym || "";
-  chart.hover = null; chart.tf = "6M"; chart.sub = "rsi";
-  document.querySelectorAll("#subsel .chip").forEach(ch => ch.classList.toggle("on", ch.dataset.sub === "rsi"));
-  ["main","vol","sub"].forEach(id => {
-    const c = document.getElementById(id); if (!c) return;
-    c.onmousemove = e => { const r = c.getBoundingClientRect();
-      const n = curBars().length, bw = (r.width - 72) / n;
-      let i = Math.floor((e.clientX - r.left - 8) / bw);
-      chart.hoverX = e.clientX - r.left; i = Math.max(0, Math.min(n - 1, i)); chart.hover = i; draw(); };
-    c.onmouseleave = () => { chart.hover = null; draw();
-      const ro = document.getElementById("readout");
-      if (ro) ro.textContent = `${chart.sym} · ${chart.tf} daily · hover for OHLCV + indicators`; };
-  });
-  document.querySelectorAll(".tf").forEach(btn => btn.onclick = () => {
-    document.querySelectorAll(".tf").forEach(x => x.classList.remove("on")); btn.classList.add("on");
-    chart.tf = btn.dataset.tf; chart.hover = null; draw(); });
-  document.querySelectorAll("[data-ov]").forEach(ch => ch.onclick = () => {
-    chart.ov[ch.dataset.ov] ^= 1; ch.classList.toggle("on"); draw(); });
-  document.querySelectorAll("#subsel .chip").forEach(ch => ch.onclick = () => {
-    document.querySelectorAll("#subsel .chip").forEach(x => x.classList.remove("on")); ch.classList.add("on");
-    chart.sub = ch.dataset.sub; draw(); });
-  window.onresize = () => draw();
-  draw();
+function klineHost(o) {
+  return Object.assign({ chart: null, subCur: null, maCur: null, emaCur: null,
+                         builtType: null, staticOverlays: [] }, o);
 }
-function curBars(){ const n = TF_N[chart.tf] || 400; return chart.bars.slice(-n); }
-function setup(c){ const d=window.devicePixelRatio||1; const w=c.parentElement.clientWidth||900;
-  c.width=w*d; c.height=+c.getAttribute("height")*d; c.style.height=c.getAttribute("height")+"px";
-  const x=c.getContext("2d"); x.setTransform(d,0,0,d,0,0); return{x,w,h:+c.getAttribute("height")}}
-function draw(){ try { drawImpl() } catch(e){ console.error("chart draw failed:", e) } }
-function drawImpl(){
-  const b = curBars();
-  const m = setup(document.getElementById("main")), v = setup(document.getElementById("vol")), s = setup(document.getElementById("sub"));
-  const padL=8, padR=64; const iw=m.w-padL-padR; const bw=Math.max(iw/Math.max(b.length,1),.8);
-  if (!b.length) { m.x.fillStyle="#5c6f86"; m.x.font="12px sans-serif";
-    m.x.fillText("No stored bars yet — the enrichment pass saves 1y of daily bars after each completed run.", 20, m.h/2); return; }
-  let lo=Math.min(...b.map(x=>x.l)), hi=Math.max(...b.map(x=>x.h));
-  const sr=chart.sr||{};
-  if (chart.ov.sr && sr.pv!=null){ lo=Math.min(lo,sr.s2,sr.stop||lo); hi=Math.max(hi,sr.r2,hi) }
-  const pad=(hi-lo)*.06||1; lo-=pad; hi+=pad;
-  const y=val=>m.h-((val-lo)/(hi-lo))*m.h;
-  m.x.strokeStyle="#141d2a"; m.x.fillStyle="#5c6f86"; m.x.font="10px "+getComputedStyle(document.body).getPropertyValue("--mono");
-  for(let i=0;i<=5;i++){const p=lo+(hi-lo)*i/5,yy=y(p);m.x.beginPath();m.x.moveTo(padL,yy);m.x.lineTo(m.w-padR,yy);m.x.stroke();
-    m.x.fillText(p.toFixed(1),m.w-padR+6,yy+3)}
-  if (chart.ov.sr && sr.pv!=null){
-    if (sr.ez){const yz1=y(sr.ez[1]),yz2=y(sr.ez[0]);
-      m.x.fillStyle="rgba(38,198,140,.13)";m.x.fillRect(padL,yz1,iw,yz2-yz1);
-      m.x.fillStyle="rgba(38,198,140,.8)";m.x.font="9px sans-serif";m.x.fillText("ENTRY",padL+4,yz1+11)}
-    const lines=[[sr.r2,"R2 "+sr.r2.toFixed(1)],[sr.r1,"R1 "+sr.r1.toFixed(1)],[sr.pv,"PIV "+sr.pv.toFixed(1)],[sr.s1,"S1 "+sr.s1.toFixed(1)],[sr.s2,"S2 "+sr.s2.toFixed(1)]];
-    if (sr.stop) lines.push([sr.stop,"STOP "+sr.stop.toFixed(1)]);
-    let lastLabelY = -1e9;
-    lines.forEach(([p,lab])=>{m.x.strokeStyle="rgba(232,163,61,.45)";m.x.setLineDash([5,4]);m.x.beginPath();m.x.moveTo(padL,y(p));m.x.lineTo(m.w-padR,y(p));m.x.stroke();m.x.setLineDash([]);
-      const ly = y(p)-3;
-      if (Math.abs(ly-lastLabelY) >= 13) { m.x.fillStyle="#e8a33d"; m.x.fillText(lab,m.w-padR+2,ly); lastLabelY = ly; }})}
-  b.forEach((x,i)=>{const cx=padL+i*bw+bw/2;const up=x.c>=x.o;
-    m.x.strokeStyle=up?"#26c68c":"#f0544f";m.x.fillStyle=up?"rgba(38,198,140,.85)":"rgba(240,84,79,.85)";
-    m.x.beginPath();m.x.moveTo(cx,y(x.h));m.x.lineTo(cx,y(x.l));m.x.stroke();
-    const t=y(Math.max(x.o,x.c)),bt=y(Math.min(x.o,x.c));
-    m.x.fillRect(cx-Math.max(bw*.32,.8),t,Math.max(bw*.64,1.6),Math.max(bt-t,1))});
-  const line=(arr,color)=>{m.x.strokeStyle=color;m.x.lineWidth=1.3;m.x.beginPath();let st=false;
-    arr.forEach((val,i)=>{if(val==null){st=false;return}const cx=padL+i*bw+bw/2;st?m.x.lineTo(cx,y(val)):(m.x.moveTo(cx,y(val)),st=true)});m.x.stroke();m.x.lineWidth=1};
-  if (chart.ov.ema20) line(ema(b,20),"#f2c14e");
-  if (chart.ov.ema50) line(ema(b,50),"#e05fa0");
-  if (chart.ov.wma20) line(wma(b,20),"#9aa7ff");
-  if (chart.ov.boll){const bo=boll(b);line(bo.up,"rgba(63,193,201,.8)");line(bo.m,"rgba(63,193,201,.5)");line(bo.lo,"rgba(63,193,201,.8)")}
-  const vmax=Math.max(...b.map(x=>x.v))||1;
-  b.forEach((x,i)=>{const cx=padL+i*bw+bw/2;const h=(x.v/vmax)*(v.h-8);
-    v.x.fillStyle=x.c>=x.o?"rgba(38,198,140,.55)":"rgba(240,84,79,.5)";
-    v.x.fillRect(cx-Math.max(bw*.32,.8),v.h-h,Math.max(bw*.64,1.6),h)});
-  v.x.fillStyle="#5c6f86";v.x.font="9px sans-serif";v.x.fillText("VOLUME",6,11);
-  const sl=(arr,color,sc)=>{s.x.strokeStyle=color;s.x.beginPath();let st=false;
-    arr.forEach((val,i)=>{if(val==null){st=false;return}const cx=padL+i*bw+bw/2,cy=sc(val);st?s.x.lineTo(cx,cy):(s.x.moveTo(cx,cy),st=true)});s.x.stroke()};
-  const hline=(yy,color,dash)=>{s.x.strokeStyle=color;s.x.setLineDash(dash||[]);s.x.beginPath();s.x.moveTo(padL,yy);s.x.lineTo(s.w-padR,yy);s.x.stroke();s.x.setLineDash([])};
-  s.x.font="9px sans-serif";s.x.fillStyle="#5c6f86";
-  if (chart.sub==="vol"){s.x.fillText("VOLUME",6,11);
-    b.forEach((x,i)=>{const cx=padL+i*bw+bw/2;const h=(x.v/vmax)*(s.h-12);
-      s.x.fillStyle=x.c>=x.o?"rgba(38,198,140,.55)":"rgba(240,84,79,.5)";
-      s.x.fillRect(cx-Math.max(bw*.32,.8),s.h-h,Math.max(bw*.64,1.6),h)})}
-  else if (chart.sub==="rsi"){s.x.fillText("RSI(14)",6,11);hline(s.h*.3,"rgba(240,84,79,.3)",[3,3]);hline(s.h*.7,"rgba(38,198,140,.3)",[3,3]);
-    sl(rsi(b),"#a06bfa",val=>s.h-(val/100)*s.h)}
-  else if (chart.sub==="macd"){const {dif,dea,hist}=macd(b);s.x.fillText("MACD 12·26·9 — DIF / DEA / HIST (2×(DIF−DEA))",6,11);
-    const mx=Math.max(...hist.filter(x=>x!=null).map(Math.abs),...dif.filter(x=>x!=null).map(Math.abs))||1;
-    const sc=val=>s.h/2-(val/mx)*(s.h/2-6);hline(s.h/2,"#1e2a3b");
-    b.forEach((x,i)=>{if(hist[i]==null)return;const cx=padL+i*bw+bw/2;const y0=sc(0),yv=sc(hist[i]);
-      s.x.fillStyle=hist[i]>=0?"rgba(38,198,140,.5)":"rgba(240,84,79,.5)";s.x.fillRect(cx-bw*.3,Math.min(y0,yv),bw*.6,Math.abs(yv-y0)||1)});
-    sl(dif,"#f2c14e",sc);sl(dea,"#e05fa0",sc)}
-  else if (chart.sub==="kdj"){s.x.fillText("KDJ(9,3,3)",6,11);hline(s.h*.2,"rgba(240,84,79,.25)",[3,3]);hline(s.h*.8,"rgba(38,198,140,.25)",[3,3]);
-    const k=kdj(b);sl(k.map(x=>x.k),"#f2c14e",val=>s.h-(val/100)*s.h);sl(k.map(x=>x.d),"#e05fa0",val=>s.h-(val/100)*s.h);sl(k.map(x=>x.j),"#3fc1c9",val=>s.h-(Math.max(0,Math.min(100,val))/100)*s.h)}
-  else if (chart.sub==="atr"){s.x.fillText("ATR(14)",6,11);const a=atr(b);const mx=Math.max(...a.filter(x=>x!=null))||1;sl(a,"#3fc1c9",val=>s.h-8-(val/mx)*(s.h-18))}
-  else if (chart.sub==="cci"){s.x.fillText("CCI(20)",6,11);hline(s.h*.2,"rgba(240,84,79,.25)",[3,3]);hline(s.h*.8,"rgba(38,198,140,.25)",[3,3]);
-    const a=cci(b);const mx=Math.max(...a.filter(x=>x!=null).map(Math.abs))||1;sl(a,"#a06bfa",val=>s.h/2-(val/mx)*(s.h/2-6))}
-  if (chart.hover!=null){const i=chart.hover,x0=chart.hoverX;
-    [m,v,s].forEach(c=>{c.x.strokeStyle="rgba(139,160,184,.35)";c.x.setLineDash([3,3]);c.x.beginPath();c.x.moveTo(x0,0);c.x.lineTo(x0,c.h);c.x.stroke();c.x.setLineDash([])});
-    const p=b[i];const yv=y(p.c);
-    m.x.strokeStyle="rgba(139,160,184,.5)";m.x.beginPath();m.x.moveTo(padL,yv);m.x.lineTo(m.w-padR,yv);m.x.stroke();
-    const ro=document.getElementById("readout");
-    if (ro) ro.innerHTML=`<b>${esc(p.d)}</b> O <b>${p.o.toFixed(2)}</b> · H <b>${p.h.toFixed(2)}</b> · L <b>${p.l.toFixed(2)}</b> · C <b>${p.c.toFixed(2)}</b> · Vol <b>${(p.v/1e6).toFixed(1)}M</b> · EMA20 <b>${(ema(b,20)[i]||0).toFixed(2)}</b> · EMA50 <b>${(ema(b,50)[i]||0).toFixed(2)}</b> · RSI <b>${(rsi(b)[i]||0).toFixed(1)}</b> · DIF <b>${(macd(b).dif[i]||0).toFixed(2)}</b> · DEA <b>${(macd(b).dea[i]||0).toFixed(2)}</b>`;}
+const __kcHosts = [];
+function klineTeardownAll() { __kcHosts.slice().forEach(klineTeardown); }
+
+function klineTheme(c) {
+  c.setStyles({
+    grid: { horizontal: { color: "#141d2a" }, vertical: { color: "#101823" } },
+    candle: {
+      bar: { upColor: "#26c68c", downColor: "#f0544f", noChangeColor: "#8ba0b8",
+             upWickColor: "#26c68c", downWickColor: "#f0544f", noChangeWickColor: "#8ba0b8",
+             upBorderColor: "#26c68c", downBorderColor: "#f0544f", noChangeBorderColor: "#8ba0b8" },
+      area: { lineSize: 2, lineColor: "#26c68c", value: "open",
+              backgroundColor: [{ offset: 0, color: "rgba(38,198,140,.16)" },
+                                 { offset: 1, color: "rgba(38,198,140,.01)" }] },
+      priceMark: { high: { color: "#5c6f86" }, low: { color: "#5c6f86" },
+                   last: { upColor: "#26c68c", downColor: "#f0544f" } },
+    },
+    xAxis: { axisLine: { color: "#1e2a3b" }, tickLine: { color: "#1e2a3b" }, tickText: { color: "#5c6f86" } },
+    yAxis: { axisLine: { color: "#1e2a3b" }, tickLine: { color: "#1e2a3b" }, tickText: { color: "#5c6f86" } },
+    crosshair: { line: { color: "#5c6f86" }, text: { backgroundColor: "#26344a", color: "#dce5f1" } },
+    separator: { color: "#1e2a3b" },
+  });
+}
+
+function klineEnsure(h) {
+  if (h.chart) return h.chart;
+  const el = document.getElementById(h.elId);
+  if (!el) return null;
+  const KC = window.klinecharts;
+  if (!KC) {
+    el.innerHTML = '<div class="empty" style="padding:30px 20px">Chart engine failed to load (vendor/klinecharts.min.js).</div>';
+    return null;
+  }
+  const c = KC.init(el);
+  try { c.setLocale("en-US"); c.setPriceVolumePrecision(2, 0); } catch (e) {}
+  klineTheme(c);
+  c.subscribeAction("onCrosshair", d => { try { h.crosshair && h.crosshair(d, c); } catch (e) {} });
+  window.addEventListener("resize", () => { try { c.resize(); } catch (e) {} });
+  h.chart = c;
+  __kcHosts.push(h);
+  return c;
+}
+
+function klineTeardown(h) {
+  if (h.chart) { try { h.chart.destroy(); } catch (e) {} }
+  const i = __kcHosts.indexOf(h);
+  if (i >= 0) __kcHosts.splice(i, 1);
+  h.chart = null; h.subCur = null; h.maCur = null; h.emaCur = null; h.builtType = null; h.staticOverlays = [];
+}
+
+function klineCreate(h, value, paneId) {
+  // isStack=true stacks into the pane — isStack=false would REPLACE the
+  // pane's whole indicator set. Retry once: creation can race the draw pass.
+  for (let k = 0; k < 2; k++) {
+    const id = h.chart.createIndicator(value, true, { id: paneId });
+    if (id) return true;
+  }
+  return false;
+}
+
+function klineApply(h) {
+  const c = h.chart;
+  if (!c) return;
+  const st = h.state();
+  const wantType = st.mode === "line" ? "area" : "candle_solid";
+  // Area↔candle switches go through a full rebuild: the engine's live switch
+  // leaves the previous area canvas painted above the candle layer.
+  if (h.builtType && h.builtType !== wantType) { klineRebuild(h); return; }
+  c.setStyles({ candle: { type: wantType } });
+  h.builtType = wantType;
+  // MA / EMA: one instance per overlay carrying the selected periods, so the
+  // per-period options map onto calcParams (tooltip labels stay MA5/MA20/…).
+  [["ma", "MA"], ["ema", "EMA"]].forEach(([key, name]) => {
+    const sel = Array.isArray(st[key]) && st[key].length ? st[key].slice().sort((a, b) => a - b) : null;
+    if (!sel) {
+      if (h[key + "Cur"]) { c.removeIndicator(h.paneId, name); h[key + "Cur"] = null; }
+      return;
+    }
+    if (h[key + "Cur"] && h[key + "Cur"].join(",") === sel.join(",")) return;
+    if (h[key + "Cur"]) c.removeIndicator(h.paneId, name);
+    klineCreate(h, { name, calcParams: sel, styles: { lines: sel.map(pc => KC_LINE(STK_MA_COLORS[pc])) } }, h.paneId);
+    h[key + "Cur"] = sel;
+  });
+  const hasBoll = !!c.getIndicatorByPaneId(h.paneId, "BOLL");
+  if (st.boll && !hasBoll) klineCreate(h, "BOLL", h.paneId);
+  if (!st.boll && hasBoll) c.removeIndicator(h.paneId, "BOLL");
+  if (h.subCur !== (st.sub || null)) {
+    if (h.subCur) c.removeIndicator(h.subPaneId, h.subCur);
+    // Plain name only — a partial styles object replaces the built-in one and
+    // breaks the VOL indicator's own MA overlay (draw reads styles.lines[0]).
+    if (st.sub) klineCreate(h, st.sub, h.subPaneId);
+    h.subCur = st.sub || null;
+  }
+  klineDrawOverlays(h);
+}
+
+function klineDrawOverlays(h) {
+  const c = h.chart;
+  if (!c) return;
+  (h.staticOverlays || []).forEach(id => { if (c.getOverlayById(id)) c.removeOverlay(id); });
+  h.staticOverlays = [];
+  (h.overlays ? h.overlays() : []).forEach((ov, i) => {
+    const id = h.elId + "_ov" + i;
+    try { c.createOverlay(Object.assign({ id }, ov)); h.staticOverlays.push(id); } catch (e) {}
+  });
+}
+
+function klineRebuild(h) {
+  const data = h.data();
+  klineTeardown(h);
+  const el = document.getElementById(h.elId);
+  if (el) el.innerHTML = "";
+  klineSetData(h, data);
+}
+
+function klineSetData(h, data) {
+  const c = klineEnsure(h);
+  if (!c) return;
+  c.applyNewData(data);
+  klineApply(h);
+}
+
+function klineTool(h, t) {
+  const c = h.chart;
+  if (!c) return;
+  c.removeOverlay();
+  if (STK_OVERLAYS[t]) c.createOverlay({ name: STK_OVERLAYS[t] });
+  klineDrawOverlays(h);
+}
+
+function klineFullscreen(h) {
+  const el = document.getElementById(h.elId);
+  const wrap = el && el.closest(".kcwrap");
+  if (!wrap) return;
+  const on = wrap.classList.toggle("kc-full");
+  wrap.querySelectorAll("[data-kc-fullbtn]").forEach(b => {
+    b.textContent = on ? "⤡ Exit" : "⛶";
+    b.title = on ? "Exit fullscreen (Esc)" : "Fullscreen chart";
+  });
+  setTimeout(() => { try { h.chart && h.chart.resize(); } catch (e) {} }, 60);
+}
+document.addEventListener("keydown", ev => {
+  if (ev.key !== "Escape") return;
+  __kcHosts.slice().forEach(h => {
+    const el = document.getElementById(h.elId);
+    const w = el && el.closest(".kcwrap");
+    if (w && w.classList.contains("kc-full")) klineFullscreen(h);
+  });
+});
+
+// ── shared control cluster (mode / MA / EMA / BOLL / sub pane / draw / full) ──
+function klineControlsHTML(pfx, st) {
+  const on = k => Array.isArray(st[k]) && st[k].length;
+  const menu = k => `<span class="kc-mwrap"><button class="rng" data-${pfx}-menu="${k}" title="Choose ${k.toUpperCase()} periods">▾</button>
+    <span class="kc-menu" data-${pfx}-panel="${k}">${STK_MA_PERIODS.map(pc =>
+      `<label class="kc-mi"><input type="checkbox" data-${pfx}-p="${k}:${pc}" ${on(k) && st[k].includes(pc) ? "checked" : ""}> ${k.toUpperCase()}${pc}</label>`).join("")}</span></span>`;
+  return `<button class="rng ${st.mode === "line" ? "on" : ""}" data-${pfx}-mode="line">Time</button>
+    <button class="rng ${st.mode === "candle" ? "on" : ""}" data-${pfx}-mode="candle">Candle</button>
+    <button class="rng ${on("ma") ? "on" : ""}" data-${pfx}-tog="ma">MA</button>${menu("ma")}
+    <button class="rng ${on("ema") ? "on" : ""}" data-${pfx}-tog="ema">EMA</button>${menu("ema")}
+    <button class="rng ${st.boll ? "on" : ""}" data-${pfx}-tog="boll">BOLL</button>
+    <span class="kc-sep"></span>
+    <select data-${pfx}-sub>${STK_SUBS.map(([k, l]) => `<option value="${k}" ${st.sub === k ? "selected" : ""}>${l}</option>`).join("")}</select>
+    <span class="kc-sep"></span>
+    ${STK_TOOLS.map(([k, l, t]) => `<button class="rng" title="${esc(t)}" data-${pfx}-tool="${k}">${l}</button>`).join("")}
+    <button class="rng" data-kc-fullbtn data-${pfx}-full title="Fullscreen chart">⛶</button>`;
+}
+
+function klineBindControls(pfx, h) {
+  const all = suffix => [...document.querySelectorAll(`[data-${pfx}-${suffix}]`)];
+  all("mode").forEach(b => b.onclick = () => h.update({ mode: b.getAttribute(`data-${pfx}-mode`) }));
+  all("tog").forEach(b => b.onclick = () => {
+    const k = b.getAttribute(`data-${pfx}-tog`), st = h.state();
+    const on = Array.isArray(st[k]) && st[k].length;
+    h.update(on ? { [k]: false } : { [k]: (st["_" + k + "Last"] || [20, 50]).slice() });
+  });
+  all("menu").forEach(b => b.onclick = ev => {
+    ev.stopPropagation();
+    const panel = b.parentElement.querySelector(".kc-menu");
+    document.querySelectorAll(".kc-menu").forEach(pc => { if (pc !== panel) pc.style.display = "none"; });
+    panel.style.display = panel.style.display === "none" || !panel.style.display ? "block" : "none";
+  });
+  document.querySelectorAll(`.kc-menu[data-${pfx}-panel]`).forEach(pc =>
+    pc.addEventListener("click", ev => ev.stopPropagation()));
+  all("p").forEach(cb => cb.onchange = () => {
+    const [k, pc] = cb.getAttribute(`data-${pfx}-p`).split(":");
+    const st = h.state();
+    let arr = Array.isArray(st[k]) ? st[k].slice() : (st["_" + k + "Last"] || [20, 50]).slice();
+    arr = cb.checked ? [...new Set(arr.concat(+pc))].sort((a, b) => a - b) : arr.filter(x => x !== +pc);
+    h.update(arr.length ? { [k]: arr, ["_" + k + "Last"]: arr } : { [k]: false, ["_" + k + "Last"]: arr });
+  });
+  const sub = document.querySelector(`[data-${pfx}-sub]`);
+  if (sub) sub.onchange = () => h.update({ sub: sub.value });
+  all("tool").forEach(b => b.onclick = () => klineTool(h, b.getAttribute(`data-${pfx}-tool`)));
+  all("full").forEach(b => b.onclick = () => klineFullscreen(h));
+}
+document.addEventListener("click", () =>
+  document.querySelectorAll(".kc-menu").forEach(pc => { pc.style.display = "none"; }));
+
+function klineSyncControls(pfx, st) {
+  const on = k => Array.isArray(st[k]) && st[k].length;
+  document.querySelectorAll(`[data-${pfx}-mode]`).forEach(b =>
+    b.classList.toggle("on", st.mode === b.getAttribute(`data-${pfx}-mode`)));
+  document.querySelectorAll(`[data-${pfx}-tog]`).forEach(b => {
+    const k = b.getAttribute(`data-${pfx}-tog`);
+    b.classList.toggle("on", k === "boll" ? !!st.boll : on(k));
+  });
+  document.querySelectorAll(`[data-${pfx}-p]`).forEach(cb => {
+    const [k, pc] = cb.getAttribute(`data-${pfx}-p`).split(":");
+    cb.checked = Array.isArray(st[k]) && st[k].includes(+pc);
+  });
+  const sub = document.querySelector(`[data-${pfx}-sub]`);
+  if (sub) sub.value = st.sub;
+}
+
+// ── report dossier chart (shared engine; stored daily bars + S/R overlay) ──
+let __repBars = [];
+const repHost = klineHost({
+  elId: "rep-kc", paneId: "candle_pane", subPaneId: "rep_sub",
+  state: () => window.__repChart || (window.__repChart = { mode: "candle", ma: [20, 50], ema: false,
+    boll: true, sub: "VOL", tf: "6M", _maLast: [20, 50], _emaLast: [20, 50] }),
+  data: () => { const n = TF_N[repHost.state().tf] || 500; return __repBars.slice(-n); },
+  overlays: () => {
+    const sr = (window.__reportData || {}).sr || {};
+    const out = [];
+    const hline = (v, color, dash) => v != null ? { name: "horizontalStraightLine",
+      points: [{ value: v }], styles: { line: { color, dashValue: dash || [5, 4], size: 1 } } } : null;
+    if (sr.pv != null) {
+      [sr.r2, sr.r1, sr.pv, sr.s1, sr.s2].forEach(v => out.push(hline(v, "rgba(232,163,61,.55)")));
+      if (sr.stop != null) out.push(hline(sr.stop, "rgba(240,84,79,.6)"));
+      if (sr.ez) { out.push(hline(sr.ez[0], "rgba(38,198,140,.6)")); out.push(hline(sr.ez[1], "rgba(38,198,140,.6)")); }
+    }
+    return out.filter(Boolean);
+  },
+  crosshair: d => {
+    const ro = document.getElementById("readout");
+    if (!ro) return;
+    const pd = d && d.kLineData;
+    if (!pd) { ro.textContent = (window.__reportData || {}).sym || ""; return; }
+    const list = repHost.chart.getDataList(), idx = list.indexOf(pd);
+    const prev = idx > 0 ? list[idx - 1] : null;
+    const chg = prev ? (pd.close - prev.close) / prev.close * 100 : null;
+    ro.innerHTML = `<b>${new Date(pd.timestamp).toISOString().slice(0, 10)}</b> O <b>${Number(pd.open).toFixed(2)}</b> · H <b>${Number(pd.high).toFixed(2)}</b> · L <b>${Number(pd.low).toFixed(2)}</b> · C <b>${Number(pd.close).toFixed(2)}</b> · Vol <b>${(pd.volume / 1e6).toFixed(1)}M</b>${chg != null ? ` · <span class="${chg >= 0 ? "g" : "r"}">${(chg >= 0 ? "+" : "") + chg.toFixed(2)}%</span>` : ""}`;
+  },
+});
+repHost.update = patch => {
+  Object.assign(repHost.state(), patch);
+  klineSyncControls("rep", repHost.state());
+  klineApply(repHost);
+};
+function chartInit() {  // entry point kept — openReport/showPage call it post-render
+  const ctl = document.getElementById("rep-ctl");
+  if (ctl) { ctl.innerHTML = klineControlsHTML("rep", repHost.state()); klineBindControls("rep", repHost); }
+  document.querySelectorAll("[data-rep-tf]").forEach(b => b.onclick = () => {
+    repHost.update({ tf: b.getAttribute("data-rep-tf") });
+    document.querySelectorAll("[data-rep-tf]").forEach(x => x.classList.toggle("on", x === b));
+    klineSetData(repHost, repHost.data());
+  });
+  const d = window.__reportData || {};
+  __repBars = (d.bars || []).map(x => ({ timestamp: Date.parse(x.bar_date + "T00:00:00Z") || 0,
+    open: +x.open, high: +x.high, low: +x.low, close: +x.close, volume: +x.volume || 0, turnover: 0 }));
+  klineSetData(repHost, repHost.data());
 }
 
 // ── actions ───────────────────────────────────────────────────────────
@@ -1191,7 +1348,7 @@ async function submitAnalysis(ticker, depth) {
 }
 async function openReport(ref) {
   if (state.poll) { clearInterval(state.poll); state.poll = null; }
-  stkChartTeardown();
+  klineTeardownAll();
   state.reportRef = ref;
   document.querySelectorAll(".nav button").forEach(b => b.classList.remove("on"));
   $("#page").innerHTML = '<div class="empty">Building report…</div>';
@@ -1288,7 +1445,7 @@ const STK_ANN_CATS = ["All","Earnings","Transactions","Shareholding","Events","O
 function stkState() {
   if (!window.__stk) window.__stk = { sym: null, tab: "overview", finTab: "earnings",
     finAnnual: false, stmtCount: 0, yoy: true, hideBlank: true, newsTab: "news", annCat: "All",
-    revPeriod: null, chart: { src: "intraday", range: "D", kind: "FULL", mode: "line", ma: true, ema: false, boll: false, sub: "VOL" },
+    revPeriod: null, chart: { src: "intraday", range: "D", kind: "FULL", mode: "line", ma: [20, 50], ema: false, boll: false, sub: "VOL", _maLast: [20, 50], _emaLast: [20, 50] },
     expiry: "auto", chainSort: null, optFilter: "all", optRange: "all", trendPeriod: "intraday",
     quote: null, showStats: true };
   return window.__stk;
@@ -1423,8 +1580,8 @@ async function renderStock() {
     <div id="stk-tab">${await stkTabPage()}</div>
   </div>`;
   $("#page").innerHTML = head;
-  if (st.tab !== "overview") stkChartTeardown();
-  if (st.tab === "overview") stkLoadChart();
+  if (st.tab !== "overview") klineTeardown(stkHost);
+  if (st.tab === "overview") { stkMountControls(); stkLoadChart(); }
   if (st.tab === "options") stkDrawChain();
 }
 
@@ -1470,30 +1627,20 @@ async function stkOverview() {
       ${stkSpot() && c?.average ? `<span class="${c.average >= stkSpot() ? "g" : "r"}">${stkPct((c.average - stkSpot()) / stkSpot() * 100, 1)} vs spot</span>` : ""}</div>
     <div style="margin-top:8px"><a href="#" onclick="stkSet('tab','analysis');return false" style="font-size:11.5px">Detailed institutional ratings →</a></div>`;
   const chartPanel = `
+    <div class="kcwrap">
     <div class="stk-toolbar">
       <select onchange="stkChartSet({src:'intraday',kind:this.value})">
-        ${STK_SESSIONS.map(([k, l]) => `<option value="${k}" ${st.chart.src === "intraday" && st.chart.kind === k ? "selected" : ""}>${l}</option>`).join("")}
+        ${STK_SESSIONS.map(([k2, l]) => `<option value="${k2}" ${st.chart.src === "intraday" && st.chart.kind === k2 ? "selected" : ""}>${l}</option>`).join("")}
       </select>
-      ${STK_RANGES.map(([k, l]) => `<button class="rng ${st.chart.src === "range" && st.chart.range === k ? "on" : ""}" data-stk-range="${k}" onclick="stkChartSet({src:'range',range:'${k}'})">${l}</button>`).join("")}
-      <span class="mode" id="stk-modes" style="display:flex;gap:6px;margin-left:auto">
-        <button class="rng ${st.chart.mode === "line" ? "on" : ""}" data-mode="line" onclick="stkChartSet({mode:'line'})">Time</button>
-        <button class="rng ${st.chart.mode === "candle" ? "on" : ""}" data-mode="candle" onclick="stkChartSet({mode:'candle'})">Candle</button>
-        <button class="rng ${st.chart.ma ? "on" : ""}" data-toggle="ma" onclick="stkChartSet({ma:!stkState().chart.ma})">MA</button>
-        <button class="rng ${st.chart.ema ? "on" : ""}" data-toggle="ema" onclick="stkChartSet({ema:!stkState().chart.ema})">EMA</button>
-        <button class="rng ${st.chart.boll ? "on" : ""}" data-toggle="boll" onclick="stkChartSet({boll:!stkState().chart.boll})">BOLL</button>
-      </span>
-    </div>
-    <div class="stk-toolbar">
-      <span class="faint" style="font-size:10px;letter-spacing:1px;align-self:center">DRAW</span>
-      ${STK_TOOLS.map(([k, l, t]) => `<button class="rng" title="${esc(t)}" onclick="stkDrawTool('${k}')">${l}</button>`).join("")}
-      <select data-stk-sub style="margin-left:auto" onchange="stkChartSet({sub:this.value})">
-        ${STK_SUBS.map(([k, l]) => `<option value="${k}" ${st.chart.sub === k ? "selected" : ""}>${l}</option>`).join("")}
-      </select>
+      ${STK_RANGES.map(([k2, l]) => `<button class="rng ${st.chart.src === "range" && st.chart.range === k2 ? "on" : ""}" data-stk-range="${k2}" onclick="stkChartSet({src:'range',range:'${k2}'})">${l}</button>`).join("")}
+      <span class="mode" id="stk-ctl" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:auto;row-gap:6px"></span>
     </div>
     <div class="chartbox">
       <div class="readout" id="stk-readout">${esc(st.sym)} · scroll to zoom · drag to pan · pick a DRAW tool, then click the chart</div>
       <div id="stk-kc" style="height:480px"></div>
-    </div>`;
+    </div>
+    </div>
+    `
   const dist = capital?.distribution || {};
   const buckets = [["XL", dist.capital_in_super, dist.capital_out_super, "Super-large"],
                    ["L", dist.capital_in_big, dist.capital_out_big, "Large"],
@@ -1538,32 +1685,22 @@ async function stkOverview() {
     </div>`;
 }
 
-// ── chart engine (embedded KLineChart: sessions + periods, candles/area,
-//    MA/EMA/BOLL overlays, sub indicators, drawing tools, wheel zoom + pan) ──
-const stkChartState = { bars: [], pts: [], prevClose: null, loaded: "" };
-let __stkChart = null, __stkChartEl = null, __stkSubCur = null;
-const STK_SUBS = [["VOL", "Volume"], ["MACD", "MACD"], ["RSI", "RSI"], ["KDJ", "KDJ"],
-                  ["CCI", "CCI"], ["WR", "WR"], ["ROC", "ROC"], ["BIAS", "BIAS"]];
-const STK_TOOLS = [["cursor", "✛", "Cross cursor (default)"],
-                   ["segment", "╱ Trend", "Trend line — click two points"],
-                   ["hline", "─ H-Line", "Horizontal line"],
-                   ["ray", "↗ Ray", "Ray line"],
-                   ["vline", "│ V-Line", "Vertical line"],
-                   ["channel", "∥ Channel", "Parallel channel line"],
-                   ["fib", "⑂ Fib", "Fibonacci retracement"],
-                   ["clear", "✕ Clear", "Remove all drawings"]];
-const STK_OVERLAYS = { segment: "segment", hline: "horizontalStraightLine", ray: "rayLine",
-                       vline: "verticalStraightLine", channel: "parallelStraightLine", fib: "fibonacciLine" };
-// dashedValue is required — the draw pass reads dashedValue[0] on every segment.
-const STK_LINE = color => ({ style: "solid", smooth: false, color, size: 1.1, dashedValue: [4, 4] });
-const STK_MA_COLORS = [STK_LINE("#f2c14e"), STK_LINE("#3fc1c9"), STK_LINE("#e05fa0"),
-                       STK_LINE("#a06bfa"), STK_LINE("#9aa7ff")];
-const STK_EMA_COLORS = [STK_LINE("#f2c14e"), STK_LINE("#e05fa0"), STK_LINE("#9aa7ff")];
-
-function stkChartTeardown() {
-  if (__stkChart) { try { __stkChart.destroy(); } catch (e) {} }
-  __stkChart = null; __stkChartEl = null; __stkSubCur = null;
-}
+// ── stock page chart (shared engine; moomoo sessions & periods) ───────
+const stkChartState = { bars: [], pts: [], prevClose: null };
+const stkHost = klineHost({
+  elId: "stk-kc", paneId: "candle_pane", subPaneId: "stk_sub",
+  state: () => stkState().chart,
+  data: () => stkMapData(),
+  overlays: () => {
+    const out = [];
+    if (stkState().chart.src === "intraday" && stkChartState.prevClose && stkChartState.pts.length)
+      out.push({ name: "horizontalStraightLine", points: [{ value: stkChartState.prevClose }],
+                 styles: { line: { color: "rgba(139,160,184,.5)", dashValue: [4, 4], size: 1 } } });
+    return out;
+  },
+  crosshair: d => stkCrosshair(d),
+});
+stkHost.update = patch => stkChartSet(patch);
 
 function stkMapData() {
   const S = stkChartState;
@@ -1572,74 +1709,14 @@ function stkMapData() {
     volume: +x.v || 0, turnover: +x.to || 0 }));
 }
 
-function stkApplyChartTheme() {
-  __stkChart.setStyles({
-    grid: { horizontal: { color: "#141d2a" }, vertical: { color: "#101823" } },
-    candle: {
-      bar: { upColor: "#26c68c", downColor: "#f0544f", noChangeColor: "#8ba0b8",
-             upWickColor: "#26c68c", downWickColor: "#f0544f", noChangeWickColor: "#8ba0b8",
-             upBorderColor: "#26c68c", downBorderColor: "#f0544f", noChangeBorderColor: "#8ba0b8" },
-      area: { lineSize: 2, lineColor: "#26c68c", value: "open",
-              backgroundColor: [{ offset: 0, color: "rgba(38,198,140,.16)" },
-                                 { offset: 1, color: "rgba(38,198,140,.01)" }] },
-      priceMark: { high: { color: "#5c6f86" }, low: { color: "#5c6f86" },
-                   last: { upColor: "#26c68c", downColor: "#f0544f" } },
-    },
-    xAxis: { axisLine: { color: "#1e2a3b" }, tickLine: { color: "#1e2a3b" }, tickText: { color: "#5c6f86" } },
-    yAxis: { axisLine: { color: "#1e2a3b" }, tickLine: { color: "#1e2a3b" }, tickText: { color: "#5c6f86" } },
-    crosshair: { line: { color: "#5c6f86" }, text: { backgroundColor: "#26344a", color: "#dce5f1" } },
-    separator: { color: "#1e2a3b" },
-  });
-}
-
-function stkApplyChartOpts(forceRebuild) {
-  const ch = stkState().chart, c = __stkChart;
-  if (!c) return;
-  const wantType = ch.mode === "line" ? "area" : "candle_solid";
-  // Area↔candle switches go through a full rebuild (user mode clicks only):
-  // the engine's live switch leaves the previous area canvas painted above
-  // the candle layer, hiding the candles until a rebuild.
-  if (forceRebuild && c.getStyles().candle.type !== wantType && stkChartState.loaded) {
-    stkRebuildChart();
-    return;
-  }
-  c.setStyles({ candle: { type: wantType } });
-  [["MA", ch.ma, { name: "MA", calcParams: [5, 10, 20, 30, 60], styles: { lines: STK_MA_COLORS } }],
-   ["EMA", ch.ema, { name: "EMA", calcParams: [12, 26, 50], styles: { lines: STK_EMA_COLORS } }],
-   ["BOLL", ch.boll, { name: "BOLL", calcParams: [20, 2] }]].forEach(([name, on, value]) => {
-    let has = !!c.getIndicatorByPaneId("candle_pane", name);
-    // isStack=true stacks into the pane — isStack=false would REPLACE the
-    // pane's whole indicator set and drop the previously created lines.
-    if (on && !has) has = !!c.createIndicator(value, true, { id: "candle_pane" });
-    if (!on && has) c.removeIndicator("candle_pane", name);
-  });
-  if (__stkSubCur !== ch.sub) {
-    if (__stkSubCur) c.removeIndicator("stk_sub", __stkSubCur);
-    // Plain name only — a partial styles object replaces the built-in one and
-    // breaks the VOL indicator's own MA overlay (draw reads styles.lines[0]).
-    if (ch.sub) c.createIndicator(ch.sub, true, { id: "stk_sub", height: 92 });
-    __stkSubCur = ch.sub;
-  }
-}
-
-function stkDrawPrevLine() {
-  const c = __stkChart;
-  if (!c) return;
-  if (c.getOverlayById("stk_prevc")) c.removeOverlay("stk_prevc");
-  if (stkState().chart.src === "intraday" && stkChartState.prevClose && stkChartState.pts.length)
-    c.createOverlay({ id: "stk_prevc", name: "horizontalStraightLine",
-      points: [{ value: stkChartState.prevClose }],
-      styles: { line: { color: "rgba(139,160,184,.5)", dashValue: [4, 4], size: 1 } } });
-}
-
 function stkCrosshair(d) {
   try {
     const ro = document.getElementById("stk-readout");
     if (!ro) return;
-    const p = d?.kLineData;
+    const p = d && d.kLineData;
     if (!p) { ro.textContent = stkState().sym + " · scroll to zoom · drag to pan · pick a DRAW tool, then click the chart"; return; }
-    const list = __stkChart.getDataList(), i = list.indexOf(p);
-    const prev = i > 0 ? list[i - 1] : null;
+    const list = stkHost.chart.getDataList(), i2 = list.indexOf(p);
+    const prev = i2 > 0 ? list[i2 - 1] : null;
     const chg = prev ? (p.close - prev.close) / prev.close * 100 : null;
     ro.innerHTML = `<b>${esc(stkTime(p.timestamp))}</b> · O <b>${Number(p.open).toFixed(2)}</b> H <b>${Number(p.high).toFixed(2)}</b> L <b>${Number(p.low).toFixed(2)}</b> C <b>${Number(p.close).toFixed(2)}</b>${chg != null ? ` · Chg <b class="${chg >= 0 ? "g" : "r"}">${stkPct(chg)}</b>` : ""} · Vol <b>${stkMoney(p.volume)}</b> · Turnover <b>${stkMoney(p.turnover)}</b>`;
   } catch (e) {}
@@ -1647,7 +1724,6 @@ function stkCrosshair(d) {
 
 async function stkLoadChart() {
   const st = stkState(), ch = st.chart;
-  const key = ch.src + ":" + (ch.src === "intraday" ? ch.kind : ch.range) + ":" + st.sym;
   let d;
   if (ch.src === "intraday") {
     d = await api("/api/stock/" + st.sym + "/intraday?kind=" + ch.kind).catch(() => null);
@@ -1662,70 +1738,22 @@ async function stkLoadChart() {
                    to: b.turnover, tr: b.turnover_rate, chg: b.change_rate }));
   }
   stkChartState.prevClose = stkQ().prev_close_price || null;
-  stkChartState.loaded = key;
-  stkInitChart();
+  klineSetData(stkHost, stkMapData());
 }
 
-function stkInitChart() {
-  const el = document.getElementById("stk-kc");
-  if (!el) return;
-  if (__stkChart && __stkChartEl !== el) stkChartTeardown();
-  const data = stkMapData();
-  if (!data.length) {
-    el.innerHTML = '<div class="empty" style="padding:30px 20px">No chart data (moomoo not configured, or market closed for this session).</div>';
-    return;
-  }
-  const KC = window.klinecharts;
-  if (!KC) {
-    el.innerHTML = '<div class="empty" style="padding:30px 20px">Chart engine failed to load (vendor/klinecharts.min.js).</div>';
-    return;
-  }
-  stkInitChartWithData(el, data);
+function stkMountControls() {
+  const c = document.getElementById("stk-ctl");
+  if (c) { c.innerHTML = klineControlsHTML("stk", stkState().chart); klineBindControls("stk", stkHost); }
 }
 
-function stkInitChartWithData(el, data) {
-  const KC = window.klinecharts;
-  if (!KC) return;
-  if (!__stkChart) {
-    __stkChart = KC.init(el);
-    __stkChartEl = el;
-    try { __stkChart.setLocale("en-US"); __stkChart.setPriceVolumePrecision(2, 0); } catch (e) {}
-    stkApplyChartTheme();
-    __stkChart.subscribeAction("onCrosshair", stkCrosshair);
-    window.onresize = () => { if (__stkChart) __stkChart.resize(); };
-  }
-  stkApplyChartOpts();
-  __stkChart.applyNewData(data);
-  stkApplyChartOpts();
-  stkDrawPrevLine();
-}
-
-function stkRebuildChart() {
-  const data = stkMapData();
-  stkChartTeardown();
-  const el = document.getElementById("stk-kc");
-  if (!el) return;
-  el.innerHTML = "";
-  stkInitChartWithData(el, data);
-}
-
-function stkSyncChartUI() {
-  const ch = stkState().chart;
-  document.querySelectorAll("[data-stk-range]").forEach(b =>
-    b.classList.toggle("on", ch.src === "range" && ch.range === b.dataset.stkRange));
-  document.querySelectorAll("#stk-modes [data-mode]").forEach(b =>
-    b.classList.toggle("on", ch.mode === b.dataset.mode));
-  document.querySelectorAll("#stk-modes [data-toggle]").forEach(b =>
-    b.classList.toggle("on", !!ch[b.dataset.toggle]));
-  const sel = document.querySelector("[data-stk-sub]");
-  if (sel) sel.value = ch.sub;
-}
-
-function stkDrawTool(t) {
-  const c = __stkChart;
-  if (!c) return;
-  if (t === "clear") { c.removeOverlay(); stkDrawPrevLine(); return; }
-  if (STK_OVERLAYS[t]) c.createOverlay({ name: STK_OVERLAYS[t] });
+function stkChartSet(patch) {
+  Object.assign(stkState().chart, patch);
+  if (patch.ma && Array.isArray(patch.ma)) stkState().chart._maLast = patch.ma;
+  if (patch.ema && Array.isArray(patch.ema)) stkState().chart._emaLast = patch.ema;
+  if (!document.getElementById("stk-kc")) { renderStock(); return; }
+  klineSyncControls("stk", stkState().chart);
+  if ("src" in patch || "range" in patch || "kind" in patch) { stkLoadChart(); return; }
+  klineApply(stkHost);
 }
 
 // ── news item renderer (shared by overview + news tab) ───────────────
@@ -2205,7 +2233,7 @@ async function showPage(p) {
   // Leaving the stock page: clear its hash so back-nav lands on Market Pulse.
   if (/^#\/stock\//.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
   state.page = p;
-  stkChartTeardown();
+  klineTeardownAll();
   document.querySelectorAll(".nav button").forEach(b =>
     b.classList.toggle("on", b.dataset.page === p || (b.dataset.page === "quotes" && p === "stock")));
   if (state.poll) { clearInterval(state.poll); state.poll = null; }

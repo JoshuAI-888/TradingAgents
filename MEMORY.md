@@ -579,3 +579,26 @@ tests were mid-edit and flapped red→green as they committed cab8e11). Rule
 refined: stage explicit paths, never `git add web/` while another session is
 active in the same tree. Deploy: a7d18d2 live; picker/sectors verified on
 production (145 sectors; members w/ prices; switcher NVDA flow; Comments stays).
+
+## 2026-09-28 (later) — Full universe live: 5,794 stocks; parallel-session reconciliation
+
+Universe refresh: 145 US industry plates → **5,794 unique codes** → 15 snapshot
+batches → 5,794 quote rows (the first run wrote 1,000 — PostgREST default row
+cap; db.select_all limit/offset pagination added for loader + API reads).
+/api/screener market mode: matched 5,794, zero live moomoo calls at view time,
+globally sorted, PLTR present. Presets: NO more blanks — parallel-session
+_apply_filters skips filters whose field the universe lacks + full universe =
+every preset has top-3. Honesty guard: when ALL of a preset's filters are
+skipped (e.g. Below-30 RSI — no rsi14 field yet), the preset renders "needs
+rsi14 data — pending the indicator dictionary" instead of fake gainers.
+
+**Parallel session warning:** the owner runs another agent on this repo
+(stock-page feature, saved_screeners migration 0008, Quotes nav). It changed
+_apply_filters to return (rows, skipped_fields) between my commits — my tests
+broke and I pushed red once. Before editing main.py/index.html, re-read them;
+reconcile, don't overwrite. Applied their 0008 to the live DB.
+
+Cron tradingagents-universe crn-dat3eujncjis73cvc55g: hourly 13–21 UTC weekdays
+(quotes refresh; enum re-runs after 24h TTL). Universe covers 5,794 common
+stocks (moomoo's screener shows 9,381 instruments incl. ETFs/ETPs — widen
+later via plate_class=ALL if wanted, ~1,000 plates ≈ 33 min at budget).

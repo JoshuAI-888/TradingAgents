@@ -82,6 +82,9 @@ class Db:
     def update(self, table: str, filter: str, row: dict) -> None:
         self._call("PATCH", f"{table}?{filter}", body=row)
 
+    def delete(self, table: str, filter: str) -> None:
+        self._call("DELETE", f"{table}?{filter}")
+
     def select(self, table: str, query: dict | None = None, columns: str = "*") -> list:
         q = {**(query or {}), "select": columns}
         out = self._call("GET", table, query=q)

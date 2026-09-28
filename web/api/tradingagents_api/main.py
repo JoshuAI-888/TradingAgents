@@ -579,10 +579,15 @@ def screener_presets(market: str = "US", universe: str = "auto"):
     for preset in PRESET_SCREENERS:
         picked, skipped = _apply_filters(rows, preset["filters"])
         picked = _sort_rows(picked, "pct", 2)[:3]
+        # When EVERY filter was skipped (field absent from the universe) the
+        # "top 3" would just be the day's gainers wearing the preset's name —
+        # report it as pending data instead of pretending.
+        pending = bool(preset["filters"]) and len(skipped) == len(preset["filters"])
         out.append({**preset,
-                    "skipped": skipped,
-                    "top": [{"symbol": r["symbol"], "name": str(r.get("name") or "")[:22],
-                             "pct": r.get("pct")} for r in picked]})
+                    "skipped": skipped, "pending": pending,
+                    "top": [] if pending else [{"symbol": r["symbol"],
+                                                "name": str(r.get("name") or "")[:22],
+                                                "pct": r.get("pct")} for r in picked]})
     return {"available": True, "presets": out, "universe_rows": len(rows)}
 
 
