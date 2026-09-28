@@ -435,7 +435,7 @@ window.__scr = Object.assign({ market: "US", watchlistOnly: false, filters: [], 
                  dir: 2, watchlistSyms: [],
                  cols: ["symbol", "name", "price", "pct", "chg", "market_cap", "volume",
                         "pe_ttm", "pb", "volume_ratio", "turnover_rate", "div_yield"],
-                 colFilters: {} }, window.__scr);
+                 colFilters: {}, etfs: true }, window.__scr);
 const SCR_FIELDS = {
   price: "Price", pct: "% Chg", chg: "Chg", market_cap: "Market Cap", float_cap: "Float Cap",
   shares: "Shares Outstanding", volume: "Volume", turnover: "Turnover", turnover_rate: "Turnover%",
@@ -948,8 +948,12 @@ function md(t) {
 const pages = {
   async home() {
     const st = window.__scr;
+    // Include ETFs toggle — moomoo's screener counts stocks + ETFs; respect a
+    // user-defined Type filter if one exists.
+    const effFilters = st.filters.some(f => f.field === "stock_type") ? st.filters
+      : [...st.filters, { field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }];
     const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
-      filters: JSON.stringify(st.filters), sort: st.sort, direction: st.dir });
+      filters: JSON.stringify(effFilters), sort: st.sort, direction: st.dir });
     // An applied preset runs SERVER-SIDE (moomoo's own screening backend), so
     // its results and result counts match moomoo.com/screener 1:1. Manual
     // filters keep the client-side path over our stored universe.
@@ -1106,6 +1110,7 @@ const pages = {
             <option ${st.market === "US" ? "selected" : ""}>US</option><option ${st.market === "HK" ? "selected" : ""}>HK</option>
           </select>
           <label class="switch"><input type="checkbox" id="scr-wl" ${st.watchlistOnly ? "checked" : ""} onchange="scrSet('watchlistOnly', this.checked)"><i></i> Watchlist only</label>
+          <label class="switch" title="moomoo's screener count includes ETFs — untick for common stocks only"><input type="checkbox" ${st.etfs ? "checked" : ""} onchange="scrSet('etfs', this.checked)"><i></i> Include ETFs</label>
           <button class="btn ghost" onclick="openFilterModal()">＋ Add Filter</button>
           ${colMenu}
           ${st.filters.length || Object.keys(st.colFilters).length ? '<button class="btn ghost" onclick="scrResetAll()">Reset all</button>' : ""}
