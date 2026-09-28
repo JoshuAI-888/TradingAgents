@@ -165,9 +165,11 @@ def report(ref: str):
     reports = db.select("agent_reports", {"run_id": f"eq.{run['id']}", "order": "created_at.asc"},
                         "stage,content_markdown,quality_grade,quality_score,created_at")
     debates = db.select("debate_messages", {"run_id": f"eq.{run['id']}", "order": "created_at.asc"},
-                        "debate_type,speaker,round,content")
+                        "debate_type,speaker,round,content,content_original")
     # Rows stored before the char-wise _join_history fix read one character per
     # line; demangle at read time (detector is strict, normal rows pass through).
+    # The worker's repair pass restores real spacing and preserves the untouched
+    # original in content_original — the UI notes repaired rows accordingly.
     debates = [{**m, "content": demangle_debate(m.get("content") or "")} for m in debates]
     decision = db.select("decisions", {"run_id": f"eq.{run['id']}"}, "*")
     settlements = []

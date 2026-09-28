@@ -1369,7 +1369,7 @@ function approxSpacing(text) {
   for (let i = 0; i < sentences.length; i += 2) paras.push(sentences.slice(i, i + 2).join(" "));
   return paras.join("\n\n");
 }
-function debateTurnsHtml(content) {
+function debateTurnsHtml(content, repaired) {
   const text0 = String(content || "");
   const turns = parseTurns(text0);
   // legacy = stored by the pre-fix build: long text with almost no spaces
@@ -1380,7 +1380,11 @@ function debateTurnsHtml(content) {
     return `<div class="turn b-${s[1]}"><span class="sp sp-${s[1]}">${esc(s[2] || s[0])}</span>
       <div class="turn-b">${md(body)}</div></div>`;
   };
-  const note = legacy ? `<div class="delay-note" style="margin-bottom:10px">Stored by the pre-fix pipeline build, which stripped word spacing; speaker turns and approximate spacing restored here — wording is exact, gaps are best-effort.</div>` : "";
+  const note = repaired
+    ? `<div class="delay-note" style="margin-bottom:10px">Word spacing restored automatically by the repair pass (the pre-fix build stored these rows without spaces) — wording verified character-for-character against the preserved original.</div>`
+    : legacy
+      ? `<div class="delay-note" style="margin-bottom:10px">Stored by the pre-fix pipeline build, which stripped word spacing; speaker turns and approximate spacing restored here — wording is exact, gaps are best-effort. The worker's repair pass restores full spacing automatically.</div>`
+      : "";
   // long debates open with the first turns + an expander instead of a scroll pit
   if (turns.length > 9) {
     const uid = "d" + (++window.__debateUid || (window.__debateUid = 1));
@@ -1489,14 +1493,14 @@ async function reportPage(ref) {
       `<details open><summary>Portfolio Manager — final decision<span class="m">raw engine output</span></summary><div class="body">${md(rawDecision)}</div></details>`);
   if (deb("research").length)
     agents.push(sec("Reasoning — bull vs bear", "the debate the decision was argued from" + qcTag("research")),
-      `<details id="sec-debate-research"><summary>Bull / Bear debate — full transcript<span class="m">${deb("research").length} message(s)</span></summary><div class="body">${deb("research").map(x => debateTurnsHtml(x.content)).join("")}</div></details>`);
+      `<details id="sec-debate-research"><summary>Bull / Bear debate — full transcript<span class="m">${deb("research").length} message(s)</span></summary><div class="body">${deb("research").map(x => debateTurnsHtml(x.content, !!x.content_original)).join("")}</div></details>`);
   if (reportMap.research_manager)
-    agents.push(reportCard("research_manager", "Research Manager — synthesis & plan"));
+    agents.push(reportCard("research_manager", "Research Manager — plan · input to the trader"));
   if (reportMap.trader)
-    agents.push(reportCard("trader", "Trader — proposal"));
+    agents.push(reportCard("trader", "Trader — proposal · input to the final call"));
   if (deb("risk").length)
     agents.push(sec("Reasoning — risk debate", "aggressive / conservative / neutral weigh the proposal" + qcTag("risk")),
-      `<details id="sec-debate-risk"><summary>Risk debate — full transcript<span class="m">${deb("risk").length} message(s)</span></summary><div class="body">${deb("risk").map(x => debateTurnsHtml(x.content)).join("")}</div></details>`);
+      `<details id="sec-debate-risk"><summary>Risk debate — full transcript<span class="m">${deb("risk").length} message(s)</span></summary><div class="body">${deb("risk").map(x => debateTurnsHtml(x.content, !!x.content_original)).join("")}</div></details>`);
   const analystCards = ["analyst_market", "analyst_social", "analyst_news", "analyst_fundamentals"]
     .filter(st => reportMap[st])
     .map(st => reportCard(st, agentLabel(st), st === "analyst_market"));
@@ -1537,7 +1541,9 @@ async function reportPage(ref) {
 
   // On-this-page rail nav; sections with no content for this run are omitted.
   const navSections = [
-    ["sec-verdict", "Verdict"], ["sec-chart", "Chart"], ["sec-thesis", "Thesis"],
+    ["sec-verdict", "Verdict"],
+    ...(dg?.debate_summary ? [["sec-debate-summary", "Debate summary"]] : []),
+    ["sec-chart", "Chart"], ["sec-thesis", "Thesis"],
     ...((dg?.evidence || []).length ? [["sec-evidence", "Evidence"]] : []),
     ...(Object.keys((dg || {}).scenarios || {}).length ? [["sec-scenarios", "Scenarios"]] : []),
     ["sec-news", "News"], ["sec-outputs", "Agent outputs"],
@@ -1567,6 +1573,7 @@ async function reportPage(ref) {
       <div class="v-left">
         <div class="co">${esc(sym.name || sym.symbol)}</div>
         <div class="mk">${esc(sym.symbol)} · ${esc(sym.exchange || "—")} · ${esc(sym.currency || "USD")}</div>
+        <div class="kick" style="margin-top:8px">Final call — Portfolio Manager</div>
         <div class="rating" style="color:${rc};${rating.length > 8 ? "font-size:" + (rating.length > 11 ? 17 : 21) + "px;line-height:1.15;" : ""}">${esc(rating)}</div>
         <div class="conv">Conviction: ${dec?.rating_rank ? esc(dec.rating_rank) + "/5" : "—"} · ${esc(dec?.signal || "—")}</div>
         <div style="margin-top:10px"><span class="pill ${dec?.qc_verdict === "passed" ? "pg" : "pa"}"><i></i>QC ${esc((dec?.qc_verdict || "—").toUpperCase())}</span></div>
@@ -1595,6 +1602,9 @@ async function reportPage(ref) {
       </div>
     </div>
   </div>
+
+  ${dg?.debate_summary ? `<div class="panel" id="sec-debate-summary"><h3 class="sec">Adversarial review — summary <small>what the bull, bear and risk debates concluded · ${r.digest?.model ? "digest by " + esc(r.digest.model.split("/").pop()) : "post-run digest"}</small></h3>
+    <div class="thesis"><p>${esc(dg.debate_summary)}</p></div></div>` : ""}
 
   <div class="ws">
     <div class="rail">

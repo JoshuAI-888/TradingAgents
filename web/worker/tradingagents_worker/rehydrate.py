@@ -12,6 +12,8 @@ the worker re-runs it after each job until the backlog is drained.
 """
 from __future__ import annotations
 
+import os
+
 from .db import Db
 
 _CHUNK = 7000
@@ -70,10 +72,10 @@ def _client():
     return _openrouter_client()
 
 
-def _summarize_run(db: Db, run_id: str) -> None:
+def _summarize_run(db: Db, run_id: str, client) -> None:
     """Fold a readable executive summary of the debates into the run's digest
     (the report page renders it as 'Adversarial review — summary')."""
-    rows = db.select("run_digest", {"run_id": f"eq.{run_id}"}, "digest")
+    rows = db.select("run_digest", {"run_id": f"eq.{run_id}"}, "digest,model")
     if rows and (rows[0].get("digest") or {}).get("debate_summary"):
         return  # new-run digests already carry one
     debates = db.select("debate_messages", {"run_id": f"eq.{run_id}",
@@ -89,7 +91,7 @@ def _summarize_run(db: Db, run_id: str) -> None:
     material = "\n\n".join(parts) + (f"\n\nFinal decision: {decisions[0]}" if decisions else "")
     if not parts:
         return
-    resp = _client().chat.completions.create(
+    resp = client.chat.completions.create(
         model=_quick_model(), temperature=0.2, max_tokens=400,
         messages=[
             {"role": "system", "content":
@@ -109,10 +111,7 @@ def _summarize_run(db: Db, run_id: str) -> None:
 
 def rehydrate_debates(db: Db, max_rows: int = _MAX_ROWS_PER_PASS, client=None) -> int:
     """Repair up to max_rows legacy debate rows per pass. Returns rows fixed."""
-    try:
-        if not __import__("os").getenv("OPENROUTER_API_KEY"):
-            return 0
-    except Exception:
+    if not os.getenv("OPENROUTER_API_KEY"):
         return 0
     try:
         rows = db.select("debate_messages", {"order": "created_at.desc", "limit": "400"},
@@ -131,7 +130,7 @@ def rehydrate_debates(db: Db, max_rows: int = _MAX_ROWS_PER_PASS, client=None) -
                       {"content": restored, "content_original": row["content"]})
             fixed += 1
             try:
-                _summarize_run(db, row["run_id"])
+                _summarize_run(db, row["run_id"], client)
             except Exception as e:
                 print(f"debate summary (non-fatal): {e}", flush=True)
         except Exception as e:

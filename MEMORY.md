@@ -833,3 +833,17 @@ scrollbar appears only when panes exceed the screen. Verified live: COST chart
    prefilled), Apply-to-table and Save screener / Update saved (POST/PUT
    /api/screeners). Verified end-to-end: clicked Penny Stocks, edited a filter,
    saved → appears in Your saved screeners.
+
+## 2026-09-29 (late II) — Stock chart: real horizons + multi-draw
+
+User hit: (1) 1Y "didn't update" — Daily and 1Y both mapped to ktype 2 with
+~380-day windows → identical series. (2) picking a drawing tool called
+removeOverlay() (wipes ALL) — previous drawings dropped. (3) wanted more
+horizons. Fix: ktype enum from handbook §history-kline (2=Day 3=Week 4=Month
+5=Year 6=5min 8=30min 9=60min); horizons now 5D=5min · 1M=30min · 3M=60min ·
+1Q/6M/1Y=daily windows · Weekly · Monthly · **10Y (ktype 5 yearly, new)** —
+all verified distinct live (468/390/574/73/131/261/486/138/11 bars).
+klineTool: removeOverlay only on "clear"; each tool pick arms another overlay
+(interceptor-verified: 3 picks → 0 removes). Note: a full deploy landed mid-
+loader-run this round and requeued the universe job (worker restart rule keeps
+biting — checks before push).
