@@ -348,6 +348,7 @@ window.addEventListener("error", ev => {
     t.style.cssText = "position:fixed;bottom:8px;left:8px;right:8px;background:rgba(240,84,79,.12);color:#f0a4a0;border:1px solid rgba(240,84,79,.4);font:11px monospace;padding:6px 9px;border-radius:8px;z-index:99";
     (document.body || document.documentElement).appendChild(t); }
   t.textContent = "script error: " + (ev.message || "unknown") + " @" + (ev.lineno || "?");
+  window.__lastScriptError = (ev.error && ev.error.stack) || ev.message || "unknown";
 });
 </script>
 <script src="/vendor/klinecharts.min.js"></script>
@@ -1317,7 +1318,7 @@ function stkChartSet(patch) {
   Object.assign(stkState().chart, patch);
   if (!document.getElementById("stk-kc")) { renderStock(); return; }
   stkSyncChartUI();
-  stkApplyChartOpts();
+  stkApplyChartOpts(!!patch.mode);
   if ("src" in patch || "range" in patch || "kind" in patch) stkLoadChart();
 }
 
@@ -1589,10 +1590,18 @@ function stkApplyChartTheme() {
   });
 }
 
-function stkApplyChartOpts() {
+function stkApplyChartOpts(forceRebuild) {
   const ch = stkState().chart, c = __stkChart;
   if (!c) return;
-  c.setStyles({ candle: { type: ch.mode === "line" ? "area" : "candle_solid" } });
+  const wantType = ch.mode === "line" ? "area" : "candle_solid";
+  // Area↔candle switches go through a full rebuild (user mode clicks only):
+  // the engine's live switch leaves the previous area canvas painted above
+  // the candle layer, hiding the candles until a rebuild.
+  if (forceRebuild && c.getStyles().candle.type !== wantType && stkChartState.loaded) {
+    stkRebuildChart();
+    return;
+  }
+  c.setStyles({ candle: { type: wantType } });
   [["MA", ch.ma, { name: "MA", calcParams: [5, 10, 20, 30, 60], styles: { lines: STK_MA_COLORS } }],
    ["EMA", ch.ema, { name: "EMA", calcParams: [12, 26, 50], styles: { lines: STK_EMA_COLORS } }],
    ["BOLL", ch.boll, { name: "BOLL", calcParams: [20, 2] }]].forEach(([name, on, value]) => {
@@ -1667,6 +1676,12 @@ function stkInitChart() {
     el.innerHTML = '<div class="empty" style="padding:30px 20px">Chart engine failed to load (vendor/klinecharts.min.js).</div>';
     return;
   }
+  stkInitChartWithData(el, data);
+}
+
+function stkInitChartWithData(el, data) {
+  const KC = window.klinecharts;
+  if (!KC) return;
   if (!__stkChart) {
     __stkChart = KC.init(el);
     __stkChartEl = el;
@@ -1678,6 +1693,15 @@ function stkInitChart() {
   __stkChart.applyNewData(data);
   stkApplyChartOpts();
   stkDrawPrevLine();
+}
+
+function stkRebuildChart() {
+  const data = stkMapData();
+  stkChartTeardown();
+  const el = document.getElementById("stk-kc");
+  if (!el) return;
+  el.innerHTML = "";
+  stkInitChartWithData(el, data);
 }
 
 function stkSyncChartUI() {

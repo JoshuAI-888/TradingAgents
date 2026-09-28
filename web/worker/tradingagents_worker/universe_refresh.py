@@ -46,7 +46,7 @@ class UniverseRefresher:
     def _plates(self) -> list[dict]:
         out = _budgeted(self.client.call, "GET", "/quote/plate-list",
                         query={"market": self.market, "plate_class": "INDUSTRY"})
-        return (out.get("data") or {}).get("list") or out.get("list") or []
+        return out.get("plate_list") or []  # verified live: top-level plate_list, 145 for US
 
     def _plate_codes(self, plate_code: str) -> list[str]:
         codes: list[str] = []
@@ -56,10 +56,9 @@ class UniverseRefresher:
             if next_key:
                 q["next_key"] = next_key
             out = _budgeted(self.client.call, "GET", "/quote/plate-stock", query=q)
-            data = out.get("data") or {}
-            items = data.get("stock_list") or data.get("items") or []
+            items = out.get("stock_list") or []  # verified live: top-level stock_list
             codes.extend(it.get("code") for it in items if it.get("code"))
-            pag = data.get("pagination") or {}
+            pag = (out.get("pagination") or {}) if isinstance(out, dict) else {}
             next_key = pag.get("next_key") or ""
             if not next_key or next_key == "-1" or not items:
                 break
