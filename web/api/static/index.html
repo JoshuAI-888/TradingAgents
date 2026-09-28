@@ -768,6 +768,41 @@ async function api(path, opts) {
   return r.json();
 }
 
+// ── in-flight panel (Analyze + Ledger): queue position, worker liveness ──
+// Refreshed IN PLACE by refreshInflightLoop — the old full-page reload every
+// 8s blanked the whole tab to "Loading…" while a run was queued.
+function workerNote(worker) {
+  if (!worker || worker.alive == null) return "worker state unknown";
+  if (worker.alive === false)
+    return `<span class="r">worker quiet ${Math.round((worker.age_s || 0) / 60)}m — queued runs wait until it's back</span>`;
+  return `worker live${worker.poll_s ? ` · checks the queue every ${Math.round(worker.poll_s)}s` : ""}`;
+}
+function inflightPanel(act) {
+  const inflight = act.jobs || [];
+  if (!inflight.length) return "";
+  const rows = inflight.map(j => {
+    const p = j.payload || {};
+    const where = j.status === "pending"
+      ? `queue #${j.position ?? "…"}${j.position > 1 ? ` · ${j.position - 1} ahead` : " · next up"} · queued ${fmtClock(j.created_at)}`
+      : `running · started ${fmtClock(j.started_at || j.created_at)}`;
+    const trace = `onclick="${state.page === "ledger" ? "showPage('analyze');" : ""}watch('${esc(j.id)}');return false"`;
+    return `<div class="fresh"><span>${esc(p.ticker || "?")} · ${esc(p.depth || "standard")} · ${where}</span>
+      <span class="warn"><a href="#" ${trace}>live trace →</a></span></div>`;
+  }).join("");
+  return `<div class="panel" id="inflight-panel"><h3 class="sec">In flight <small>${inflight.length} queued/running · ${workerNote(act.worker)} · decisions land in the ledger when they complete</small></h3>${rows}</div>`;
+}
+async function refreshInflight() {
+  if (state.page !== "analyze" && state.page !== "ledger") return;
+  try {
+    const act = await api("/api/jobs/active");
+    const el = document.getElementById("inflight-panel");
+    const html = inflightPanel(act);
+    if (el && html) el.outerHTML = html;
+    else if (el && !html) el.remove();
+    else if (html) $("#page").innerHTML = await pages[state.page]();  // panel appeared: one full render
+  } catch (e) {}
+}
+
 async function loadHealth() {
   try {
     const h = await api("/api/health");
@@ -996,12 +1031,7 @@ const pages = {
       api("/api/jobs/active").catch(() => ({ jobs: [] })),
       api("/api/decisions?limit=8").catch(() => ({ decisions: [] })),
     ]);
-    const inflight = (act.jobs || []);
-    const inflightHtml = inflight.length ? `<div class="panel"><h3 class="sec">In flight <small>${inflight.length} analysis(es) running now · decisions land in the ledger when they complete</small></h3>
-      ${inflight.map(j => { const p = j.payload || {}; return `<div class="fresh"><span>${esc(p.ticker || "?")} · ${esc(p.depth || "standard")} · queued ${fmtClock(j.created_at)}</span>
-        <span class="warn">${esc(j.status)} · <a href="#" onclick="watch('${esc(j.id)}');return false">live trace →</a></span></div>`; }).join("")}
-    </div>` : "";
-    if (inflight.length) setTimeout(() => { if (state.page === "analyze" && !state.poll) showPage("analyze"); }, 8000);
+    const inflightHtml = inflightPanel(act);
     const d = (decs.decisions || []).map(x => `<tr>
       <td>${esc(x.trade_date)} · <a href="#" onclick="openReport('${esc(x.id)}');return false">${esc(x.symbol)}</a></td>
       <td>${esc((x.rating || "").toUpperCase())}</td>
@@ -1030,12 +1060,7 @@ const pages = {
       api("/api/decisions?limit=100"),
       api("/api/jobs/active").catch(() => ({ jobs: [] })),
     ]);
-    const inflight = (act.jobs || []);
-    const inflightHtml = inflight.length ? `<div class="panel"><h3 class="sec">In flight <small>${inflight.length} analysis(es) running now · decisions land below when they complete</small></h3>
-      ${inflight.map(j => { const p = j.payload || {}; return `<div class="fresh"><span>${esc(p.ticker || "?")} · ${esc(p.depth || "standard")} · queued ${esc(String(j.created_at || "").slice(11, 16))}Z</span>
-        <span class="warn">${esc(j.status)} · <a href="#" onclick="showPage('analyze');watch('${esc(j.id)}');return false">live trace →</a></span></div>`; }).join("")}
-    </div>` : "";
-    if (inflight.length) setTimeout(() => { if (state.page === "ledger") showPage("ledger"); }, 8000);
+    const inflightHtml = inflightPanel(act);
     const d = (r.decisions || []).map(x => `<tr>
       <td>${esc(x.trade_date)} · <a href="#" onclick="openReport('${esc(x.id)}');return false">${esc(x.symbol)}</a></td>
       <td>${esc((x.rating||"").toUpperCase())}</td>
@@ -1076,6 +1101,8 @@ const pages = {
           When off, every analysis is a real multi-agent run via OpenRouter (billed per token, ≈$0.14 on cheap defaults). </span>
         </label>
         <div id="s-runtime-out" class="faint" style="font-size:11px;margin-top:6px"></div></div>
+      <div class="panel"><h3 class="sec">Agent prompts <small>each agent's system prompt · versioned · applies to runs queued after saving</small></h3>
+        <div id="prompts-panel" class="empty">loading…</div></div>
       <div class="panel"><h3 class="sec">Data &amp; coverage <small>moomoo screener universe loader</small></h3>
         <div id="scr-sched" class="empty">loading…</div></div>
       <div class="panel"><h3 class="sec">Display timezone <small>all times on this site</small></h3>
@@ -1718,22 +1745,43 @@ async function openReport(ref) {
 }
 function watch(jobId) {
   if (state.poll) clearInterval(state.poll);
-  state.poll = setInterval(async () => {
+  const tick = async () => {
     const s = await api("/api/analyses/" + jobId).catch(() => null);
     if (!s) return;
     const stages = ["analysts","quality_gate","research_debate","research_manager","trader","risk_debate","portfolio_manager","report_qc"];
     const seen = {};
     (s.events || []).forEach(e => { seen[e.stage] = e.status; });
+    const done = stages.filter(st => seen[st] === "done").length;
+    const pct = s.job.status === "succeeded" ? 100 : Math.round(done / stages.length * 100);
     const chips = stages.map(st => `<span class="stage ${seen[st] || ""}">${st}${seen[st] === "done" ? " ✓" : seen[st] ? " …" : ""}</span>`).join("");
+    const q = s.queue || {};
+    let statusLine;
+    if (s.job.status === "pending") {
+      const eta = q.eta_seconds ? ` · ~${Math.max(1, Math.round(q.eta_seconds / 60))}m typical once running` : "";
+      const worker = q.worker_alive === false ? ` · <span class="r">worker quiet ${Math.round((q.worker_age_s || 0) / 60)}m</span>`
+        : q.worker_alive === true ? " · worker live" : "";
+      statusLine = `<b>Queued</b> — position ${q.position ?? "…"}${q.ahead ? ` · ${q.ahead} ahead` : " · next up"}${eta}${worker}`;
+    } else if (s.job.status === "running") {
+      const started = s.job.started_at ? (Date.now() - Date.parse(s.job.started_at)) / 1000 : null;
+      const elapsed = started != null && isFinite(started) && started >= 0 ? ` · ${Math.floor(started / 60)}m ${Math.round(started % 60)}s in` : "";
+      const eta = q.eta_seconds ? ` · ~${Math.max(1, Math.round(q.eta_seconds / 60))}m typical` : "";
+      const stage = Math.min(done + 1, stages.length);
+      statusLine = `<b>Running</b> — stage ${done === stages.length ? stages.length : stage}/${stages.length}: <b>${esc(stages[stage - 1] || "")}</b>${elapsed}${eta}`;
+    } else {
+      statusLine = `<b>${esc(s.job.status)}</b>${s.job.last_error ? " — " + esc(s.job.last_error) : ""}`;
+    }
     const log = (s.events || []).slice(-40).map(e => `<span class="t">${String(e.ts || "").slice(11, 19)}</span> <span class="ag">${esc(e.stage)}</span> ${esc(e.message || e.status)}`).join("<br>");
     const fl = $("#floor");
-    if (fl) fl.innerHTML = `<div style="margin-bottom:8px">${chips}</div>
-      <div class="pill ${s.job.status === "succeeded" ? "pg" : s.job.status === "failed" ? "pr" : "pa"}"><i></i>${esc(s.job.status)}</div>
-      ${s.job.status === "succeeded" ? `<span class="actions" style="display:inline-flex;margin-left:10px"><button class="btn primary" onclick="openReport('${esc(jobId)}')">Open full report →</button></span>` : ""}
-      ${s.job.last_error ? `<div class="r" style="font-size:11px;margin-top:6px;font-family:var(--mono)">${esc(s.job.last_error)}</div>` : ""}
+    if (fl) fl.innerHTML = `
+      <div class="fresh" style="margin-bottom:6px"><span>${statusLine}</span><span class="mono dim">${pct}%</span></div>
+      <div class="bar" style="margin:4px 0 10px"><i style="width:${pct}%;background:#3a76dd"></i><i style="width:${100 - pct}%;background:#33415a"></i></div>
+      <div style="margin-bottom:8px">${chips}</div>
+      ${s.job.status === "succeeded" ? `<span class="actions" style="display:inline-flex;margin-bottom:8px"><button class="btn primary" onclick="openReport('${esc(jobId)}')">Open full report →</button></span>` : ""}
       <div class="trace" style="margin-top:8px">${log || '<span class="sys">waiting for events…</span>'}</div>`;
-    if (["succeeded", "failed", "cancelled"].includes(s.job.status)) { clearInterval(state.poll); state.poll = null; }
-  }, 2000);
+    if (["succeeded", "failed", "cancelled"].includes(s.job.status)) { clearInterval(state.poll); state.poll = null; refreshInflight(); }
+  };
+  tick();
+  state.poll = setInterval(tick, 2000);
 }
 async function refreshCandidates(btn) {
   if (btn) { btn.disabled = true; btn.textContent = "Sweeping…"; }
@@ -1786,6 +1834,104 @@ async function refreshModels() {
     out.textContent = `✓ ${cat.count} models fetched ${cat.stale ? "(stale fallback!)" : "live"}`;
     showPage("settings");
   } catch (e) { out.textContent = "Refresh failed: " + (e.message || e); }
+}
+
+// ── agent prompts (Settings panel: versioned system prompts per agent) ──
+async function loadPromptsPanel() {
+  const el = document.getElementById("prompts-panel");
+  if (!el) return;
+  try {
+    const r = await api("/api/prompts");
+    window.__prompts = r.agents || [];
+  } catch (e) {
+    el.className = "";
+    el.innerHTML = `<div class="empty">Prompt store unavailable (${esc(String(e.message || e).slice(0, 90))}). Apply migration 0009 and let the worker boot once to seed the stock prompts.</div>`;
+    return;
+  }
+  el.className = "";
+  const agents = window.__prompts || [];
+  if (!agents.length) { el.innerHTML = '<div class="empty">No prompt versions yet — the worker seeds the engine\'s stock prompts on its next boot.</div>'; return; }
+  const sel = agents.map((a, i) => `<option value="${i}">${esc(a.label)}${a.active_version ? ` (v${a.active_version} active)` : ""}</option>`).join("");
+  el.innerHTML = `
+    <div class="frow"><select id="pr-agent" onchange="prPick()" style="flex:1">${sel}</select></div>
+    <div id="pr-editor" style="margin-top:10px"></div>
+    <div class="faint" style="font-size:10.5px;margin-top:8px">Save = store a NEW version and activate it (history kept, switch back anytime). {placeholders} are filled per run — keep them in the text.</div>`;
+  prPick();
+}
+function prAgent() { return (window.__prompts || [])[Number(document.getElementById("pr-agent")?.value || 0)]; }
+function prPick() {
+  const a = prAgent();
+  const ed = document.getElementById("pr-editor");
+  if (!a || !ed) return;
+  const opts = a.versions.map(v =>
+    `<option value="${v.version}" ${a.active_version === v.version ? "selected" : ""}>v${v.version}${v.note === "engine stock prompt" ? " · stock" : ""}${a.active_version === v.version ? " · active" : ""}</option>`).join("")
+    + `<option value="">stock prompt (no override)</option>`;
+  ed.innerHTML = `
+    <div class="frow"><span class="dim" style="width:64px;font-size:11px">Version</span>
+      <select id="pr-version" onchange="prLoad()">${opts}</select>
+      <span class="faint" style="font-size:10.5px">${a.versions.length} saved · runs use: ${a.active_version ? "v" + a.active_version : "stock"} · model: ${esc(a.model)}</span></div>
+    <textarea id="pr-text" rows="14" spellcheck="false" style="width:100%;margin-top:8px;font-family:var(--mono);font-size:11px;white-space:pre-wrap"></textarea>
+    <div class="actions">
+      <button class="btn primary" onclick="prSave()">Save as new version + activate</button>
+      <button class="btn" onclick="prActivate()">Activate selected version</button>
+      <button class="btn ghost" onclick="prReset()">Use stock prompt</button>
+      <span id="pr-out" class="faint" style="font-size:11px"></span></div>`;
+  prLoad();
+}
+function prLoad() {
+  const a = prAgent();
+  const ta = document.getElementById("pr-text");
+  if (!a || !ta) return;
+  const v = document.getElementById("pr-version").value;
+  if (v === "") { ta.value = a.default_content || ""; return; }
+  const row = a.versions.find(x => String(x.version) === v);
+  ta.value = (row && row.content) || "";
+}
+async function prSave() {
+  const a = prAgent();
+  const out = document.getElementById("pr-out");
+  try {
+    const r = await api(`/api/prompts/${a.key}/versions`, { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: document.getElementById("pr-text").value, note: "edited in Settings" }) });
+    out.textContent = `✓ saved v${r.version} — next queued run uses it`;
+    await loadPromptsPanel();
+    document.getElementById("pr-agent").value = (window.__prompts || []).findIndex(x => x.key === a.key);
+    prPick();
+    const o2 = document.getElementById("pr-out");
+    if (o2) o2.textContent = `✓ saved v${r.version} — next queued run uses it`;
+  } catch (e) { if (out) out.textContent = "Save failed: " + (e.message || e); }
+}
+async function prActivate() {
+  const a = prAgent();
+  const v = document.getElementById("pr-version").value;
+  if (v === "") { prReset(); return; }
+  const out = document.getElementById("pr-out");
+  try {
+    await api(`/api/prompts/${a.key}/active`, { method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ version: Number(v) }) });
+    out.textContent = `✓ v${v} active — next queued run uses it`;
+    await loadPromptsPanel();
+    document.getElementById("pr-agent").value = (window.__prompts || []).findIndex(x => x.key === a.key);
+    prPick();
+    document.getElementById("pr-version").value = v;
+    const o2 = document.getElementById("pr-out");
+    if (o2) o2.textContent = `✓ v${v} active — next queued run uses it`;
+  } catch (e) { if (out) out.textContent = "Activate failed: " + (e.message || e); }
+}
+async function prReset() {
+  const a = prAgent();
+  const out = document.getElementById("pr-out");
+  try {
+    await api(`/api/prompts/${a.key}/active`, { method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ version: null }) });
+    out.textContent = "✓ back to the engine stock prompt";
+    await loadPromptsPanel();
+    document.getElementById("pr-agent").value = (window.__prompts || []).findIndex(x => x.key === a.key);
+    prPick();
+    const o2 = document.getElementById("pr-out");
+    if (o2) o2.textContent = "✓ back to the engine stock prompt";
+  } catch (e) { if (out) out.textContent = "Reset failed: " + (e.message || e); }
 }
 
 // ── STOCK PAGE (moomoo-style per-symbol detail; spec: web/STOCK_PAGE_FEASIBILITY.md) ──
@@ -2633,6 +2779,7 @@ async function showPage(p) {
     if (p === "report") { $("#page").innerHTML = await reportPage(state.reportRef); chartInit(); return; }
     $("#page").innerHTML = await pages[p]();
     if (p === "settings") {
+      loadPromptsPanel();
       api("/api/screener/schedule").then(s => {
         const el = document.getElementById("scr-sched");
         if (!el) return;
@@ -2689,6 +2836,7 @@ window.addEventListener("hashchange", () => {
   else if (r0?.picker) openStockPicker();
   else showPage("home"); }
 setInterval(loadHealth, 15000);
+setInterval(refreshInflight, 8000);
 </script>
 </body>
 </html>

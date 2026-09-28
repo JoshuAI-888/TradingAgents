@@ -84,18 +84,24 @@ def status(job_id: str):
     return {"job": job, "events": events, "queue": _queue_context(job)}
 
 
-def _worker_age() -> tuple[float | None, bool | None]:
-    """Seconds since the worker's last heartbeat, and whether it looks alive
-    (heartbeat refreshes every ~20s; 120s = six missed beats)."""
+def _worker_age() -> tuple[float | None, bool | None, float | None]:
+    """Seconds since the worker's last heartbeat, whether it looks alive
+    (heartbeat refreshes every ~20s; 120s = six missed beats), and its
+    configured poll interval for the UI's 'checks the queue every Ns' note."""
     rows = db.select("app_settings", {"key": "eq.worker_state"}, "value")
     if not rows or not (rows[0].get("value") or {}).get("at"):
-        return None, None
-    at = str(rows[0]["value"]["at"]).replace("Z", "+00:00")
+        return None, None, None
+    value = rows[0]["value"]
+    at = str(value["at"]).replace("Z", "+00:00")
     try:
         age = (datetime.now(timezone.utc) - datetime.fromisoformat(at)).total_seconds()
     except ValueError:
-        return None, None
-    return round(max(age, 0)), age < 120
+        return None, None, None
+    try:
+        poll_s = float(value.get("poll_interval_s")) if value.get("poll_interval_s") else None
+    except (TypeError, ValueError):
+        poll_s = None
+    return round(max(age, 0)), age < 120, poll_s
 
 
 def _eta_seconds(depth: str) -> tuple[float | None, int]:
@@ -124,7 +130,7 @@ def _eta_seconds(depth: str) -> tuple[float | None, int]:
 def _queue_context(job: dict) -> dict:
     """Queue position, ETA and worker liveness for the Analyze progress card."""
     ctx: dict = {"position": None, "ahead": 0, "eta_seconds": None, "eta_basis": 0,
-                 "worker_age_s": None, "worker_alive": None}
+                 "worker_age_s": None, "worker_alive": None, "worker_poll_s": None}
     try:
         if job.get("status") == "pending":
             pending = db.select("jobs", {"status": "eq.pending", "job_type": "eq.analysis",
@@ -138,7 +144,7 @@ def _queue_context(job: dict) -> dict:
         if isinstance(payload, dict) and payload.get("depth"):
             depth = payload["depth"]
         ctx["eta_seconds"], ctx["eta_basis"] = _eta_seconds(depth)
-        ctx["worker_age_s"], ctx["worker_alive"] = _worker_age()
+        ctx["worker_age_s"], ctx["worker_alive"], ctx["worker_poll_s"] = _worker_age()
     except Exception:
         pass  # progress metadata is best-effort; the core status payload stands alone
     return ctx
@@ -244,8 +250,9 @@ def active_jobs():
         j["position"] = i + 1
     running = db.select("jobs", {"status": "eq.running", "order": "created_at.desc", "limit": "20"},
                         "id,status,payload,created_at,locked_by")
-    age, alive = _worker_age()
-    return {"jobs": pending + running, "worker": {"age_s": age, "alive": alive}}
+    age, alive, poll_s = _worker_age()
+    return {"jobs": pending + running,
+            "worker": {"age_s": age, "alive": alive, "poll_s": poll_s}}
 
 
 _MARKET_INDICES = [("US.SPY", "S&P 500"), ("US.QQQ", "Nasdaq 100"), ("US.IWM", "Russell 2000"),
@@ -345,60 +352,65 @@ PRESET_SCREENERS = [
     {"key": "penny", "page": 1, "name": "Penny Stocks",
      "description": "Spot undervalued, low-priced stocks for substantial returns.",
      "filters": [{"field": "price", "max": 5}, {"field": "market_cap", "max": 3e8},
-                 {"field": "volume", "min": 1e5},
-                 {"field": "revenue_growth", "min": 10, "needs": 1},
-                 {"field": "net_profit_growth", "min": 5, "needs": 1},
-                 {"field": "debt_ratio", "max": 40, "needs": 1}]},
+                 {"field": "volume", "min": 1e5, "days": 30},
+                 {"field": "revenue_growth", "min": 10},
+                 {"field": "net_profit_growth", "min": 5, "excl_min": 1},
+                 {"field": "debt_ratio", "max": 40}]},
     {"key": "high-div", "page": 1, "name": "High Dividend Stocks",
      "description": "Spot high-yield, stable dividend stocks for reliable income.",
-     "filters": [{"field": "market_cap", "min": 2e9}, {"field": "pe_ttm", "max": 12},
+     "filters": [{"field": "market_cap", "min": 2e9, "excl_min": 1}, {"field": "pe_ttm", "max": 12},
                  {"field": "div_yield", "min": 8},
-                 {"field": "debt_ratio", "max": 30, "needs": 1},
-                 {"field": "revenue_growth", "min": 5, "needs": 1}]},
+                 {"field": "debt_ratio", "max": 30},
+                 {"field": "revenue_growth", "min": 5, "excl_min": 1}]},
     {"key": "blue-chip", "page": 1, "name": "Blue Chip Stocks",
      "description": "Spot blue-chip stocks from well-established companies for reliable returns and low volatility.",
      "filters": [{"field": "price", "min": 50}, {"field": "market_cap", "min": 1e11},
-                 {"field": "debt_ratio", "max": 50, "needs": 1},
-                 {"field": "revenue_growth", "min": 5, "needs": 1}]},
+                 {"field": "debt_ratio", "max": 50},
+                 {"field": "revenue_growth", "min": 5}]},
     {"key": "buffett", "page": 1, "name": "Warren Buffett Strategy",
      "description": "Spot stocks with strong earnings, growth potential, and recognized value for strategic long-term investment.",
      "filters": [{"field": "float_cap", "min": 5e8},
-                 {"field": "net_profit_growth", "min": 10, "needs": 1},
-                 {"field": "gross_margin", "min": 50, "needs": 1},
-                 {"field": "op_ebt", "min": 70, "needs": 1},
-                 {"field": "roe", "min": 15, "needs": 1},
-                 {"field": "roe_yoy", "min": 20, "needs": 1}]},
+                 {"field": "net_profit_growth", "min": 10},
+                 {"field": "gross_margin", "min": 50},
+                 {"field": "op_ebt", "min": 70},
+                 {"field": "roe", "min": 15},
+                 {"field": "roe_yoy", "min": 20}]},
     {"key": "undervalued", "page": 1, "name": "Undervalued Stocks",
      "description": "Spot stable, undervalued stocks for long-term growth.",
      "filters": [{"field": "pe_ttm", "max": 15}, {"field": "pb", "max": 1.5},
                  {"field": "div_yield", "min": 4},
-                 {"field": "debt_ratio", "max": 30, "needs": 1},
-                 {"field": "roe", "min": 15, "needs": 1},
-                 {"field": "revenue_growth", "min": 3, "needs": 1}]},
+                 {"field": "debt_ratio", "max": 30},
+                 {"field": "roe", "min": 15, "excl_min": 1},
+                 {"field": "revenue_growth", "min": 3, "excl_min": 1}]},
     {"key": "growth", "page": 1, "name": "Best Growth Stocks",
      "description": "Spot stocks with growth potential and solid financial standing.",
      "filters": [{"field": "float_cap", "min": 5e8},
-                 {"field": "net_profit_growth", "min": 15, "needs": 1},
-                 {"field": "gross_margin", "min": 50, "needs": 1},
-                 {"field": "roe", "min": 15, "needs": 1},
-                 {"field": "roe_yoy", "min": 50, "needs": 1}]},
+                 {"field": "net_profit_growth", "min": 15},
+                 {"field": "gross_margin", "min": 50},
+                 {"field": "roe", "min": 15},
+                 {"field": "roe_yoy", "min": 50, "excl_min": 1}]},
     {"key": "pb-lt-1", "page": 1, "name": "P/B Ratio Less Than 1",
      "description": "Spot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.",
      "filters": [{"field": "pb", "max": 1}]},
+    {"key": "best-lt-high-div", "page": 2, "name": "Best Long Term High Dividend Stocks",
+     "description": "Spot stocks with reliable dividends and steady growth for secure long-term returns.",
+     "filters": [{"field": "div_yield", "min": 4}, {"field": "pe_ttm", "max": 20},
+                 {"field": "pb", "max": 1.5}, {"field": "debt_ratio", "max": 40},
+                 {"field": "revenue_growth", "min": 3}]},
     {"key": "high-pe", "page": 2, "name": "High P/E Ratio Stocks",
      "description": "Spot stocks with high P/E ratios, which suggest a profitable and sustainable business.",
-     "filters": [{"field": "pe_ttm", "min": 25}, {"field": "roe_yoy", "min": 30, "needs": 1}]},
+     "filters": [{"field": "pe_ttm", "min": 25}, {"field": "op_profit_growth", "min": 30, "excl_min": 1}]},
     {"key": "good-pe", "page": 2, "name": "Good P/E Ratio Stocks",
      "description": "Spot stocks with solid fundamentals and high P/E ratios for consistent profitability and returns.",
-     "filters": [{"field": "pe_ttm", "min": 20}, {"field": "eps_growth", "min": 5, "needs": 1},
-                 {"field": "div_yield", "min": 2}, {"field": "net_margin", "min": 10, "needs": 1}]},
+     "filters": [{"field": "pe_ttm", "min": 20}, {"field": "eps_growth", "min": 5},
+                 {"field": "div_yield", "min": 2}, {"field": "net_margin", "min": 10}]},
     {"key": "low-pe", "page": 2, "name": "Low P/E Ratio Stocks",
      "description": "Spot stocks with low P/E ratios, which are potentially undervalued for stable gains and reduced risk.",
-     "filters": [{"field": "pe_ttm", "max": 5}, {"field": "pb", "max": 3},
-                 {"field": "debt_ratio", "max": 60, "needs": 1}]},
+     "filters": [{"field": "pe_ttm", "max": 5, "excl_max": 1}, {"field": "pb", "max": 3, "excl_max": 1},
+                 {"field": "debt_ratio", "max": 60, "excl_max": 1}]},
     {"key": "rsi-30", "page": 2, "name": "Below 30 RSI Stocks",
      "description": "Spot stocks with an RSI value under 30, which may indicate a rebound from negative market sentiment.",
-     "filters": [{"field": "rsi14", "max": 30, "needs": 1}]},
+     "filters": [{"field": "rsi14", "max": 30}]},
     {"key": "junk", "page": 2, "name": "Junk Stocks",
      "description": "Spot small, high-risk, yet undervalued stocks with the potential for significant returns.",
      "filters": [{"field": "pe_ttm", "min": 0}, {"field": "price", "max": 5},
@@ -406,48 +418,48 @@ PRESET_SCREENERS = [
     {"key": "small-growth", "page": 2, "name": "Small Cap Stocks with Huge Growth Potential",
      "description": "Spot small-cap stocks with significant growth potential.",
      "filters": [{"field": "price", "min": 1}, {"field": "market_cap", "min": 2.5e8, "max": 2e9},
-                 {"field": "revenue_growth", "min": 20, "needs": 1},
-                 {"field": "rsi14", "min": 50, "needs": 1}]},
+                 {"field": "revenue_growth", "min": 20},
+                 {"field": "rsi14", "min": 50}]},
     {"key": "blue-chip-div", "page": 2, "name": "Blue Chip Dividend Stocks",
      "description": "Spot familiar blue-chip stocks with high dividends for dependable income and value investment.",
      "filters": [{"field": "price", "min": 50}, {"field": "market_cap", "min": 1e11},
-                 {"field": "debt_ratio", "max": 50, "needs": 1},
+                 {"field": "debt_ratio", "max": 50},
                  {"field": "div_yield", "min": 4}]},
     {"key": "speculative", "page": 3, "name": "Speculative Stocks",
      "description": "Spot high-risk, high-return stocks, including those at their recent 10-day low that may be undervalued and ready to rebound.",
      "filters": [{"field": "price", "min": 5}, {"field": "market_cap", "min": 1e8},
-                 {"field": "net_margin", "min": 10, "needs": 1},
-                 {"field": "debt_ratio", "max": 50, "needs": 1},
-                 {"field": "new_low_10d", "min": 1, "needs": 1}]},
+                 {"field": "net_margin", "min": 10},
+                 {"field": "debt_ratio", "max": 50},
+                 {"field": "new_low_10d", "min": 1}]},
     {"key": "high-roe", "page": 3, "name": "High Return On Equity Stocks",
      "description": "Spot high-quality stocks with solid profitability, growth, and attractive dividends for long-term stability.",
-     "filters": [{"field": "roe", "min": 20, "needs": 1},
-                 {"field": "revenue_growth", "min": 5, "needs": 1},
+     "filters": [{"field": "roe", "min": 20},
+                 {"field": "revenue_growth", "min": 5},
                  {"field": "div_yield", "min": 2}, {"field": "pe_ttm", "max": 25}]},
     {"key": "lt-high-div", "page": 3, "name": "Low P/E High Dividend Stocks",
      "description": "Spot financially stable, consistently growing stocks for secure and steady long-term returns.",
      "filters": [{"field": "pe_ttm", "max": 15}, {"field": "div_yield", "min": 4},
-                 {"field": "revenue_growth", "min": 3, "needs": 1},
-                 {"field": "debt_ratio", "max": 50, "needs": 1}]},
+                 {"field": "revenue_growth", "min": 3},
+                 {"field": "debt_ratio", "max": 50}]},
     {"key": "undervalued-semi", "page": 3, "name": "Undervalued Semiconductor Stocks",
      "description": "Spot semiconductor sector stocks that are well-valued, financially robust, and profitable for attractive long-term returns.",
-     "filters": [{"field": "sector", "needs": 1},
+     "filters": [{"field": "sector", "plate_ids": [10002016, 10002015]},
                  {"field": "pe_ttm", "max": 18}, {"field": "pb", "max": 5},
-                 {"field": "roe", "min": 10, "needs": 1}]},
+                 {"field": "roe", "min": 10}]},
     {"key": "undervalued-tech", "page": 3, "name": "Undervalued Tech Stocks",
      "description": "Spot tech stocks that are undervalued by the market.",
-     "filters": [{"field": "sector", "needs": 1},
+     "filters": [{"field": "sector", "plate_ids": [10002016, 10002072, 10002492, 10002470, 10002508, 10002252, 10002098, 10002004]},
                  {"field": "pe_ttm", "max": 15}, {"field": "pb", "max": 5},
-                 {"field": "roe", "min": 10, "needs": 1}]},
+                 {"field": "roe", "min": 10}]},
     {"key": "undervalued-banks", "page": 3, "name": "Undervalued Bank Stocks",
      "description": "Spot bank stocks that are financially sound, reasonably valued, and highly profitable.",
-     "filters": [{"field": "sector", "needs": 1},
+     "filters": [{"field": "sector", "plate_ids": [10002481, 10002456]},
                  {"field": "pe_ttm", "max": 10}, {"field": "pb", "max": 1},
-                 {"field": "roe", "min": 12, "needs": 1}]},
+                 {"field": "roe", "min": 12}]},
     {"key": "high-eps", "page": 3, "name": "High EPS Stocks",
      "description": "Spot stocks with favorable financial footing and high profitability for investment.",
      "filters": [{"field": "price", "min": 5}, {"field": "market_cap", "min": 1e8},
-                 {"field": "eps", "min": 10}, {"field": "debt_ratio", "max": 50, "needs": 1}]},
+                 {"field": "eps", "min": 10}, {"field": "debt_ratio", "max": 50}]},
 ]
 
 
@@ -792,11 +804,15 @@ def screener_probe(body: dict):
 # NOT available server-side: OP/EBT, RSI (premium-locked on moomoo too),
 #     "new low in 10 days" — those stay pending in the UI.
 _FIELD_SERVER = {
-    "price":              ("simple", 2201, 1.0),
-    "market_cap":         ("simple", 2301, 1.0),
-    "div_yield":          ("simple", 2305, 1.0),
-    "volume":             ("cumulative", 3104, 1.0),
-    "pe_ttm":             ("simple", 2303, 1.0),
+    # scales verified against moomoo's own screener payloads (SSR 2026-09-28):
+    # simple money x1000 · PE/PB x100000 · financial percents (10% -> 10000)
+    # and financial money x1000 · RSI value x1000
+    "price":              ("simple", 2201, 1000.0),
+    "market_cap":         ("simple", 2301, 1000.0),
+    "pe_ttm":             ("simple", 2303, 100000.0),
+    "pb":                 ("simple", 2304, 100000.0),
+    "div_yield":          ("financial", 4219, 1000.0),   # Dividends TTM ratio %
+    "volume":             ("cumulative", 3104, 1.0),      # N-day avg volume, raw shares
     "net_profit_growth":  ("financial", 4102, 1000.0),
     "revenue_growth":     ("financial", 4106, 1000.0),
     "net_margin":         ("financial", 4107, 1000.0),
@@ -804,15 +820,37 @@ _FIELD_SERVER = {
     "debt_ratio":         ("financial", 4109, 1000.0),
     "roe":                ("financial", 4110, 1000.0),
     "eps_growth":         ("financial", 4606, 1000.0),
+    "op_profit_growth":   ("financial", 4607, 1000.0),
     "roe_yoy":            ("financial", 4625, 1000.0),
-    "float_cap":          ("financial", 4903, 1.0),
+    "op_ebt":             ("financial", 4702, 1000.0),
+    "float_cap":          ("financial", 4903, 1000.0),   # raw dollars x1000
     "eps":                ("financial", 4801, 1000.0),
 }
-_FINANCIAL_TERM = 100
+_FINANCIAL_TERM = 100  # annual
 
 
 def _server_filter(field: str, f: dict) -> dict | None:
-    """Our filter object -> stock-screen server query; None = not server-side."""
+    """Our filter object -> stock-screen server query; None = not server-side.
+    Special forms match moomoo's own payloads verbatim: RSI via
+    indicatorPositionalQuery, 10-day new low via cumulative 3108, sectors via
+    plateQuery plateIdList (numeric ids from moomoo's strategy payloads)."""
+    if field == "rsi14":
+        val = f.get("max") if f.get("max") is not None else f.get("min")
+        if val is None:
+            return None
+        pos = 2 if f.get("max") is not None else 1
+        return {"indicator_positional_query": {
+            "position": pos, "period": 11, "firstIndicator": 52,
+            "firstIndicatorParams": [14],
+            "secondValue": round(float(val) * 1000)}}
+    if field == "new_low_10d":
+        return {"cumulative_property_query": {"property": {"name": 3108}, "days": 10,
+                                              "upper": {"value": 0, "includes": False}}}
+    if field == "sector":
+        ids = f.get("plate_ids") or []
+        if not ids:
+            return None
+        return {"plate_query": {"plateList": [{"plateIdList": [int(i) for i in ids]}]}}
     spec = _FIELD_SERVER.get(field)
     if not spec:
         return None
@@ -820,16 +858,16 @@ def _server_filter(field: str, f: dict) -> dict | None:
     lo, hi = f.get("min"), f.get("max")
     rng = {}
     if lo is not None:
-        rng["lower"] = {"value": round(float(lo) * scale, 6), "includes": True}
+        rng["lower"] = {"value": round(float(lo) * scale, 6), "includes": not f.get("excl_min")}
     if hi is not None:
-        rng["upper"] = {"value": round(float(hi) * scale, 6), "includes": True}
+        rng["upper"] = {"value": round(float(hi) * scale, 6), "includes": not f.get("excl_max")}
     if not rng:
         return None
     if kind == "simple":
         return {"simple_property_query": {"property": {"name": pid}, **rng}}
     if kind == "cumulative":
         return {"cumulative_property_query": {"property": {"name": pid},
-                                              "days": int(f.get("days") or 30), **rng}}
+                                              "periodAverage": int(f.get("days") or 30), **rng}}
     return {"financial_property_query": {"property": {"name": pid, "term": _FINANCIAL_TERM}, **rng}}
 
 
@@ -843,7 +881,7 @@ def _server_retrieves(fields: list[str]) -> list[dict]:
         if kind == "simple":
             out.append({"simple_property": {"name": pid}})
         elif kind == "cumulative":
-            out.append({"cumulative_property": {"name": pid, "days": 30}})
+            out.append({"cumulative_property": {"name": pid, "periodAverage": 30}})
         else:
             out.append({"financial_property": {"name": pid, "term": _FINANCIAL_TERM}})
     return out

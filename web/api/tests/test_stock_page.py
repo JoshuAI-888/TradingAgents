@@ -235,27 +235,59 @@ def test_sectors_and_members(client):
 
 
 def test_preset_screeners_moomoo_exact():
-    """The 21 recommended screeners carry moomoo's actual filter sets."""
+    """The 22 recommended screeners carry moomoo's canonical filter sets
+    (transcribed from moomoo's own SSR strategy payloads)."""
     names = {p["key"]: p for p in api.PRESET_SCREENERS}
-    assert len(api.PRESET_SCREENERS) == 21
+    assert len(api.PRESET_SCREENERS) == 22
     assert names["penny"]["filters"] == [
         {"field": "price", "max": 5}, {"field": "market_cap", "max": 3e8},
-        {"field": "volume", "min": 1e5},
-        {"field": "revenue_growth", "min": 10, "needs": 1},
-        {"field": "net_profit_growth", "min": 5, "needs": 1},
-        {"field": "debt_ratio", "max": 40, "needs": 1}]
+        {"field": "volume", "min": 1e5, "days": 30},
+        {"field": "revenue_growth", "min": 10},
+        {"field": "net_profit_growth", "min": 5, "excl_min": 1},
+        {"field": "debt_ratio", "max": 40}]
     assert names["buffett"]["filters"] == [
         {"field": "float_cap", "min": 5e8},
-        {"field": "net_profit_growth", "min": 10, "needs": 1},
-        {"field": "gross_margin", "min": 50, "needs": 1},
-        {"field": "op_ebt", "min": 70, "needs": 1},
-        {"field": "roe", "min": 15, "needs": 1},
-        {"field": "roe_yoy", "min": 20, "needs": 1}]
+        {"field": "net_profit_growth", "min": 10},
+        {"field": "gross_margin", "min": 50},
+        {"field": "op_ebt", "min": 70},
+        {"field": "roe", "min": 15},
+        {"field": "roe_yoy", "min": 20}]
     assert names["undervalued-banks"]["filters"] == [
-        {"field": "sector", "needs": 1},
+        {"field": "sector", "plate_ids": [10002481, 10002456]},
         {"field": "pe_ttm", "max": 10}, {"field": "pb", "max": 1},
-        {"field": "roe", "min": 12, "needs": 1}]
-    assert names["speculative"]["filters"][-1] == {"field": "new_low_10d", "min": 1, "needs": 1}
+        {"field": "roe", "min": 12}]
+    assert names["speculative"]["filters"][-1] == {"field": "new_low_10d", "min": 1}
+    assert names["rsi-30"]["filters"] == [{"field": "rsi14", "max": 30}]
+    assert "best-lt-high-div" in names and "lt-high-div" in names
+
+
+def test_server_filter_matches_moomoo_payloads():
+    """Our builder reproduces moomoo's own strategy payloads byte-for-byte."""
+    f = api._server_filter("price", {"max": 5})
+    assert f == {"simple_property_query": {"property": {"name": 2201},
+                                           "upper": {"value": 5000, "includes": True}}}
+    f = api._server_filter("market_cap", {"max": 3e8})
+    assert f["simple_property_query"]["upper"]["value"] == 300000000000
+    f = api._server_filter("pe_ttm", {"max": 18})
+    assert f == {"simple_property_query": {"property": {"name": 2303},
+                                           "upper": {"value": 1800000, "includes": True}}}
+    f = api._server_filter("revenue_growth", {"min": 10})
+    assert f == {"financial_property_query": {"property": {"name": 4106, "term": 100},
+                                              "lower": {"value": 10000, "includes": True}}}
+    f = api._server_filter("rsi14", {"max": 30})
+    assert f == {"indicator_positional_query": {"position": 2, "period": 11,
+                                                "firstIndicator": 52,
+                                                "firstIndicatorParams": [14],
+                                                "secondValue": 30000}}
+    f = api._server_filter("new_low_10d", {"min": 1})
+    assert f == {"cumulative_property_query": {"property": {"name": 3108}, "days": 10,
+                                               "upper": {"value": 0, "includes": False}}}
+    f = api._server_filter("sector", {"plate_ids": [10002481, 10002456]})
+    assert f == {"plate_query": {"plateList": [{"plateIdList": [10002481, 10002456]}]}}
+    f = api._server_filter("volume", {"min": 1e5, "days": 30})
+    assert f["cumulative_property_query"]["periodAverage"] == 30
+    assert f["cumulative_property_query"]["lower"]["value"] == 100000
+    assert api._server_filter("op_ebt", {"min": 70})["financial_property_query"]["lower"]["value"] == 70000
 
 
 def test_apply_filters_skips_absent_fields():
