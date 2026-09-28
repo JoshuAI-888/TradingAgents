@@ -635,7 +635,7 @@ def _cache():
 @app.get("/api/screener")
 def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
              sort: str = "market_cap", direction: int = 2, limit: int = 500,
-             offset: int = 0, export: str = ""):
+             offset: int = 0, export: str = "", scope: str = "all"):
     """Screener rows. watchlist universe = our saved watchlist (snapshot, all filters);
     market universe = moomoo stock-screen page sorted server-side, snapshot-enriched."""
     client = _market_client()
@@ -697,9 +697,13 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
     rows = _sort_rows(rows, sort, direction)
     matched = len(rows)
     if export:
-        # Full matched set (cap 20k) — CSV for everything, Excel-compatible
-        # SpreadsheetML so Excel opens it natively without imports.
-        rows = rows[:20000]
+        # scope=all → the whole matched set (cap 20k); scope=page → the current
+        # page (limit/offset). CSV for everything, Excel-compatible SpreadsheetML
+        # so Excel opens it natively without imports.
+        if scope == "page":
+            rows = rows[max(0, offset):max(0, offset) + max(1, min(limit, 2000))]
+        else:
+            rows = rows[:20000]
         cols = ["symbol", "name", "stock_type", "plate", "price", "pct", "chg",
                 "market_cap", "float_cap", "shares", "volume", "turnover",
                 "turnover_rate", "volume_ratio", "pe", "pe_ttm", "pb",

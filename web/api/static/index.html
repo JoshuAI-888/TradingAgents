@@ -219,9 +219,20 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .chip-f{display:inline-flex;gap:6px;align-items:center;background:rgba(58,118,221,.14);border:1px solid rgba(58,118,221,.35);color:#9db9e8;font-size:10.5px;padding:3px 9px;border-radius:20px}
 .chip-x{color:var(--faint);text-decoration:none;font-weight:700}
 .chip-x:hover{color:#f0544f}
+.scr-load{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(6,10,17,.62);border-radius:10px;backdrop-filter:blur(1px)}
+.scr-load-in{display:flex;gap:12px;align-items:center;background:#0d1420;border:1px solid var(--line);border-radius:10px;padding:14px 18px;font-size:13px}
+.spin{width:18px;height:18px;border:2px solid #33415a;border-top-color:#3a76dd;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .scr-prog{display:flex;align-items:center;gap:10px;margin:4px 0 8px}
 .scr-prog .bar{flex:1;margin:0}
 .scr-prog .mono{font-size:10.5px;white-space:nowrap}
+.scr-table th.thc{white-space:nowrap;cursor:grab}
+.scr-table th.thc:active{cursor:grabbing}
+.scr-table th.drop-before{box-shadow:inset 3px 0 0 #3a76dd}
+.scr-table th.drop-after{box-shadow:inset -3px 0 0 #3a76dd}
+.trashchip{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:90;background:rgba(240,84,79,.14);border:1px dashed rgba(240,84,79,.55);color:#f0a4a0;font-size:12px;padding:10px 18px;border-radius:22px}
+.trashchip.hot{background:rgba(240,84,79,.3);color:#fff}
+.msv[draggable=true]{cursor:grab}
 .scr-table th.thc{white-space:nowrap}
 .thsort{text-decoration:none;color:inherit}
 .thsort.on{color:#9cc2ff}
@@ -532,45 +543,172 @@ function scrClearColFilter(field) {
   scrPersist(); scrColMenuClose(); showPage("home");
 }
 function scrPage(delta) { scrSet("page", Math.max(1, (window.__scr.page || 1) + delta)); }
-function scrExport(kind) {
+function scrExport(kind, scope) {
   const st = window.__scr;
   const eff = st.filters.some(f => f.field === "stock_type") ? st.filters
     : [...st.filters, { field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }];
   const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
-    filters: JSON.stringify(effFilters), sort: st.sort, direction: st.dir, export: kind });
+    filters: JSON.stringify(effFilters), sort: st.sort, direction: st.dir, export: kind, scope: scope || "all" });
+  if (scope === "page") { qs.set("limit", String(st.pageSize || 500)); qs.set("offset", String(((st.page || 1) - 1) * (st.pageSize || 500))); }
   window.open("/api/screener?" + qs.toString(), "_blank");
+}
+// ── column drag & drop ────────────────────────────────────────────────
+function scrDragStart(ev, key, from) {
+  ev.dataTransfer.setData("text/plain", JSON.stringify({ key, from }));
+  ev.dataTransfer.effectAllowed = "move";
+  if (from === "table") {
+    document.getElementById("scr-trash")?.remove();
+    const chip = document.createElement("div");
+    chip.id = "scr-trash";
+    chip.ondragover = ev => { ev.preventDefault(); chip.classList.add("hot"); };
+    chip.ondragleave = () => chip.classList.remove("hot");
+    chip.ondrop = ev => { ev.preventDefault(); chip.remove(); scrRemoveCol(key); };
+    chip.innerHTML = "🗑 Drop to remove column";
+    chip.className = "trashchip";
+    document.body.appendChild(chip);
+    ev.target.addEventListener("dragend", () => chip.remove(), { once: true });
+  }
+}
+function scrDragOverCol(ev, key) {
+  ev.preventDefault(); ev.dataTransfer.dropEffect = "move";
+  const th = ev.currentTarget;
+  th.classList.toggle("drop-before", ev.clientX < th.getBoundingClientRect().left + th.getBoundingClientRect().width / 2);
+  th.classList.toggle("drop-after", !th.classList.contains("drop-before"));
+}
+function scrDragLeaveCol(ev) { ev.currentTarget.classList.remove("drop-before", "drop-after"); }
+function scrDropCol(ev, targetKey) {
+  ev.preventDefault();
+  document.querySelectorAll(".drop-before,.drop-after").forEach(x => x.classList.remove("drop-before", "drop-after"));
+  let payload;
+  try { payload = JSON.parse(ev.dataTransfer.getData("text/plain")); } catch (e) { return; }
+  const st = window.__scr;
+  const key = payload.key;
+  if (!key || key === targetKey) return;
+  const th = ev.currentTarget;
+  const before = ev.clientX < th.getBoundingClientRect().left + th.getBoundingClientRect().width / 2;
+  const cols = st.cols.filter(c => c !== key);           // remove dragged from old spot
+  let ti = cols.indexOf(targetKey);
+  if (ti < 0) return;
+  if (!before) ti += 1;
+  cols.splice(ti, 0, key);                                // insert at drop position
+  st.cols = cols; scrPersist();
+  if (state.page === "home") scrShowLoading("Moving column…");
+  showPage("home");
+}
+function scrDragOverTable(ev) { ev.preventDefault(); ev.dataTransfer.dropEffect = "copy"; document.getElementById("scr-trash")?.classList.add("dim"); }
+function scrDropNewCol(ev) {
+  ev.preventDefault();
+  document.getElementById("scr-trash")?.classList.add("dim");
+  let payload;
+  try { payload = JSON.parse(ev.dataTransfer.getData("text/plain")); } catch (e) { return; }
+  if (payload.from !== "picker") return;
+  const st = window.__scr;
+  if (st.cols.includes(payload.key)) return;
+  st.cols = [...st.cols, payload.key]; scrPersist();
+  if (state.page === "home") scrShowLoading("Adding column…");
+  showPage("home");
+}
+function scrRemoveCol(k) {
+  const st = window.__scr;
+  if (st.cols.length <= 1) return;
+  st.cols = st.cols.filter(c => c !== k);
+  delete st.colFilters[k];
+  if (st.sort === k) { st.sort = "market_cap"; st.dir = 2; }
+  scrPersist();
+  if (state.page === "home") scrShowLoading("Removing column…");
+  showPage("home");
 }
 function scrResetAll() {
   const st = window.__scr;
   st.filters = []; st.colFilters = {}; st.sort = "market_cap"; st.dir = 2;
   scrPersist(); showPage("home");
 }
+let __scrLoadTimer = null;
+function scrShowLoading(msg) {
+  window.__scrLoadingMsg = msg;
+  document.querySelectorAll(".scr-load").forEach(x => x.remove());
+  const panel = document.querySelector(".scr-main");
+  const m = document.createElement("div");
+  m.className = "scr-load";
+  m.innerHTML = `<div class="scr-load-in"><div class="spin"></div><div><b>${esc(msg)}</b>
+    <div class="faint" style="font-size:10.5px;margin-top:2px">fetching from the stored universe…</div></div></div>`;
+  if (panel) { panel.style.position = "relative"; panel.appendChild(m); }
+  else { m.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,8,14,.5)"; document.body.appendChild(m); }
+  clearTimeout(__scrLoadTimer);
+  __scrLoadTimer = setTimeout(() => document.querySelectorAll(".scr-load").forEach(x => x.remove()), 20000); // safety net
+}
+function scrHideLoading() {
+  clearTimeout(__scrLoadTimer);
+  window.__scrLoadingMsg = null;
+  document.querySelectorAll(".scr-load").forEach(x => x.remove());
+}
 function scrToggleColPick() {
   const existing = document.getElementById("scr-colpick");
   if (existing) { existing.remove(); return; }
+  window.__colDraft = [...window.__scr.cols];
   const m = document.createElement("div"); m.id = "scr-colpick";
   m.innerHTML = `<div style="position:fixed;inset:0;z-index:60" onclick="scrColPickClose()"></div>
-    <div class="mbox" style="width:270px;max-height:none;position:fixed;top:16%;right:14px;left:auto;z-index:61">
+    <div class="mbox" style="width:280px;max-height:none;position:fixed;top:16%;right:14px;left:auto;z-index:61">
       <div class="mhead"><b>Columns</b> <button class="btn ghost" onclick="scrColPickClose()">✕</button></div>
-      <div class="msvwrap">${Object.entries(SCR_COLS).map(([k, [label]]) =>
-        `<label class="msv"><input type="checkbox" ${window.__scr.cols.includes(k) ? "checked" : ""} onchange="scrToggleCol('${k}')"> ${esc(label)}</label>`).join("")}</div>
+      <div class="faint" style="font-size:10px;margin-bottom:6px">Tick to add · untick to remove · or drag a name onto the table. <b>Apply</b> commits.</div>
+      <div class="msvwrap" id="scr-colpick-list">${Object.entries(SCR_COLS).map(([k, [label]]) =>
+        `<label class="msv" draggable="true" ondragstart="scrDragStart(event,'${k}','picker')">
+          <input type="checkbox" ${window.__scr.cols.includes(k) ? "checked" : ""} onchange="scrColDraftCheck('${k}', this.checked)"> ${esc(label)}
+          <span class="faint mono" style="margin-left:auto;font-size:9px">${window.__scr.cols.includes(k) ? "in table" : ""}</span></label>`).join("")}</div>
+      <div class="mfoot"><button class="btn ghost" onclick="scrColPickClose()">Cancel</button>
+        <button class="btn primary" onclick="scrColPickApply()">Apply</button></div>
     </div>`;
   document.body.appendChild(m);
+}
+function scrColDraftCheck(k, on) {
+  const d = window.__colDraft || (window.__colDraft = [...window.__scr.cols]);
+  window.__colDraft = on ? (d.includes(k) ? d : [...d, k]) : d.filter(x => x !== k);
+  // keep the visible check state honest with the DRAFT (not applied yet)
+  const row = [...document.querySelectorAll('#scr-colpick-list .msv')].find(l => l.getAttribute('ondragstart')?.includes(`'${k}'`));
+  if (row) row.querySelector('span').textContent = window.__colDraft.includes(k) ? "in table" : "";
+}
+function scrColPickApply() {
+  const d = window.__colDraft;
+  if (d && d.length) { window.__scr.cols = [...d]; scrPersist(); }
+  scrColPickClose();
+  if (state.page === "home") scrShowLoading("Applying column layout…");
+  showPage("home");
 }
 function scrColPickClose() { const m = document.getElementById("scr-colpick"); if (m) m.remove(); }
 function scrToggleCol(k) {
   const st = window.__scr, i = st.cols.indexOf(k);
   if (i >= 0) { if (st.cols.length > 1) st.cols.splice(i, 1); } else st.cols.push(k);
-  scrPersist(); showPage("home");
+  scrPersist();
+  if (state.page === "home") scrShowLoading("Updating column layout…");
+  showPage("home");
 }
 const SCR_FIN = ["ROE", "Net Profit", "Net Profit GR YOY", "Revenue", "Revenue GR", "Gross Margin",
                  "Net Margin", "Debt to Asset", "ROA TTM", "Operating Margin TTM"];
 function scrPersist() { try { localStorage.setItem("scrState", JSON.stringify(window.__scr)); } catch (e) {} }
-function scrSet(k, v) { window.__scr[k] = v; if (k === "filters") window.__scr.activePreset = null; scrPersist(); showPage("home"); }
+function scrLoadingFor(k, v) {
+  if (k === "etfs") return v ? "Fetching stocks + ETFs…" : "Fetching common stocks only…";
+  if (k === "watchlistOnly") return v ? "Fetching your saved watchlist…" : "Fetching the whole US market…";
+  if (k === "page") return `Loading page ${v} of ${Math.max(1, Math.ceil((window.__scr.matched || 0) / (window.__scr.pageSize || 500)))}…`;
+  if (k === "pageSize") return `Changing page size to ${v} rows…`;
+  if (k === "filters") return "Applying filters…";
+  if (k === "market") return `Switching market to ${v}…`;
+  return "Refreshing screener data…";
+}
+function scrSet(k, v) {
+  if (k === "page" || k === "pageSize" || k === "etfs" || k === "watchlistOnly" || k === "filters" || k === "market") {
+    window.__scr[k] = v; scrPersist();
+    if (state.page === "home") scrShowLoading(scrLoadingFor(k, v));
+    showPage("home");
+    return;
+  }
+  window.__scr[k] = v; if (k === "filters") window.__scr.activePreset = null; scrPersist(); showPage("home");
+}
 function scrSort(col) {
   const st = window.__scr;
   if (st.sort === col) st.dir = st.dir === 2 ? 1 : 2; else { st.sort = col; st.dir = 2; }
-  st.page = 1; scrPersist(); showPage("home");
+  st.page = 1; scrPersist();
+  if (state.page === "home") scrShowLoading(`Sorting by ${(SCR_COLS[col] || [col])[0]} ${st.dir === 2 ? "descending" : "ascending"}…`);
+  showPage("home");
 }
 function scrRemoveFilter(i) { window.__scr.filters.splice(i, 1); scrPersist(); showPage("home"); }
 function scrApplyPreset(key) {
@@ -1013,6 +1151,7 @@ const pages = {
     // initial paint only — scrPollProgress updates the bar IN PLACE and the
     // page is re-rendered exactly once, when the job finishes.
     let prog = window.__scrRefreshJob ? { status: "running", msg: "refreshing universe…" } : null;
+    if (window.__scrLoadingMsg) scrShowLoading(window.__scrLoadingMsg);
     const fmtPct = v => v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(2) + "%";
     window.__scrPresets = rail.presets || [];
     window.__scr.watchlistSyms = scr.watchlist || st.watchlistSyms;
@@ -1098,8 +1237,13 @@ const pages = {
     }).join("");
     const allChips = colChips + colFilChips;
     const colMenu = `<button class="btn ghost" onclick="scrToggleColPick()">Columns (${st.cols.length})</button>`;
-    const table = `<table class="scr-table"><tr><th>No.</th>${st.cols.map(th).join("")}<th></th></tr>
-      ${body || '<tr><td colspan="' + (st.cols.length + 2) + '" class="empty">No rows match — loosen or reset the filters (Reset all in the toolbar).</td></tr>'}</table>`;
+    const table = `<div ondragover="scrDragOverTable(event)" ondrop="scrDropNewCol(event)">
+      <table class="scr-table"><tr><th>No.</th>${st.cols.map(k => {
+        const [label, kind] = SCR_COLS[k];
+        const arrow = st.sort === k ? (st.dir === 2 ? " ↓" : " ↑") : "";
+        return `<th class="thc" draggable="true" ondragstart="scrDragStart(event,'${k}','table')" ondragover="scrDragOverCol(event,'${k}')" ondragleave="scrDragLeaveCol(event)" ondrop="scrDropCol(event,'${k}')"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="sort by ${esc(label)} · drag to move">${esc(label)}${arrow}</a><a href="#" class="fic ${st.colFilters[k] ? "on" : ""}" title="filter" onclick="scrRenderColMenu('${k}','${kind}');return false">⚈</a>${filterIcon(k)}</th>`;
+      }).join("")}<th></th></tr>
+      ${body || '<tr><td colspan="' + (st.cols.length + 2) + '" class="empty">No rows match — loosen or reset the filters (Reset all in the toolbar).</td></tr>'}</table></div>`;
 
     // ── recommended screeners rail ──
     const railCards = (rail.presets || []).map(p => {
@@ -1126,6 +1270,12 @@ const pages = {
           <button class="btn ghost" onclick="openFilterModal()">＋ Add Filter</button>
           ${colMenu}
           ${st.filters.length || Object.keys(st.colFilters).length ? '<button class="btn ghost" onclick="scrResetAll()">Reset all</button>' : ""}
+          <span class="expgrp">
+            <button class="btn ghost" title="Export this page as CSV" onclick="scrExport('csv','page')">⬇ CSV</button>
+            <button class="btn ghost" title="Export all ${(scr.matched || 0).toLocaleString()} matched rows as CSV" onclick="scrExport('csv','all')">⬇ CSV · all</button>
+            <button class="btn ghost" title="Export this page for Excel" onclick="scrExport('xls','page')">⬇ Excel</button>
+            <button class="btn ghost" title="Export all ${(scr.matched || 0).toLocaleString()} matched rows for Excel" onclick="scrExport('xls','all')">⬇ Excel · all</button>
+          </span>
           <button class="btn ghost" onclick="scrLoadUniverse(this)" ${window.__scrRefreshJob ? "disabled" : ""}>${scr?.universe_loaded ? "↻ Refresh full market" : "⤓ Load full market"}</button>
           ${st.filters.length ? `<button class="btn ghost" onclick="scrSet('filters', [])">Clear</button>` : ""}
           <span class="mono dim" style="margin-left:auto">Result: ${(scr.matched ?? rows.length).toLocaleString()} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown.toLocaleString() : ""}</span>
@@ -1143,10 +1293,7 @@ const pages = {
           <select class="pgsz" onchange="scrSet('pageSize', Number(this.value));scrSet('page',1)">
             ${[100, 250, 500, 1000, 2000].map(n => `<option value="${n}" ${(st.pageSize || 500) === n ? "selected" : ""}>${n} / page</option>`).join("")}
           </select></div>` : ""}
-        <div class="actions" style="margin-top:8px">
-          <button class="btn ghost" onclick="scrExport('csv')">⬇ CSV (all ${(scr.matched || 0).toLocaleString()} matched)</button>
-          <button class="btn ghost" onclick="scrExport('xls')">⬇ Excel</button>
-          <span class="faint" style="font-size:10.5px">exports the full filtered set in the current sort order</span></div>
+        <div class="faint" style="font-size:10px;margin-top:6px">Exports above: "page" = the rows on screen; "all" = the full filtered set in the current sort order.</div>
         <div class="faint" style="font-size:10px;margin-top:6px">${st.watchlistOnly
           ? "Watchlist universe = tickers saved in TradingAgents (☆). Add with the star, or from the Analyze page."
           : (scr.universe_loaded ? "Full stored universe — every listing moomoo\u2019s plate enumeration returned, refreshed by the loader job. Technical &amp; financial-factor filters land once moomoo\u2019s indicator dictionary is mapped." : "Live fallback slices (~1,200 stocks). Run \u219b Load full market to enumerate every listing.")} Technical &amp; financial-factor server filters are coming once moomoo\u2019s property dictionary is mapped.</div>
@@ -3115,6 +3262,7 @@ async function showPage(p) {
     }
     if (p === "report") { $("#page").innerHTML = await reportPage(state.reportRef); chartInit(); return; }
     $("#page").innerHTML = await pages[p]();
+    if (p === "home") scrHideLoading();
     if (p === "settings") {
       loadPromptsPanel();
       api("/api/screener/schedule").then(s => {
@@ -3147,6 +3295,7 @@ async function showPage(p) {
     }
   } catch (e) {
     document.getElementById("loadbar")?.remove();
+    scrHideLoading();
     $("#page").innerHTML = `<div class="panel"><div class="empty">Failed to load: ${esc(e.message || e)}</div></div>`;
     return;
   }
