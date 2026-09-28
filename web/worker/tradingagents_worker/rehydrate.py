@@ -13,6 +13,7 @@ the worker re-runs it after each job until the backlog is drained.
 from __future__ import annotations
 
 import os
+import time
 
 from .db import Db
 
@@ -44,14 +45,19 @@ def _restore_spacing(client, text: str) -> str | None:
         "drop nothing, reorder nothing, explain nothing. Output text only."
     )
     out: list[str] = []
-    for chunk in _chunks(text):
+    chunks = list(_chunks(text))
+    for i, chunk in enumerate(chunks, 1):
+        t0 = time.monotonic()
         resp = client.chat.completions.create(
             model=_quick_model(), temperature=0, max_tokens=10000,
             messages=[{"role": "system", "content": _SYSTEM},
                       {"role": "user", "content": chunk}])
         fixed = (resp.choices[0].message.content or "").strip()
+        print(f"[rehydrate] chunk {i}/{len(chunks)} ({len(chunk)} chars) -> "
+              f"{len(fixed)} chars in {time.monotonic() - t0:.0f}s", flush=True)
         # sanity: restoration only ever adds spaces — reject wild rewrites
         if not fixed or not _plausibly_same(chunk, fixed):
+            print(f"[rehydrate] chunk {i} rejected (rewrite check failed)", flush=True)
             return None
         out.append(fixed)
     return "\n\n".join(out)
@@ -120,9 +126,13 @@ def rehydrate_debates(db: Db, max_rows: int = _MAX_ROWS_PER_PASS, client=None) -
         return 0  # table/column not migrated yet
     legacy = [r for r in rows if is_legacy_row(r.get("content")) and not r.get("content_original")]
     client = client or _client()
+    if legacy:
+        print(f"[rehydrate] {len(legacy)} legacy debate row(s) in backlog; repairing up to {max_rows}", flush=True)
     fixed = 0
     for row in legacy[:max_rows]:
         try:
+            print(f"[rehydrate] repairing row {row['id']} ({len(row['content'])} chars, "
+                  f"run {str(row.get('run_id'))[:8]})", flush=True)
             restored = _restore_spacing(client, row["content"])
             if not restored:
                 continue
