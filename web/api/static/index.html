@@ -868,7 +868,7 @@ const pages = {
       api("/api/screener/presets?market=" + st.market).catch(() => ({ presets: [] })),
     ];
     if (st.activePreset) {
-      const [r0, r1, r2, r4, ex] = await Promise.allSettled([
+      const [r0, r1, r2, r3, ex] = await Promise.allSettled([
         baseFetches[0], baseFetches[1], baseFetches[2],
         api("/api/screener/presets?market=" + st.market).catch(() => ({ presets: [] })),
         api("/api/screener/execute?key=" + encodeURIComponent(st.activePreset) + "&market=" + st.market)
