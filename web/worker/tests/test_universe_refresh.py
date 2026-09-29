@@ -46,3 +46,14 @@ def test_progress_events_emitted(fake_db):
     UniverseRefresher(fake_db, FakeMoomoo(), "US", emit=lambda *a, **k: events.append(a)).run()
     stages = [e[0] for e in events]
     assert "universe" in stages and events[-1][1] == "done"
+
+
+def test_plates_collect_all_memberships(fake_db):
+    """Phase B: a code under two plates keeps the full list (concepts) and the
+    first plate stays primary."""
+    r = UniverseRefresher(fake_db, FakeMoomoo(), "US").run()
+    rows = {s["code"]: s for s in fake_db.select("screener_universe", {"market": "eq.US"})}
+    # FakeMoomoo lists both plates (Software, Semis) and both return the same codes
+    assert rows["US.PLTR"]["plate"] == "Software"            # first stays primary
+    assert rows["US.PLTR"]["plates"] == ["Software", "Semis"]
+    assert r["enum"]["codes"] == 2

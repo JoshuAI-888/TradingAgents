@@ -69,7 +69,7 @@ class UniverseRefresher:
     SLICES = [(2301, 2), (2301, 1), (2201, 2), (2201, 1), (2210, 2), (2210, 1)]
 
     def enumerate_universe(self) -> dict:
-        seen: dict[str, str] = {}
+        seen: dict[str, list[str]] = {}
         plate_total = 0
         for cls in ("INDUSTRY", "CONCEPT", "OTHER"):
             plates = _budgeted(self._plates_for, cls)
@@ -87,7 +87,9 @@ class UniverseRefresher:
                     print(f"[universe] plate {pcode} failed: {e}", flush=True)
                     continue
                 for c in codes:
-                    seen.setdefault(c, pname)
+                    seen.setdefault(c, [])
+                    if pname not in seen[c]:
+                        seen[c].append(pname)
                 if i % 25 == 0:
                     self.emit("universe", "progress",
                               f"plates {cls.lower()} {i}/{len(plates)} · {len(seen)} stocks so far")
@@ -104,13 +106,16 @@ class UniverseRefresher:
                 for it in (out.get("items") or []):
                     c = it.get("code")
                     if c:
-                        seen.setdefault(c, "screen-slice")
+                        seen.setdefault(c, [])
+                        if "screen-slice" not in seen[c]:
+                            seen[c].append("screen-slice")
                 self.emit("universe", "progress",
                           f"slice {sl}/{len(self.SLICES)} · {len(seen)} stocks so far")
             except Exception as e:
                 print(f"[universe] slice {sort_id}/{direction} failed: {e}", flush=True)
-        rows = [{"market": self.market, "code": c, "name": None, "plate": plate}
-                for c, plate in seen.items()]
+        rows = [{"market": self.market, "code": c, "name": None,
+                 "plate": plates[0] if plates else None, "plates": plates}
+                for c, plates in seen.items()]
         self.db.upsert_many("screener_universe", "market,code", rows)
         # security classification for the multi-select filters (stock_type/exchange):
         # /quote/stock-basicinfo, 400 codes per call, rate-budgeted
