@@ -468,3 +468,73 @@ def test_report_surfaces_real_error_not_bare_500():
         assert "report data unavailable" in r.json()["detail"]
     finally:
         api.db = outer
+
+def _fresh_caches(monkeypatch):
+    """Per-test TTL caches: the default root is disk-backed and shared, so a
+    plain cache reset leaks rows across tests within the 5-minute TTL."""
+    import os as _os
+    import tempfile as _tempfile
+    from tradingagents_worker.ttl_cache import TtlCache as _Ttl
+    root = _tempfile.mkdtemp(prefix="ta-test-ttl-")
+    monkeypatch.setattr(api, "_screener_cache", _Ttl(root=_os.path.join(root, "scr")))
+    monkeypatch.setattr(api, "_universe_meta_cache", _Ttl(root=_os.path.join(root, "meta")))
+    monkeypatch.setattr(api, "_groups_cache", _Ttl(root=_os.path.join(root, "grp")),
+                         raising=False)
+
+
+# ── src=moo|yf enrichment mode (Phase A task 7) ──────────────────────────────
+def _seed_enrichment_rows(fdb):
+    for code, sym in (("US.AAPL", "AAPL"), ("US.MSFT", "MSFT")):
+        fdb._t("screener_universe").append(
+            {"code": code, "market": "US", "plate": "Tech",
+             "stock_type": "STOCK", "exchange": "NASDAQ"})
+    fdb._t("screener_quotes").append(
+        {"code": "US.AAPL", "market": "US", "updated_at": "2025-01-01T00:00:00+00:00",
+         "row": {"symbol": "AAPL", "name": "Apple", "price": 200.0, "pe_ttm": 30.0}})
+    fdb._t("screener_quotes").append(
+        {"code": "US.MSFT", "market": "US", "updated_at": "2025-01-01T00:00:00+00:00",
+         "row": {"symbol": "MSFT", "name": "Microsoft", "price": 400.0, "pe_ttm": 33.0}})
+    fdb._t("screener_enrichment").append(
+        {"code": "US.AAPL", "market": "US", "as_of": "2025-01-02T00:00:00+00:00",
+         "data": {"forward_pe": 28.0, "beta": 1.2}})
+    fdb._t("screener_enrichment").append(
+        {"code": "US.MSFT", "market": "US", "as_of": "2025-01-02T00:00:00+00:00",
+         "data": {"forward_pe": 31.0}})
+
+
+def test_screener_default_moo_excludes_enrichment(monkeypatch):
+    _fresh_caches(monkeypatch)
+    monkeypatch.setattr(api, "_market_client", lambda: object())
+    fdb = FakeDb()
+    _seed_enrichment_rows(fdb)
+    api.db = fdb
+    r = client.get("/api/screener?watchlist_only=0&src=moo").json()
+    assert r["available"] and r["enrich_as_of"] is None
+    assert all("forward_pe" not in row for row in r["rows"])
+
+
+def test_screener_yf_mode_merges_and_stamps(monkeypatch):
+    _fresh_caches(monkeypatch)
+    monkeypatch.setattr(api, "_market_client", lambda: object())
+    fdb = FakeDb()
+    _seed_enrichment_rows(fdb)
+    api.db = fdb
+    r = client.get("/api/screener?watchlist_only=0&src=yf").json()
+    assert r["enrich_as_of"] == "2025-01-02T00:00:00+00:00"
+    by = {row["symbol"]: row for row in r["rows"]}
+    assert by["AAPL"]["forward_pe"] == 28.0 and by["AAPL"]["beta"] == 1.2
+    assert by["MSFT"]["forward_pe"] == 31.0 and "beta" not in by["MSFT"]  # absent, not zero
+
+
+def test_yf_only_filter_skipped_in_moo_mode(monkeypatch):
+    _fresh_caches(monkeypatch)
+    monkeypatch.setattr(api, "_market_client", lambda: object())
+    fdb = FakeDb()
+    _seed_enrichment_rows(fdb)
+    api.db = fdb
+    import json as _json
+    flt = _json.dumps([{"field": "forward_pe", "min": 25.0}])
+    r = client.get(f"/api/screener?watchlist_only=0&src=moo&filters={flt}").json()
+    assert any("forward_pe" in s and "src=yf" in s for s in r["skipped_filters"])
+    r2 = client.get(f"/api/screener?watchlist_only=0&src=yf&filters={flt}").json()
+    assert r2["skipped_filters"] == [] and r2["matched"] == 2

@@ -696,10 +696,23 @@ def _cache():
     return _screener_cache
 
 
+# Enrichment availability — MUST mirror web/worker/tradingagents_worker/
+# enrich_fields.YF_ONLY_FIELDS (the registry is the source of truth; the API
+# and worker don't import each other in this repo).
+_YF_ONLY_FIELDS = {
+    "forward_pe", "peg", "ps", "pcf", "pfcf", "ev", "ev_ebitda", "ev_sales",
+    "roa", "current_ratio", "quick_ratio", "lt_debt_eq", "total_debt_eq",
+    "shares_short", "short_float", "inst_own", "insider_own", "beta",
+    "target_price", "analyst_recom", "country", "employees", "earnings_date",
+    "ex_div_date", "payout_ratio", "sector", "industry",
+}
+
+
 @app.get("/api/screener")
 def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
              sort: str = "market_cap", direction: int = 2, limit: int = 500,
-             offset: int = 0, export: str = "", scope: str = "all"):
+             offset: int = 0, export: str = "", scope: str = "all",
+             src: str = "moo"):
     """Screener rows. watchlist universe = our saved watchlist (snapshot, all filters);
     market universe = moomoo stock-screen page sorted server-side, snapshot-enriched."""
     client = _market_client()
@@ -755,7 +768,28 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
     # Watchlist mode is exempt — it shows exactly what the user starred.
     if not watchlist_only and not any(f.get("field") == "stock_type" for f in flt):
         rows = [r for r in rows if r.get("stock_type") == "STOCK"]
+    # Data-source mode (spec §5b): src=yf merges screener_enrichment keys into
+    # rows; src=moo (strict) leaves rows untouched — moomoo-carried fields
+    # only. Yf-only filters under moo are deferred with an honest reason.
+    enrich_as_of = None
+    if src == "yf" and rows:
+        stored_enr = db.select_all("screener_enrichment", {"market": f"eq.{market}"},
+                                   "code,data,as_of")
+        emap = {r["code"]: (r.get("data") or {}, r.get("as_of")) for r in stored_enr}
+        stamps = [a for _, a in emap.values() if a]
+        enrich_as_of = max(stamps) if stamps else None
+        for r in rows:
+            data, _ = emap.get(r.get("code")) or \
+                emap.get(f"{market}.{r.get('symbol')}") or ({}, None)
+            for k, v in data.items():
+                r.setdefault(k, v)
+    deferred = []
+    if src != "yf":
+        yf_flt = [f for f in flt if f.get("field") in _YF_ONLY_FIELDS]
+        deferred = [f"{f['field']} (requires src=yf)" for f in yf_flt]
+        flt = [f for f in flt if f.get("field") not in _YF_ONLY_FIELDS]
     rows, skipped = _apply_filters(rows, flt)
+    skipped = skipped + deferred
     # Always display-sort in Python: the server-side slices decide WHICH stocks
     # are in the universe; global ordering across the union happens here.
     rows = _sort_rows(rows, sort, direction)
@@ -810,6 +844,7 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
             "rows": page, "count": matched, "matched": matched, "shown": len(page),
             "offset": max(0, offset),
             "skipped_filters": skipped,
+            "enrich_as_of": enrich_as_of,
             "universe_loaded": universe_loaded or bool(rows), "universe_as_of": universe_as_of,
             "presets": PRESET_SCREENERS,
             "watchlist": _watchlist_symbols()}
