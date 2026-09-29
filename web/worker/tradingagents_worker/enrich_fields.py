@@ -42,6 +42,12 @@ YF_FIELDS: dict[str, tuple[str, str | None]] = {
     "earningsTimestamp": ("earnings_date", "unix_date"),
     "exDividendDate": ("ex_div_date", "unix_date"),
     "payoutRatio": ("payout_ratio", None),
+    "returnOnEquity": ("roe", "pct"),
+    "grossMargins": ("gross_margin", "pct"),
+    "operatingMargins": ("operating_margin", "pct"),
+    "profitMargins": ("net_margin", "pct"),
+    "revenueGrowth": ("revenue_growth", "pct"),
+    "earningsGrowth": ("eps_growth", "pct"),
     "sector": ("sector", None),
     "industry": ("industry", None),
 }
@@ -68,6 +74,9 @@ FIELD_LABELS = {
     "employees": "Employees", "earnings_date": "Earnings Date",
     "ex_div_date": "Div Ex-Date", "payout_ratio": "Payout Ratio",
     "sector": "Sector", "industry": "Industry",
+    "roe": "ROE %", "gross_margin": "Gross Margin %",
+    "operating_margin": "Operating Margin %", "net_margin": "Net Margin %",
+    "revenue_growth": "Revenue Growth %", "eps_growth": "EPS Growth %",
     **{k: k.replace("_", " ").title() for k in TECH_FIELDS},
     **{k: k for k in MOO_FREE_FIELDS},
 }

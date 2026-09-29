@@ -29,3 +29,12 @@ def test_transforms():
 def test_labels_exist_for_every_field():
     for k in list(ef.YF_ONLY_FIELDS) + ef.TECH_FIELDS + ef.MOO_FREE_FIELDS:
         assert k in ef.FIELD_LABELS, f"missing label for {k}"
+
+
+def test_financial_fields_present():
+    """Phase B: the Financial tab's fundamentals are yf-sourced percent fields."""
+    expected = {"roe": "pct", "gross_margin": "pct", "operating_margin": "pct",
+                "net_margin": "pct", "revenue_growth": "pct", "eps_growth": "pct"}
+    for key, tr in expected.items():
+        assert key in ef.YF_ONLY_FIELDS, f"{key} missing from registry"
+        assert tr in [t for k, t in ef.YF_FIELDS.values() if k == key], f"{key} wrong transform"
