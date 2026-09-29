@@ -1558,7 +1558,7 @@ function debateTurnsHtml(content, repaired) {
       <div class="turn-b">${md(body)}</div></div>`;
   };
   const note = repaired
-    ? `<div class="delay-note" style="margin-bottom:10px">Word spacing restored automatically by the repair pass (the pre-fix build stored these rows without spaces) — wording verified character-for-character against the preserved original.</div>`
+    ? `<div class="delay-note" style="margin-bottom:10px">Word spacing restored automatically by the repair pass (the pre-fix build stored these rows without spaces) — wording near-exact (rare micro-differences are logged), and the untouched original is preserved in the database.</div>`
     : legacy
       ? `<div class="delay-note" style="margin-bottom:10px">Stored by the pre-fix pipeline build, which stripped word spacing; speaker turns and approximate spacing restored here — wording is exact, gaps are best-effort. The worker's repair pass restores full spacing automatically.</div>`
       : "";

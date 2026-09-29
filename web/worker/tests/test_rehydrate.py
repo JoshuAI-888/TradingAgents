@@ -7,7 +7,8 @@ from types import SimpleNamespace
 from tradingagents_worker import rehydrate
 from tradingagents_worker.rehydrate import (
     _chunks,
-    _plausibly_same,
+    _first_divergence,
+    _similarity,
     is_legacy_row,
     rehydrate_debates,
 )
@@ -25,7 +26,8 @@ class _FakeCompletions:
 
     def create(self, **kw):
         self.calls.append(kw)
-        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=self.reply))])
+        return SimpleNamespace(choices=[SimpleNamespace(
+            message=SimpleNamespace(content=self.reply), finish_reason="stop")])
 
 
 def _fake_client(reply=None):
@@ -45,12 +47,31 @@ def _seed(db):
 
 def test_legacy_detector_and_sanity():
     assert is_legacy_row(MANGLED) and not is_legacy_row("normal spaced text " * 40)
-    assert _plausibly_same("AB cdef.", "ab CD ef . ")
-    assert not _plausibly_same("abcdef", "abcxef")
+    assert _similarity("AB cdef.", "ab CD ef . ") == 1.0
+    assert _similarity("the trader says hold", "the traders say hold") > 0.99   # micro-grammar fix
+    assert _similarity("abcdef" * 10, "abcxef" + "zzz" * 20) < 0.5              # content loss
     chunks = list(_chunks("a" * 50, cap=20))
     assert chunks == ["a" * 20, "a" * 20, "a" * 10]
     # chunks stay small enough for a verbatim LLM echo
     assert all(len(c) <= 2000 for c in _chunks("x" * 10000))
+
+
+def test_rehydrate_accepts_micro_divergence_rejects_content_loss(monkeypatch, fake_db):
+    _seed(fake_db)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test")
+    # one grammar micro-fix in the middle of an otherwise clean restoration
+    slightly_edited = RESTORED.replace("trader", "traders", 1) if "trader" in RESTORED \
+        else RESTORED[:-1] + ("!" if RESTORED[-1] != "!" else ".")
+    client = _fake_client(reply=slightly_edited)
+    assert rehydrate_debates(fake_db, client=client) == 1
+    # half the content dropped -> rejected, row untouched
+    fake_db._t("debate_messages").clear()
+    _seed(fake_db)
+    truncated = " ".join(RESTORED.split()[: len(RESTORED.split()) // 2])
+    client2 = _fake_client(reply=truncated)
+    assert rehydrate_debates(fake_db, client=client2) == 0
+    row = fake_db.select("debate_messages", {"id": "eq.dm-legacy"}, "content,content_original")[0]
+    assert row["content"] == MANGLED and not row.get("content_original")
 
 
 def test_rehydrate_restores_preserves_and_summarizes(monkeypatch, fake_db):
