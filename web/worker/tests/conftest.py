@@ -62,6 +62,9 @@ class FakeSupa(Db):
                 rows = rows[int(v):]
             elif v.startswith("eq."):
                 rows = [r for r in rows if str(r.get(k)) == v[3:]]
+            elif v.startswith("in.("):
+                vals = set(v[4:-1].split(","))
+                rows = [r for r in rows if str(r.get(k)) in vals]
             elif v.startswith("lte."):
                 rows = [r for r in rows if str(r.get(k)) <= v[4:]]
             elif v.startswith("neq."):

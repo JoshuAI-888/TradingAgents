@@ -1,0 +1,87 @@
+"""Nightly orchestrator: yf batch + technicals from stored klines → one row/code."""
+from datetime import datetime, timedelta, timezone
+
+from tradingagents_worker.enrich_nightly import EnrichNightly
+
+
+class FakeYf:
+    def __init__(self, rows):
+        self.rows = rows
+
+    def __call__(self, codes, prices, market="US", yf_module=None):
+        return [r for r in self.rows if r["code"] in codes]
+
+
+def _seed(db):
+    db.upsert_many("screener_universe", "market,code",
+                   [{"market": "US", "code": "US.AAPL"}])
+    fresh = datetime.now(timezone.utc).isoformat()
+    db.upsert("screener_kline_state", "market,code",
+              {"market": "US", "code": "US.AAPL", "last_fetch": fresh, "bars": 260})
+    bars = [{"market": "US", "code": "US.AAPL", "day": f"2025-01-{d:02d}",
+             "o": 100, "h": 102, "l": 99, "c": 100 + d, "v": 1_000_000}
+            for d in range(1, 29)]
+    db.upsert_many("screener_klines", "market,code,day", bars)
+    db.upsert_many("screener_quotes", "code",
+                   [{"code": "US.AAPL", "market": "US", "row": {"price": 128.0},
+                     "updated_at": fresh}])
+
+
+def test_run_writes_merged_enrichment(fake_db):
+    _seed(fake_db)
+    yf = FakeYf([{"market": "US", "code": "US.AAPL", "data": {"forward_pe": 30.0},
+                  "source": "yfinance", "as_of": "2025-01-01T00:00:00+00:00"}])
+    out = EnrichNightly(fake_db, yf_fetch=yf, market="US").run(run_klines=False)
+    assert out["enriched"] == 1
+    rows = fake_db.select("screener_enrichment", {"market": "eq.US"})
+    data = rows[0]["data"]
+    assert data["forward_pe"] == 30.0
+    assert "rsi14" in data and "sma20_pos" in data      # klines fresh → technicals present
+    assert rows[0]["source"] == "yfinance+computed"
+
+
+def test_stale_klines_yield_no_technicals(fake_db):
+    _seed(fake_db)
+    old = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    fake_db.upsert("screener_kline_state", "market,code",
+                   {"market": "US", "code": "US.AAPL", "last_fetch": old, "bars": 260})
+    yf = FakeYf([{"market": "US", "code": "US.AAPL", "data": {"forward_pe": 30.0},
+                  "source": "yfinance", "as_of": "2025-01-01T00:00:00+00:00"}])
+    EnrichNightly(fake_db, yf_fetch=yf, market="US").run(run_klines=False)
+    data = fake_db.select("screener_enrichment", {"market": "eq.US"})[0]["data"]
+    assert "forward_pe" in data and "rsi14" not in data  # absent, never stale-zero
+
+
+def test_kline_rotation_runs_by_default(fake_db, monkeypatch):
+    _seed(fake_db)
+    ran = {}
+
+    class SpyKb:
+        def __init__(self, db, client, market="US", emit=None):
+            pass
+
+        def stale_codes(self, limit=1400):
+            return ["US.AAPL"]
+
+        def backfill(self, codes):
+            ran["codes"] = codes
+            return {"codes": len(codes), "bars": 2, "errors": 0}
+
+    import tradingagents_worker.enrich_nightly as en
+    monkeypatch.setattr(en, "KlineBackfill", SpyKb)
+    yf = FakeYf([])
+    out = EnrichNightly(fake_db, yf_fetch=yf, market="US").run()
+    assert ran["codes"] == ["US.AAPL"] and "klines" in out
+
+
+def test_prices_pulled_from_quotes_for_derived_ratios(fake_db):
+    _seed(fake_db)
+    seen = {}
+
+    class SpyYf:
+        def __call__(self, codes, prices, market="US", yf_module=None):
+            seen.update(prices)
+            return []
+
+    EnrichNightly(fake_db, yf_fetch=SpyYf(), market="US").run(run_klines=False)
+    assert seen.get("US.AAPL") == 128.0
