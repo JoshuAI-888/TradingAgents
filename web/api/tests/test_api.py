@@ -606,3 +606,18 @@ def test_moo_mode_still_serves_concepts(monkeypatch):
     api.db = fdb
     r = client.get("/api/screener?watchlist_only=0&src=moo").json()
     assert all("concepts" in row for row in r["rows"])        # taxonomy is moo-carried
+
+
+def test_groups_excludes_unclassified_rows(monkeypatch):
+    """Parity with the screener's STOCK default: quotes without universe meta
+    are excluded from group aggregates, not bucketed as STOCK."""
+    _fresh_caches(monkeypatch)
+    monkeypatch.setattr(api, "_market_client", lambda: object())
+    fdb = FakeDb()
+    _seed_enrichment_rows(fdb)
+    fdb._t("screener_quotes").append(
+        {"code": "US.ETFX", "market": "US", "updated_at": "2025-01-01T00:00:00+00:00",
+         "row": {"symbol": "ETFX", "name": "Unlisted ETF", "price": 50.0}})
+    api.db = fdb
+    r = client.get("/api/groups?group_by=plate").json()
+    assert [x["stocks"] for x in r["rows"]] == [2]      # only the classified pair

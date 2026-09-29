@@ -1935,7 +1935,9 @@ def groups(market: str = "US", group_by: str = "plate", order_by: str = "stocks"
     cached = _groups_cache.get("other", key)
     if cached is not None:
         return cached
-    stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "row,updated_at")
+    # NOTE: code must be selected explicitly — PostgREST returns only the
+    # requested columns, and the meta/enrichment lookups key on it.
+    stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "code,row,updated_at")
     if not stored:
         return {"available": False, "reason": "no stored universe — run the loader", "rows": []}
     meta = {r["code"]: r for r in db.select_all(
@@ -1948,8 +1950,8 @@ def groups(market: str = "US", group_by: str = "plate", order_by: str = "stocks"
         row = s.get("row") or {}
         code = s.get("code")
         u = meta.get(code) or {}
-        if stock_type and (u.get("stock_type") or "STOCK") != stock_type:
-            continue
+        if stock_type and u.get("stock_type") != stock_type:
+            continue  # mirror /api/screener: unclassified rows are excluded
         en = enr.get(code) or {}
         gkey = {"plate": u.get("plate") or "—",
                 "sector": en.get("sector") or "—",
