@@ -20,7 +20,7 @@ class EnrichUnavailable(RuntimeError):
 def to_yahoo_symbol(code: str, market: str = "US") -> str:
     sym = code.split(".", 1)[1] if "." in code else code
     if market == "HK":
-        return sym.zfill(4) + ".HK"
+        return str(int(sym)).zfill(4) + ".HK"  # moomoo 00700 → yahoo 0700.HK
     return sym
 
 

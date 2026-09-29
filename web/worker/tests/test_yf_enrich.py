@@ -17,10 +17,20 @@ class FakeTicker:
         return self._info
 
 
-class FakeTickers:
-    """Mimics yf.Tickers("A B").tickers[<sym>].info"""
+class FakeYfModule:
+    """Stands in for the yfinance module: yf.Tickers('A B').tickers[<sym>].info"""
     def __init__(self, infos):
-        self.tickers = {s: FakeTicker(i) for s, i in infos.items()}
+        self._infos = infos
+
+    def Tickers(self, names):
+        outer = self
+        syms = names.split()
+
+        class TickersObj:
+            tickers = {s: FakeTicker(outer._infos.get(s, RuntimeError("unexpected symbol")))
+                       for s in syms}
+
+        return TickersObj()
 
 
 INFO_A = {"forwardPE": 22.5, "shortPercentOfFloat": 0.021, "country": "USA",
@@ -29,7 +39,7 @@ INFO_B = {"beta": 1.1}
 
 
 def test_fetch_maps_codes_and_transforms():
-    yf = FakeTickers({"AAPL": INFO_A, "MSFT": INFO_B})
+    yf = FakeYfModule({"AAPL": INFO_A, "MSFT": INFO_B})
     rows = ye.fetch_yf_enrichment(["US.AAPL", "US.MSFT"], prices={"US.AAPL": 200.0},
                                   yf_module=yf)
     by = {r["code"]: r for r in rows}
@@ -44,7 +54,7 @@ def test_fetch_maps_codes_and_transforms():
 
 
 def test_broken_ticker_is_skipped_not_fatal():
-    yf = FakeTickers({"AAPL": RuntimeError("boom"), "MSFT": INFO_B})
+    yf = FakeYfModule({"AAPL": RuntimeError("boom"), "MSFT": INFO_B})
     rows = ye.fetch_yf_enrichment(["US.AAPL", "US.MSFT"], prices={}, yf_module=yf)
     assert [r["code"] for r in rows] == ["US.MSFT"]
 
@@ -57,7 +67,7 @@ def test_missing_yfinance_dependency_raises_clear_error():
 
 
 def test_lt_debt_staging_combines_with_equity():
-    yf = FakeTickers({"AAPL": {"longTermDebt": 10.0, "totalStockholderEquity": 40.0}})
+    yf = FakeYfModule({"AAPL": {"longTermDebt": 10.0, "totalStockholderEquity": 40.0}})
     rows = ye.fetch_yf_enrichment(["US.AAPL"], prices={}, yf_module=yf)
     assert rows[0]["data"]["lt_debt_eq"] == 25.0          # 10/40 in percent form
 
