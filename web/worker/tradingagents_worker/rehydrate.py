@@ -37,6 +37,12 @@ def _chunks(text: str, cap: int = _CHUNK):
         start = end
 
 
+def _first_divergence(before: str, after: str) -> str:
+    sb, sa = "".join(before.split()).lower(), "".join(after.split()).lower()
+    i = next((k for k in range(min(len(sb), len(sa))) if sb[k] != sa[k]), min(len(sb), len(sa)))
+    return f"at char {i}: ...{sb[max(0, i - 30):i + 30]!r} vs ...{sa[max(0, i - 30):i + 30]!r}"
+
+
 def _restore_spacing(client, text: str) -> str | None:
     _SYSTEM = (
         "You restore text whose word spaces were stripped by a storage bug. "
@@ -47,18 +53,24 @@ def _restore_spacing(client, text: str) -> str | None:
     out: list[str] = []
     chunks = list(_chunks(text))
     for i, chunk in enumerate(chunks, 1):
-        t0 = time.monotonic()
-        resp = client.chat.completions.create(
-            model=_quick_model(), temperature=0, max_tokens=10000,
-            messages=[{"role": "system", "content": _SYSTEM},
-                      {"role": "user", "content": chunk}])
-        fixed = (resp.choices[0].message.content or "").strip()
-        finish = getattr(resp.choices[0], "finish_reason", None)
-        print(f"[rehydrate] chunk {i}/{len(chunks)} ({len(chunk)} chars) -> "
-              f"{len(fixed)} chars in {time.monotonic() - t0:.0f}s (finish={finish})", flush=True)
-        # sanity: restoration only ever adds spaces — reject wild rewrites
-        if not fixed or not _plausibly_same(chunk, fixed):
-            print(f"[rehydrate] chunk {i} rejected (rewrite check failed)", flush=True)
+        fixed = None
+        for attempt in (1, 2, 3):  # transient model flakiness: a retry usually echoes cleanly
+            t0 = time.monotonic()
+            resp = client.chat.completions.create(
+                model=_quick_model(), temperature=0, max_tokens=10000,
+                messages=[{"role": "system", "content": _SYSTEM},
+                          {"role": "user", "content": chunk}])
+            fixed = (resp.choices[0].message.content or "").strip()
+            finish = getattr(resp.choices[0], "finish_reason", None)
+            print(f"[rehydrate] chunk {i}/{len(chunks)} attempt {attempt} ({len(chunk)} chars) -> "
+                  f"{len(fixed)} chars in {time.monotonic() - t0:.0f}s (finish={finish})", flush=True)
+            if fixed and _plausibly_same(chunk, fixed):
+                break
+            print(f"[rehydrate] chunk {i} attempt {attempt} diverged: "
+                  f"{_first_divergence(chunk, fixed) if fixed else 'empty output'}", flush=True)
+            fixed = None
+        if not fixed:
+            print(f"[rehydrate] chunk {i} failed {3} attempts — row abandoned", flush=True)
             return None
         out.append(fixed)
     return "\n\n".join(out)
@@ -126,6 +138,7 @@ def rehydrate_debates(db: Db, max_rows: int = _MAX_ROWS_PER_PASS, client=None) -
     except Exception:
         return 0  # table/column not migrated yet
     legacy = [r for r in rows if is_legacy_row(r.get("content")) and not r.get("content_original")]
+    legacy.sort(key=lambda r: len(r.get("content") or ""))  # smallest first: completes come early
     client = client or _client()
     if legacy:
         print(f"[rehydrate] {len(legacy)} legacy debate row(s) in backlog; repairing up to {max_rows}", flush=True)
