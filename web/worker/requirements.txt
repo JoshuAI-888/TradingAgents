@@ -4,3 +4,4 @@ pydantic>=2.7
 cryptography>=42
 certifi>=2024
 requests>=2.32
+yfinance>=0.2.50
