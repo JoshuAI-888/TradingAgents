@@ -538,3 +538,43 @@ def test_yf_only_filter_skipped_in_moo_mode(monkeypatch):
     assert any("forward_pe" in s and "src=yf" in s for s in r["skipped_filters"])
     r2 = client.get(f"/api/screener?watchlist_only=0&src=yf&filters={flt}").json()
     assert r2["skipped_filters"] == [] and r2["matched"] == 2
+
+
+# ── /api/groups — Finviz-style group aggregates (Phase A task 8) ─────────────
+def test_groups_aggregates(monkeypatch):
+    _fresh_caches(monkeypatch)
+    monkeypatch.setattr(api, "_market_client", lambda: object())
+    fdb = FakeDb()
+    _seed_enrichment_rows(fdb)
+    api.db = fdb
+    r = client.get("/api/groups?group_by=plate").json()
+    assert r["available"] and r["group_by"] == "plate"
+    row = r["rows"][0]
+    assert row["key"] == "Tech" and row["stocks"] == 2
+    assert row["avgs"]["pe_ttm"] == 31.5                      # mean over non-null
+    assert row["avgs"]["forward_pe"] == 29.5
+    assert "peg" not in row["avgs"]                            # absent for whole group
+    assert r["as_of"] == "2025-01-01T00:00:00+00:00"
+
+
+def test_groups_cap_bucket_grouping(monkeypatch):
+    _fresh_caches(monkeypatch)
+    monkeypatch.setattr(api, "_market_client", lambda: object())
+    fdb = FakeDb()
+    _seed_enrichment_rows(fdb)
+    for code, cap in (("US.AAPL", 3.0e12), ("US.MSFT", 3.0e12)):
+        qrow = next(q for q in fdb._t("screener_quotes") if q["code"] == code)
+        qrow["row"]["market_cap"] = cap
+        qrow["row"]["pct"] = 1.0 if code == "US.AAPL" else -1.0
+    api.db = fdb
+    r = client.get("/api/groups?group_by=cap_bucket").json()
+    assert r["rows"][0]["key"] == "mega (≥200B)" and r["rows"][0]["stocks"] == 2
+    assert r["rows"][0]["adv"] == 1 and r["rows"][0]["decl"] == 1
+
+
+def test_groups_empty_universe(monkeypatch):
+    _fresh_caches(monkeypatch)
+    monkeypatch.setattr(api, "_market_client", lambda: object())
+    api.db = FakeDb()
+    r = client.get("/api/groups").json()
+    assert r["available"] is False and "loader" in r["reason"]

@@ -699,6 +699,8 @@ def _cache():
 # Enrichment availability — MUST mirror web/worker/tradingagents_worker/
 # enrich_fields.YF_ONLY_FIELDS (the registry is the source of truth; the API
 # and worker don't import each other in this repo).
+_groups_cache = None  # lazy /api/groups TTL cache
+
 _YF_ONLY_FIELDS = {
     "forward_pe", "peg", "ps", "pcf", "pfcf", "ev", "ev_ebitda", "ev_sales",
     "roa", "current_ratio", "quick_ratio", "lt_debt_eq", "total_debt_eq",
@@ -1898,6 +1900,99 @@ def _portal_index() -> str | None:
     d = os.getenv("PORTAL_STATIC_DIR", "")
     p = os.path.join(d, "index.html") if d else ""
     return p if p and os.path.isfile(p) else None
+
+
+_GROUPS_AVG_FIELDS = ["pe_ttm", "pb", "div_yield", "forward_pe", "peg",
+                      "short_float", "analyst_recom"]
+_CAP_BUCKETS = [("mega (≥200B)", 2e11), ("large (≥10B)", 1e10), ("mid (≥2B)", 2e9),
+                ("small (≥300M)", 3e8), ("micro (<300M)", 0.0)]
+
+
+def _cap_bucket(cap):
+    for name, floor in _CAP_BUCKETS:
+        if (cap or 0) >= floor:
+            return name
+    return "micro (<300M)"
+
+
+@app.get("/api/groups")
+def groups(market: str = "US", group_by: str = "plate", order_by: str = "stocks",
+           direction: int = 2, stock_type: str = "STOCK"):
+    """Finviz-style group aggregates over stored data — zero vendor calls at
+    view time (spec §4c / Phase A). group_by: plate | sector | industry |
+    exchange | cap_bucket; sector/industry need yf enrichment rows."""
+    global _groups_cache
+    if _groups_cache is None:
+        from tradingagents_worker.ttl_cache import TtlCache  # noqa: E402
+        _groups_cache = TtlCache(root=os.path.join(tempfile.gettempdir(), "ta-ttl-groups"))
+    key = _groups_cache.key("other", "groups", market, group_by, order_by, direction, stock_type)
+    cached = _groups_cache.get("other", key)
+    if cached is not None:
+        return cached
+    stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "row,updated_at")
+    if not stored:
+        return {"available": False, "reason": "no stored universe — run the loader", "rows": []}
+    meta = {r["code"]: r for r in db.select_all(
+        "screener_universe", {"market": f"eq.{market}"}, "code,plate,stock_type,exchange")}
+    enr = {r["code"]: (r.get("data") or {}) for r in
+           db.select_all("screener_enrichment", {"market": f"eq.{market}"}, "code,data")}
+    stamps = [r.get("updated_at") for r in stored if r.get("updated_at")]
+    acc: dict[str, dict] = {}
+    for s in stored:
+        row = s.get("row") or {}
+        code = s.get("code")
+        u = meta.get(code) or {}
+        if stock_type and (u.get("stock_type") or "STOCK") != stock_type:
+            continue
+        en = enr.get(code) or {}
+        gkey = {"plate": u.get("plate") or "—",
+                "sector": en.get("sector") or "—",
+                "industry": en.get("industry") or u.get("plate") or "—",
+                "exchange": u.get("exchange") or "—",
+                "cap_bucket": _cap_bucket(row.get("market_cap"))}[group_by]
+        g = acc.setdefault(gkey, {"key": gkey, "stocks": 0, "cap_sum": 0.0, "chg_sum": 0.0,
+                                  "chg_n": 0, "adv": 0, "decl": 0, "vol_sum": 0.0,
+                                  "acc": {f: [0.0, 0] for f in _GROUPS_AVG_FIELDS}})
+        g["stocks"] += 1
+        g["cap_sum"] += row.get("market_cap") or 0
+        g["vol_sum"] += row.get("volume") or 0
+        pct = row.get("pct")
+        if pct is not None:
+            g["chg_sum"] += pct
+            g["chg_n"] += 1
+            g["adv"] += 1 if pct > 0 else 0
+            g["decl"] += 1 if pct < 0 else 0
+        for f in _GROUPS_AVG_FIELDS:
+            v = row.get(f, en.get(f))
+            try:
+                v = float(v)
+            except (TypeError, ValueError):
+                continue
+            g["acc"][f][0] += v
+            g["acc"][f][1] += 1
+    rows = []
+    for g in acc.values():
+        avgs = {f: round(s / n, 4) for f, (s, n) in g["acc"].items() if n}
+        rows.append({"key": g["key"], "stocks": g["stocks"],
+                     "cap_sum": round(g["cap_sum"], 2), "vol_sum": round(g["vol_sum"], 2),
+                     "chg_avg": round(g["chg_sum"] / g["chg_n"], 4) if g["chg_n"] else None,
+                     "adv": g["adv"], "decl": g["decl"], "avgs": avgs})
+
+    def sort_key(r):
+        if order_by == "name":
+            return r["key"]
+        if order_by in ("stocks", "cap_sum", "chg_avg", "vol_sum"):
+            v = r.get(order_by)
+            return 0 if v is None else v
+        if order_by in _GROUPS_AVG_FIELDS:
+            return (r.get("avgs") or {}).get(order_by, 0)
+        return r["stocks"]
+
+    rows.sort(key=sort_key, reverse=direction == 2)
+    out = {"available": True, "group_by": group_by,
+           "as_of": max(stamps) if stamps else None, "rows": rows}
+    _groups_cache.put("other", key, out)
+    return out
 
 
 @app.get("/stock/{rest:path}", include_in_schema=False)
