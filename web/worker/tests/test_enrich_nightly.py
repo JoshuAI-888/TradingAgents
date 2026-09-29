@@ -85,3 +85,38 @@ def test_prices_pulled_from_quotes_for_derived_ratios(fake_db):
 
     EnrichNightly(fake_db, yf_fetch=SpyYf(), market="US").run(run_klines=False)
     assert seen.get("US.AAPL") == 128.0
+
+
+def test_yf_batch_is_missing_first_and_bounded(fake_db, monkeypatch):
+    """Production guard: the nightly yf batch covers missing/oldest codes first
+    and is capped per run — a full 13.5k-universe sweep would blow the cron's
+    runtime. Fresh codes are skipped entirely."""
+    import tradingagents_worker.enrich_nightly as en
+
+    fresh = datetime.now(timezone.utc).isoformat()
+    old = (datetime.now(timezone.utc) - timedelta(days=9)).isoformat()
+    fake_db.upsert_many("screener_universe", "market,code",
+                   [{"market": "US", "code": c} for c in ("US.A", "US.B", "US.C")])
+    fake_db.upsert_many("screener_quotes", "code",
+                   [{"code": c, "market": "US", "row": {"price": 10.0}, "updated_at": fresh}
+                    for c in ("US.A", "US.B", "US.C")])
+    fake_db.upsert_many("screener_enrichment", "market,code",
+                   [{"market": "US", "code": "US.B", "data": {"beta": 1.0},
+                     "source": "yfinance", "as_of": fresh}])
+    fake_db.upsert_many("screener_enrichment", "market,code",
+                   [{"market": "US", "code": "US.C", "data": {"beta": 2.0},
+                     "source": "yfinance", "as_of": old}])
+    seen = []
+
+    class SpyYf:
+        def __call__(self, codes, prices, market="US", yf_module=None):
+            seen.append(list(codes))
+            return []
+
+    monkeypatch.setattr(en, "YF_BATCH_PER_RUN", 2)
+    EnrichNightly(fake_db, yf_fetch=SpyYf(), market="US").run(run_klines=False)
+    got = seen[0]
+    assert "US.B" not in got                       # enriched 2h... fresh → skipped
+    assert set(got) <= {"US.A", "US.C"}            # missing + stale only
+    assert got[0] == "US.A" or got[0] == "US.C"    # missing/stale first
+    assert len(got) == 2                           # cap respected

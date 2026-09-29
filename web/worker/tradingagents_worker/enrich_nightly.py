@@ -24,6 +24,8 @@ from .yf_enrich import fetch_yf_enrichment
 
 FRESH_CAP_PER_RUN = 2000
 BAR_CHUNK = 100
+YF_BATCH_PER_RUN = 3000  # bound the cron: full coverage in ~5 nights, then refresh
+YF_TTL_DAYS = 7          # fundamentals are slow; weekly yf refresh per code
 
 
 def _parse(raw):
@@ -97,7 +99,22 @@ class EnrichNightly:
                   for r in self.db.select_all("screener_quotes", {"market": f"eq.{self.market}"},
                                               "code,row")}
         prices = {k: v for k, v in prices.items() if v}
-        yf_rows = self._yf_fetch(codes, prices, market=self.market) or []
+        # Bound the yf sweep: missing codes first, then oldest as_of, capped.
+        # A single-run full-universe sweep (13.5k Ticker.info calls) risks the
+        # cron's runtime and Yahoo throttling; full coverage lands in ~5 nights
+        # and later runs refresh the stalest slice.
+        yf_ttl_cut = datetime.now(timezone.utc) - timedelta(days=YF_TTL_DAYS)
+        enr_state = {r["code"]: _parse(r.get("as_of"))
+                     for r in self.db.select_all("screener_enrichment",
+                                                 {"market": f"eq.{self.market}"},
+                                                 "code,as_of")}
+        def _enr_rank(c):
+            ts = enr_state.get(c)
+            return (1, datetime.min.replace(tzinfo=timezone.utc)) if ts is None else (0, ts)
+        eligible = [c for c in codes
+                    if _enr_rank(c)[0] == 1 or _parse(enr_state.get(c)) < yf_ttl_cut]
+        yf_codes = sorted(eligible, key=_enr_rank)[:YF_BATCH_PER_RUN]
+        yf_rows = self._yf_fetch(yf_codes, prices, market=self.market) or []
         by_code = {r["code"]: dict(r.get("data") or {}) for r in yf_rows}
 
         fresh_codes = self._fresh_codes(codes)
