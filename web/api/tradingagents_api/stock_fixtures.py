@@ -55,9 +55,11 @@ def _kline(n: int, base: float = 512.16, seed: int = 3) -> list:
     price = base * (1 - 0.18)
     t = 1758835200000 - n * _MS_DAY
     for i in range(n):
-        w = ((i * seed + 7) % 13 - 6) / 220
+        # ±0.7% wobble around a +0.11% drift — yields natural down days (the old
+        # w/n scaling made long runs monotonic, which pins RSI-style indicators).
+        w = ((i * seed + 7) % 13 - 6) / 900
         o = price
-        price = round(price * (1 + 0.0011 + w / n), 3)
+        price = round(price * (1 + 0.0011 + w), 3)
         h = round(max(o, price) * 1.004, 3)
         lo = round(min(o, price) * 0.996, 3)
         v = 160000 + (i * 9973) % 210000
@@ -67,6 +69,41 @@ def _kline(n: int, base: float = 512.16, seed: int = 3) -> list:
                     "last_close": round(o, 3), "turnover_rate": 1.4,
                     "change_rate": round((price / o - 1) * 100, 2)})
     return out
+
+
+def _minute_kline(days: int = 2, per_day: int = 390, step_ms: int = 60000) -> list:
+    """Intraday bars for the Compare page's 1d/15m timeframes: per_day bars per
+    session with an overnight gap between sessions."""
+    out = []
+    price = 503.12
+    t0 = 1758802200000  # 09:30 ET day 1
+    for d in range(days):
+        t = t0 + d * _MS_DAY
+        for i in range(per_day):
+            w = ((i * 17 + d * 31) % 19 - 9) / 700
+            o = price
+            price = round(price * (1 + w / per_day * 4), 3)
+            out.append({"time_key": t + i * step_ms, "open": o, "close": price,
+                        "high": round(max(o, price) * 1.0006, 3),
+                        "low": round(min(o, price) * 0.9994, 3),
+                        "volume": 900 + (i * 313) % 4200,
+                        "turnover": round(price * 1200, 2),
+                        "last_close": o,
+                        "change_rate": round((price / o - 1) * 100, 2)})
+    return out
+
+
+def _dividends() -> list:
+    """Live row shape (HB §9.12 undocumented fields): ex_date, dividend_per_share,
+    currency + the doc'd metadata fields."""
+    rows = []
+    for ex, amt in [("2025-08-14", 0.30), ("2025-05-15", 0.30), ("2025-02-20", 0.28),
+                    ("2024-11-14", 0.28), ("2024-08-15", 0.26), ("2024-05-16", 0.26)]:
+        rows.append({"ex_date": ex, "dividend_per_share": amt, "currency": "USD",
+                     "fiscal_year": int(ex[:4]), "process": "PAYABLE",
+                     "statement": "Cash Dividend", "pub_date": ex, "record_date": ex,
+                     "dividend_payable_date": ex})
+    return rows
 
 
 def _rt_points() -> list:
@@ -149,7 +186,9 @@ def payload(key: str, symbol: str):
     """Fixture for an API fetch key; None → unknown key (route 404s/available=false)."""
     S = symbol.upper().removesuffix("-US")
     quotes = {"quote": _quote(S),
+              "candles:1d": {"kline_list": _minute_kline()},
               "candles:5D": {"kline_list": _kline(65, seed=11)},
+              "candles:15m": {"kline_list": _minute_kline(days=6, per_day=26, step_ms=900000)},
               "candles:1M": {"kline_list": _kline(90, seed=3)},
               "candles:3M": {"kline_list": _kline(120, seed=4)},
               "candles:6M": {"kline_list": _kline(190)},
@@ -257,26 +296,27 @@ def payload(key: str, symbol: str):
                               {"date": 1703952000, "financial_type": 7,
                                "period_text": "2023/FY"}]},
               "earnings-history": {"records": [
-                  {"fiscal_year": 2026, "financial_type": 102, "period_text": "2026/Q2",
+                  {"fiscal_year": 2025, "financial_type": 102, "period_text": "2025/Q2",
                    "is_current": True, "pub_trading_day": 1753651200000,
-                   "pub_trading_day_str": "2026-07-28", "pub_time": 1753704000,
+                   "pub_trading_day_str": "2025-07-28", "pub_time": 1753704000,
                    "pub_type": 1, "open_price": 551.541, "close_price": 551.551,
                    "highest_price": 558.542, "lowest_price": 524.31,
                    "last_close_price": 552.18, "predict_vola_v": 6.1},
-                  {"fiscal_year": 2026, "financial_type": 102, "period_text": "2026/Q1",
+                  {"fiscal_year": 2025, "financial_type": 102, "period_text": "2025/Q1",
                    "is_current": False, "pub_trading_day": 1745452800000,
-                   "pub_trading_day_str": "2026-04-23", "pub_time": 1745505600,
+                   "pub_trading_day_str": "2025-04-23", "pub_time": 1745505600,
                    "pub_type": 1, "open_price": 530.1, "close_price": 542.77,
                    "highest_price": 546.0, "lowest_price": 525.2,
                    "last_close_price": 528.4, "predict_vola_v": 5.4},
                   {"fiscal_year": 2025, "financial_type": 102, "period_text": "2025/Q4",
                    "is_current": False, "pub_trading_day": 1740435200000,
-                   "pub_trading_day_str": "2026-02-25", "pub_time": 1740488000,
+                   "pub_trading_day_str": "2025-02-25", "pub_time": 1740488000,
                    "pub_type": 1, "open_price": 512.0, "close_price": 507.9,
                    "highest_price": 517.3, "lowest_price": 502.1,
                    "last_close_price": 513.6, "predict_vola_v": 5.0}]},
               # US/CA consensus returns only 3 tiers — buy/underperform are
               # HK/CN/SG/MY/AU/JP fields (handbook §analyst-consensus).
+              "dividends": _dividends(),
               "research": {"consensus": {"rating": 4, "total": 4, "strong_buy": 50.0,
                                          "hold": 50.0,
                                          "sell": 0.0, "average": 584.5, "highest": 650.0,
@@ -433,13 +473,19 @@ def estimates(symbol: str) -> dict:
                 {"period": "+1q", "current": 7.37478, "7daysAgo": 7.335, "30daysAgo": 7.345,
                  "60daysAgo": 7.0725, "90daysAgo": 7.0725}],
             "earnings_history": [
-                {"quarter": "2025-09-30", "eps_estimate": 5.365, "eps_actual": 5.27,
-                 "surprise_pct": -1.77},
-                {"quarter": "2025-12-31", "eps_estimate": 7.03, "eps_actual": 6.42,
-                 "surprise_pct": -8.68},
-                {"quarter": "2026-03-31", "eps_estimate": 5.3025, "eps_actual": 5.65,
+                {"quarter": "2024-09-30", "eps_estimate": 4.85, "eps_actual": 4.46,
+                 "surprise_pct": -8.04},
+                {"quarter": "2024-12-31", "eps_estimate": 4.91, "eps_actual": 5.48,
+                 "surprise_pct": 11.61},
+                {"quarter": "2025-03-31", "eps_estimate": 5.3025, "eps_actual": 5.65,
                  "surprise_pct": 6.55},
-                {"quarter": "2026-06-30", "eps_estimate": 5.6, "eps_actual": 6.06,
-                 "surprise_pct": 8.21}],
+                {"quarter": "2025-06-30", "eps_estimate": 5.365, "eps_actual": 5.27,
+                 "surprise_pct": -1.77}],
             "calendar": {"Earnings Date": ["2026-10-28"], "Earnings Average": 6.43556,
                          "Revenue Average": 685036720, "Ex-Dividend Date": "2026-08-17"}}
+
+
+def quotes_batch(symbols: list) -> dict:
+    """Compare-page header quotes: one snapshot-shaped payload keyed by the
+    requested symbols (the route wraps it as {available, quotes})."""
+    return {s: _quote(s) for s in symbols}

@@ -645,8 +645,14 @@ def screener_facets(field: str, market: str = "US", watchlist_only: int = 0):
     if rows:
         rows = _merge_universe_meta(rows, market)
     from collections import Counter
-    counts = Counter(str(r.get(field)) for r in rows if r.get(field) is not None)
-    return {"field": field, "values": [{"value": v, "count": n} for v, n in counts.most_common(80)]}
+    counter: Counter = Counter()
+    for r in rows:
+        v = r.get(field)
+        if v is None:
+            continue
+        for item in (v if isinstance(v, list) else [v]):  # list fields (concepts) flatten
+            counter[str(item)] += 1
+    return {"field": field, "values": [{"value": v, "count": n} for v, n in counter.most_common(80)]}
 
 
 def client_snapshot(market: str, symbols: list[str]):
@@ -1482,10 +1488,13 @@ def candidates_refresh():
 
 from fastapi.responses import FileResponse  # noqa: E402
 
-# ktype enum (verified): 2=Day 3=Week 4=Month 5=Year 6=5min 8=30min 9=60min.
-# The old set had Daily and 1Y both at ktype 2/~380d — identical data, so
-# switching horizons "did nothing". Each horizon now maps to distinct data.
-_KLINE_WINDOWS = {"5D": ("candles:5D", 6, 10), "1M": ("candles:1M", 8, 45),
+# ktype enum (verified): 1=1min 2=Day 3=Week 4=Month 5=Year 6=5min 7=15min
+# 8=30min 9=60min. The old set had Daily and 1Y both at ktype 2/~380d —
+# identical data, so switching horizons "did nothing". Each horizon now maps
+# to distinct data; 1d/15m added for the Compare page's intraday timeframes.
+_KLINE_WINDOWS = {"1d": ("candles:1d", 1, 2), "5D": ("candles:5D", 6, 10),
+                  "15m": ("candles:15m", 7, 30),
+                  "1M": ("candles:1M", 8, 45),
                   "3M": ("candles:3M", 9, 120), "Q": ("candles:Q", 2, 105),
                   "6M": ("candles:6M", 2, 190), "Y": ("candles:Y", 2, 380),
                   "W": ("candles:W", 3, 3400), "M": ("candles:M", 4, 4200),
@@ -1536,6 +1545,30 @@ def _stock_out(data) -> dict:
         "available": False, "reason": "moomoo keys not configured"}
 
 
+@app.get("/api/stock/quotes")
+def stock_quotes(symbols: str):
+    """Batched header quotes for the Compare page — ONE snapshot call covers
+    every panel symbol (snapshot accepts up to 400 codes)."""
+    syms = [s.strip().upper() for s in symbols.split(",") if s.strip()][:12]
+    if not syms:
+        raise HTTPException(400, "symbols required")
+    if os.getenv("TA_STOCK_FIXTURES"):
+        from tradingagents_api import stock_fixtures
+        return {"available": True, "quotes": stock_fixtures.quotes_batch(syms)}
+    client = _market_client()
+    if client is None:
+        return {"available": False, "reason": "moomoo keys not configured"}
+    try:
+        snap = (client.snapshot([_stock_code(s) for s in syms]) or {}).get("snapshot_list") or []
+    except Exception as e:  # noqa: BLE001 — headers degrade, the page must not
+        return {"available": False, "reason": f"moomoo error: {str(e)[:140]}"}
+    by_code = {}
+    for item in snap:
+        if isinstance(item, dict) and item.get("code"):
+            by_code[str(item["code"]).split(".")[-1].upper()] = item
+    return {"available": True, "quotes": {s: by_code.get(s) for s in syms}}
+
+
 @app.get("/api/stock/{symbol}/quote")
 def stock_quote(symbol: str):
     code = _stock_code(symbol)
@@ -1551,15 +1584,17 @@ def stock_quote(symbol: str):
 
 
 @app.get("/api/stock/{symbol}/candles")
-def stock_candles(symbol: str, range: str = "D"):
+def stock_candles(symbol: str, range: str = "5D", ext: int = 0):
     if range not in _KLINE_WINDOWS:
         raise HTTPException(400, "range must be one of " + ",".join(_KLINE_WINDOWS))
     key, ktype, days = _KLINE_WINDOWS[range]
     start = (date.today() - timedelta(days=days)).isoformat()
 
     def fetch(c):
-        return {"kline_list": c.history_kline(_stock_code(symbol), start,
-                                              date.today().isoformat(), ktype=ktype)}
+        # extended_time (pre/after) only takes effect for US 1-min bars (ktype 1).
+        return {"kline_list": c.history_kline(
+            _stock_code(symbol), start, date.today().isoformat(), ktype=ktype,
+            extended_time=(ext or None) if ktype == 1 else None)}
 
     out = _stock_fetch(key, symbol, "ohlcv", fetch)
     if isinstance(out, dict) and "kline_list" in out:
@@ -1734,6 +1769,28 @@ def stock_earnings(symbol: str):
     if isinstance(out, dict):
         out.setdefault("available", True)
     return out
+
+
+@app.get("/api/stock/{symbol}/dividends")
+def stock_dividends(symbol: str):
+    """Dividend history for E/D chart markers. The live container key is
+    undocumented (HB §9.12: docs table lists only totals; verified rows carry
+    ex_date/dividend_per_share/currency) — accept the common shapes."""
+    out = _stock_fetch("dividends", symbol, "fundamentals",
+                       lambda c: c.dividends(_stock_code(symbol)))
+    if out is None:
+        return _stock_out(None)
+    if _is_unavailable(out):
+        return out
+    if isinstance(out, list):
+        rows = out
+    elif isinstance(out, dict):
+        rows = (out.get("list") or out.get("dividend_list") or out.get("records"))
+        if rows is None:  # unknown container key: first list-shaped value
+            rows = next((v for v in out.values() if isinstance(v, list)), [])
+    else:
+        rows = []
+    return {"available": True, "list": rows}
 
 
 @app.get("/api/stock/{symbol}/research")

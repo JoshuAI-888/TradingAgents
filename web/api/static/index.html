@@ -2616,8 +2616,8 @@ function cmpRegisterIndicators() {
         return { up: mid[i] + m * aw[i], mid: mid[i], dn: mid[i] - m * aw[i] }; }); } });
   KC.registerIndicator({ name: "SUPERT", shortName: "SUPERT", series: "price", calcParams: [10, 3],
     shouldOhlc: true, figures: [
-      { key: "up", title: "ST: ", type: "line", color: "#26c68c" },
-      { key: "dn", title: "ST: ", type: "line", color: "#f0544f" }],
+      { key: "up", title: "ST\u2191: ", type: "line", color: "#26c68c" },
+      { key: "dn", title: "ST\u2193: ", type: "line", color: "#f0544f" }],
     calc: (dl, ind) => { const [n, m] = ind.calcParams;
       const aw = wilder(tr(dl), n), out = [];
       let ub = null, lb = null, trend = 1, st = null;
@@ -2701,7 +2701,6 @@ function cmpCellHTML(c, i) {
               onclick="event.stopPropagation();cmpToggleEvents(${i})">E</button>
       <span style="flex:1"></span>
       <span class="cmp-ctl" id="cmp-ctl-${i}" onclick="event.stopPropagation()"></span>
-      ${st.cells.length > 1 ? `<button class="rng" title="Remove panel" onclick="event.stopPropagation();cmpDelCell(${i})">✕</button>` : ""}
     </div>
     <div class="kcwrap">
       <div class="readout" id="cmp-readout-${i}">${esc(c.sym)} · ${esc(c.range)}</div>
@@ -2726,7 +2725,10 @@ async function cmpLoadCell(i, force) {
   cmpApplyOvls(i);
   cmpApplyEvt(i);
   cmpBindSync(i);
-  if (c.events && !c._ev) cmpLoadEvents(i);
+  cmpEqualize();
+  // Events data loads for every panel — the "Next E" header chip shows
+  // regardless of the toggle; only the E/D canvas markers are gated by it.
+  if (!c._ev) cmpLoadEvents(i);
 }
 
 function cmpApplyOvls(i) {
@@ -2891,6 +2893,43 @@ function cmpApply(i) {
   klineApply(h);
   cmpApplyOvls(i);
   cmpApplyEvt(i);
+  cmpEqualize();
+}
+
+// Grid cells stretch to the row height; the chart canvas must fill them too.
+// Panels in span-less layouts equalize to the tallest chart; the 1+2 hero
+// spans two rows, so its target is two reference rows plus the grid gap.
+function cmpEqualize() {
+  // Debounced fill pass: every chart canvas must fill whatever height its grid
+  // cell ended up with (spanned heroes, unequal sub-pane counts). Chrome
+  // (header + readout + padding) is measured live from the least-stretched
+  // cell; the engine then derives each height as baseH + subs*84 via klineApply.
+  clearTimeout(cmpEqualize._t);
+  cmpEqualize._t = setTimeout(() => {
+    const hosts = window.__cmpHosts || [];
+    if (hosts.length < 2) return;
+    const rects = hosts.map(h => {
+      const el = document.getElementById(h.elId);
+      const cell = el && el.closest(".cmp-cell");
+      if (!el || !h.chart || !cell) return null;
+      return { el, kc: parseInt(el.style.height, 10) || 0, cell: cell.getBoundingClientRect().height };
+    });
+    if (rects.some(r => !r || !r.kc)) return;
+    let chrome = Infinity;
+    rects.forEach(r => { chrome = Math.min(chrome, r.cell - r.kc); });
+    if (!isFinite(chrome) || chrome <= 0) return;
+    let adjusted = false;
+    hosts.forEach((h, j) => {
+      const r = rects[j];
+      const want = Math.round(r.cell - chrome);
+      if (Math.abs(r.kc - want) < 2) return;
+      h.baseH = Math.max(200, want - (h.subsCur || []).length * 84);
+      klineApply(h);
+      adjusted = true;
+    });
+    // Adjusting one panel re-stretches the grid rows — re-run until settled.
+    if (adjusted) cmpEqualize();
+  }, 250);
 }
 
 function cmpToggleEvents(i, on) {
@@ -3006,7 +3045,7 @@ function cmpPickRender() {
     <div class="cmp-pick-row" onclick="cmpAssign(window.__cmpPickIdx,'${esc(r.symbol)}')">
       <b>${esc(r.symbol)}</b> <span class="faint">${esc(String(r.name || "").slice(0, 26))}</span>
       ${stars.includes(r.symbol) ? '<span class="g">★</span>' : '<span class="faint">☆</span>'}
-      <span style="margin-left:auto" class="mono">${fmtAuto(r.last_price ?? r.cur_price)}</span></div>`).join("") ||
+      ${(r.last_price ?? r.cur_price) != null ? `<span style="margin-left:auto" class="mono">${fmtAuto(r.last_price ?? r.cur_price)}</span>` : ""}</div>`).join("") ||
     '<div class="empty">No matches.</div>';
 }
 function cmpPickClose() { const b = document.getElementById("cmp-pick"); if (b) b.style.display = "none"; }
@@ -3135,7 +3174,13 @@ function cmpMount() {
   });
   st.cells.forEach((c, i) => {
     const ctl = document.getElementById("cmp-ctl-" + i);
-    if (ctl) { ctl.innerHTML = klineControlsHTML("cmp" + i, c); klineBindControls("cmp" + i, window.__cmpHosts[i]); }
+    if (ctl) {
+      ctl.innerHTML = klineControlsHTML("cmp" + i, c) +
+        (st.cells.length > 1 ? `<button class="rng" title="Remove panel" onclick="cmpDelCell(${i})">✕</button>` : "");
+      klineBindControls("cmp" + i, window.__cmpHosts[i]);
+    }
+    const chipEl = document.getElementById("cmp-next-" + i);
+    if (chipEl && c._ev && c._ev.next) chipEl.textContent = "Next E " + c._ev.next;
     const cellEl = document.getElementById("cmp-cell-" + i);
     if (cellEl) cellEl.addEventListener("pointermove", () => { window.__cmpPtr = i; }, true);
     const tfb = document.querySelector("[data-cmp" + i + "-tfbtn]");

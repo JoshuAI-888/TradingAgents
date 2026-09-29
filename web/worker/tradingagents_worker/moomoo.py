@@ -149,11 +149,15 @@ class MoomooClient:
         out = self.call("POST", "/quote/stock-screen", body=body)
         return (out.get("items") or []) if isinstance(out, dict) else []
 
-    def history_kline(self, symbol: str, start: str, end: str, ktype: int = 2, autype: int = 1) -> list:
-        """Date-windowed daily bars. NOTE: has_more is unreliable — page by date windows."""
-        out = self.call("GET", f"/quote/{symbol}/history-kline",
-                        query={"start": start, "end": end, "ktype": ktype, "autype": autype,
-                               "count": 1000})
+    def history_kline(self, symbol: str, start: str, end: str, ktype: int = 2, autype: int = 1,
+                      extended_time: int | None = None) -> list:
+        """Date-windowed bars (ktype 1..9 = 1m/D/W/M/Y/5/15/30/60m). NOTE: has_more
+        is unreliable — page by date windows. extended_time (US 1-min only):
+        1 = include pre/after market, 2 = include overnight."""
+        q = {"start": start, "end": end, "ktype": ktype, "autype": autype, "count": 1000}
+        if extended_time is not None:
+            q["extended_time"] = extended_time
+        out = self.call("GET", f"/quote/{symbol}/history-kline", query=q)
         return out.get("kline_list", []) if isinstance(out, dict) else []
 
     def find_news(self, keyword: str, sort_type: int = 2, limit: int = 20,
@@ -231,6 +235,11 @@ class MoomooClient:
 
     def earnings_price_move(self, symbol: str) -> dict:
         return self._get(f"/quote/{symbol}/financials/earnings-price-move")
+
+    def dividends(self, symbol: str) -> dict:
+        """Dividend history (max 100, newest first): ex_date, dividend_per_share,
+        currency — verified live (HB §9.12); container key is undocumented."""
+        return self._get(f"/quote/{symbol}/corporate-actions/dividends")
 
     def analyst_consensus(self, symbol: str) -> dict:
         return self._get(f"/quote/{symbol}/research/analyst-consensus")

@@ -79,6 +79,30 @@ def test_candles_ranges_and_validation(client):
     assert client.get("/api/stock/CHE/candles", params={"range": "2W"}).status_code == 400
 
 
+def test_candles_intraday_timeframes(client):
+    """Compare-page timeframes: 1-min (2 sessions × 390 bars) and 15-min."""
+    r1 = client.get("/api/stock/CHE/candles", params={"range": "1d"}).json()
+    assert r1["available"] is True and r1["range"] == "1d" and len(r1["bars"]) == 780
+    assert r1["bars"][0]["time_key"] < r1["bars"][1]["time_key"]
+    r15 = client.get("/api/stock/CHE/candles", params={"range": "15m"}).json()
+    assert r15["available"] is True and len(r15["bars"]) == 156
+
+
+def test_dividends_route(client):
+    body = client.get("/api/stock/CHE/dividends").json()
+    assert body["available"] is True and body["list"]
+    row = body["list"][0]
+    assert {"ex_date", "dividend_per_share", "currency"} <= set(row)
+
+
+def test_quotes_batch(client):
+    body = client.get("/api/stock/quotes", params={"symbols": "msft, AAPL"}).json()
+    assert body["available"] is True
+    assert set(body["quotes"]) == {"MSFT", "AAPL"}
+    assert body["quotes"]["MSFT"]["last_price"] > 0
+    assert client.get("/api/stock/quotes", params={"symbols": ""}).status_code == 400
+
+
 def test_intraday_sessions(client):
     body = client.get("/api/stock/CHE/intraday", params={"kind": "FULL"}).json()
     assert body["available"] is True
@@ -131,7 +155,7 @@ def test_earnings(client):
     body = client.get("/api/stock/CHE/earnings").json()
     assert body["available"] is True and len(body["list"]) == 3
     top = body["list"][0]
-    assert top["pub_trading_day_str"] == "2026-07-28"
+    assert top["pub_trading_day_str"] == "2025-07-28"
     assert top["close_price"] == 551.551 and top["last_close_price"] == 552.18
 
 
@@ -205,7 +229,8 @@ def test_estimates_stubbed(client, monkeypatch):
 
 def test_estimates_fixture_mode(client):
     body = client.get("/api/stock/CHE/estimates").json()
-    assert body["available"] is True and body["earnings_history"][0]["eps_actual"] == 5.27
+    assert body["available"] is True and body["earnings_history"][0]["eps_actual"] == 4.46
+    assert body["earnings_history"][-1]["quarter"] == "2025-06-30"
 
 
 def test_spa_catch_all_serves_index(client, monkeypatch, tmp_path):
