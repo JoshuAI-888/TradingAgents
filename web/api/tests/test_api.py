@@ -578,3 +578,31 @@ def test_groups_empty_universe(monkeypatch):
     api.db = FakeDb()
     r = client.get("/api/groups").json()
     assert r["available"] is False and "loader" in r["reason"]
+
+
+def test_concepts_filter_matches_list_membership(monkeypatch):
+    """Phase B: concepts is a list field; values[] filters match ANY overlap."""
+    _fresh_caches(monkeypatch)
+    monkeypatch.setattr(api, "_market_client", lambda: object())
+    fdb = FakeDb()
+    _seed_enrichment_rows(fdb)
+    for u in fdb._t("screener_universe"):
+        u["plates"] = ["Tech", "AI Computing"] if u["code"] == "US.AAPL" else ["Tech"]
+    api.db = fdb
+    import json as _json
+    flt = _json.dumps([{"field": "concepts", "values": ["ai computing"]}])
+    r = client.get(f"/api/screener?watchlist_only=0&src=moo&filters={flt}").json()
+    assert [row["symbol"] for row in r["rows"]] == ["AAPL"]   # case-insensitive overlap
+    assert r["matched"] == 1
+
+
+def test_moo_mode_still_serves_concepts(monkeypatch):
+    _fresh_caches(monkeypatch)
+    monkeypatch.setattr(api, "_market_client", lambda: object())
+    fdb = FakeDb()
+    _seed_enrichment_rows(fdb)
+    for u in fdb._t("screener_universe"):
+        u["plates"] = ["Tech", "AI Computing"]
+    api.db = fdb
+    r = client.get("/api/screener?watchlist_only=0&src=moo").json()
+    assert all("concepts" in row for row in r["rows"])        # taxonomy is moo-carried

@@ -542,9 +542,12 @@ def _apply_filters(rows: list[dict], filters: list[dict]) -> tuple[list[dict], l
     def keep(r: dict) -> bool:
         for f in active:
             vals = f.get("values")
-            if vals is not None:  # multi-select: keep when the value is one of them
+            if vals is not None:  # multi-select: keep on case-insensitive overlap
                 v = r.get(f.get("field"))
-                if v is None or str(v).lower() not in [str(x).lower() for x in vals]:
+                want = [str(x).lower() for x in vals]
+                have = [str(x).lower() for x in v] if isinstance(v, list) else (
+                    None if v is None else [str(v).lower()])
+                if not have or not set(have) & set(want):
                     return False
                 continue
             v = r.get(f.get("field"))
@@ -599,7 +602,7 @@ def _merge_universe_meta(rows: list[dict], market: str) -> list[dict]:
     meta = _universe_meta_cache.get("quotes", k)
     if meta is None:
         stored = db.select_all("screener_universe", {"market": f"eq.{market}"},
-                               "code,plate,stock_type,exchange")
+                               "code,plate,plates,stock_type,exchange")
         meta = {r["code"]: r for r in stored if r.get("code")}
         _universe_meta_cache.put("quotes", k, meta)
     if not meta:
@@ -610,6 +613,9 @@ def _merge_universe_meta(rows: list[dict], market: str) -> list[dict]:
             r.setdefault("plate", u.get("plate"))
             r.setdefault("stock_type", u.get("stock_type"))
             r.setdefault("exchange", u.get("exchange"))
+            plates = u.get("plates")
+            if plates:
+                r.setdefault("concepts", [p for p in plates if p != u.get("plate")])
     return rows
 
 
