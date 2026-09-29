@@ -45,8 +45,10 @@ def _first_divergence(before: str, after: str) -> str:
 
 def _similarity(before: str, after: str) -> float:
     from difflib import SequenceMatcher
+    # autojunk=False: its default treats frequent letters as junk on long
+    # sequences, collapsing real near-matches to ~0.02
     return SequenceMatcher(None, "".join(before.split()).lower(),
-                           "".join(after.split()).lower()).ratio()
+                           "".join(after.split()).lower(), autojunk=False).ratio()
 
 
 # The model occasionally micro-corrects grammar ("trader says" -> "traders say").

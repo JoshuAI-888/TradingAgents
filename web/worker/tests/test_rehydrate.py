@@ -48,8 +48,11 @@ def _seed(db):
 def test_legacy_detector_and_sanity():
     assert is_legacy_row(MANGLED) and not is_legacy_row("normal spaced text " * 40)
     assert _similarity("AB cdef.", "ab CD ef . ") == 1.0
-    assert _similarity("the trader says hold", "the traders say hold") > 0.99   # micro-grammar fix
-    assert _similarity("abcdef" * 10, "abcxef" + "zzz" * 20) < 0.5              # content loss
+    # realistic chunk size (~600 letters): one grammar micro-fix stays above the bar
+    clean = "the trader says hold at one x and will not add until a push through resistance. " * 7
+    fixed = clean.replace("the trader says", "the traders say", 1)
+    assert 0.99 <= _similarity(clean, fixed) <= 1.0
+    assert _similarity(clean, clean[: len(clean) // 2]) < 0.9              # content loss nowhere near the 0.99 bar
     chunks = list(_chunks("a" * 50, cap=20))
     assert chunks == ["a" * 20, "a" * 20, "a" * 10]
     # chunks stay small enough for a verbatim LLM echo
