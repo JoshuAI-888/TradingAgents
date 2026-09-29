@@ -442,6 +442,16 @@ function fmtClock(v) {
     hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
   return String(v).slice(11, 19);
 }
+// Dynamic decimals: a fixed 2dp renders a sub-penny price ($0.000001) as "0".
+// Small magnitudes earn more decimal places instead (zeros trimmed past 2dp).
+function fmtAuto(v) {
+  if (v == null || v === "" || isNaN(Number(v))) return "—";
+  const n = Number(v), a = Math.abs(n);
+  if (a === 0) return "0";
+  if (a >= 1) return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const dp = a >= 0.01 ? 4 : a >= 0.0001 ? 6 : 8;
+  return n.toFixed(dp).replace(/(\.\d\d\d*?)0+$/, "$1");
+}
 // ── screener state + helpers (moomoo-style Market Pulse screener) ──────
 try { window.__scr = JSON.parse(localStorage.getItem("scrState")) || {}; } catch (e) { window.__scr = {}; }
 window.__scr = Object.assign({ market: "US", watchlistOnly: false, filters: [], sort: "market_cap",
@@ -1175,7 +1185,7 @@ const pages = {
     let msPanel = "";
     if (ms?.available) {
       const idx = (ms.indices || []).map(x => `<div class="idx"><div class="nm">${esc(x.name)}</div>
-        <div class="px">${x.last != null ? esc(Number(x.last).toFixed(2)) : "—"}</div>
+        <div class="px">${x.last != null ? esc(fmtAuto(x.last)) : "—"}</div>
         <div class="ch ${x.pct >= 0 ? "g" : "r"}">${x.pct >= 0 ? "▲" : "▼"} ${fmtPct(x.pct)}</div></div>`).join("");
       const sec = (ms.sectors || []).map(x => `<div class="heat" style="background:${heat(x.pct)}" title="${esc(x.name || x.symbol)}">
         <div class="s">${esc(x.symbol)}</div><div class="v">${fmtPct(x.pct)}</div></div>`).join("");
@@ -1208,7 +1218,8 @@ const pages = {
         : `<span class="dim" title="${esc(r[k])}">${esc(String(r[k] || "").slice(0, 26))}</span>`,
       num: (r, k) => k === "market_cap" || k === "float_cap" ? `<span class="mono">${cap(r[k])}</span>`
         : k === "volume" || k === "turnover" || k === "shares" ? `<span class="mono">${r[k] != null ? (r[k] / 1e6).toFixed(2) + "M" : "—"}</span>`
-        : `<span class="mono">${num(r[k], k === "price" || k === "high52" || k === "low52" || k === "eps" ? 2 : 1)}</span>`,
+        : k === "price" || k === "high52" || k === "low52" || k === "eps" || k === "chg" ? `<span class="mono">${fmtAuto(r[k])}</span>`
+        : `<span class="mono">${num(r[k], 1)}</span>`,
       multi: (r, k) => `<span class="faint" style="font-size:11px">${esc(String(r[k] || "—").slice(0, 22))}</span>`,
       bool: (r, k) => r[k] ? '<span class="g">✓</span>' : '<span class="faint">—</span>',
     };
@@ -2166,7 +2177,7 @@ const repHost = klineHost({
     const list = repHost.chart.getDataList(), idx = list.indexOf(pd);
     const prev = idx > 0 ? list[idx - 1] : null;
     const chg = prev ? (pd.close - prev.close) / prev.close * 100 : null;
-    ro.innerHTML = `<b>${new Date(pd.timestamp).toISOString().slice(0, 10)}</b> O <b>${Number(pd.open).toFixed(2)}</b> · H <b>${Number(pd.high).toFixed(2)}</b> · L <b>${Number(pd.low).toFixed(2)}</b> · C <b>${Number(pd.close).toFixed(2)}</b> · Vol <b>${(pd.volume / 1e6).toFixed(1)}M</b>${chg != null ? ` · <span class="${chg >= 0 ? "g" : "r"}">${(chg >= 0 ? "+" : "") + chg.toFixed(2)}%</span>` : ""}`;
+    ro.innerHTML = `<b>${new Date(pd.timestamp).toISOString().slice(0, 10)}</b> O <b>${fmtAuto(pd.open)}</b> · H <b>${fmtAuto(pd.high)}</b> · L <b>${fmtAuto(pd.low)}</b> · C <b>${fmtAuto(pd.close)}</b> · Vol <b>${(pd.volume / 1e6).toFixed(1)}M</b>${chg != null ? ` · <span class="${chg >= 0 ? "g" : "r"}">${(chg >= 0 ? "+" : "") + chg.toFixed(2)}%</span>` : ""}`;
   },
 });
 repHost.update = patch => {
@@ -2454,7 +2465,12 @@ window.openStock = openStock;
 
 function stkSet(k, v) { stkState()[k] = v; renderStock(); }
 
-function stkFmt(v, dp) { return v == null ? "—" : Number(v).toLocaleString(undefined, { maximumFractionDigits: dp ?? 2 }); }
+function stkFmt(v, dp) {
+  if (v == null) return "—";
+  const n = Number(v);
+  // sub-$1 prices need dynamic decimals (a sub-penny 0.000001 must not read "0")
+  return Math.abs(n) < 1 ? fmtAuto(n) : n.toLocaleString(undefined, { maximumFractionDigits: dp ?? 2 });
+}
 function stkMoney(v) {
   if (v == null || v === "") return "—";
   const n = Number(v), a = Math.abs(n);
@@ -2506,7 +2522,7 @@ function stkStmtVal(name, it) {
   const raw = stkStmtNum(it);
   if (raw == null || isNaN(raw)) return null;
   const nm = String(name || "");
-  if (/per share|\beps\b/i.test(nm)) return raw.toFixed(2);
+  if (/per share|\beps\b/i.test(nm)) return fmtAuto(raw);
   if (/coverage/i.test(nm)) return raw.toFixed(1) + "×";
   if (/debt to equity/i.test(nm)) return raw.toFixed(2);  // a multiple — "…Equity Ratio" substring would misfire as %
   if (/\b(margin|roe|roa|growth|return|yield|payout|expense ratio|tax rate|turnover rate|equity ratio|debt to asset|rate)\b/i.test(nm))
@@ -2716,7 +2732,7 @@ function stkCrosshair(d) {
     const list = stkHost.chart.getDataList(), i2 = list.indexOf(p);
     const prev = i2 > 0 ? list[i2 - 1] : null;
     const chg = prev ? (p.close - prev.close) / prev.close * 100 : null;
-    ro.innerHTML = `<b>${esc(stkTime(p.timestamp))}</b> · O <b>${Number(p.open).toFixed(2)}</b> H <b>${Number(p.high).toFixed(2)}</b> L <b>${Number(p.low).toFixed(2)}</b> C <b>${Number(p.close).toFixed(2)}</b>${chg != null ? ` · Chg <b class="${chg >= 0 ? "g" : "r"}">${stkPct(chg)}</b>` : ""} · Vol <b>${stkMoney(p.volume)}</b> · Turnover <b>${stkMoney(p.turnover)}</b>`;
+    ro.innerHTML = `<b>${esc(stkTime(p.timestamp))}</b> · O <b>${fmtAuto(p.open)}</b> H <b>${fmtAuto(p.high)}</b> L <b>${fmtAuto(p.low)}</b> C <b>${fmtAuto(p.close)}</b>${chg != null ? ` · Chg <b class="${chg >= 0 ? "g" : "r"}">${stkPct(chg)}</b>` : ""} · Vol <b>${stkMoney(p.volume)}</b> · Turnover <b>${stkMoney(p.turnover)}</b>`;
   } catch (e) {}
 }
 
