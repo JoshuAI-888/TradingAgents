@@ -884,3 +884,18 @@ moomoo data, not a unit bug). FakeDb gained in.() support; meta cache is
 DISK-backed (tmpdir) — tests must inject a no-op cache, monkeypatching None
 still rebuilds the persistent TtlCache. Web suites 112 green; pushed both
 branches (cf8eb77, a02c487).
+
+## 2026-09-29 (late V) — dynamic decimals so sub-penny prices don't read "0"
+
+fmtAuto(v): ≥1 → 2dp comma-grouped; 0.01–1 → 4dp; 0.0001–0.01 → 6dp;
+below → 8dp, trailing zeros trimmed past 2dp (0.95→"0.95", 0.007→"0.007",
+0.000001→"0.000001"). Wired into: screener table price/high52/low52/eps/
+chg, watchlist quote panel, stkFmt (stock-page price header + quote grid),
+both OHLC hover readouts, eps/per-share financial branch. Exports already
+carried raw values. Verified in the user's live tab: price-asc shows
+MRZM/PSYC/PYCT "0.000001"; desc shows BRK.A "753,875.00"; tab restored to
+Market Cap ↓. NOTE: commit 155295c's title got shell-mangled ($0 expanded
+to /bin/zsh — never use $ inside double-quoted git -m); left unamended to
+avoid a pointless double redeploy. Chart y-axis precision (klinecharts
+internal) still fixed 2dp — only matters if a sub-penny stock page chart
+is ever inspected closely.
