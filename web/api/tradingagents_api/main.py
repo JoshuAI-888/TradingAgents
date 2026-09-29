@@ -1790,6 +1790,11 @@ def stock_dividends(symbol: str):
             rows = next((v for v in out.values() if isinstance(v, list)), [])
     else:
         rows = []
+    # Live wire format is "2026/08/10" — normalize to ISO so chart event
+    # markers can match bars by date string.
+    for r in rows:
+        if isinstance(r, dict) and r.get("ex_date"):
+            r["ex_date"] = str(r["ex_date"]).replace("/", "-")
     return {"available": True, "list": rows}
 
 

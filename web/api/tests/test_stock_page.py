@@ -93,6 +93,7 @@ def test_dividends_route(client):
     assert body["available"] is True and body["list"]
     row = body["list"][0]
     assert {"ex_date", "dividend_per_share", "currency"} <= set(row)
+    assert "/" not in row["ex_date"]  # live wire format normalized to ISO
 
 
 def test_quotes_batch(client):
