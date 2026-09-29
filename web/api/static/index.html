@@ -362,6 +362,34 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .kcwrap.kc-full{position:fixed;inset:0;z-index:80;background:var(--bg);padding:12px 14px;overflow:auto}
 .kcwrap.kc-full .chartbox{display:flex;flex-direction:column}
 .kcwrap.kc-full #stk-kc,.kcwrap.kc-full #rep-kc{flex:none;height:auto}
+/* compare page (multi-chart workspace) */
+.cmp-grid{display:grid;gap:10px;margin-top:10px}
+.cmp-grid[data-layout="1"]{grid-template-columns:1fr}
+.cmp-grid[data-layout="2h"]{grid-template-columns:1fr 1fr}
+.cmp-grid[data-layout="2v"]{grid-template-columns:1fr}
+.cmp-grid[data-layout="1+2"]{grid-template-columns:1.65fr 1fr}
+.cmp-grid[data-layout="1+2"] .cmp-cell:first-child{grid-row:span 2}
+.cmp-grid[data-layout="2x2"]{grid-template-columns:1fr 1fr}
+.cmp-cell{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:6px 4px 2px}
+.cmp-cell.act{border-color:#2c7a8c}
+.cmp-chead{display:flex;gap:6px;align-items:center;padding:0 6px 6px;flex-wrap:wrap}
+.cmp-chead .sym{font-weight:700;min-width:52px}
+.cmp-ctl{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.cmp-drawer{position:fixed;top:54px;right:12px;bottom:12px;width:300px;overflow:auto;z-index:60;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 8px 30px rgba(0,0,0,.45)}
+.cmp-sec{font-size:10px;color:#5c6f86;text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px}
+.cmp-row{display:flex;gap:6px;align-items:center;padding:3px 0}
+.cmp-num{width:58px;background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:2px 5px;font-size:11px}
+.cmp-sel{width:100%;margin-top:6px;background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:4px}
+.cmp-pick{position:fixed;inset:0;background:rgba(4,8,14,.6);z-index:70;display:flex;align-items:flex-start;justify-content:center;padding-top:12vh}
+.cmp-pick-box{width:min(430px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.cmp-pick-box input{width:100%;box-sizing:border-box;background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:8px;padding:7px 9px;margin-bottom:8px}
+.cmp-pick-list{max-height:46vh;overflow:auto}
+.cmp-pick-row{display:flex;gap:8px;align-items:center;padding:6px;border-radius:7px;cursor:pointer}
+.cmp-pick-row:hover{background:var(--panel2)}
+.cmp-pop{position:fixed;z-index:80;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:255px;box-shadow:0 8px 30px rgba(0,0,0,.5);font-size:11px}
+.cmp-pop-t{font-weight:700;margin-bottom:4px}
+.cmp-pop-r{display:flex;justify-content:space-between;gap:8px;padding:1px 0}
+.cmp-pop-h{margin-top:4px;font-weight:700;color:#5c6f86;font-size:10px;text-transform:uppercase}
 /* ticker switcher + picker */
 .stk-switch{position:relative;min-width:240px}
 .stk-switch input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 11px;font-size:12.5px}
@@ -395,6 +423,7 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
     <div class="nav">
       <button data-page="home" class="on">Market Pulse</button>
       <button data-page="quotes">Quotes</button>
+      <button data-page="compare">Compare</button>
       <button data-page="analyze">Analyze</button>
       <button data-page="ledger">Ledger</button>
       <button data-page="settings">Settings</button>
@@ -454,7 +483,7 @@ function fmtAuto(v) {
 }
 // ── screener state + helpers (moomoo-style Market Pulse screener) ──────
 try { window.__scr = JSON.parse(localStorage.getItem("scrState")) || {}; } catch (e) { window.__scr = {}; }
-window.__scr = Object.assign({ market: "US", watchlistOnly: false, filters: [], sort: "market_cap",
+window.__scr = Object.assign({ market: "US", src: "moo", watchlistOnly: false, filters: [], sort: "market_cap",
                  dir: 2, watchlistSyms: [],
                  cols: ["symbol", "name", "price", "pct", "chg", "market_cap", "volume",
                         "pe_ttm", "pb", "volume_ratio", "turnover_rate", "div_yield"],
@@ -466,7 +495,6 @@ const SCR_FIELDS = {
   div_yield: "Div Yield TTM", div_ttm: "Dividend TTM", eps: "EPS", amplitude: "Range %",
   bid_ask_ratio: "Bid/Ask Ratio %", high52: "52w High", low52: "52w Low",
 };
-const SCR_TECH = ["MA", "EMA", "KDJ", "RSI", "MACD", "BOLL"];
 // full column catalog: key → [label, kind] (kind drives filter UI + cell format)
 const SCR_COLS = {
   symbol: ["Symbol", "text"], name: ["Stock Name", "text"], stock_type: ["Type", "multi"],
@@ -692,12 +720,11 @@ function scrToggleCol(k) {
   if (state.page === "home") scrShowLoading("Updating column layout…");
   showPage("home");
 }
-const SCR_FIN = ["ROE", "Net Profit", "Net Profit GR YOY", "Revenue", "Revenue GR", "Gross Margin",
-                 "Net Margin", "Debt to Asset", "ROA TTM", "Operating Margin TTM"];
 function scrPersist() { try { localStorage.setItem("scrState", JSON.stringify(window.__scr)); } catch (e) {} }
 function scrLoadingFor(k, v) {
   if (k === "etfs") return v ? "Fetching stocks + ETFs…" : "Fetching common stocks only…";
   if (k === "watchlistOnly") return v ? "Fetching your saved watchlist…" : "Fetching the whole US market…";
+  if (k === "src") return v === "yf" ? "Switching to YFinance-enriched data…" : "Switching to strict Moomoo data…";
   if (k === "page") return `Loading page ${v} of ${Math.max(1, Math.ceil((window.__scr.matched || 0) / (window.__scr.pageSize || 500)))}…`;
   if (k === "pageSize") return `Changing page size to ${v} rows…`;
   if (k === "filters") return "Applying filters…";
@@ -705,7 +732,7 @@ function scrLoadingFor(k, v) {
   return "Refreshing screener data…";
 }
 function scrSet(k, v) {
-  if (k === "page" || k === "pageSize" || k === "etfs" || k === "watchlistOnly" || k === "filters" || k === "market") {
+  if (k === "page" || k === "pageSize" || k === "etfs" || k === "watchlistOnly" || k === "filters" || k === "market" || k === "src") {
     window.__scr[k] = v; scrPersist();
     if (state.page === "home") scrShowLoading(scrLoadingFor(k, v));
     showPage("home");
@@ -788,8 +815,67 @@ async function toggleWatch(symbol) {
 }
 let scrDraft = [];
 let scrTab = "quotes";
-function scrDraftAdd(field) {
-  if (!scrDraft.find(f => f.field === field)) scrDraft.push({ field, min: null, max: null });
+// ── Phase B: live Technical / Financial filter catalogs (yf-sourced) ──
+const TECH_FIELDS = {
+  rsi14: "RSI (14)", sma20_pos: "Price vs SMA20 %", sma50_pos: "Price vs SMA50 %",
+  sma200_pos: "Price vs SMA200 %", perf_w: "Perf Week %", perf_m: "Perf Month %",
+  perf_q: "Perf Quarter %", perf_h: "Perf Half Year %", perf_y: "Perf Year %",
+  perf_ytd: "Perf YTD %", vol_w: "Volatility Week %", vol_m: "Volatility Month %",
+  beta: "Beta", atr14: "ATR (14)",
+};
+const FIN_FIELDS = {
+  forward_pe: "Fwd P/E", peg: "PEG", ps: "P/S", pcf: "P/C", pfcf: "P/FCF",
+  ev_ebitda: "EV/EBITDA", ev_sales: "EV/Sales", roa: "ROA %", roe: "ROE %",
+  current_ratio: "Current Ratio", quick_ratio: "Quick Ratio", lt_debt_eq: "LT Debt/Equity %",
+  total_debt_eq: "Total Debt/Equity", gross_margin: "Gross Margin %",
+  operating_margin: "Operating Margin %", net_margin: "Net Margin %",
+  revenue_growth: "Revenue Growth %", eps_growth: "EPS Growth %",
+  short_float: "Short Float %", inst_own: "Inst. Own %", insider_own: "Insider Own %",
+  analyst_recom: "Analyst Recom.", target_price: "Target Price", payout_ratio: "Payout Ratio",
+};
+const SIG_DEFS = {
+  new_high: { label: "⚡ New High", title: "At a 52-week high", def: { field: "new_high", values: [true] } },
+  new_low: { label: "⚡ New Low", title: "At a 52-week low", def: { field: "new_low", values: [true] } },
+  oversold: { label: "⚡ Oversold", title: "RSI(14) ≤ 30 (Data: YFinance)", def: { field: "rsi14", max: 30 } },
+  overbought: { label: "⚡ Overbought", title: "RSI(14) ≥ 70 (Data: YFinance)", def: { field: "rsi14", min: 70 } },
+  unusual_vol: { label: "⚡ Unusual Volume", title: "Volume ratio ≥ 2.5×", def: { field: "volume_ratio", min: 2.5 } },
+};
+const sigOn = n => (window.__scr.filters || []).some(f => JSON.stringify(f) === JSON.stringify(SIG_DEFS[n].def));
+function scrSignal(name) {
+  const d = SIG_DEFS[name]; if (!d) return;
+  const st = window.__scr;
+  const on = sigOn(name);
+  st.filters = st.filters.filter(f => JSON.stringify(f) !== JSON.stringify(d.def));
+  if (!on) st.filters.push(JSON.parse(JSON.stringify(d.def)));
+  scrPersist(); showPage("home");
+}
+function scrTaxonomy(field, val) {
+  const st = window.__scr;
+  st.filters = st.filters.filter(f => f.field !== field);
+  if (val) st.filters.push({ field, values: [val] });
+  scrPersist(); showPage("home");
+}
+function scrTickers(v) {
+  const st = window.__scr;
+  st.filters = st.filters.filter(f => f.field !== "symbol");
+  const list = String(v || "").split(/[,\s]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
+  if (list.length) st.filters.push({ field: "symbol", values: list });
+  scrPersist(); showPage("home");
+}
+async function scrLoadTaxonomy() {
+  const st = window.__scr;
+  for (const [fld, id] of [["plate", "scr-industry"], ["concepts", "scr-concepts"], ["exchange", "scr-exchange"]]) {
+    try {
+      const r = await api("/api/screener/facets?field=" + fld + "&market=" + st.market + (st.watchlistOnly ? "&watchlist_only=1" : ""));
+      const el = document.getElementById(id); if (!el) continue;
+      const cur = (st.filters.find(f => f.field === fld) || {}).values || [];
+      el.innerHTML = '<option value="">' + el.options[0].text + '</option>' + (r.values || []).slice(0, 60).map(v =>
+        `<option value="${esc(v.value)}" ${cur.includes(v.value) ? "selected" : ""}>${esc(v.value)} (${v.count})</option>`).join("");
+    } catch (e) {}
+  }
+}
+function scrDraftAdd(field, label) {
+  if (!scrDraft.find(f => f.field === field)) scrDraft.push({ field, min: null, max: null, _label: label || field });
   scrRenderModal();
 }
 function scrDraftRemove(i) { scrDraft.splice(i, 1); scrRenderModal(); }
@@ -814,18 +900,23 @@ function scrRenderModal() {
     m.style.cssText = "position:fixed;inset:0;background:rgba(4,8,14,.72);z-index:60;display:flex;align-items:center;justify-content:center";
     document.body.appendChild(m);
   }
-  const fieldBtn = f => {
-    const on = scrTab === "quotes";
-    return `<button class="mfld ${on ? "" : "off"}" ${on ? `onclick="scrDraftAdd('${f}')"` : "disabled"}>${esc(f)}</button>`;
+  const live = (window.__scr.src || "moo") === "yf";
+  const fieldBtn = ([key, label], tabLive) => {
+    const on = scrTab === tabLive && (live || tabLive === "quotes");
+    const why = live || tabLive === "quotes" ? "" : " · needs Data: YFinance";
+    return `<button class="mfld ${on ? "" : "off"}" ${on ? `onclick="scrDraftAdd('${key}','${esc(label)}')"` : "disabled"} title="${esc(label)}${why}">${esc(label)}</button>`;
   };
-  const quotes = Object.values(SCR_FIELDS).map(fieldBtn).join("");
-  const tech = SCR_TECH.map(f => `<button class="mfld off" disabled>${f}</button>`).join("");
-  const fin = SCR_FIN.map(f => `<button class="mfld off" disabled>${f}</button>`).join("");
+  const quotes = Object.entries(SCR_FIELDS).map(e => fieldBtn(e, "quotes")).join("");
+  const tech = Object.entries(TECH_FIELDS).map(e => fieldBtn(e, "tech")).join("");
+  const fin = Object.entries(FIN_FIELDS).map(e => fieldBtn(e, "fin")).join("");
   const tabBtn = (id, label) => `<button class="mtab ${scrTab === id ? "on" : ""}" onclick="scrModalTab('${id}')">${label}</button>`;
   const tabs = scrTab === "quotes" ? quotes : scrTab === "tech" ? tech : scrTab === "fin" ? fin : "";
   const note = (scrTab === "tech" || scrTab === "fin")
-    ? `<div class="mnote">These ${esc(scrTab)} filters exist in moomoo's screen API but the indicator/financial property dictionary is undocumented — they light up once mapped. Quotes filters are live.</div>` : "";
-  const sel = scrDraft.map((f, i) => `<div class="msel"><b>${esc(SCR_FIELDS[f.field] || f.field)}</b>
+    ? `<div class="mnote">${live
+        ? "These filters run on YFinance-enriched + computed technicals (updated nightly)."
+        : "Technical &amp; financial filters run on YFinance-enriched data — switch <b>Data: YFinance</b> in the toolbar to enable them."}</div>`
+    : "";
+  const sel = scrDraft.map((f, i) => `<div class="msel"><b>${esc(f._label || SCR_FIELDS[f.field] || FIELD_LABELS[f.field] || f.field)}</b>
       <input type="number" placeholder="min" value="${f.min ?? ""}" oninput="scrDraftVal(${i},'min',this.value)">
       <input type="number" placeholder="max" value="${f.max ?? ""}" oninput="scrDraftVal(${i},'max',this.value)">
       <a href="#" onclick="scrDraftRemove(${i});return false" class="chip-x">×</a></div>`).join("")
@@ -854,6 +945,7 @@ const FIELD_LABELS = { ...SCR_FIELDS, revenue_growth: "Operating Revenue Growth 
   roe: "ROE %", roe_yoy: "ROE YoY Growth %", gross_margin: "Gross Margin %", net_margin: "Net Margin %",
   debt_ratio: "Debt to Asset Ratio %", op_ebt: "OP/EBT %", eps_growth: "EPS YoY Growth %",
   rsi14: "RSI (1D, 14)", sector: "Sector", new_low_10d: "New Low: 10D", float_cap: "Float Market Cap" };
+Object.assign(FIELD_LABELS, TECH_FIELDS, FIN_FIELDS);
 const fldLabel = f => FIELD_LABELS[f.field] || SCR_FIELDS[f.field] || f.field;
 const fldStr = f => fldLabel(f) + (f.min != null ? " ≥" + f.min : "") + (f.min != null && f.max != null ? "~" : "") + (f.max != null ? " ≤" + f.max : "");
 
@@ -1112,7 +1204,7 @@ const pages = {
     const effFilters = st.filters.some(f => f.field === "stock_type") ? st.filters
       : [...st.filters, { field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }];
     const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
-      filters: JSON.stringify(effFilters), sort: st.sort, direction: st.dir,
+      filters: JSON.stringify(effFilters), sort: st.sort, direction: st.dir, src: st.src || "moo",
       limit: String(st.pageSize || 500), offset: String(((st.page || 1) - 1) * (st.pageSize || 500)) });
     // An applied preset runs SERVER-SIDE (moomoo's own screening backend), so
     // its results and result counts match moomoo.com/screener 1:1. Manual
@@ -1237,8 +1329,8 @@ const pages = {
       <td class="mono dim">${i + 1}</td>
       ${st.cols.map(k => `<td>${(cellFmt[SCR_COLS[k][1]] || cellFmt.num)(r, k)}</td>`).join("")}
       <td><button class="starbtn ${stars.includes(r.symbol) ? "on" : ""}" title="watchlist" onclick="toggleWatch('${esc(r.symbol)}')">${stars.includes(r.symbol) ? "★" : "☆"}</button></td></tr>`).join("");
-    const colChips = st.filters.map((f, i) => `<span class="chip-f">${esc(SCR_FIELDS[f.field] || f.field)}
-      ${f.min != null ? "≥ " + f.min : ""}${f.min != null && f.max != null ? " · " : ""}${f.max != null ? "≤ " + f.max : ""}
+    const colChips = st.filters.map((f, i) => `<span class="chip-f">${esc(f._label || SCR_FIELDS[f.field] || FIELD_LABELS[f.field] || f.field)}
+      ${f.values ? "= " + f.values.join(", ") : ""}${f.min != null ? "≥ " + f.min : ""}${f.min != null && f.max != null ? " · " : ""}${f.max != null ? "≤ " + f.max : ""}
       <a href="#" onclick="scrRemoveFilter(${i});return false" class="chip-x">×</a></span>`).join("");
     const colFilChips = Object.entries(st.colFilters).map(([k, cf]) => {
       const label = SCR_COLS[k] ? SCR_COLS[k][0] : k;
@@ -1270,12 +1362,20 @@ const pages = {
     ${msPanel}
     <div class="scr-grid">
       <div class="panel scr-main">
-        <h3 class="sec">Screener <small>${scr.server_side ? "server-side execution — matches moomoo.com/screener · " + esc(scr.preset_name || st.activePreset || "") + (execd && execd.pending && execd.pending.length ? " · not yet applied server-side: " + esc(execd.pending.join(", ")) : "") : "moomoo data · " + (st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: " + (scr.universe_loaded ? "full " + esc(st.market) + " market" + (scr.universe_as_of ? " · quotes as of " + fmtTs(scr.universe_as_of) : "") : "live slices — run ↻ Load full market"))}</small></h3>
+        <h3 class="sec">Screener <small>${scr.server_side ? "server-side execution — matches moomoo.com/screener · " + esc(scr.preset_name || st.activePreset || "") + (execd && execd.pending && execd.pending.length ? " · not yet applied server-side: " + esc(execd.pending.join(", ")) : "") : "moomoo data · " + (st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: " + (scr.universe_loaded ? "full " + esc(st.market) + " market" + (scr.universe_as_of ? " · quotes as of " + fmtTs(scr.universe_as_of) : "") : "live slices — run ↻ Load full market")) + (st.src === "yf" ? " · Data: YFinance" + (scr.enrich_as_of ? " as of " + fmtTs(scr.enrich_as_of) : "") : "")}</small></h3>
         <div class="scr-toolbar">
           <label class="faint">Market</label>
           <select id="scr-market" onchange="scrSet('market', this.value)">
             <option ${st.market === "US" ? "selected" : ""}>US</option><option ${st.market === "HK" ? "selected" : ""}>HK</option>
           </select>
+          <select title="Data source — Moomoo strict, or YFinance-enriched (adds fundamentals & computed technicals)" onchange="scrSet('src', this.value)">
+            <option value="moo" ${st.src !== "yf" ? "selected" : ""}>Data: Moomoo</option>
+            <option value="yf" ${st.src === "yf" ? "selected" : ""}>Data: YFinance</option>
+          </select>
+          <select id="scr-industry" title="Industry (moomoo plate)" onchange="scrTaxonomy('plate', this.value)"><option value="">Industry: All</option></select>
+          <select id="scr-concepts" title="Concepts board (moomoo concepts plates)" onchange="scrTaxonomy('concepts', this.value)"><option value="">Concepts: All</option></select>
+          <select id="scr-exchange" title="Exchange" onchange="scrTaxonomy('exchange', this.value)"><option value="">Exchange: All</option></select>
+          <input id="scr-tickers" placeholder="Tickers: NVDA, AAPL" title="Comma-separated tickers" style="background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;width:140px" onchange="scrTickers(this.value)">
           <label class="switch"><input type="checkbox" id="scr-wl" ${st.watchlistOnly ? "checked" : ""} onchange="scrSet('watchlistOnly', this.checked)"><i></i> Watchlist only</label>
           <label class="switch" title="moomoo's screener count includes ETFs — untick for common stocks only"><input type="checkbox" ${st.etfs ? "checked" : ""} onchange="scrSet('etfs', this.checked)"><i></i> Include ETFs</label>
           <button class="btn ghost" onclick="openFilterModal()">＋ Add Filter</button>
@@ -1292,6 +1392,9 @@ const pages = {
           <span class="mono dim" style="margin-left:auto">Result: ${(scr.matched ?? rows.length).toLocaleString()} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown.toLocaleString() : ""}</span>
         </div>
         ${allChips ? `<div class="scr-chips">${allChips}</div>` : ""}
+        <div class="scr-toolbar" style="margin-bottom:6px">${Object.keys(SIG_DEFS).map(n =>
+          `<button class="btn ghost" style="padding:2px 9px;font-size:11px;${sigOn(n) ? "border-color:#3a76dd;color:#8ab4ff" : ""}" title="${esc(SIG_DEFS[n].title)}" onclick="scrSignal('${n}')">${SIG_DEFS[n].label}</button>`).join("")}
+        <span class="faint" style="font-size:10px">quick signals</span></div>
         ${(scr.skipped_filters || []).length ? `<div class="delay-note" style="margin-bottom:8px">${scr.skipped_filters.length} filter(s) skipped until factor data lands: ${scr.skipped_filters.map(f => esc(SCR_FIELDS[f] || f)).join(", ")}</div>` : ""}
         ${prog ? `<div class="scr-prog"><div class="bar"><i style="width:${(progPct || 5).toFixed(0)}%;background:#3a76dd"></i><i style="width:${100 - (progPct || 5)}%;background:#33415a"></i></div><span class="mono faint">${esc(prog.msg)}${prog.status ? " · " + esc(prog.status) : ""}</span></div>` : ""}
         <div class="scr-scroll">${table}</div>
@@ -1307,7 +1410,7 @@ const pages = {
         <div class="faint" style="font-size:10px;margin-top:6px">Exports above: "page" = the rows on screen; "all" = the full filtered set in the current sort order.</div>
         <div class="faint" style="font-size:10px;margin-top:6px">${st.watchlistOnly
           ? "Watchlist universe = tickers saved in TradingAgents (☆). Add with the star, or from the Analyze page."
-          : (scr.universe_loaded ? "Full stored universe — every listing moomoo\u2019s plate enumeration returned, refreshed by the loader job. Technical &amp; financial-factor filters land once moomoo\u2019s indicator dictionary is mapped." : "Live fallback slices (~1,200 stocks). Run \u219b Load full market to enumerate every listing.")} Technical &amp; financial-factor server filters are coming once moomoo\u2019s property dictionary is mapped. moomoo\u2019s app total counts every instrument type (ETFs, warrants, indices); this screener lists common stocks by default — use a Type filter to see the rest.</div>
+          : (scr.universe_loaded ? "Full stored universe — every listing moomoo\u2019s plate enumeration returned, refreshed by the loader job. Technical &amp; financial filters: switch <b>Data: YFinance</b> above — fundamentals and computed technicals (RSI, SMA position, performance, volatility) become filterable." : "Live fallback slices (~1,200 stocks). Run \u219b Load full market to enumerate every listing.")} Fundamentals &amp; computed-technical filters (RSI, SMA position, performance, volatility) run on <b>Data: YFinance</b>. moomoo\u2019s app total counts every instrument type (ETFs, warrants, indices); this screener lists common stocks by default — use a Type filter to see the rest.</div>
       </div>
       <div class="panel scr-rail">
         <h3 class="sec">Recommended Screeners <small>${(rail.universe_rows ?? 0).toLocaleString()} rows scored · top 3 each</small></h3>
@@ -1948,7 +2051,7 @@ function klineEnsure(h) {
   const c = KC.init(el);
   try { c.setLocale("en-US"); c.setPriceVolumePrecision(2, 0); } catch (e) {}
   klineTheme(c);
-  c.subscribeAction("onCrosshair", d => { try { h.crosshair && h.crosshair(d, c); } catch (e) {} });
+  c.subscribeAction("onCrosshairChange", d => { try { h.crosshair && h.crosshair(d, c); } catch (e) {} });
   window.addEventListener("resize", () => { try { c.resize(); } catch (e) {} });
   h.chart = c;
   __kcHosts.push(h);
@@ -1960,6 +2063,7 @@ function klineTeardown(h) {
   const i = __kcHosts.indexOf(h);
   if (i >= 0) __kcHosts.splice(i, 1);
   h.chart = null; h.subsCur = null; h.maCur = null; h.emaCur = null; h.builtType = null; h.staticOverlays = [];
+  h.ovlsCur = null; h.evtCur = null; h.syncBound = false;
 }
 
 function klineCreate(h, value, paneId, paneOpts) {
@@ -2149,6 +2253,808 @@ function klineSyncControls(pfx, st) {
   document.querySelectorAll(`[data-${pfx}-s]`).forEach(cb =>
     cb.checked = Array.isArray(st.subs) && st.subs.includes(cb.getAttribute(`data-${pfx}-s`)));
 }
+
+// ── Compare page — TradingView-style multi-chart workspace ───────────
+// One klineHost per panel (engine is instance-based: stock page + report
+// dossier already run concurrently). Tickers come from the portal watchlist;
+// volume profile / custom indicators are computed client-side from moomoo
+// OHLCV (no volume-by-price endpoint exists — docs/compare-spec.md).
+const CMP_LAYOUTS = [["1", "Single"], ["2h", "Split"], ["2v", "Stacked"], ["1+2", "1+2"], ["2x2", "2×2"]];
+const CMP_TFS = ["1d", "5D", "15m", "1M", "3M", "Q", "6M", "Y", "W", "M", "10Y"];
+const CMP_MAIN = [["VP", "Volume Profile"], ["DONCH", "Donchian (20)"],
+                  ["KELT", "Keltner (20,2)"], ["SUPERT", "Supertrend (10,3)"], ["PIVOT", "Pivot Points"],
+                  ["VWAP", "VWAP"], ["SAR", "Parabolic SAR"]];
+const CMP_SUBS_EXTRA = [["ATR", "ATR(14)"], ["AROON", "Aroon(14)"], ["AROONOSC", "Aroon Osc"],
+                        ["MFI", "MFI(14)"], ["FORCE", "Force Index"], ["RVOL", "Relative Volume"],
+                        ["PERF", "Perf %"], ["STOCHF", "Stoch FAST"], ["OBV", "On-Balance Volume"],
+                        ["DMI", "DMI / ADX"]];
+const CMP_OVL_PARAMS = { VP: [20, 24, 0.7], DONCH: [20], KELT: [20, 2], SUPERT: [10, 3] };
+const CMP_DEFAULT = { layout: "1+2", sync: { ticker: true, tf: true, cross: true }, active: 0,
+  cells: [
+    { sym: "MSFT", range: "Q", mode: "candle", ma: [20, 50], ema: false, boll: false, subs: ["VOL"],
+      events: true, ext: false, ovls: [{ name: "VP", params: [20, 24, 0.7] }], _maLast: [20, 50], _emaLast: [20, 50] },
+    { sym: "AAPL", range: "5D", mode: "candle", ma: false, ema: false, boll: false, subs: ["VOL"],
+      events: true, ext: false, ovls: [], _maLast: [20, 50], _emaLast: [20, 50] },
+    { sym: "NVDA", range: "5D", mode: "candle", ma: false, ema: false, boll: false, subs: ["VOL"],
+      events: false, ext: false, ovls: [], _maLast: [20, 50], _emaLast: [20, 50] }] };
+
+function cmpState() {
+  if (!window.__cmp || !Array.isArray(window.__cmp.cells) || !window.__cmp.cells.length) {
+    try { window.__cmp = JSON.parse(localStorage.getItem("cmp_state") || "null"); } catch (e) { window.__cmp = null; }
+    if (!window.__cmp || !Array.isArray(window.__cmp.cells) || !window.__cmp.cells.length)
+      window.__cmp = JSON.parse(JSON.stringify(CMP_DEFAULT));
+    window.__cmp.sync = Object.assign({ ticker: true, tf: true, cross: true }, window.__cmp.sync || {});
+  }
+  return window.__cmp;
+}
+function cmpSave() { try { localStorage.setItem("cmp_state", JSON.stringify(window.__cmp || {})); } catch (e) {} }
+
+function cmpRegisterIndicators() {
+  if (window.__cmpReg || !window.klinecharts) return;
+  window.__cmpReg = true;
+  const KC = window.klinecharts;
+  const sma = (arr, n) => arr.map((_, i) => {
+    if (i < n - 1) return null;
+    let s = 0;
+    for (let k = i - n + 1; k <= i; k++) s += arr[k];
+    return s / n;
+  });
+  const ema = (arr, n) => { const k = 2 / (n + 1), out = []; let prev = null;
+    arr.forEach(v => { if (v == null) { out.push(null); return; }
+      prev = prev == null ? v : v * k + prev * (1 - k); out.push(prev); });
+    return out; };
+  const wilder = (arr, n) => { const out = new Array(arr.length).fill(null);
+    let prev = null, sum = 0, seen = 0;
+    for (let i = 0; i < arr.length; i++) { const v = arr[i];
+      if (v == null) continue;
+      seen++;
+      if (prev == null) { sum += v; if (seen >= n) { prev = sum / n; out[i] = prev; } }
+      else { prev = (prev * (n - 1) + v) / n; out[i] = prev; } }
+    return out; };
+  const tr = dl => dl.map((x, i) => i === 0 ? x.high - x.low :
+    Math.max(x.high - x.low, Math.abs(x.high - dl[i - 1].close), Math.abs(x.low - dl[i - 1].close)));
+  // Volume Profile: bucketed volume-by-price over the last N bars. No moomoo
+  // endpoint exposes this (all 94 indexed) — computed from OHLCV; each bar's
+  // volume is spread uniformly across its high–low span. Custom draw hooks the
+  // pane canvas (return true suppresses the default per-bar figure pass).
+  KC.registerIndicator({ name: "VP", shortName: "VP", series: "price", calcParams: [20, 24, 0.7],
+    figures: [],
+    calc: dl => dl.map(() => ({})),
+    draw: ({ ctx, kLineDataList, indicator, bounding, yAxis }) => {
+      const list = kLineDataList || [];
+      if (!list.length) return true;
+      const [period, rowsP] = indicator.calcParams;
+      const from = period > 0 ? Math.max(0, list.length - period) : 0;
+      const bars = list.slice(from);
+      let hi = -Infinity, lo = Infinity;
+      bars.forEach(b => { hi = Math.max(hi, b.high); lo = Math.min(lo, b.low); });
+      if (!(hi > lo)) return true;
+      const n = Math.max(6, Math.min(60, rowsP | 0 || 24)), step = (hi - lo) / n;
+      const up = new Array(n).fill(0), dn = new Array(n).fill(0);
+      bars.forEach(b => {
+        const r0 = Math.max(0, Math.floor((b.low - lo) / step));
+        const r1 = Math.min(n - 1, Math.floor((b.high - lo) / step));
+        const share = (b.volume || 0) / (r1 - r0 + 1);
+        for (let r = r0; r <= r1; r++) (b.close >= b.open ? up : dn)[r] += share;
+      });
+      const totals = up.map((v, r) => v + dn[r]);
+      const maxT = Math.max.apply(null, totals.concat([1]));
+      const w = (bounding.width || 300) * 0.22, x0 = 2;
+      for (let r = 0; r < n; r++) {
+        if (!totals[r]) continue;
+        const yA = yAxis.convertToPixel(lo + r * step), yB = yAxis.convertToPixel(lo + (r + 1) * step);
+        ctx.fillStyle = up[r] >= dn[r] ? "rgba(38,198,140,.34)" : "rgba(240,84,79,.34)";
+        ctx.fillRect(x0, Math.min(yA, yB), totals[r] / maxT * w, Math.max(1, Math.abs(yB - yA) - 1));
+      }
+      let poc = 0;
+      totals.forEach((t, r) => { if (t > totals[poc]) poc = r; });
+      if (totals[poc]) {
+        const y = yAxis.convertToPixel(lo + (poc + 0.5) * step);
+        ctx.strokeStyle = "rgba(242,193,78,.85)"; ctx.setLineDash([4, 3]); ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + w, y); ctx.stroke(); ctx.setLineDash([]);
+      }
+      return true;
+    } });
+  // E/D event chips (earnings green, dividend teal) drawn above bar highs;
+  // the per-cell event map rides the indicator instance (inst._ev).
+  KC.registerIndicator({ name: "EVT", shortName: " ", series: "price", figures: [],
+    calc: dl => dl.map(() => ({})),
+    draw: ({ ctx, kLineDataList, visibleRange, xAxis, yAxis, indicator }) => {
+      const ev = indicator._ev;
+      if (!ev) return true;
+      ctx.font = "700 9px ui-sans-serif,system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      for (let i = visibleRange.from; i < visibleRange.to; i++) {
+        const b = kLineDataList[i];
+        if (!b) continue;
+        const d = new Date(b.timestamp).toISOString().slice(0, 10);
+        const tags = [];
+        if (ev.earn[d]) tags.push(["E", "#26c68c"]);
+        if (ev.div[d]) tags.push(["D", "#3fc1c9"]);
+        if (!tags.length) continue;
+        const cx = xAxis.convertToPixel(i), yTop = yAxis.convertToPixel(b.high);
+        tags.forEach(([t, col], k) => {
+          const y = yTop - 13 - k * 13;
+          ctx.fillStyle = col; ctx.beginPath(); ctx.arc(cx, y, 6.5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#08111d"; ctx.fillText(t, cx, y + 0.5);
+        });
+      }
+      return true;
+    } });
+  KC.registerIndicator({ name: "ATR", shortName: "ATR", calcParams: [14], figures: [
+      { key: "atr", title: "ATR: ", type: "line", color: "#e8a33d" }],
+    calc: (dl, ind) => wilder(tr(dl), ind.calcParams[0]).map(v => ({ atr: v })) });
+  KC.registerIndicator({ name: "AROON", shortName: "AROON", calcParams: [14], figures: [
+      { key: "up", title: "UP: ", type: "line", color: "#26c68c" },
+      { key: "dn", title: "DN: ", type: "line", color: "#f0544f" }],
+    calc: (dl, ind) => { const p = ind.calcParams[0];
+      return dl.map((_, i) => { if (i < p) return { up: null, dn: null };
+        let hi = i, lo = i;
+        for (let k = i - p; k <= i; k++) { if (dl[k].high >= dl[hi].high) hi = k;
+          if (dl[k].low <= dl[lo].low) lo = k; }
+        return { up: 100 * (p - (i - hi)) / p, dn: 100 * (p - (i - lo)) / p }; }); } });
+  KC.registerIndicator({ name: "AROONOSC", shortName: "AROONOSC", calcParams: [14], figures: [
+      { key: "osc", title: "OSC: ", type: "bar", color: "#3fc1c9", baseValue: 0 }],
+    calc: (dl, ind) => { const p = ind.calcParams[0];
+      return dl.map((_, i) => { if (i < p) return { osc: null };
+        let hi = i, lo = i;
+        for (let k = i - p; k <= i; k++) { if (dl[k].high >= dl[hi].high) hi = k;
+          if (dl[k].low <= dl[lo].low) lo = k; }
+        return { osc: 100 * ((i - lo) - (i - hi)) / p }; }); } });
+  KC.registerIndicator({ name: "MFI", shortName: "MFI", calcParams: [14], figures: [
+      { key: "mfi", title: "MFI: ", type: "line", color: "#a06bfa" }],
+    calc: (dl, ind) => { const p = ind.calcParams[0];
+      return dl.map((_, i) => { if (i < p) return { mfi: null };
+        let pos = 0, neg = 0;
+        for (let k = i - p + 1; k <= i; k++) {
+          const tpA = (dl[k].high + dl[k].low + dl[k].close) / 3;
+          const tpB = (dl[k - 1].high + dl[k - 1].low + dl[k - 1].close) / 3;
+          const mf = tpA * (dl[k].volume || 0);
+          if (tpA > tpB) pos += mf; else if (tpA < tpB) neg += mf;
+        }
+        return { mfi: neg === 0 ? 100 : pos === 0 ? 0 : 100 - 100 / (1 + pos / neg) }; }); } });
+  KC.registerIndicator({ name: "FORCE", shortName: "FORCE", calcParams: [13], figures: [
+      { key: "f", title: "FORCE: ", type: "bar", color: "#8ba0b8", baseValue: 0 }],
+    calc: (dl, ind) => ema(dl.map((x, i) => i === 0 ? 0 : (x.close - dl[i - 1].close) * (x.volume || 0)),
+                           ind.calcParams[0]).map(v => ({ f: v })) });
+  KC.registerIndicator({ name: "RVOL", shortName: "RVol", calcParams: [20], figures: [
+      { key: "r", title: "RVOL: ", type: "line", color: "#f2c14e" }],
+    calc: (dl, ind) => { const v = dl.map(x => x.volume || 0), av = sma(v, ind.calcParams[0]);
+      return dl.map((_, i) => ({ r: av[i] ? v[i] / av[i] : null })); } });
+  KC.registerIndicator({ name: "PERF", shortName: "Perf %", figures: [
+      { key: "p", title: "PERF: ", type: "line", color: "#26c68c" }],
+    calc: dl => { const b = dl.length ? dl[0].close : null;
+      return dl.map(x => ({ p: b ? (x.close / b - 1) * 100 : null })); } });
+  KC.registerIndicator({ name: "STOCHF", shortName: "STOCHF", calcParams: [14, 3], figures: [
+      { key: "k", title: "K: ", type: "line", color: "#26c68c" },
+      { key: "d", title: "D: ", type: "line", color: "#f0544f" }],
+    calc: (dl, ind) => { const [n, m] = ind.calcParams;
+      const k = dl.map((x, i) => { if (i < n - 1) return null;
+        let hh = -Infinity, ll = Infinity;
+        for (let q = i - n + 1; q <= i; q++) { hh = Math.max(hh, dl[q].high); ll = Math.min(ll, dl[q].low); }
+        return hh === ll ? 50 : 100 * (x.close - ll) / (hh - ll); });
+      const d = sma(k, m);
+      return dl.map((_, i) => ({ k: k[i], d: d[i] })); } });
+  KC.registerIndicator({ name: "DONCH", shortName: "DONCH", series: "price", calcParams: [20],
+    shouldOhlc: true, figures: [
+      { key: "up", title: "UP: ", type: "line", color: "rgba(38,198,140,.8)" },
+      { key: "mid", title: "MID: ", type: "line", color: "rgba(139,160,184,.6)" },
+      { key: "dn", title: "DN: ", type: "line", color: "rgba(240,84,79,.8)" }],
+    calc: (dl, ind) => { const n = ind.calcParams[0];
+      return dl.map((_, i) => { if (i < n - 1) return {};
+        let hh = -Infinity, ll = Infinity;
+        for (let q = i - n + 1; q <= i; q++) { hh = Math.max(hh, dl[q].high); ll = Math.min(ll, dl[q].low); }
+        return { up: hh, dn: ll, mid: (hh + ll) / 2 }; }); } });
+  KC.registerIndicator({ name: "KELT", shortName: "KELT", series: "price", calcParams: [20, 2],
+    shouldOhlc: true, figures: [
+      { key: "up", title: "UP: ", type: "line", color: "rgba(160,107,250,.75)" },
+      { key: "mid", title: "MID: ", type: "line", color: "rgba(139,160,184,.6)" },
+      { key: "dn", title: "DN: ", type: "line", color: "rgba(160,107,250,.75)" }],
+    calc: (dl, ind) => { const [n, m] = ind.calcParams;
+      const mid = ema(dl.map(x => x.close), n), aw = wilder(tr(dl), n);
+      return dl.map((_, i) => { if (mid[i] == null || aw[i] == null) return {};
+        return { up: mid[i] + m * aw[i], mid: mid[i], dn: mid[i] - m * aw[i] }; }); } });
+  KC.registerIndicator({ name: "SUPERT", shortName: "SUPERT", series: "price", calcParams: [10, 3],
+    shouldOhlc: true, figures: [
+      { key: "up", title: "ST: ", type: "line", color: "#26c68c" },
+      { key: "dn", title: "ST: ", type: "line", color: "#f0544f" }],
+    calc: (dl, ind) => { const [n, m] = ind.calcParams;
+      const aw = wilder(tr(dl), n), out = [];
+      let ub = null, lb = null, trend = 1, st = null;
+      for (let i = 0; i < dl.length; i++) {
+        if (aw[i] == null) { out.push({ up: null, dn: null }); continue; }
+        const hl2 = (dl[i].high + dl[i].low) / 2;
+        const bu = hl2 - m * aw[i], bl = hl2 + m * aw[i];
+        const pc = i > 0 ? dl[i - 1].close : dl[i].close;
+        ub = (ub == null || bu > ub || pc > ub) ? bu : ub;
+        lb = (lb == null || bl < lb || pc < lb) ? bl : lb;
+        if (st == null) { st = lb; trend = 1; }
+        else if (trend === 1 && dl[i].close < lb) { trend = -1; st = ub; }
+        else if (trend === -1 && dl[i].close > ub) { trend = 1; st = lb; }
+        else st = trend === 1 ? lb : ub;
+        out.push(trend === 1 ? { up: st, dn: null } : { up: null, dn: st });
+      }
+      return out; } });
+  KC.registerIndicator({ name: "PIVOT", shortName: "PIVOT", series: "price", figures: [
+      ["pv", "#f2c14e"], ["r1", "#e05fa0"], ["r2", "#f0544f"], ["s1", "#3fc1c9"], ["s2", "#26c68c"]]
+      .map(([k, c]) => ({ key: k, title: k.toUpperCase() + ": ", type: "line", color: c })),
+    calc: dl => { const out = new Array(dl.length);
+      if (dl.length < 2) return out.fill({});
+      // Intraday bars → levels from the last completed week; daily+ → month.
+      const intraday = (dl[1].timestamp - dl[0].timestamp) < 3 * 864e5;
+      const gkey = ts => { const x = new Date(ts);
+        if (!intraday) return x.toISOString().slice(0, 7);
+        x.setUTCDate(x.getUTCDate() - (x.getUTCDay() + 6) % 7);
+        return x.toISOString().slice(0, 10); };
+      let cur = null, hi = -Infinity, lo = Infinity, cl = null, levels = null;
+      for (let i = 0; i < dl.length; i++) {
+        const g = gkey(dl[i].timestamp);
+        if (cur !== null && g !== cur) {
+          const p = (hi + lo + cl) / 3;
+          levels = { pv: p, r1: 2 * p - lo, r2: p + (hi - lo), s1: 2 * p - hi, s2: p - (hi - lo) };
+          hi = -Infinity; lo = Infinity;
+        }
+        cur = g;
+        hi = Math.max(hi, dl[i].high); lo = Math.min(lo, dl[i].low); cl = dl[i].close;
+        out[i] = levels ? Object.assign({}, levels) : {};
+      }
+      return out; } });
+  KC.registerIndicator({ name: "VWAP", shortName: "VWAP", series: "price", figures: [
+      { key: "vwap", title: "VWAP: ", type: "line", color: "#e8a33d" }],
+    calc: dl => { let day = "", pv = 0, vv = 0;
+      return dl.map(x => { const d = new Date(x.timestamp).toISOString().slice(0, 10);
+        if (d !== day) { day = d; pv = 0; vv = 0; }
+        const v = x.volume || 0, tp = (x.high + x.low + x.close) / 3;
+        pv += tp * v; vv += v;
+        return { vwap: vv ? pv / vv : x.close }; }); } });
+}
+
+function cmpSanitizeBars(rows) {
+  return (rows || []).flatMap(b => {
+    const c = Number(b.close);
+    if (!Number.isFinite(c) || c <= 0) return [];
+    const pick = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : c; };
+    const o = pick(b.open), h2 = Math.max(pick(b.high), o, c), l2 = Math.min(pick(b.low), o, c);
+    return [{ t: Number(b.time_key), c, o, h: h2, l: l2, v: Number(b.volume) || 0, to: Number(b.turnover) || 0 }];
+  });
+}
+function cmpMapData(c) {
+  return (c.bars || []).map(x => ({ timestamp: +x.t, open: +x.o, high: +x.h, low: +x.l,
+    close: +x.c, volume: +x.v || 0, turnover: +x.to || 0 }));
+}
+
+function cmpCellHTML(c, i) {
+  const st = cmpState();
+  const hero = st.layout === "1+2" && i === 0;
+  const base = st.layout === "1" ? 470 : (st.layout === "2h" || st.layout === "2v") ? 380 : hero ? 430 : 300;
+  return `<div class="cmp-cell ${st.active === i ? "act" : ""}" id="cmp-cell-${i}" onclick="cmpActivate(${i})">
+    <div class="cmp-chead">
+      <button class="rng sym" title="Pick ticker from watchlist" onclick="event.stopPropagation();cmpPick(${i})">${esc(c.sym)}</button>
+      <span class="cmp-q mono" id="cmp-q-${i}"></span>
+      <span class="g" id="cmp-next-${i}" style="font-size:9.5px"></span>
+      <span class="kc-mwrap" onclick="event.stopPropagation()">
+        <button class="rng" data-cmp${i}-tfbtn title="Timeframe">${esc(c.range)} ▾</button>
+        <span class="kc-menu" data-cmp${i}-tfpanel>${CMP_TFS.map(tf =>
+          `<label class="kc-mi"><input type="radio" name="cmptf${i}" data-cmp${i}-tf="${tf}" ${c.range === tf ? "checked" : ""}
+             onchange="cmpSet(${i},{range:'${tf}'})"> ${tf}</label>`).join("")}</span></span>
+      <button class="rng ${c.events ? "on" : ""}" data-cmp-ev title="Earnings & dividend markers"
+              onclick="event.stopPropagation();cmpToggleEvents(${i},${!c.events})">E</button>
+      <span style="flex:1"></span>
+      <span class="cmp-ctl" id="cmp-ctl-${i}" onclick="event.stopPropagation()"></span>
+      ${st.cells.length > 1 ? `<button class="rng" title="Remove panel" onclick="event.stopPropagation();cmpDelCell(${i})">✕</button>` : ""}
+    </div>
+    <div class="kcwrap">
+      <div class="readout" id="cmp-readout-${i}">${esc(c.sym)} · ${esc(c.range)}</div>
+      <div id="cmp-kc-${i}" style="height:${base}px"></div>
+    </div></div>`;
+}
+
+async function cmpLoadCell(i, force) {
+  const c = cmpState().cells[i];
+  const key = c.sym + "|" + c.range + (c.ext ? "|x" : "");
+  if (force || !window.__cmpData[key]) {
+    try {
+      const d = await api("/api/stock/" + c.sym + "/candles?range=" + encodeURIComponent(c.range) +
+                          (c.ext ? "&ext=1" : ""));
+      window.__cmpData[key] = { bars: cmpSanitizeBars((d && d.bars) || []) };
+    } catch (e) { window.__cmpData[key] = { bars: [] }; }
+  }
+  c.bars = window.__cmpData[key].bars;
+  const h = window.__cmpHosts[i];
+  if (!h) return;
+  klineSetData(h, cmpMapData(c));
+  cmpApplyOvls(i);
+  cmpApplyEvt(i);
+  cmpBindSync(i);
+  if (c.events && !c._ev) cmpLoadEvents(i);
+}
+
+function cmpApplyOvls(i) {
+  const c = cmpState().cells[i], h = window.__cmpHosts[i];
+  if (!h || !h.chart) return;
+  const want = (c.ovls || []).map(o => o.name);
+  const cur = h.ovlsCur || {};
+  Object.keys(cur).forEach(name => {
+    if (!want.includes(name)) {
+      try { h.chart.removeIndicator(h.paneId, name); } catch (e) {}
+      delete cur[name];
+    }
+  });
+  (c.ovls || []).forEach(o => {
+    const pj = JSON.stringify(o.params || []);
+    if (cur[o.name] === pj) return;
+    if (cur[o.name] != null) { try { h.chart.removeIndicator(h.paneId, o.name); } catch (e) {} }
+    const v = { name: o.name };
+    if ((o.params || []).length) v.calcParams = o.params;
+    klineCreate(h, v, h.paneId);
+    cur[o.name] = pj;
+  });
+  h.ovlsCur = cur;
+}
+
+function cmpApplyEvt(i) {
+  const c = cmpState().cells[i], h = window.__cmpHosts[i];
+  if (!h || !h.chart || !c.events || !c._ev) return;
+  // createIndicator returns an id, not the instance — fetch the real one so
+  // the event map can ride it into the draw pass.
+  let inst = h.chart.getIndicatorByPaneId(h.paneId, "EVT");
+  if (!inst) {
+    klineCreate(h, "EVT", h.paneId);
+    inst = h.chart.getIndicatorByPaneId(h.paneId, "EVT");
+  }
+  if (inst) { inst._ev = c._ev; h.evtCur = true; }
+}
+
+async function cmpLoadEvents(i) {
+  const c = cmpState().cells[i];
+  const [earn, div, est] = await Promise.all([
+    api("/api/stock/" + c.sym + "/earnings").catch(() => null),
+    api("/api/stock/" + c.sym + "/dividends").catch(() => null),
+    api("/api/stock/" + c.sym + "/estimates").catch(() => null)]);
+  const ev = { earn: {}, div: {}, eps: [], next: null };
+  ((earn && earn.list) || []).forEach(r => {
+    const d = String(r.pub_trading_day_str || "").slice(0, 10);
+    if (d) ev.earn[d] = { period: r.period_text, pub: r.pub_time_str || "",
+      type: r.pub_type === 1 ? "BMC" : r.pub_type === 2 ? "AMC" : "" };
+  });
+  ((div && div.list) || []).forEach(r => {
+    const d = String(r.ex_date || "").slice(0, 10);
+    if (d) ev.div[d] = { amt: r.dividend_per_share, cur: r.currency || "" };
+  });
+  ev.eps = (est && est.earnings_history) || [];
+  const nd = ((est && est.calendar) || {})["Earnings Date"];
+  ev.next = Array.isArray(nd) ? nd[0] : (typeof nd === "string" ? nd : null);
+  c._ev = ev;
+  cmpApplyEvt(i);
+  const chip = document.getElementById("cmp-next-" + i);
+  if (chip && ev.next) chip.textContent = "Next E " + esc(String(ev.next));
+}
+
+function cmpEvPopover(c, ds) {
+  const ev = c._ev || {};
+  const e = ev.earn[ds], d = ev.div[ds];
+  let html = "";
+  if (e) {
+    const q = (ev.eps || []).find(r => { const dd = Date.parse(r.quarter || "");
+      return Number.isFinite(dd) && Math.abs(dd - Date.parse(ds)) <= 45 * 864e5; });
+    html += `<div class="cmp-pop-t">Earnings &amp; Revenue</div>
+      <div class="cmp-pop-r"><span>Earnings Date</span><b>${esc(ds)} ${esc(e.type || "")}</b></div>
+      <div class="cmp-pop-r"><span>Fiscal Period</span><b>${esc(e.period || "—")}</b></div>
+      <div class="cmp-pop-h">EPS</div>
+      <div class="cmp-pop-r"><span>Reported</span><b>${q && q.eps_actual != null ? fmtAuto(q.eps_actual) : "—"}</b></div>
+      <div class="cmp-pop-r"><span>Estimate</span><b>${q && q.eps_estimate != null ? fmtAuto(q.eps_estimate) : "—"}</b></div>` +
+      (q && q.surprise_pct != null
+        ? `<div class="cmp-pop-r"><span>Surprise</span><b class="${q.surprise_pct >= 0 ? "g" : "r"}">${q.surprise_pct >= 0 ? "+" : ""}${q.surprise_pct.toFixed(2)}%</b></div>` : "");
+  }
+  if (d) html += `${html ? "<div style='height:6px'></div>" : ""}<div class="cmp-pop-t">Dividend</div>
+    <div class="cmp-pop-r"><span>Ex-Date</span><b>${esc(ds)}</b></div>
+    <div class="cmp-pop-r"><span>Amount</span><b>${fmtAuto(d.amt)} ${esc(d.cur)}</b></div>`;
+  return html;
+}
+
+function cmpReadout(i, d) {
+  const el = document.getElementById("cmp-readout-" + i);
+  if (!el) return;
+  const c = cmpState().cells[i];
+  const p = d && d.kLineData;
+  if (!p) { if ((window.__cmpPtr | 0) === i) window.__cmpHover = null; el.textContent = c.sym + " · " + c.range; return; }
+  if ((window.__cmpPtr | 0) === i) window.__cmpHover = { i, ts: p.timestamp };
+  const h = window.__cmpHosts[i];
+  const list = h.chart ? h.chart.getDataList() : [];
+  const ix = list.indexOf(p);
+  const prev = ix > 0 ? list[ix - 1] : null;
+  const chg = prev ? (p.close - prev.close) / prev.close * 100 : null;
+  el.innerHTML = `<b>${esc(stkTime(p.timestamp))}</b> · O <b>${fmtAuto(p.open)}</b> H <b>${fmtAuto(p.high)}</b> L <b>${fmtAuto(p.low)}</b> C <b>${fmtAuto(p.close)}</b>${chg != null ? ` · <span class="${chg >= 0 ? "g" : "r"}">${stkPct(chg)}</span>` : ""}`;
+  if (c.events && c._ev) {
+    const ds = new Date(p.timestamp).toISOString().slice(0, 10);
+    const bits = [];
+    if (c._ev.earn[ds]) bits.push("E " + ds + (c._ev.earn[ds].type ? " " + c._ev.earn[ds].type : "") + (c._ev.earn[ds].period ? " · " + c._ev.earn[ds].period : ""));
+    if (c._ev.div[ds]) bits.push("D " + ds + " · " + fmtAuto(c._ev.div[ds].amt) + " " + c._ev.div[ds].cur);
+    if (bits.length) el.innerHTML += ` · <b class="g">${esc(bits.join(" · "))}</b>`;
+  }
+}
+
+function cmpBindSync(i) {
+  const h = window.__cmpHosts[i];
+  if (!h || !h.chart || h.syncBound) return;
+  h.syncBound = true;
+  h.chart.subscribeAction("onCrosshairChange", d => cmpRelay(i, d));
+}
+
+function cmpRelay(from, d) {
+  const st = cmpState();
+  if (!st.sync.cross || window.__cmpX) return;
+  window.__cmpX = true;
+  try {
+    const sh = window.__cmpHosts[from];
+    const srcTs = d && d.kLineData && d.kLineData.timestamp;
+    window.__cmpHosts.forEach((h, j) => {
+      if (j === from || !h || !h.chart) return;
+      try {
+        const list = h.chart.getDataList();
+        const inSpan = srcTs && list.length && srcTs >= list[0].timestamp && srcTs <= list[list.length - 1].timestamp;
+        if (!inSpan) { h.chart.executeAction("onCrosshairChange", {}); return; }
+        // convertToPixel(points, {paneId}) returns [{x, ...}] — verified against
+        // the vendored build's signature (paneId rides the OPTIONS object).
+        const px = h.chart.convertToPixel({ timestamp: srcTs }, { paneId: "candle_pane" });
+        const p0 = Array.isArray(px) ? px[0] : px;
+        if (p0 && p0.x != null) h.chart.executeAction("onCrosshairChange", { x: p0.x, y: 40, paneId: "candle_pane" });
+      } catch (e) {}
+    });
+  } finally { setTimeout(() => { window.__cmpX = false; }, 0); }
+}
+
+function cmpSet(i, patch) {
+  const st = cmpState(), c = st.cells[i];
+  Object.assign(c, patch);
+  if (patch.ma && Array.isArray(patch.ma)) c._maLast = patch.ma;
+  if (patch.ema && Array.isArray(patch.ema)) c._emaLast = patch.ema;
+  cmpSave();
+  if ("range" in patch || "ext" in patch) {
+    const targets = st.sync.tf ? st.cells.map((_, j) => j) : [i];
+    targets.forEach(j => {
+      const cc = st.cells[j];
+      if ("range" in patch) cc.range = patch.range;
+      if ("ext" in patch) cc.ext = patch.ext;
+      const btn = document.querySelector("[data-cmp" + j + "-tfbtn]");
+      if (btn) btn.textContent = cc.range + " ▾";
+      cmpLoadCell(j);
+    });
+    return;
+  }
+  cmpApply(i);
+}
+
+function cmpApply(i) {
+  const h = window.__cmpHosts[i];
+  if (!h || !h.chart) { cmpLoadCell(i); return; }
+  klineApply(h);
+  cmpApplyOvls(i);
+  cmpApplyEvt(i);
+}
+
+function cmpToggleEvents(i, on) {
+  const c = cmpState().cells[i];
+  c.events = !!on;
+  cmpSave();
+  const btn = document.querySelector("#cmp-cell-" + i + " [data-cmp-ev]");
+  if (btn) btn.classList.toggle("on", c.events);
+  const h = window.__cmpHosts[i];
+  if (h && h.chart && !c.events && h.evtCur) {
+    try { h.chart.removeIndicator(h.paneId, "EVT"); } catch (e) {}
+    h.evtCur = null;
+  }
+  if (c.events && !c._ev) cmpLoadEvents(i);
+  else cmpApplyEvt(i);
+}
+
+function cmpActivate(i) {
+  window.__cmp.active = i;
+  cmpSave();
+  document.querySelectorAll(".cmp-cell").forEach((el, j) => el.classList.toggle("act", j === i));
+  const dr = document.getElementById("cmp-drawer");
+  if (dr && dr.style.display !== "none") cmpDrawerRender();
+}
+
+function cmpLayoutSet(l) {
+  const st = cmpState();
+  st.layout = l;
+  cmpSave();
+  (window.__cmpHosts || []).forEach(h => klineTeardown(h));
+  window.__cmpHosts = [];
+  const grid = document.getElementById("cmp-grid");
+  if (!grid) return;
+  grid.dataset.layout = l;
+  grid.innerHTML = st.cells.map((c, i) => cmpCellHTML(c, i)).join("");
+  cmpMount();
+  document.querySelectorAll("[data-cmp-layout]").forEach(b => b.classList.toggle("on", b.dataset.cmpLayout === l));
+}
+
+function cmpAddCell() {
+  const st = cmpState();
+  if (st.cells.length >= 4) return;
+  st.cells.push({ sym: (st.cells[st.cells.length - 1] || {}).sym || "MSFT", range: "5D", mode: "candle",
+    ma: false, ema: false, boll: false, subs: ["VOL"], events: false, ext: false, ovls: [],
+    _maLast: [20, 50], _emaLast: [20, 50] });
+  cmpLayoutSet(st.layout);
+}
+
+function cmpDelCell(i) {
+  const st = cmpState();
+  if (st.cells.length <= 1) return;
+  st.cells.splice(i, 1);
+  st.active = Math.max(0, Math.min(st.active, st.cells.length - 1));
+  cmpLayoutSet(st.layout);
+}
+
+function cmpSyncToggle(k, el) {
+  const st = cmpState();
+  st.sync[k] = !st.sync[k];
+  cmpSave();
+  el.classList.toggle("on", st.sync[k]);
+}
+
+async function cmpQuotePoll() {
+  if (!document.getElementById("cmp-grid")) return;
+  const st = cmpState();
+  const syms = [...new Set(st.cells.map(c => c.sym))];
+  try {
+    const d = await api("/api/stock/quotes?symbols=" + encodeURIComponent(syms.join(",")));
+    if (!d || !d.available) return;
+    st.cells.forEach((c, i) => {
+      const q = d.quotes[c.sym], el = document.getElementById("cmp-q-" + i);
+      if (!el || !q) return;
+      const pct = Number(q.pct_change);
+      el.innerHTML = `<b>${fmtAuto(q.last_price)}</b> <span class="${pct >= 0 ? "g" : "r"}">${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%</span> <span class="faint">Vol ${stkMoney(q.volume)}</span>`;
+    });
+  } catch (e) {}
+}
+
+// ── watchlist picker ─────────────────────────────────────────────────
+async function cmpPick(i) {
+  window.__cmpPickIdx = i;
+  if (!window.__cmpWl || !(window.__cmpWl.rows || []).length) {
+    const wl = await api("/api/screener?watchlist_only=1&limit=300").catch(() => null);
+    let rows = (wl && wl.rows) || [], stars = (wl && wl.watchlist) || [];
+    if (!rows.length) {  // fixtures mode / empty watchlist: fall back to the universe
+      const all = await api("/api/screener?watchlist_only=0&limit=120").catch(() => null);
+      rows = (all && all.rows) || [];
+    }
+    if (!rows.length) {  // offline fixtures: a static pick list beats a dead modal
+      rows = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD", "NFLX", "JPM"]
+        .map(s => ({ symbol: s, name: s + " Inc." }));
+    }
+    window.__cmpWl = { watchlist: stars, rows };
+    window.__scr = window.__scr || {};
+    if (stars.length) window.__scr.watchlistSyms = stars;
+  }
+  cmpPickRender();
+  const box = document.getElementById("cmp-pick");
+  if (box) { box.style.display = "flex"; const q = document.getElementById("cmp-pick-q"); if (q) { q.value = ""; q.focus(); } }
+}
+function cmpPickRender() {
+  const wl = window.__cmpWl || { watchlist: [], rows: [] };
+  const el = document.getElementById("cmp-pick-list");
+  if (!el) return;
+  const q = ((document.getElementById("cmp-pick-q") || {}).value || "").toUpperCase();
+  const stars = wl.watchlist || [];
+  const rows = (wl.rows || []).filter(r => r && r.symbol &&
+    (!q || String(r.symbol).includes(q) || String(r.name || "").toUpperCase().includes(q)));
+  rows.sort((a, b) => (stars.includes(b.symbol) ? 1 : 0) - (stars.includes(a.symbol) ? 1 : 0));
+  el.innerHTML = rows.slice(0, 60).map(r => `
+    <div class="cmp-pick-row" onclick="cmpAssign(window.__cmpPickIdx,'${esc(r.symbol)}')">
+      <b>${esc(r.symbol)}</b> <span class="faint">${esc(String(r.name || "").slice(0, 26))}</span>
+      ${stars.includes(r.symbol) ? '<span class="g">★</span>' : '<span class="faint">☆</span>'}
+      <span style="margin-left:auto" class="mono">${fmtAuto(r.last_price ?? r.cur_price)}</span></div>`).join("") ||
+    '<div class="empty">No matches.</div>';
+}
+function cmpPickClose() { const b = document.getElementById("cmp-pick"); if (b) b.style.display = "none"; }
+
+async function cmpAssign(i, sym) {
+  const st = cmpState();
+  const targets = st.sync.ticker ? st.cells.map((_, j) => j) : [i];
+  targets.forEach(j => {
+    const c = st.cells[j];
+    c.sym = sym;
+    c._ev = null;
+    const btn = document.querySelector("#cmp-cell-" + j + " .cmp-chead .sym");
+    if (btn) btn.textContent = sym;
+    cmpLoadCell(j, true);
+  });
+  cmpSave();
+  cmpPickClose();
+}
+
+// ── Study Settings drawer (bound to the active cell) ─────────────────
+function cmpDrawer(on) {
+  const el = document.getElementById("cmp-drawer");
+  if (!el) return;
+  el.style.display = on ? "block" : "none";
+  if (on) cmpDrawerRender();
+}
+function cmpSubLabel(s) { return (STK_SUBS.concat(CMP_SUBS_EXTRA).find(x => x[0] === s) || [s, s])[1]; }
+
+function cmpDrawerRender() {
+  const st = cmpState();
+  const i = Math.min(st.active, st.cells.length - 1), c = st.cells[i];
+  const el = document.getElementById("cmp-drawer");
+  if (!el) return;
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b>Study Settings <span class="faint" style="font-weight:400">· ${esc(c.sym)}</span></b>
+      <button class="rng" onclick="cmpDrawer(false)">✕</button></div>
+    <div class="cmp-sec">Chart type</div>
+    <div style="display:flex;gap:6px">
+      <button class="rng ${c.mode !== "line" ? "on" : ""}" onclick="cmpSet(${i},{mode:'candle'});cmpDrawerRender()">Candle</button>
+      <button class="rng ${c.mode === "line" ? "on" : ""}" onclick="cmpSet(${i},{mode:'line'});cmpDrawerRender()">Time</button></div>
+    <div class="cmp-sec">Show extended hours</div>
+    <label class="switch"><input type="checkbox" ${c.ext ? "checked" : ""}
+      onchange="cmpSet(${i},{ext:this.checked})"><i></i> Pre/after market (1d bars)</label>
+    <div class="cmp-sec">Major events</div>
+    <label class="switch"><input type="checkbox" ${c.events ? "checked" : ""}
+      onchange="cmpToggleEvents(${i},this.checked)"><i></i> Earnings &amp; dividend markers</label>
+    <div class="cmp-sec">Overlays</div>
+    ${(c.ovls || []).map((o, k) => {
+      const label = (CMP_MAIN.find(m => m[0] === o.name) || ["", o.name])[1];
+      return `<div class="cmp-row"><b style="flex:1">${esc(label)}</b>
+        ${o.name === "VP" ? `<input class="cmp-num" type="number" min="5" max="500" value="${(o.params || [20])[0]}"
+             title="profile bars" onchange="cmpOvlParam(${i},${k},+this.value)"> <span class="faint">bars</span>` : ""}
+        <button class="rng" title="Remove" onclick="cmpOvlDel(${i},${k})">🗑</button></div>`;
+    }).join("")}
+    <select class="cmp-sel" onchange="cmpOvlAdd(${i},this.value);this.selectedIndex=0">
+      <option value="">+ Overlay</option>
+      ${CMP_MAIN.map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select>
+    <div class="cmp-sec">Indicators — lower panes</div>
+    ${(c.subs || []).map(s => `<div class="cmp-row"><b style="flex:1">${esc(cmpSubLabel(s))}</b>
+        <button class="rng" title="Remove" onclick="cmpSubDel(${i},'${s}')">🗑</button></div>`).join("")}
+    <select class="cmp-sel" onchange="cmpSubAdd(${i},this.value);this.selectedIndex=0">
+      <option value="">+ Indicator</option>
+      ${STK_SUBS.concat(CMP_SUBS_EXTRA).map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select>
+    <div class="faint" style="font-size:10px;margin-top:10px">Settings apply to the selected (outlined) panel. Volume Profile, Donchian, Keltner, Supertrend, Pivots, VWAP and the pane indicators are computed from moomoo OHLCV client-side.</div>`;
+}
+
+function cmpOvlAdd(i, name) {
+  if (!name) return;
+  const c = cmpState().cells[i];
+  c.ovls = c.ovls || [];
+  if (c.ovls.some(o => o.name === name)) return;
+  c.ovls.push({ name, params: (CMP_OVL_PARAMS[name] || []).slice() });
+  cmpSave();
+  cmpApplyOvls(i);
+  cmpDrawerRender();
+}
+function cmpOvlDel(i, k) {
+  const c = cmpState().cells[i];
+  c.ovls.splice(k, 1);
+  cmpSave();
+  cmpApplyOvls(i);
+  cmpDrawerRender();
+}
+function cmpOvlParam(i, k, v) {
+  const c = cmpState().cells[i], o = c.ovls[k];
+  if (!o || !Number.isFinite(v) || v <= 0) return;
+  o.params = (o.params || []).slice();
+  o.params[0] = v | 0;
+  cmpSave();
+  cmpApplyOvls(i);
+}
+function cmpSubAdd(i, name) {
+  if (!name) return;
+  const c = cmpState().cells[i];
+  c.subs = c.subs || [];
+  if (c.subs.includes(name)) return;
+  c.subs.push(name);
+  cmpSave();
+  cmpApply(i);
+  cmpDrawerRender();
+}
+function cmpSubDel(i, name) {
+  const c = cmpState().cells[i];
+  c.subs = (c.subs || []).filter(s => s !== name);
+  cmpSave();
+  cmpApply(i);
+  cmpDrawerRender();
+}
+
+// ── mount + lifecycle ────────────────────────────────────────────────
+function cmpMount() {
+  const st = cmpState();
+  if (!document.getElementById("cmp-grid")) return;
+  window.__cmpData = window.__cmpData || {};
+  window.__cmpHosts = st.cells.map((c, i) => {
+    const h = klineHost({
+      elId: "cmp-kc-" + i, paneId: "candle_pane", subPaneId: "cmp" + i + "_sub",
+      state: () => cmpState().cells[i],
+      data: () => cmpMapData(cmpState().cells[i]),
+      overlays: () => [],
+      crosshair: d => cmpReadout(i, d),
+    });
+    h.update = p => cmpSet(i, p);
+    return h;
+  });
+  st.cells.forEach((c, i) => {
+    const ctl = document.getElementById("cmp-ctl-" + i);
+    if (ctl) { ctl.innerHTML = klineControlsHTML("cmp" + i, c); klineBindControls("cmp" + i, window.__cmpHosts[i]); }
+    const cellEl = document.getElementById("cmp-cell-" + i);
+    if (cellEl) cellEl.addEventListener("pointermove", () => { window.__cmpPtr = i; }, true);
+    const tfb = document.querySelector("[data-cmp" + i + "-tfbtn]");
+    if (tfb && !tfb.onclick) tfb.onclick = ev => {
+      ev.stopPropagation();
+      const panel = tfb.parentElement.querySelector(".kc-menu");
+      document.querySelectorAll(".kc-menu").forEach(pc => { if (pc !== panel) pc.style.display = "none"; });
+      panel.style.display = panel.style.display === "none" || !panel.style.display ? "block" : "none";
+    };
+    cmpLoadCell(i);
+  });
+  if (!state.poll) state.poll = setInterval(cmpQuotePoll, 10000);
+  cmpQuotePoll();
+}
+
+pages.compare = async function () {
+  cmpRegisterIndicators();
+  const st = cmpState();
+  const wl = await api("/api/screener?watchlist_only=1&limit=300").catch(() => null);
+  window.__cmpWl = { watchlist: (wl && wl.watchlist) || [], rows: (wl && wl.rows) || [] };
+  window.__scr = window.__scr || {};
+  if (window.__cmpWl.watchlist.length) window.__scr.watchlistSyms = window.__cmpWl.watchlist;
+  return `
+  <div class="panel" style="padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <b style="font-size:13px">Compare</b>
+    <span class="faint" style="font-size:10.5px">multi-chart workspace · tickers from your watchlist · moomoo klines</span>
+    <span style="flex:1"></span>
+    <span class="faint" style="font-size:10px">Sync</span>
+    ${[["ticker", "Ticker"], ["tf", "Timeframe"], ["cross", "Crosshair"]].map(([k, l]) =>
+      `<button class="rng ${st.sync[k] ? "on" : ""}" data-cmp-sync="${k}" title="Sync ${l}"
+        onclick="cmpSyncToggle('${k}',this)">${l}</button>`).join("")}
+    <span class="kc-sep"></span>
+    ${CMP_LAYOUTS.map(([k, l]) => `<button class="rng ${st.layout === k ? "on" : ""}" data-cmp-layout="${k}"
+        title="${l}" onclick="cmpLayoutSet('${k}')">${l}</button>`).join("")}
+    <span class="kc-sep"></span>
+    <button class="rng" onclick="cmpAddCell()" title="Add panel (${st.cells.length}/4)">＋ Panel</button>
+    <button class="rng" onclick="cmpDrawer(true)" title="Study settings for the selected panel">⚙ Studies</button>
+  </div>
+  <div id="cmp-grid" class="cmp-grid" data-layout="${esc(st.layout)}">
+    ${st.cells.map((c, i) => cmpCellHTML(c, i)).join("")}
+  </div>
+  <div id="cmp-pick" class="cmp-pick" style="display:none" onclick="if(event.target===this)cmpPickClose()">
+    <div class="cmp-pick-box">
+      <input id="cmp-pick-q" placeholder="Search ticker or name…" oninput="cmpPickRender()">
+      <div id="cmp-pick-list" class="cmp-pick-list"></div>
+      <div class="faint" style="font-size:10px;margin-top:6px">Your watchlist (★) first · Ticker sync ${st.sync.ticker ? "ON — a pick applies to every panel" : "OFF"}</div>
+    </div></div>
+  <div id="cmp-drawer" class="cmp-drawer" style="display:none"></div>
+  <div id="cmp-pop" class="cmp-pop" style="display:none" onclick="event.stopPropagation()"></div>`;
+};
+
+// Click anywhere on a compare canvas: show the earnings/dividend popover for
+// the hovered bar (crosshair position), or hide the popover. Capture phase so
+// chart-internal handlers run after us.
+document.addEventListener("click", e => {
+  window.__cmpMouse = { x: e.clientX, y: e.clientY };
+  const pop = document.getElementById("cmp-pop");
+  if (!pop) return;
+  const cell = e.target && e.target.closest ? e.target.closest(".cmp-cell") : null;
+  const i = cell ? Number((cell.id || "").split("-")[2]) : NaN;
+  const c = Number.isFinite(i) && window.__cmp ? (window.__cmp.cells || [])[i] : null;
+  const hov = window.__cmpHover;
+  if (!c || !c.events || !c._ev || !hov || hov.i !== i || !e.target.closest("canvas")) {
+    pop.style.display = "none";
+    return;
+  }
+  const ds = new Date(hov.ts).toISOString().slice(0, 10);
+  const html = cmpEvPopover(c, ds);
+  if (!html) { pop.style.display = "none"; return; }
+  pop.innerHTML = html;
+  pop.style.display = "block";
+  const r = pop.getBoundingClientRect();
+  pop.style.left = Math.max(8, Math.min(window.innerWidth - r.width - 10, window.__cmpMouse.x + 14)) + "px";
+  pop.style.top = Math.max(8, Math.min(window.innerHeight - r.height - 10, window.__cmpMouse.y + 14)) + "px";
+}, true);
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  cmpPickClose();
+  const dr = document.getElementById("cmp-drawer");
+  if (dr && dr.style.display !== "none") cmpDrawer(false);
+});
 
 // ── report dossier chart (shared engine; stored daily bars + S/R overlay) ──
 let __repBars = [];
@@ -3281,7 +4187,8 @@ async function showPage(p) {
     }
     if (p === "report") { $("#page").innerHTML = await reportPage(state.reportRef); chartInit(); return; }
     $("#page").innerHTML = await pages[p]();
-    if (p === "home") scrHideLoading();
+    if (p === "home") { scrHideLoading(); scrLoadTaxonomy(); }
+    if (p === "compare") cmpMount();
     if (p === "settings") {
       loadPromptsPanel();
       api("/api/screener/schedule").then(s => {
