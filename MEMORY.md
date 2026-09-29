@@ -5,7 +5,28 @@ Newest decisions first. Each entry: context → decision → implications.
 
 ---
 
-## 2026-09-29 — Screener parity Phases A–D shipped (moomoo + Finviz gap analysis → data foundation, filters, UX, pattern spike)
+## 2026-09-30 — Compare page: TradingView-style multi-chart workspace (spec'd from handbook, built, visually gated)
+
+**Owner request**: implement the TradingView multi-chart compare screenshots; tickers from the watchlist; check the moomoo API before assuming (docs/compare-spec.md).
+
+- **Verified data reality first**: moomoo has NO volume-by-price endpoint (all 94 indexed) → VP computed client-side; earnings dates come from earnings-price-history (`pub_trading_day_str`), dividends from corporate-actions/dividends (live-verified; new client method + `/api/stock/{symbol}/dividends`); history-kline ktype 1/7 + `extended_time` added for 1d/15m (+ext param); `/api/stock/quotes` batches one snapshot for all panel headers. Log chart scale is impossible on klinecharts 9.8.10 (no log axis in the vendored build) — omitted, not faked.
+- **Engine wins**: chart is a `chart.subscribeAction("onCrosshairChange", …)` dispatcher — the engine's old `"onCrosshair"` subscription NEVER fired, so stock-page/dossier crosshair readouts were dead until this round. Cross-panel sync = relay payload → `chart.convertToPixel({timestamp}, {paneId})` (paneId rides the OPTIONS object, second arg) → `chart.executeAction("onCrosshairChange", {x, y, paneId})`, timestamp-based so mixed timeframes stay aligned; pointer-cell tracking (`__cmpPtr`) stops relayed readouts from stealing the hover marker that powers the E/D popover.
+- **Layout mechanics**: one klineHost per cell (engine is instance-based); CSS grid layouts 1/2h/2v/1+2/2x2; `cmpEqualize()` grows shorter panels' candle panes to the tallest total so grid cells never show dead space; ✕ lives inside the control cluster (never orphaned); tf menu closes on pick (menus stopPropagation, so the global closer can't be relied on).
+- **Fixture lessons**: the `_kline` generator's old `w/n` scaling made long runs monotonic → built-in RSI returned literal 0s (library edge case on zero down-moves); now ±0.7% wobble with natural down days. Earnings/dividend fixture dates must sit inside the kline window or E/D chips have nothing to attach to.
+- **Visual gate**: 2 judge rounds + targeted re-check. Round 1 fails (dead space, RSI zeros, missing chips after re-layout, orphaned ✕, dup ST legend, picker "—" column) all repaired; round 2 confirmed fixes; residual cosmetics accepted (volume legend strikethrough = engine-standard, picker star alignment).
+- Walkthrough matrix all green (layouts, add/remove, persistence, picker+sync, tf sync daily+intraday, mode, overlays VP/DONCH/KELT/SUPERT/PIVOT/VWAP + BOLL, panes VOL/ATR/AROON/MFI/RSI/PERF, E/D chips + EPS popover, drawing draw/clear, fullscreen+Esc, events toggle, stock-page regression). Worker 89 / API 58 green (5 worker patterns failures = the other session's untracked patterns.py WIP, untouched). Sub-pane reorder dropped (engine sorts panes by menu order) — documented in spec deviations.
+
+---
+
+## 2026-09-30 — Go-live: migrations applied, enrich cron created, groups live-bug fixed
+
+- **Migrations 0011 + 0012 applied to prod Supabase** via hosted MCP (project hiqasyjalspuchtacatk), verified: tables + `plates` column exist; universe is now **15,512 rows** (larger than the 13.5k working assumption — rotation/yf caps sized for it: klines 1,400/night ≈ 11 nights, yf 3,000/night with 7-day TTL ≈ 6 nights).
+- **`tradingagents-enrich` cron created via Render MCP** (crn-datv2jpsrm7s73a6v1dg, 21:45 UTC weekdays, starter/virginia, autoDeploy) with PYTHON_VERSION/TRADINGAGENTS_CACHE_DIR/ENRICH_MARKET. **REMAINING MANUAL STEP:** the MCP can't read secret env values — SUPABASE_URL, SUPABASE_SERVICE_KEY, MOOMOO_APPKEY, MOOMOO_PRIVATE_KEY must be copied from tradingagents-universe into the new cron's Environment in the dashboard, or the scheduled run fails fast at startup.
+- **Live bug found & fixed (b5ed383)**: /api/groups selected `row,updated_at` without `code`, so every meta/enrichment lookup keyed on None → one "—" group with 15,487 rows. PostgREST returns ONLY requested columns (FakeDb ignores columns — offline tests can't catch this class). Also made groups' stock_type strict (unclassified rows excluded), matching the screener's 8,807 count. Verified live after deploy: 203 plate groups, 8,807 stocks, per-group P/E. NOTE: group avgΔ% is a MEAN — moomoo's junk-tick +15499900% rows blow up OTC/screen-slice means; switch to median if it reads misleading.
+- **Guard added before push**: nightly yf sweep bounded (missing-first, oldest-first, 3,000/run, 7-day TTL — YF_TTL_DAYS/YF_BATCH_PER_RUN) — a full-universe Ticker.info sweep would have blown the cron runtime and Yahoo's patience.
+- Pushed 3a4f75b..b5ed383; portal/worker/cron all deployed at b5ed383. First enrich run fires 21:45 UTC; check Render logs → then `python -m tradingagents_worker.patterns` for the Phase D report once klines accumulate.
+
+---## 2026-09-29 — Screener parity Phases A–D shipped (moomoo + Finviz gap analysis → data foundation, filters, UX, pattern spike)
 
 **Owner-approved plan** (docs/mockups/2026-09-29-screener-parity/FEATURE-GAP.md, three-way gap analysis vs moomoo.com/screener + finviz.com/screener). Execution order per owner: data → filter tabs → UX.
 
