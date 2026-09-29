@@ -1,14 +1,17 @@
 """Repair debate rows stored by the pre-fix build (every word space stripped).
 
 The old _join_history bug iterated the debate history char-wise, so stored rows
-are one unbroken character stream — spacing is unrecoverable mechanically. The
-cheap LLM (same OpenRouter key as the digest) restores it well: this restores
-spacing chunk-by-chunk, PRESERVES the original in content_original (audit
-integrity: stored outputs are never silently rewritten), and while it is at it
-writes a debate_summary into the run's digest so the report page can open with
-a readable executive summary of the adversarial reviews. Idempotent: rows with
-content_original set, or with normal spacing, are skipped. Bounded per call —
-the worker re-runs it after each job until the backlog is drained.
+are single characters joined by blank lines — word spacing is unrecoverable
+mechanically. The cheap LLM (same OpenRouter key as the digest) restores it:
+each row is demangled to a letter stream, sliced into small chunks, and the
+model re-inserts word boundaries (near-exact restorations accepted, gross
+rewrites rejected). The untouched original is PRESERVED in content_original
+(audit integrity: stored outputs are never silently rewritten), and a
+debate_summary is folded into the run's digest so the report page opens with a
+readable executive summary of the adversarial reviews. Idempotent: normal rows
+and already-good repairs are skipped; a first repair that came back unreadable
+(letter-spaced) is redone from content_original. Bounded per call — the worker
+re-runs it at boot and after each job until the backlog is drained.
 """
 from __future__ import annotations
 
@@ -23,6 +26,20 @@ _MAX_ROWS_PER_PASS = 4
 
 def is_legacy_row(content) -> bool:
     return (isinstance(content, str) and len(content) > 400 and " " not in content)
+
+
+def _looks_unreadable(content) -> bool:
+    """Letter-spaced form ('A g g r e s s i v e…') — a first repair that fed the
+    model the raw \\n\\n-separated chars, so it spaced every letter. Still unreadable."""
+    tokens = str(content or "").split()
+    return len(tokens) > 40 and sum(len(t) for t in tokens) / len(tokens) < 1.8
+
+
+def _repairable_row(row: dict) -> bool:
+    content = row.get("content") or ""
+    if row.get("content_original"):
+        return _looks_unreadable(content)  # first repair produced junk: redo from the original
+    return is_legacy_row(content)
 
 
 def _chunks(text: str, cap: int = _CHUNK):
@@ -60,12 +77,15 @@ _ACCEPT_RATIO = 0.99
 def _restore_spacing(client, text: str) -> str | None:
     _SYSTEM = (
         "You restore text whose word spaces were stripped by a storage bug. "
-        "Return the SAME text with single spaces restored between words. Copy "
-        "every word, number, ticker and punctuation mark exactly — do NOT fix "
-        "grammar or spelling, even where it looks wrong ('trader says hold' "
-        "must stay exactly 'trader says hold'). Add nothing, drop nothing, "
-        "reorder nothing, explain nothing. Output text only."
+        "What you receive is a stream of letters with no word boundaries. "
+        "Reconstruct the words and return the SAME text with single spaces "
+        "between words. Copy every word, number, ticker and punctuation mark "
+        "exactly — do NOT fix grammar or spelling, even where it looks wrong "
+        "('trader says hold' must stay exactly 'trader says hold'). Add "
+        "nothing, drop nothing, reorder nothing, explain nothing. Output text only."
     )
+    from .runner import demangle_debate
+    text = demangle_debate(text)  # raw form is chars joined by blank lines: collapse to a letter stream
     out: list[str] = []
     chunks = list(_chunks(text))
     for i, chunk in enumerate(chunks, 1):
@@ -152,7 +172,7 @@ def _summarize_run(db: Db, run_id: str, client) -> None:
 
 
 def rehydrate_debates(db: Db, max_rows: int = _MAX_ROWS_PER_PASS, client=None) -> int:
-    """Repair up to max_rows legacy debate rows per pass. Returns rows fixed."""
+    """Repair up to max_rows unreadable debate rows per pass. Returns rows fixed."""
     if not os.getenv("OPENROUTER_API_KEY"):
         return 0
     try:
@@ -160,23 +180,32 @@ def rehydrate_debates(db: Db, max_rows: int = _MAX_ROWS_PER_PASS, client=None) -
                          "id,run_id,content,content_original")
     except Exception:
         return 0  # table/column not migrated yet
-    legacy = [r for r in rows if is_legacy_row(r.get("content")) and not r.get("content_original")]
-    legacy.sort(key=lambda r: len(r.get("content") or ""))  # smallest first: completes come early
+    backlog = [r for r in rows if _repairable_row(r)]
+    backlog.sort(key=lambda r: len(r.get("content_original") or r.get("content") or ""))
     client = client or _client()
-    if legacy:
-        print(f"[rehydrate] {len(legacy)} legacy debate row(s) in backlog; repairing up to {max_rows}", flush=True)
+    if backlog:
+        print(f"[rehydrate] {len(backlog)} unreadable debate row(s) in backlog; repairing up to {max_rows}", flush=True)
     fixed = 0
-    for row in legacy[:max_rows]:
+    for row in backlog[:max_rows]:
         try:
+            source = row.get("content_original") or row["content"]  # redo case: repair the original again
+            redo = bool(row.get("content_original"))
             print(f"[rehydrate] repairing row {row['id']} ({len(row['content'])} chars, "
-                  f"run {str(row.get('run_id'))[:8]})", flush=True)
-            restored = _restore_spacing(client, row["content"])
+                  f"run {str(row.get('run_id'))[:8]}{', redo' if redo else ''})", flush=True)
+            restored = _restore_spacing(client, source)
             if not restored:
                 continue
             db.update("debate_messages", f"id=eq.{row['id']}",
-                      {"content": restored, "content_original": row["content"]})
+                      {"content": restored, "content_original": source})
             fixed += 1
             try:
+                if redo:
+                    # the first repair also summarized letter-spaced junk: regenerate
+                    drows = db.select("run_digest", {"run_id": f"eq.{row['run_id']}"}, "digest,model")
+                    if drows and (drows[0].get("digest") or {}).get("debate_summary"):
+                        dv = drows[0]["digest"]
+                        dv.pop("debate_summary", None)
+                        db.update("run_digest", f"run_id=eq.{row['run_id']}", {"digest": dv})
                 _summarize_run(db, row["run_id"], client)
             except Exception as e:
                 print(f"debate summary (non-fatal): {e}", flush=True)

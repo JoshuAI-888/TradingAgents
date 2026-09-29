@@ -102,6 +102,26 @@ def test_rehydrate_skips_already_repaired(monkeypatch, fake_db):
     assert client.chat.completions.calls == []
 
 
+def test_rehydrate_redoes_letter_spaced_first_repair(monkeypatch, fake_db):
+    # a first pass that fed the model the raw char form produced letter-spaced junk
+    letter_spaced = " ".join("AggressiveAnalyst:" + "thestockwouldhavebeenasatatfifty." )
+    fake_db._t("debate_messages").append({"id": "dm-bad", "run_id": "run-2",
+                                          "debate_type": "risk",
+                                          "content": letter_spaced * 10,
+                                          "content_original": MANGLED})
+    fake_db._t("run_digest").append({"run_id": "run-2", "model": "m",
+                                     "digest": {"debate_summary": "junk summary"}})
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test")
+    client = _fake_client()
+    assert rehydrate_debates(fake_db, client=client) == 1
+    rows = {r["id"]: r for r in fake_db.select("debate_messages", {}, "id,content,content_original")}
+    assert rows["dm-bad"]["content"].startswith("Bull Analyst: the bull case")
+    assert rows["dm-bad"]["content_original"] == MANGLED           # original untouched
+    digests = [d for d in fake_db.select("run_digest", {}, "run_id,digest") if d["run_id"] == "run-2"]
+    # junk summary cleared and regenerated from the repaired text in the same pass
+    assert digests[0]["digest"]["debate_summary"].startswith("Bull Analyst: the bull case")
+
+
 def test_rehydrate_rejects_rewrites(monkeypatch, fake_db):
     _seed(fake_db)
     monkeypatch.setenv("OPENROUTER_API_KEY", "test")
