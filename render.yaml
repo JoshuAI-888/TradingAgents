@@ -137,6 +137,30 @@ services:
         sync: false
 
   - type: cron
+    name: tradingagents-enrich
+    runtime: python
+    plan: starter
+    region: virginia
+    buildCommand: pip install -r web/worker/requirements.txt && pip install -e .
+    schedule: "45 21 * * 1-5"  # after the 13:00–21:00 US-hours universe refreshes — same trading day (spec §5b)
+    startCommand: cd web/worker && python -m tradingagents_worker.enrich_nightly
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: TRADINGAGENTS_CACHE_DIR
+        value: /tmp/ta-cache   # crons have no disk; /data is not writable
+      - key: ENRICH_MARKET
+        value: US
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: MOOMOO_APPKEY
+        sync: false
+      - key: MOOMOO_PRIVATE_KEY
+        sync: false
+
+  - type: cron
     name: tradingagents-backup
     runtime: python
     plan: starter
