@@ -424,6 +424,7 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
       <button data-page="home" class="on">Market Pulse</button>
       <button data-page="quotes">Quotes</button>
       <button data-page="compare">Compare</button>
+      <button data-page="groups">Groups</button>
       <button data-page="analyze">Analyze</button>
       <button data-page="ledger">Ledger</button>
       <button data-page="settings">Settings</button>
@@ -507,6 +508,60 @@ const SCR_COLS = {
   amplitude: ["Range %", "num"], bid_ask_ratio: ["Bid/Ask %", "num"],
   high52: ["52w High", "num"], low52: ["52w Low", "num"],
   new_high: ["New High", "bool"], new_low: ["New Low", "bool"],
+  // ── Phase A/B enrichment (yf) + computed technicals — live in yf mode ──
+  forward_pe: ["Fwd P/E", "num"], peg: ["PEG", "num"], ps: ["P/S", "num"],
+  pcf: ["P/C", "num"], pfcf: ["P/FCF", "num"], ev_ebitda: ["EV/EBITDA", "num"],
+  ev_sales: ["EV/Sales", "num"], roa: ["ROA %", "num"], roe: ["ROE %", "num"],
+  current_ratio: ["Current Ratio", "num"], quick_ratio: ["Quick Ratio", "num"],
+  lt_debt_eq: ["LT Debt/Eq %", "num"], total_debt_eq: ["Debt/Eq %", "num"],
+  gross_margin: ["Gross Margin %", "num"], operating_margin: ["Op Margin %", "num"],
+  net_margin: ["Net Margin %", "num"], revenue_growth: ["Rev Growth %", "num"],
+  eps_growth: ["EPS Growth %", "num"], short_float: ["Short Float %", "num"],
+  inst_own: ["Inst Own %", "num"], insider_own: ["Insider Own %", "num"],
+  beta: ["Beta", "num"], target_price: ["Target Price", "num"],
+  analyst_recom: ["Analyst Recom.", "num"], country: ["Country", "text"],
+  employees: ["Employees", "num"], earnings_date: ["Earnings Date", "text"],
+  ex_div_date: ["Div Ex-Date", "text"], payout_ratio: ["Payout Ratio", "num"],
+  concepts: ["Concepts", "multi"],
+  rsi14: ["RSI (14)", "num"], sma20_pos: ["vs SMA20 %", "num"],
+  sma50_pos: ["vs SMA50 %", "num"], sma200_pos: ["vs SMA200 %", "num"],
+  perf_w: ["Perf W %", "num"], perf_m: ["Perf M %", "num"], perf_q: ["Perf Q %", "num"],
+  perf_h: ["Perf H %", "num"], perf_y: ["Perf Y %", "num"], perf_ytd: ["Perf YTD %", "num"],
+  vol_w: ["Vol W %", "num"], vol_m: ["Vol M %", "num"],
+  atr14: ["ATR (14)", "num"], avg_vol3m: ["Avg Vol 3M", "num"],
+  rel_vol: ["Rel Volume", "num"], pos_52w: ["52w Range Pos %", "num"],
+};
+
+// Finviz-style view presets (spec Phase C item 12) — column sets; "custom"
+// is whatever the user picked with the column picker.
+const VIEW_PRESETS = {
+  overview: ["symbol", "name", "price", "pct", "chg", "market_cap", "volume", "pe_ttm", "pb"],
+  valuation: ["symbol", "name", "market_cap", "pe", "pe_ttm", "forward_pe", "peg", "ps", "pb", "pfcf", "ev_ebitda", "div_yield"],
+  financial: ["symbol", "name", "market_cap", "roe", "roa", "gross_margin", "operating_margin", "net_margin", "current_ratio", "quick_ratio", "total_debt_eq", "lt_debt_eq"],
+  ownership: ["symbol", "name", "market_cap", "float_cap", "short_float", "inst_own", "insider_own", "shares", "avg_vol3m"],
+  performance: ["symbol", "name", "price", "pct", "perf_w", "perf_m", "perf_q", "perf_y", "perf_ytd", "pos_52w", "vol_m"],
+  technical: ["symbol", "name", "price", "rsi14", "sma20_pos", "sma50_pos", "sma200_pos", "atr14", "beta", "rel_vol", "vol_m"],
+};
+
+// ⓘ header definitions (Phase C polish) — one-liners, mice-only affordance.
+const FIELD_DEFS = {
+  pe_ttm: "Price ÷ trailing 12-month earnings. Lower = cheaper (moomoo snapshot).",
+  pb: "Price ÷ book value (moomoo snapshot).",
+  forward_pe: "Price ÷ next-year analyst-estimated earnings (yfinance, nightly).",
+  peg: "Valuation vs growth: P/E ÷ earnings growth rate (yfinance).",
+  short_float: "Percent of the float sold short (yfinance, nightly).",
+  inst_own: "Percent of shares held by institutions (yfinance).",
+  insider_own: "Percent held by insiders (yfinance, best effort).",
+  rsi14: "Wilder RSI(14) from stored daily bars: >70 overbought, <30 oversold (computed).",
+  sma20_pos: "Last price vs 20-day simple moving average, in % (computed).",
+  sma50_pos: "Last price vs 50-day SMA, in % (computed).",
+  sma200_pos: "Last price vs 200-day SMA, in % (computed).",
+  perf_m: "Total return over the last ~21 trading days, in % (computed).",
+  perf_ytd: "Return since the first close of the calendar year, in % (computed).",
+  volume_ratio: "Today's volume ÷ per-minute average — spikes flag unusual activity (moomoo).",
+  analyst_recom: "Mean analyst rating: 1 = strong buy … 5 = sell (yfinance consensus).",
+  target_price: "Mean 12-month analyst price target (yfinance).",
+  div_yield: "Trailing 12-month dividend yield, in % (moomoo).",
 };
 function scrAddColFilter(field, kind) {
   const st = window.__scr;
@@ -720,7 +775,85 @@ function scrToggleCol(k) {
   if (state.page === "home") scrShowLoading("Updating column layout…");
   showPage("home");
 }
-function scrPersist() { try { localStorage.setItem("scrState", JSON.stringify(window.__scr)); } catch (e) {} }
+function scrPersist() {
+  try {
+    localStorage.setItem("scrState", JSON.stringify(window.__scr));
+    // Deep link (spec Phase C): every persisted state is shareable as a URL.
+    const st = window.__scr;
+    const q = new URLSearchParams();
+    q.set("m", st.market || "US");
+    if (st.src && st.src !== "moo") q.set("src", st.src);
+    if (st.watchlistOnly) q.set("wo", "1");
+    if (st.etfs === false) q.set("etfs", "0");
+    if ((st.filters || []).length) q.set("f", JSON.stringify(st.filters));
+    if (st.sort && st.sort !== "market_cap") q.set("s", st.sort);
+    if (st.dir !== 2) q.set("d", String(st.dir));
+    if (st.view && st.view !== "overview") q.set("v", st.view);
+    if ((st.cols || []).length) q.set("cols", st.cols.join(","));
+    if (st.activePreset) q.set("preset", st.activePreset);
+    const h = "#/screener?" + q.toString();
+    if (location.hash !== h) history.replaceState(null, "", h);
+  } catch (e) {}
+}
+function scrSetView(v) {
+  const st = window.__scr;
+  if (v === "custom") { st.view = "custom"; scrPersist(); showPage("home"); return; }
+  st.view = v;
+  st.cols = VIEW_PRESETS[v].filter(k => SCR_COLS[k]);
+  st.page = 1; scrPersist(); showPage("home");
+}
+function scrSummary(rows) {
+  if (!rows || !rows.length) return "";
+  const pcts = rows.map(r => r.pct).filter(v => v != null);
+  if (!pcts.length) return "";
+  const adv = pcts.filter(v => v > 0).length, decl = pcts.filter(v => v < 0).length;
+  const avg = pcts.reduce((a, b) => a + b, 0) / pcts.length;
+  return ` · <span class="${avg >= 0 ? "g" : "r"}">▲${adv} ▼${decl}</span> · avg ${(avg >= 0 ? "+" : "") + avg.toFixed(2)}% on page`;
+}
+function fmtMag(v) {
+  if (v == null || isNaN(v)) return String(v);
+  const a = Math.abs(v);
+  if (a >= 1e9) return (v / 1e9).toFixed(a >= 1e10 ? 0 : 1) + "B";
+  if (a >= 1e6) return (v / 1e6).toFixed(a >= 1e8 ? 0 : 1) + "M";
+  if (a >= 1e3) return (v / 1e3).toFixed(0) + "K";
+  return String(v);
+}
+window.__scrFiltersCollapsed = window.__scrFiltersCollapsed || false;
+function scrToggleFilters() {
+  window.__scrFiltersCollapsed = !window.__scrFiltersCollapsed;
+  showPage("home");
+}
+async function scrLoadMyPresets() {
+  try {
+    const r = await api("/api/screeners");
+    window.__savedScreeners = r.screeners || [];
+  } catch (e) { return; }
+  const el = document.getElementById("scr-mypresets");
+  if (!el) return;
+  const rows = window.__savedScreeners || [];
+  el.innerHTML = '<option value="">My Presets</option>' + rows.map(x =>
+    `<option value="${esc(x.id)}">${esc(x.name)} (${(x.filters || []).length})</option>`).join("");
+}
+function scrRestoreFromHash() {
+  // Boot-time: #/screener?m=US&src=yf&f=[…]&s=…&d=…&v=…&cols=…&preset=…
+  if (!/^#\/screener\?/.test(location.hash)) return false;
+  try {
+    const q = new URLSearchParams(location.hash.split("?")[1]);
+    const st = window.__scr;
+    if (q.get("m")) st.market = q.get("m");
+    if (q.get("src")) st.src = q.get("src");
+    st.watchlistOnly = q.get("wo") === "1";
+    if (q.get("etfs") === "0") st.etfs = false;
+    if (q.get("f")) st.filters = JSON.parse(q.get("f"));
+    if (q.get("s")) st.sort = q.get("s");
+    if (q.get("d")) st.dir = Number(q.get("d")) || 2;
+    if (q.get("v")) st.view = q.get("v");
+    if (q.get("cols")) st.cols = q.get("cols").split(",");
+    if (q.get("preset")) st.activePreset = q.get("preset");
+    st.page = 1;
+    return true;
+  } catch (e) { return false; }
+}
 function scrLoadingFor(k, v) {
   if (k === "etfs") return v ? "Fetching stocks + ETFs…" : "Fetching common stocks only…";
   if (k === "watchlistOnly") return v ? "Fetching your saved watchlist…" : "Fetching the whole US market…";
@@ -754,6 +887,12 @@ function scrApplyPreset(key) {
   if (!p) return;
   st.filters = JSON.parse(JSON.stringify(p.filters || []));
   st.activePreset = key;
+  // Factor auto-columns (spec Phase C): each preset filter's field becomes a
+  // visible column so every row shows why it qualified (moomoo parity).
+  for (const f of st.filters) {
+    if (SCR_COLS[f.field] && st.cols.length < 18 && !st.cols.includes(f.field)) st.cols.push(f.field);
+  }
+  st.page = 1;
   showPage("home");
 }
 window.scrApplyPreset = scrApplyPreset;
@@ -864,7 +1003,8 @@ function scrTickers(v) {
 }
 async function scrLoadTaxonomy() {
   const st = window.__scr;
-  for (const [fld, id] of [["plate", "scr-industry"], ["concepts", "scr-concepts"], ["exchange", "scr-exchange"]]) {
+  for (const [fld, id] of [["plate", "scr-industry"], ["concepts", "scr-concepts"], ["exchange", "scr-exchange"],
+                            ["plate", "scr-industry2"], ["concepts", "scr-concepts2"], ["exchange", "scr-exchange2"]]) {
     try {
       const r = await api("/api/screener/facets?field=" + fld + "&market=" + st.market + (st.watchlistOnly ? "&watchlist_only=1" : ""));
       const el = document.getElementById(id); if (!el) continue;
@@ -881,6 +1021,12 @@ function scrDraftAdd(field, label) {
 function scrDraftRemove(i) { scrDraft.splice(i, 1); scrRenderModal(); }
 function scrDraftVal(i, k, v) { scrDraft[i][k] = v === "" ? null : Number(v); }
 function scrModalTab(t) { scrTab = t; scrRenderModal(); }
+function scrModalFilterFields(q) {
+  q = String(q || "").toLowerCase();
+  document.querySelectorAll("#scr-modal .mfld").forEach(b => {
+    b.style.display = !q || b.textContent.toLowerCase().includes(q) ? "" : "none";
+  });
+}
 function scrModalClose() { const m = document.getElementById("scr-modal"); if (m) m.remove(); }
 function openFilterModal() {
   scrDraft = JSON.parse(JSON.stringify(window.__scr.filters || []));
@@ -932,7 +1078,9 @@ function scrRenderModal() {
     : `<div class="mfoot"><button class="btn ghost" onclick="scrModalClose()">Cancel</button>
         <button class="btn primary" onclick="scrModalConfirm()">Confirm</button></div>`;
   m.innerHTML = `<div class="mbox">
-    <div class="mhead"><b>Add Filter</b> <button class="btn ghost" onclick="scrModalClose()">✕</button></div>
+    <div class="mhead"><b>Add Filter</b>
+      <input id="scr-modal-search" placeholder="Search fields…" style="margin-left:10px;flex:1;max-width:240px;background:var(--panel2);border:1px solid var(--line);color:#dbe6f3;border-radius:7px;padding:5px 10px;font-size:12px" oninput="scrModalFilterFields(this.value)">
+      <button class="btn ghost" onclick="scrModalClose()">✕</button></div>
     <div class="mtabs">${tabBtn("quotes", "Quotes")}${tabBtn("tech", "Technical")}${tabBtn("fin", "Financial")}${tabBtn("screeners", "Screeners")}</div>
     ${body}
     ${foot}
@@ -1309,9 +1457,11 @@ const pages = {
         ? `<a href="#" onclick="event.preventDefault();openStock('${esc(r.symbol)}')" class="mono sym" title="open stock page">${esc(r.symbol)}</a>`
         : `<span class="dim" title="${esc(r[k])}">${esc(String(r[k] || "").slice(0, 26))}</span>`,
       num: (r, k) => k === "market_cap" || k === "float_cap" ? `<span class="mono">${cap(r[k])}</span>`
-        : k === "volume" || k === "turnover" || k === "shares" ? `<span class="mono">${r[k] != null ? (r[k] / 1e6).toFixed(2) + "M" : "—"}</span>`
-        : k === "price" || k === "high52" || k === "low52" || k === "eps" || k === "chg" ? `<span class="mono">${fmtAuto(r[k])}</span>`
-        : `<span class="mono">${num(r[k], 1)}</span>`,
+        : k === "volume" || k === "turnover" || k === "shares" || k === "avg_vol3m" ? `<span class="mono">${r[k] != null ? (r[k] / 1e6).toFixed(2) + "M" : "—"}</span>`
+        : k === "pct" || k === "chg" ? `<span class="mono ${r[k] > 0 ? "g" : r[k] < 0 ? "r" : ""}">${r[k] != null ? (r[k] > 0 ? "+" : "") + fmtAuto(r[k]) + (k === "pct" ? "%" : "") : "—"}</span>`
+        : k === "price" ? `<span class="mono ${(r.chg ?? 0) > 0 ? "g" : (r.chg ?? 0) < 0 ? "r" : ""}">${fmtAuto(r[k])}</span>`
+        : k === "high52" || k === "low52" || k === "eps" || k === "target_price" ? `<span class="mono">${fmtAuto(r[k])}</span>`
+        : `<span class="mono ${k === "perf_w" || k === "perf_m" || k === "perf_q" || k === "perf_h" || k === "perf_y" || k === "perf_ytd" ? ((r[k] ?? 0) > 0 ? "g" : (r[k] ?? 0) < 0 ? "r" : "") : ""}">${num(r[k], 2)}</span>`,
       multi: (r, k) => `<span class="faint" style="font-size:11px">${esc(String(r[k] || "—").slice(0, 22))}</span>`,
       bool: (r, k) => r[k] ? '<span class="g">✓</span>' : '<span class="faint">—</span>',
     };
@@ -1323,14 +1473,14 @@ const pages = {
     const th = k => {
       const [label, kind] = SCR_COLS[k];
       const arrow = st.sort === k ? (st.dir === 2 ? " ↓" : " ↑") : "";
-      return `<th class="thc"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="sort by ${esc(label)}">${esc(label)}${arrow}</a><a href="#" class="fic ${st.colFilters[k] ? "on" : ""}" title="filter" onclick="scrRenderColMenu('${k}','${kind}');return false">⚈</a>${filterIcon(k)}</th>`;
+      return `<th class="thc"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="${esc(FIELD_DEFS[k] || "sort by " + label)}">${esc(label)}${arrow}</a><a href="#" class="fic ${st.colFilters[k] ? "on" : ""}" title="filter" onclick="scrRenderColMenu('${k}','${kind}');return false">⚈</a>${filterIcon(k)}</th>`;
     };
     const body = rows.map((r, i) => `<tr>
       <td class="mono dim">${i + 1}</td>
       ${st.cols.map(k => `<td>${(cellFmt[SCR_COLS[k][1]] || cellFmt.num)(r, k)}</td>`).join("")}
       <td><button class="starbtn ${stars.includes(r.symbol) ? "on" : ""}" title="watchlist" onclick="toggleWatch('${esc(r.symbol)}')">${stars.includes(r.symbol) ? "★" : "☆"}</button></td></tr>`).join("");
     const colChips = st.filters.map((f, i) => `<span class="chip-f">${esc(f._label || SCR_FIELDS[f.field] || FIELD_LABELS[f.field] || f.field)}
-      ${f.values ? "= " + f.values.join(", ") : ""}${f.min != null ? "≥ " + f.min : ""}${f.min != null && f.max != null ? " · " : ""}${f.max != null ? "≤ " + f.max : ""}
+      ${f.values ? "= " + f.values.join(", ") : ""}${f.min != null ? "≥ " + fmtMag(f.min) : ""}${f.min != null && f.max != null ? " · " : ""}${f.max != null ? "≤ " + fmtMag(f.max) : ""}
       <a href="#" onclick="scrRemoveFilter(${i});return false" class="chip-x">×</a></span>`).join("");
     const colFilChips = Object.entries(st.colFilters).map(([k, cf]) => {
       const label = SCR_COLS[k] ? SCR_COLS[k][0] : k;
@@ -1379,6 +1529,8 @@ const pages = {
           <label class="switch"><input type="checkbox" id="scr-wl" ${st.watchlistOnly ? "checked" : ""} onchange="scrSet('watchlistOnly', this.checked)"><i></i> Watchlist only</label>
           <label class="switch" title="moomoo's screener count includes ETFs — untick for common stocks only"><input type="checkbox" ${st.etfs ? "checked" : ""} onchange="scrSet('etfs', this.checked)"><i></i> Include ETFs</label>
           <button class="btn ghost" onclick="openFilterModal()">＋ Add Filter</button>
+          <select id="scr-mypresets" title="Your saved screeners" onchange="if(this.value){scrApplySaved(this.value);this.value=''}"><option value="">My Presets</option></select>
+          <button class="btn ghost" onclick="scrToggleFilters()">${window.__scrFiltersCollapsed ? "Filters ▸" : "Filters ▾"}</button>
           ${colMenu}
           ${st.filters.length || Object.keys(st.colFilters).length ? '<button class="btn ghost" onclick="scrResetAll()">Reset all</button>' : ""}
           <span class="expgrp">
@@ -1389,12 +1541,21 @@ const pages = {
           </span>
           <button class="btn ghost" onclick="scrLoadUniverse(this)" ${window.__scrRefreshJob ? "disabled" : ""}>${scr?.universe_loaded ? "↻ Refresh full market" : "⤓ Load full market"}</button>
           ${st.filters.length ? `<button class="btn ghost" onclick="scrSet('filters', [])">Clear</button>` : ""}
-          <span class="mono dim" style="margin-left:auto">Result: ${(scr.matched ?? rows.length).toLocaleString()} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown.toLocaleString() : ""}</span>
+          <span class="mono dim" style="margin-left:auto">Result: ${(scr.matched ?? rows.length).toLocaleString()} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown.toLocaleString() : ""}${scrSummary(rows)}</span>
         </div>
         ${allChips ? `<div class="scr-chips">${allChips}</div>` : ""}
+        ${window.__scrFiltersCollapsed ? "" : `<div class="scr-toolbar" style="margin-bottom:6px">
+          <select title="Industry (moomoo plate)" onchange="scrTaxonomy('plate', this.value)" id="scr-industry2"><option value="">Industry: All</option></select>
+          <select title="Concepts board" onchange="scrTaxonomy('concepts', this.value)" id="scr-concepts2"><option value="">Concepts: All</option></select>
+          <select title="Exchange" onchange="scrTaxonomy('exchange', this.value)" id="scr-exchange2"><option value="">Exchange: All</option></select>
+          <input placeholder="Tickers: NVDA, AAPL" style="background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;width:140px" onchange="scrTickers(this.value)">
+          <span class="faint" style="font-size:10px">taxonomy</span></div>`}
         <div class="scr-toolbar" style="margin-bottom:6px">${Object.keys(SIG_DEFS).map(n =>
           `<button class="btn ghost" style="padding:2px 9px;font-size:11px;${sigOn(n) ? "border-color:#3a76dd;color:#8ab4ff" : ""}" title="${esc(SIG_DEFS[n].title)}" onclick="scrSignal('${n}')">${SIG_DEFS[n].label}</button>`).join("")}
         <span class="faint" style="font-size:10px">quick signals</span></div>
+        <div class="scr-toolbar" style="margin-bottom:6px">${Object.keys(VIEW_PRESETS).map(v =>
+          `<button class="btn ghost" style="padding:3px 11px;font-size:12px;${(st.view || "overview") === v ? "border-color:#3a76dd;color:#8ab4ff" : ""}" onclick="scrSetView('${v}')">${v[0].toUpperCase() + v.slice(1)}</button>`).join("")}
+        <span class="faint" style="font-size:10px">views · Custom = the column picker</span></div>
         ${(scr.skipped_filters || []).length ? `<div class="delay-note" style="margin-bottom:8px">${scr.skipped_filters.length} filter(s) skipped until factor data lands: ${scr.skipped_filters.map(f => esc(SCR_FIELDS[f] || f)).join(", ")}</div>` : ""}
         ${prog ? `<div class="scr-prog"><div class="bar"><i style="width:${(progPct || 5).toFixed(0)}%;background:#3a76dd"></i><i style="width:${100 - (progPct || 5)}%;background:#33415a"></i></div><span class="mono faint">${esc(prog.msg)}${prog.status ? " · " + esc(prog.status) : ""}</span></div>` : ""}
         <div class="scr-scroll">${table}</div>
@@ -2535,9 +2696,9 @@ function cmpCellHTML(c, i) {
         <button class="rng" data-cmp${i}-tfbtn title="Timeframe">${esc(c.range)} ▾</button>
         <span class="kc-menu" data-cmp${i}-tfpanel>${CMP_TFS.map(tf =>
           `<label class="kc-mi"><input type="radio" name="cmptf${i}" data-cmp${i}-tf="${tf}" ${c.range === tf ? "checked" : ""}
-             onchange="cmpSet(${i},{range:'${tf}'})"> ${tf}</label>`).join("")}</span></span>
+             onchange="cmpSet(${i},{range:'${tf}'});this.closest('.kc-menu').style.display='none'"> ${tf}</label>`).join("")}</span></span>
       <button class="rng ${c.events ? "on" : ""}" data-cmp-ev title="Earnings & dividend markers"
-              onclick="event.stopPropagation();cmpToggleEvents(${i},${!c.events})">E</button>
+              onclick="event.stopPropagation();cmpToggleEvents(${i})">E</button>
       <span style="flex:1"></span>
       <span class="cmp-ctl" id="cmp-ctl-${i}" onclick="event.stopPropagation()"></span>
       ${st.cells.length > 1 ? `<button class="rng" title="Remove panel" onclick="event.stopPropagation();cmpDelCell(${i})">✕</button>` : ""}
@@ -2734,6 +2895,7 @@ function cmpApply(i) {
 
 function cmpToggleEvents(i, on) {
   const c = cmpState().cells[i];
+  if (on === undefined) on = !c.events;  // header button = pure toggle
   c.events = !!on;
   cmpSave();
   const btn = document.querySelector("#cmp-cell-" + i + " [data-cmp-ev]");
@@ -3328,6 +3490,54 @@ async function prReset() {
     const o2 = document.getElementById("pr-out");
     if (o2) o2.textContent = "✓ back to the engine stock prompt";
   } catch (e) { if (out) out.textContent = "Reset failed: " + (e.message || e); }
+}
+
+// ── GROUPS (Finviz-style breakdowns over stored data; spec Phase C item 13) ──
+const GROUP_AVG_COLS = [["pe_ttm", "P/E"], ["forward_pe", "Fwd P/E"], ["peg", "PEG"],
+  ["short_float", "Short %"], ["analyst_recom", "Recom"], ["div_yield", "Div %"]];
+async function groupsPage() {
+  const gb = window.__groupsBy || "plate";
+  const r = await api("/api/groups?group_by=" + gb + "&market=" + (window.__scr.market || "US"))
+    .catch(() => ({ available: false, rows: [] }));
+  if (!r.available) return `<div class="empty">Groups need the stored universe — run ⤓ Load full market on the screener first. (${esc(r.reason || "unavailable")})</div>`;
+  const maxAbs = Math.max(...r.rows.map(x => Math.abs(x.chg_avg || 0)), 0.01);
+  const rows = r.rows.map(x => {
+    const w = Math.min(50, Math.abs(x.chg_avg || 0) / maxAbs * 50);
+    const bar = x.chg_avg != null ? `<span style="display:inline-block;width:${w.toFixed(1)}%;height:8px;border-radius:3px;background:${x.chg_avg >= 0 ? "var(--green)" : "var(--red)"}"></span>` : "";
+    const drill = `scrDrillTo('${gb}', ${JSON.stringify(x.key).replace(/"/g, "&quot;")})`;
+    return `<tr class="grow" onclick="${drill}" style="cursor:pointer" title="open in screener">
+      <td class="mono dim">${x.stocks}</td>
+      <td><b>${esc(x.key)}</b></td>
+      <td class="mono dim">${cap(x.cap_sum)}</td>
+      <td class="mono ${x.chg_avg > 0 ? "g" : x.chg_avg < 0 ? "r" : ""}">${x.chg_avg != null ? (x.chg_avg > 0 ? "+" : "") + x.chg_avg.toFixed(2) + "%" : "—"}</td>
+      <td><span class="g">▲${x.adv}</span> <span class="r">▼${x.decl}</span> ${bar}</td>
+      ${GROUP_AVG_COLS.map(([f]) => `<td class="mono dim">${x.avgs && x.avgs[f] != null ? num(x.avgs[f], 2) : "—"}</td>`).join("")}
+    </tr>`;
+  }).join("");
+  return `<div class="panel" style="margin-top:14px">
+    <div class="scr-toolbar">
+      <h3 class="sec" style="margin:0">Groups <small>industry &amp; concept breakdowns over the stored universe — zero vendor calls</small></h3>
+      <span style="flex:1"></span>
+      <label class="faint" style="font-size:11px">Group by</label>
+      <select onchange="window.__groupsBy=this.value;showPage('groups')">
+        ${[["plate", "Industry"], ["sector", "Sector (yf)"], ["industry", "Industry (yf)"], ["exchange", "Exchange"], ["cap_bucket", "Market Cap"]].map(([v, l]) =>
+          `<option value="${v}" ${gb === v ? "selected" : ""}>${l}</option>`).join("")}
+      </select>
+      <span class="mono faint">${r.rows.length} groups · as of ${r.as_of ? fmtTs(r.as_of) : "—"}</span>
+    </div>
+    <table class="scr-table"><tr><th>Stocks</th><th>Group</th><th>Σ Market Cap</th><th>Avg Δ%</th><th>Breadth</th>
+      ${GROUP_AVG_COLS.map(([, l]) => `<th>${l}</th>`).join("")}</tr>
+    ${rows || '<tr><td colspan="12" class="empty">No groups.</td></tr>'}</table>
+    <div class="faint" style="font-size:10px;margin-top:6px">Click a group to open the screener pre-filtered to it. Sector/Industry (yf) need the nightly YFinance batch; Industry/Exchange work from moomoo data alone.</div>
+  </div>`;
+}
+window.__groupsBy = "plate";
+pages.groups = groupsPage;  // register on the page router (nav data-page="groups")
+function scrDrillTo(groupBy, key) {
+  const st = window.__scr;
+  st.filters = st.filters.filter(f => f.field !== groupBy);
+  st.filters.push({ field: groupBy === "plate" ? "plate" : groupBy, values: [key] });
+  showPage("home");
 }
 
 // ── STOCK PAGE (moomoo-style per-symbol detail; spec: web/STOCK_PAGE_FEASIBILITY.md) ──
@@ -4187,7 +4397,7 @@ async function showPage(p) {
     }
     if (p === "report") { $("#page").innerHTML = await reportPage(state.reportRef); chartInit(); return; }
     $("#page").innerHTML = await pages[p]();
-    if (p === "home") { scrHideLoading(); scrLoadTaxonomy(); }
+    if (p === "home") { scrHideLoading(); scrLoadTaxonomy(); scrLoadMyPresets(); }
     if (p === "compare") cmpMount();
     if (p === "settings") {
       loadPromptsPanel();
@@ -4248,7 +4458,8 @@ window.addEventListener("hashchange", () => {
   else if (r?.info) showPage("info");
   else if (r?.picker) openStockPicker();
 });
-{ const r0 = stkRoute();
+{ scrRestoreFromHash();
+  const r0 = stkRoute();
   if (r0?.stock) openStock(r0.stock);
   else if (r0?.info) showPage("info");
   else if (r0?.picker) openStockPicker();
