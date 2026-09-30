@@ -1576,18 +1576,21 @@ function scrWarmPreset(key, market) {
       .catch(() => {}).finally(() => { delete window.__presetInflight[ck]; });
 }
 function scrWarmPresets() {
-  const st = window.__scr;
-  if (window.__warmRound && window.__warmRound.market === st.market &&
-      Date.now() - window.__warmRound.ts < 240000) return;
-  window.__warmRound = { market: st.market, ts: Date.now() };
-  const keys = (window.__scrPresets || []).map(p => p.key);
-  let i = 0;
-  const step = () => {
-    if (i >= keys.length || document.visibilityState !== "visible") return;
-    scrWarmPreset(keys[i++], st.market);
-    setTimeout(step, 3000);
+  // Self-healing: every 30s, warm up to 5 screener results that are missing
+  // or stale (execute server-caches 60s; 5/30s stays far under moomoo's
+  // 30 calls/min). A failed call is simply retried next tick.
+  if (window.__warmTimer) return;
+  const tick = () => {
+    const st = window.__scr;
+    if (document.visibilityState !== "visible" || state.page !== "home") return;
+    const stale = (window.__scrPresets || []).filter(p => p.key).filter(p => {
+      const c = (window.__presetCache || {})[p.key + "|" + st.market];
+      return !c || Date.now() - c.ts > 60000;
+    }).slice(0, 5);
+    stale.forEach(p => scrWarmPreset(p.key, st.market));
   };
-  step();
+  tick();
+  window.__warmTimer = setInterval(tick, 30000);
 }
 // ── client-side facets: distinct values + counts from the cached dataset ──
 function scrLocalFacets(field) {
