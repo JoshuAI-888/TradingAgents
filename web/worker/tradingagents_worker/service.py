@@ -145,6 +145,20 @@ def _hash_cfg(cfg: dict) -> str:
     return hashlib.sha256(json.dumps(cfg, sort_keys=True).encode()).hexdigest()[:16]
 
 
+def _upsert_snapshot_rows(db: Db, ticker_id: str, rows: list[dict]) -> None:
+    """Persist the verified snapshot's OHLCV rows into price_bars.
+
+    Same source/adjusted key the per-run enrich uses, so these values win for
+    rows ≤ trade_date and the report chart serves byte-identical bars to the
+    price_context text every agent was shown.
+    """
+    db.upsert("price_bars", "ticker_id,bar_date,source,adjusted", [
+        {"ticker_id": ticker_id, "bar_date": r["date"],
+         "open": r["open"], "high": r["high"], "low": r["low"], "close": r["close"],
+         "volume": r["volume"], "source": "yfinance", "adjusted": True}
+        for r in rows])
+
+
 def _queue_busy(db: Db, pending_only: bool = False) -> bool:
     """True while the LLM budget belongs to pipeline work: any run in flight,
     or (for post-job repair) anything waiting to start."""
@@ -215,6 +229,12 @@ def run_forever():
                 time.sleep(2)
             if total:
                 print(f"rehydrate: repaired {total} legacy debate row(s) at boot", flush=True)
+            # one quiet pass: digests that died on a degraded model
+            if not _queue_busy(db, pending_only=True):
+                from .digest import backfill_digests
+                fixed_dg = backfill_digests(db)
+                if fixed_dg:
+                    print(f"backfill: regenerated {fixed_dg} missing run digest(s) at boot", flush=True)
         except Exception as e:
             print(f"rehydrate boot (non-fatal): {e}", flush=True)
     threading.Thread(target=_boot_rehydrate, daemon=True, name="rehydrate").start()
@@ -269,11 +289,7 @@ def run_forever():
                 try:
                     trow = db.select("tickers", {"symbol": f"eq.{ticker}"}, "id")
                     tid = trow[0]["id"] if trow else _ensure_ticker(db, ticker)
-                    db.upsert("price_bars", "ticker_id,bar_date,source,adjusted", [
-                        {"ticker_id": tid, "bar_date": r["date"],
-                         "open": r["open"], "high": r["high"], "low": r["low"], "close": r["close"],
-                         "volume": r["volume"], "source": "yfinance", "adjusted": True}
-                        for r in price_ctx["rows"]])
+                    _upsert_snapshot_rows(db, tid, price_ctx["rows"])
                     emit.emit("analysts", "progress",
                               f"verified snapshot: {len(price_ctx['rows'])} bars "
                               f"as of {price_ctx['latest_date']} — shared by all agents and the chart")
@@ -286,11 +302,27 @@ def run_forever():
             run_id = persist_run(db, job, result)
             db.finish_job(str(job["id"]), "succeeded", run_id=run_id)
             emit.emit("report_qc", "done", f"stored run {run_id[:8]}")
+            if snapshot_text:
+                # Seed the verified snapshot immediately: it survives even when
+                # the digest LLM call below dies on a degraded model.
+                try:
+                    db.upsert("run_digest", "run_id", {"run_id": run_id,
+                               "digest": {"verified_snapshot": snapshot_text}})
+                except Exception as e0:
+                    print(f"digest seed (non-fatal): {e0}", flush=True)
             try:
                 from .enrich import enrich_run
                 got = enrich_run(db, ticker)
                 emit.emit("report_qc", "progress",
                           f"context: {got['bars']} bars · {got['news']} news · profile={'✓' if got['profile'] else '—'}")
+                if price_ctx:
+                    # enrich re-fetched price_bars after the run; same-day yfinance
+                    # fetches can drift ~0.03% — the snapshot's own rows win for
+                    # ≤ trade_date so the chart is byte-identical to what the
+                    # agents were shown in price_context.
+                    trow = db.select("tickers", {"symbol": f"eq.{ticker}"}, "id")
+                    if trow:
+                        _upsert_snapshot_rows(db, trow[0]["id"], price_ctx["rows"])
             except Exception as e2:
                 print(f"enrich (non-fatal): {e2}", flush=True)
             try:
@@ -313,6 +345,11 @@ def run_forever():
                     if fixed:
                         emit.emit("report_qc", "progress",
                                   f"repaired {fixed} legacy debate row(s) · spacing restored, originals preserved")
+                    from .digest import backfill_digests
+                    fixed_dg = backfill_digests(db)
+                    if fixed_dg:
+                        emit.emit("report_qc", "progress",
+                                  f"backfilled {fixed_dg} missing run digest(s) · dossier panels restored")
             except Exception as e4:
                 print(f"rehydrate (non-fatal): {e4}", flush=True)
         except Cancelled:

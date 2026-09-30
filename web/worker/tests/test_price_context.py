@@ -136,3 +136,66 @@ def test_digest_stores_the_verified_snapshot(monkeypatch):
 
     digest.build_digest(db, "run-1", "NVDA")
     assert "verified_snapshot" not in db.upserts[1][1]["digest"]
+
+
+def _backfill_db(missing_ids):
+    """FakeDb with succeeded runs; run_digest exists only for ids NOT in missing_ids."""
+    from tradingagents_worker.db import Db
+
+    class BackfillDb(Db):
+        def __init__(self):
+            self.tables = {}
+
+        def t_(self, name):
+            return self.tables.setdefault(name, [])
+
+        def select(self, table, query=None, columns="*"):
+            rows = [dict(r) for r in self.tables.setdefault(table, [])]
+            for k, v in (query or {}).items():
+                if v.startswith("eq."):
+                    rows = [r for r in rows if str(r.get(k)) == v[3:]]
+            return rows
+
+        def upsert(self, table, on_conflict, row):
+            self.tables.setdefault(table, []).append(row)
+
+        def insert(self, table, row, prefer="return=minimal"):
+            self.tables.setdefault(table, []).append(row)
+            return [row]
+
+    db = BackfillDb()
+    for i, (rid, missing) in enumerate([("run-keep", False), ("run-missing", True)]):
+        db.t_("tickers").append({"id": f"tick-{i}", "symbol": "NVDA"})
+        db.t_("runs").append({"id": rid, "ticker_id": f"tick-{i}",
+                             "trade_date": "2026-09-30", "status": "succeeded"})
+        if not missing:
+            db.t_("run_digest").append({"run_id": rid, "digest": {"evidence": []}})
+    return db
+
+
+def test_backfill_digests_rebuilds_missing_with_snapshot(monkeypatch):
+    from tradingagents_worker import digest as dg
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    _fake_snapshot_module(monkeypatch, lambda sym, date: {
+        "text": SNAP_TEXT, "rows": SNAP_ROWS, "latest_date": "2026-09-26"})
+    called = {}
+
+    def fake_build(db_, run_id, ticker, verified_snapshot=None):
+        called[run_id] = verified_snapshot
+        return {"stored": True}
+
+    monkeypatch.setattr(dg, "build_digest", fake_build)
+    db = _backfill_db(missing_ids=["run-missing"])
+    written = dg.backfill_digests(db)
+    assert written == 1 and called == {"run-missing": SNAP_TEXT}
+
+
+def test_backfill_digests_skips_existing_and_needs_key(monkeypatch):
+    from tradingagents_worker import digest as dg
+
+    db = _backfill_db(missing_ids=[])
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    assert dg.backfill_digests(db) == 0
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    assert dg.backfill_digests(db, cap=2) == 0
