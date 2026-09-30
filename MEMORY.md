@@ -1037,3 +1037,36 @@ screener 3.0-3.5s, presets 2.8-3.9s per call — every request re-reads all
 for stored universe + presets, (3) 60s execute cache, (4) render
 generation guard (stale async render can clobber newer — hit it during
 testing), (5) optional single bootstrap endpoint. 51df702, both branches.
+
+## 2026-09-30 (VI) — sub-second screener: caches + client-side dataset + SWR shell
+
+User: preset should open %chg desc; %CHG sort dead in preset mode; first
+load slow ("expect last retrieved data"); want instant sort/filter. Per
+their answers: 60s freshness, instant paint + instant everything, all four
+optimisations + signal fix.
+
+FIXES: scrApplyPreset sets pct/desc (Penny opens SEER/ICU/RANI = moomoo's
+card order). Preset-mode sorts were dead (execute returns one fixed server
+order) — client-side scrSortRows + execute limit=300 (was default 60 →
+undercounted presets >60 matches). Page sweep: HK ✓, views ✓, Reset/Clear
+exit ✓; signals-under-preset FIXED via idempotent scrFieldPass re-apply.
+
+PERF (measured before: /api/screener 3.0-3.5s, presets 2.8-3.9s EVERY call
+— stored-universe branch never populated the response cache; execute
+1.7-2.4s): server 60s caches (_stored_universe shared read, presets
+response, execute response), plain-path limit clamp 2000→20000 (TWO
+clamps existed — export + plain), client fetches the FULL matched set
+once/60s and filters/sorts/pages client-side (scrFieldPass mirrors backend
+absent-field-skip semantics), preset rows cached client-side 60s
+(sort/filter toggles ~instant), SWR first paint from IndexedDB with
+"showing data saved X min ago — updating…", render generation guard.
+Verified: reload→paint 3.4s (mostly static assets) with stale hint;
+preset click + sort toggle ~10ms from client cache.
+
+THREE self-inflicted bugs caught in verification, all fixed: plain-path
+clamp missed (dataset got 2000 rows); render guard `++window.__homeGen`
+on undefined = NaN, NaN!==NaN aborted EVERY render (blank page — use a
+closure let); localStorage UTF-16 caps ~2.5M chars so the MB dataset
+never persisted — moved to IndexedDB. Hourly loads: the universe loader
+cron already runs hourly 13–21 UTC weekdays + manual ↻ button.
+aba87ba, 8ae8c7a, 5c41754, 8432d1b + MEMORY.
