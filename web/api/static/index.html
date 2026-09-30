@@ -907,6 +907,10 @@ function scrApplyPreset(key) {
   st.colFilters = {};
   st.watchlistOnly = false;
   st.page = 1;
+  // Design (moomoo parity): a screener opens sorted by %chg descending, so the
+  // biggest movers within the screen lead the table just like the rail cards.
+  st.sort = "pct";
+  st.dir = 2;
   // Factor auto-columns (spec Phase C): each preset filter's field becomes a
   // visible column so every row shows why it qualified (moomoo parity).
   for (const f of st.filters) {
@@ -1379,6 +1383,26 @@ function scrEffFilters() {
     .map(([field, cf]) => cf.values ? { field, values: cf.values } : { field, min: cf.min, max: cf.max });
   return [...base, ...extra];
 }
+// Client-side sort for server-side preset rows — the execute endpoint returns
+// one fixed server order (market cap), so header sorts did nothing there. The
+// frontend fetches the full matched set (limit=300) so sorting is complete.
+function scrSortRows(rows) {
+  const st = window.__scr;
+  if (!st.sort || !Array.isArray(rows) || rows.length < 2) return rows;
+  const kind = SCR_COLS[st.sort] ? SCR_COLS[st.sort][1] : "num";
+  const dir = st.dir === 2 ? -1 : 1;
+  return [...rows].sort((a, b) => {
+    let va = a[st.sort], vb = b[st.sort];
+    if (kind !== "text" && kind !== "multi") {
+      va = va == null || isNaN(Number(va)) ? -Infinity : Number(va);
+      vb = vb == null || isNaN(Number(vb)) ? -Infinity : Number(vb);
+      return (va - vb) * dir;
+    }
+    va = va == null ? "" : String(va).toLowerCase();
+    vb = vb == null ? "" : String(vb).toLowerCase();
+    return va.localeCompare(vb) * dir;
+  });
+}
 const pages = {
   async home() {
     const st = window.__scr;
@@ -1400,7 +1424,7 @@ const pages = {
       const [r0, r1, r2, r3, ex] = await Promise.allSettled([
         baseFetches[0], baseFetches[1], baseFetches[2],
         api("/api/screener/presets?market=" + st.market).catch(() => ({ presets: [] })),
-        api("/api/screener/execute?key=" + encodeURIComponent(st.activePreset) + "&market=" + st.market)
+        api("/api/screener/execute?key=" + encodeURIComponent(st.activePreset) + "&market=" + st.market + "&limit=300")
           .catch(() => ({ available: false })),
       ]);
       const cands = r0.status === "fulfilled" ? r0.value : { candidates: [] };
@@ -1409,8 +1433,9 @@ const pages = {
       const rail = r3.status === "fulfilled" ? r3.value : { presets: [] };
       execd = ex.status === "fulfilled" ? ex.value : { available: false };
       if (execd.available) {
-        scr = { available: true, rows: execd.rows || [], count: (execd.rows || []).length,
-                matched: (execd.rows || []).length, shown: (execd.rows || []).length,
+        const xrows = scrSortRows(execd.rows || []);
+        scr = { available: true, rows: xrows, count: xrows.length,
+                matched: xrows.length, shown: xrows.length,
                 skipped_filters: execd.pending || [], server_side: true,
                 preset_name: execd.name, universe_loaded: true };
       } else {
