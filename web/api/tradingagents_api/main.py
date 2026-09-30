@@ -872,7 +872,9 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
         xml.append("</Table></Worksheet></Workbook>")
         return Response("".join(xml), media_type="application/vnd.ms-excel",
                         headers={"Content-Disposition": f'attachment; filename="{fname}.xls"'})
-    page = rows[max(0, offset):max(0, offset) + max(1, min(limit, 2000))]
+    # limit up to 20000: the portal fetches the WHOLE matched set once per
+    # minute and filters/sorts/pager client-side for instant interactivity.
+    page = rows[max(0, offset):max(0, offset) + max(1, min(limit, 20000))]
     return {"available": True, "universe": "watchlist" if watchlist_only else market,
             "rows": page, "count": matched, "matched": matched, "shown": len(page),
             "offset": max(0, offset),
