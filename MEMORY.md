@@ -941,3 +941,26 @@ to /bin/zsh — never use $ inside double-quoted git -m); left unamended to
 avoid a pointless double redeploy. Chart y-axis precision (klinecharts
 internal) still fixed 2dp — only matters if a sub-penny stock page chart
 is ever inspected closely.
+
+## 2026-09-30 — rail parity with moomoo.com/screener, verified against their live page
+
+User: "each screener returns the same thing and it looks wrong" + "compare to
+moomoo — data must match." Two bugs + one parity lesson. (1) The card
+previews computed ONE shared "top 3 by pct" and stamped it on every preset —
+cards now score their OWN filters via _apply_filters (factor fields the
+snapshot lacks are skipped for preview). (2) No liquidity check let dormant
+tickers headline. Opened moomoo.com/screener in the browser (WebFetch gets
+"--" — fully client-rendered; read the DOM): our DATA matches theirs
+exactly (BHATF 0.0650/+21566.67%, AHFD/PJET/CGAC +9900.00%, universe 9,444
+— these ARE moomoo's own numbers), and their cards headline zombies in
+"P/B Ratio Less Than 1" while Penny Stocks shows sane movers — the
+difference is their 30-day-AVERAGE volume filter, which a one-day 11M-share
+zombie print fails server-side. Parity rule implemented: presets whose
+filters carry a `days`-averaged volume filter additionally require >=10k
+turnover today in the preview (real 100k-shares/day names never print a
+~1k day); presets without one (P/B<1) stay unfloored and show what moomoo
+shows (BHATF +21566.67% first — matching their card). Rail now: Penny
+WHLT/SDEV/BKYI (sane), P/B<1 BHATF/TLSS/STEK, Blue Chip/Buffett/Undervalued
+distinct + sane. Note: exact trio parity on factor-heavy cards (revenue_
+growth etc.) is impossible in a snapshot preview — click-through runs the
+real server-side screen. 162 green; b33ef7c, 2988ba9, 31caf78.
