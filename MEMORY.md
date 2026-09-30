@@ -999,3 +999,20 @@ every export click threw). Browser-verified end to end: dirty state
 chip row shows only "Preset: Blue Chip Stocks ×", 40 whole-market rows;
 tab restored to whole market / market-cap desc (NVDA first). 383310c,
 both branches.
+
+## 2026-09-30 (IV) — Clear button left the preset running (scrSet early-return branch)
+
+User: "clear button disappeared after i click it, and the penny stock filter
+doesn't get cleared." Root cause: the toolbar redesign routed scrSet's
+'filters' key through an early-return branch (for the loading UX) that
+NEVER cleared activePreset — the clearing lived in the unreachable
+fall-through. Clear wiped the chips, the preset kept executing server-side
+(the user saw High Dividend's single BSM row persist — note that 1 row IS
+moomoo-parity correct for High Dividend; their own card shows only BSM),
+and the Clear button then vanished since it renders only when
+st.filters.length — the disappearance is normal, the non-clear wasn't.
+Fix: scrSet with an empty filters array clears activePreset in the early
+branch. Lesson: this is the third instance of the same trap (preset state
+split between st.filters and st.activePreset) — Reset all, chip removal,
+now Clear. Browser-verified: Penny → Clear → whole market 9,811, NVDA
+first, no chips. 46f571c, both branches.
