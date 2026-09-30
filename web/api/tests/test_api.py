@@ -336,7 +336,7 @@ def test_presets_rail_filters_per_preset_and_drops_illiquid_prints(monkeypatch):
     monkeypatch.setattr(api, "_universe_meta_cache", _NoCache())
     seed("PNY1", 3.2, 8.4, 2.0e8, 2_000_000, 6_400_000)            # liquid penny
     seed("DIV1", 42.0, 1.2, 8e9, 1_000_000, 42_000_000, div_yield=12.0)  # not a penny
-    seed("ZOMB", 0.0001, 9900.0, 98_010, 523_610, 52.36)           # dead-ticker print
+    seed("ZOMB", 0.0001, 9900.0, 98_010, 523_610, 9_999)           # dead-ticker print
     p = client.get("/api/screener/presets?market=US").json()
     by_name = {x["name"]: [t["symbol"] for t in x["top"]] for x in p["presets"]}
     assert all("ZOMB" not in syms for syms in by_name.values())    # never headlines

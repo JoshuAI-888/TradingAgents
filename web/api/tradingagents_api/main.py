@@ -909,10 +909,10 @@ def screener_presets(market: str = "US", universe: str = "auto"):
     # screener_universe, not the quote rows, so merge it in first). Each card
     # ranks over ITS OWN filters — one shared top-3 stamped every card with the
     # same names. Ranking is among names actually trading: dormant tickers
-    # print +9,900% on a $52 turnover day and must not headline the cards.
+    # print +9,900% on a ~USD 1k turnover day and must not headline the cards.
     rows = _merge_universe_meta(rows, market)
     rows = [r for r in rows if r.get("stock_type") == "STOCK"]
-    liquid = [r for r in rows if (r.get("turnover") or 0) >= 1_000]
+    liquid = [r for r in rows if (r.get("turnover") or 0) >= 10_000]
     out = []
     for preset in PRESET_SCREENERS:
         matched, _ = _apply_filters(liquid, preset.get("filters") or [])
