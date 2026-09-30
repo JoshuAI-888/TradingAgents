@@ -602,10 +602,18 @@ function scrRenderColMenu(field, kind) {
       <button class="btn primary" onclick="scrApplyColFilter('${field}')">Apply</button></div>
   </div>`;
   if (kind === "multi" && !window.__scrFacets?.[field]) {
-    api("/api/screener/facets?field=" + field + "&market=" + st.market + (st.watchlistOnly ? "&watchlist_only=1" : ""))
-      .then(r => { window.__scrFacets = window.__scrFacets || {}; window.__scrFacets[field] = r.values || [];
-                   if (document.getElementById("scr-colmenu")) { scrColMenuClose(); scrRenderColMenu(field, kind); } })
-      .catch(() => {});
+    // Distinct values + counts computed from the cached dataset — instant, no
+    // round trip; server facets only when we hold no data.
+    const local = scrLocalFacets(field);
+    if (local) {
+      window.__scrFacets = window.__scrFacets || {}; window.__scrFacets[field] = local;
+      scrColMenuClose(); scrRenderColMenu(field, kind);
+    } else {
+      api("/api/screener/facets?field=" + field + "&market=" + st.market + (st.watchlistOnly ? "&watchlist_only=1" : ""))
+        .then(r => { window.__scrFacets = window.__scrFacets || {}; window.__scrFacets[field] = r.values || [];
+                     if (document.getElementById("scr-colmenu")) { scrColMenuClose(); scrRenderColMenu(field, kind); } })
+        .catch(() => {});
+    }
   }
 }
 function scrDraftVal(field, k, v) {
@@ -638,10 +646,49 @@ function scrClearColFilter(field) {
 function scrPage(delta) { scrSet("page", Math.max(1, (window.__scr.page || 1) + delta)); }
 function scrExport(kind, scope) {
   const st = window.__scr;
-  const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
-    filters: JSON.stringify(scrEffFilters()), sort: st.sort, direction: st.dir, export: kind, scope: scope || "all" });
-  if (scope === "page") { qs.set("limit", String(st.pageSize || 500)); qs.set("offset", String(((st.page || 1) - 1) * (st.pageSize || 500))); }
-  window.open("/api/screener?" + qs.toString(), "_blank");
+  const rows = scrClientRows();
+  if (!rows) {
+    // We don't hold this view's data (cold watchlist fallback) — server build.
+    const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
+      filters: JSON.stringify(scrEffFilters()), sort: st.sort, direction: st.dir, export: kind, scope: scope || "all" });
+    if (scope === "page") { qs.set("limit", String(st.pageSize || 500)); qs.set("offset", String(((st.page || 1) - 1) * (st.pageSize || 500))); }
+    window.open("/api/screener?" + qs.toString(), "_blank");
+    return;
+  }
+  // Client build — the same filtered dataset the table shows, so downloads
+  // are instant. Page scope = rows on screen; all = the full filtered set.
+  const list = scope === "page"
+    ? rows.slice(Math.max(0, ((st.page || 1) - 1) * (st.pageSize || 500)),
+                 Math.max(0, ((st.page || 1) - 1) * (st.pageSize || 500)) + (st.pageSize || 500))
+    : rows;
+  const cols = ["symbol", ...st.cols.filter(k => k !== "symbol")];
+  const headers = ["No.", ...cols.map(k => (SCR_COLS[k] || [k])[0])];
+  const ccell = v => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const stamp = new Date().toISOString().slice(0, 10);
+  const fname = "screener_" + st.market + "_" + list.length + "rows_" + stamp;
+  let blob, ext;
+  if (kind === "csv") {
+    const lines = [headers.map(ccell).join(",")];
+    list.forEach((r, i) => lines.push([String(i + 1), ...cols.map(k => ccell(r[k]))].join(",")));
+    blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    ext = "csv";
+  } else {
+    const x = v => String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const xml = ['<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>',
+      '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" '
+      + 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Screener"><Table>',
+      "<Row>" + headers.map(h => '<Cell><Data ss:Type="String">' + x(h) + "</Data></Cell>").join("") + "</Row>"];
+    list.forEach((r, i) => xml.push("<Row>" + [String(i + 1), ...cols.map(k => x(r[k]))]
+      .map(v => '<Cell><Data ss:Type="String">' + v + "</Data></Cell>").join("") + "</Row>"));
+    xml.push("</Table></Worksheet></Workbook>");
+    blob = new Blob([xml.join("")], { type: "application/vnd.ms-excel" });
+    ext = "xls";
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fname + "." + ext;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000);
 }
 // ── column drag & drop ────────────────────────────────────────────────
 function scrDragStart(ev, key, from) {
@@ -968,13 +1015,18 @@ async function scrLoadUniverse(btn) {
     showPage("home");
   } catch (e) { if (btn) btn.disabled = false; }
 }
-async function toggleWatch(symbol) {
-  try { await api("/api/watchlist/" + symbol, { method: "POST" }); } catch (e) {}
+function toggleWatch(symbol) {
+  // Optimistic: flip the star now, sync the server in the background, revert
+  // on failure — the click must feel instant.
   const syms = window.__scr?.watchlistSyms;
-  if (syms && !syms.includes(symbol)) syms.push(symbol);  // optimistic star state
-  // Stay in context: re-render the stock page in place, refresh the screener otherwise.
+  const had = !!(syms && syms.includes(symbol));
+  if (syms && !had) syms.push(symbol);
   if (state.page === "stock" && stkState().sym) renderStock();
   else showPage("home");
+  api("/api/watchlist/" + symbol, { method: "POST" }).catch(() => {
+    if (syms && !had) { const i = syms.indexOf(symbol); if (i >= 0) syms.splice(i, 1); }
+    if (state.page === "home") showPage("home");
+  });
 }
 let scrDraft = [];
 let scrTab = "quotes";
@@ -1029,13 +1081,28 @@ async function scrLoadTaxonomy() {
   const st = window.__scr;
   for (const [fld, id] of [["plate", "scr-industry"], ["concepts", "scr-concepts"], ["exchange", "scr-exchange"],
                             ["plate", "scr-industry2"], ["concepts", "scr-concepts2"], ["exchange", "scr-exchange2"]]) {
-    try {
-      const r = await api("/api/screener/facets?field=" + fld + "&market=" + st.market + (st.watchlistOnly ? "&watchlist_only=1" : ""));
-      const el = document.getElementById(id); if (!el) continue;
-      const cur = (st.filters.find(f => f.field === fld) || {}).values || [];
-      el.innerHTML = '<option value="">' + el.options[0].text + '</option>' + (r.values || []).slice(0, 60).map(v =>
-        `<option value="${esc(v.value)}" ${cur.includes(v.value) ? "selected" : ""}>${esc(v.value)} (${v.count})</option>`).join("");
-    } catch (e) {}
+    const el = document.getElementById(id); if (!el) continue;
+    const cur = (st.filters.find(f => f.field === fld) || {}).values || [];
+    // plate/exchange are on every cached row — compute locally, instant.
+    // Concepts boards aren't row fields — one server fetch per field per
+    // session (cached in __scrFacets).
+    let values = fld === "concepts" ? (window.__scrFacets?.concepts || null) : scrLocalFacets(fld);
+    if (!values) {
+      if (fld !== "concepts" && !window.__scrDataset) {
+        try {
+          const r = await api("/api/screener/facets?field=" + fld + "&market=" + st.market + (st.watchlistOnly ? "&watchlist_only=1" : ""));
+          values = r.values || [];
+        } catch (e) {}
+      } else if (fld === "concepts") {
+        try {
+          const r = await api("/api/screener/facets?field=concepts&market=" + st.market);
+          values = r.values || [];
+          window.__scrFacets = window.__scrFacets || {}; window.__scrFacets.concepts = values;
+        } catch (e) {}
+      }
+    }
+    el.innerHTML = '<option value="">' + el.options[0].text + '</option>' + (values || []).slice(0, 60).map(v =>
+      `<option value="${esc(v.value)}" ${cur.includes(v.value) ? "selected" : ""}>${esc(v.value)} (${v.count})</option>`).join("");
   }
 }
 function scrDraftAdd(field, label) {
@@ -1465,6 +1532,103 @@ async function scrLoadDataset(key) {
     });
   } catch (e) { return null; }
 }
+// ── panels (candidates / decisions / market state / presets rail) with SWR ──
+// These four side panels don't need to block the screener table: paint the
+// last known copy instantly, refresh in the background, re-render once.
+function scrPanelSnapshot() {
+  const p = window.__panelCache || {};
+  return { cands: p.cands || { candidates: [] }, decs: p.decs || { decisions: [] },
+           ms: p.ms || { available: false }, rail: p.rail || { presets: [] } };
+}
+function scrPanelFetch(market) {
+  if (window.__panelInflight) return window.__panelInflight;
+  window.__panelInflight = Promise.all([
+    api("/api/candidates").catch(() => ({ candidates: [] })),
+    api("/api/decisions?limit=8").catch(() => ({ decisions: [] })),
+    api("/api/market/state").catch(() => ({ available: false })),
+    api("/api/screener/presets?market=" + market).catch(() => ({ presets: [] })),
+  ]).then(([cands, decs, ms, rail]) => {
+    window.__panelCache = { cands, decs, ms, rail, ts: Date.now() };
+    return window.__panelCache;
+  }).finally(() => { window.__panelInflight = null; });
+  return window.__panelInflight;
+}
+function scrStreamPanels(market) {
+  const p = window.__panelCache;
+  if (p && Date.now() - (p.ts || 0) < 60000) return;
+  scrPanelFetch(market).then(() => { if (state.page === "home") showPage("home"); }).catch(() => {});
+}
+// ── preset result warming (EXACT moomoo answers, prefetched) ──
+// A screener's first click otherwise waits ~2s for moomoo. Warm every screener
+// after page load (staggered 3s — moomoo allows 30 stock-screen calls/min) and
+// on card hover, so a click usually lands on an already-cached exact result.
+function scrWarmPreset(key, market) {
+  if (!key) return;
+  const ck = key + "|" + market;
+  const c = (window.__presetCache || {})[ck];
+  if (c && Date.now() - c.ts < 60000) return;
+  window.__presetInflight = window.__presetInflight || {};
+  if (window.__presetInflight[ck]) return;
+  window.__presetInflight[ck] =
+    api("/api/screener/execute?key=" + encodeURIComponent(key) + "&market=" + market + "&limit=300")
+      .then(p => { if (p && p.available)
+        (window.__presetCache = window.__presetCache || {})[ck] = { ts: Date.now(), payload: p }; })
+      .catch(() => {}).finally(() => { delete window.__presetInflight[ck]; });
+}
+function scrWarmPresets() {
+  const st = window.__scr;
+  if (window.__warmRound && window.__warmRound.market === st.market &&
+      Date.now() - window.__warmRound.ts < 240000) return;
+  window.__warmRound = { market: st.market, ts: Date.now() };
+  const keys = (window.__scrPresets || []).map(p => p.key);
+  let i = 0;
+  const step = () => {
+    if (i >= keys.length || document.visibilityState !== "visible") return;
+    scrWarmPreset(keys[i++], st.market);
+    setTimeout(step, 3000);
+  };
+  step();
+}
+// ── client-side facets: distinct values + counts from the cached dataset ──
+function scrLocalFacets(field) {
+  const st = window.__scr;
+  let rows = null;
+  if (st.activePreset) {
+    const c = (window.__presetCache || {})[st.activePreset + "|" + st.market];
+    if (c) rows = c.payload.rows || [];
+  } else if (window.__scrDataset) {
+    rows = window.__scrDataset.rows;
+  }
+  if (!rows || !rows.length) return null;
+  const counts = new Map();
+  for (const r of rows) {
+    const v = r[field];
+    if (v == null || v === "") continue;
+    for (const item of (Array.isArray(v) ? v : [v])) counts.set(item, (counts.get(item) || 0) + 1);
+  }
+  return [...counts.entries()].map(([value, count]) => ({ value: String(value), count }))
+    .sort((a, b) => b.count - a.count);
+}
+// The exact rows behind the current view (before paging) — shared by client
+// exports; null when we don't hold the data (server-side export fallback).
+function scrClientRows() {
+  const st = window.__scr;
+  if (st.activePreset) {
+    const c = (window.__presetCache || {})[st.activePreset + "|" + st.market];
+    if (!c) return null;
+    return scrSortRows(scrFieldPass(scrFieldPass(c.payload.rows || [], st.filters || []), scrColFilterFilters()));
+  }
+  const ds = window.__scrDataset;
+  if (!ds) return null;
+  let base = ds.rows;
+  if (st.watchlistOnly) {
+    const wset = new Set(ds.watchlist || st.watchlistSyms || []);
+    base = base.filter(r => wset.has(r.symbol));
+  }
+  return scrSortRows(scrFieldPass(scrFieldPass(scrFieldPass(base,
+    [{ field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }]),
+    st.filters || []), scrColFilterFilters()));
+}
 let __homeGen = 0;
 const pages = {
   async home() {
@@ -1478,36 +1642,30 @@ const pages = {
     // its results and result counts match moomoo.com/screener 1:1. Manual
     // filters keep the client-side path over our stored universe.
     let scr, execd = null;
-    const baseFetches = [
-      api("/api/candidates"), api("/api/decisions?limit=8"),
-      api("/api/market/state").catch(() => ({ available: false })),
-      api("/api/screener?" + qs).catch(() => ({ available: false, rows: [] })),
-      api("/api/screener/presets?market=" + st.market).catch(() => ({ presets: [] })),
-    ];
     if (st.activePreset) {
-      // The preset's matched rows are kept client-side for 60s — sort/filter
-      // toggles within a screener are instant; a new screener refetches.
+      // A screener runs on moomoo's backend for exact parity with their page.
+      // Results are cached client-side (60s) and WARMED in the background, so
+      // a click usually lands on an already-fetched exact result; a cold click
+      // shows the overlay while moomoo answers.
       const pKey = st.activePreset;
-      const pr = window.__presetRows;
-      const freshRows = pr && pr.key === pKey && pr.market === st.market &&
-                        pr.payload && pr.payload.available && Date.now() - pr.ts < 60000;
-      const exP = freshRows ? Promise.resolve(pr.payload)
-        : api("/api/screener/execute?key=" + encodeURIComponent(pKey) + "&market=" + st.market + "&limit=300")
+      const ck = pKey + "|" + st.market;
+      const cached = (window.__presetCache || {})[ck];
+      let execd = cached && cached.payload && cached.payload.available &&
+                  Date.now() - cached.ts < 60000 ? cached.payload : null;
+      if (!execd) {
+        scrShowLoading("Running the screener across the whole market…");
+        window.__presetInflight = window.__presetInflight || {};
+        const inflight = window.__presetInflight[ck];
+        execd = await (inflight || (window.__presetInflight[ck] =
+          api("/api/screener/execute?key=" + encodeURIComponent(pKey) + "&market=" + st.market + "&limit=300")
             .then(p => { if (p && p.available)
-              window.__presetRows = { key: pKey, market: st.market, ts: Date.now(), payload: p };
+              (window.__presetCache = window.__presetCache || {})[ck] = { ts: Date.now(), payload: p };
               return p; })
-            .catch(() => ({ available: false }));
-      const [r0, r1, r2, r3, ex] = await Promise.allSettled([
-        baseFetches[0], baseFetches[1], baseFetches[2],
-        api("/api/screener/presets?market=" + st.market).catch(() => ({ presets: [] })),
-        exP,
-      ]);
-      const cands = r0.status === "fulfilled" ? r0.value : { candidates: [] };
-      const decs = r1.status === "fulfilled" ? r1.value : { decisions: [] };
-      const ms = r2.status === "fulfilled" ? r2.value : { available: false };
-      const rail = r3.status === "fulfilled" ? r3.value : { presets: [] };
-      execd = ex.status === "fulfilled" ? ex.value : { available: false };
-      if (execd.available) {
+            .catch(() => ({ available: false }))
+            .finally(() => { delete window.__presetInflight[ck]; })));
+      }
+      if (gen !== __homeGen) return "";
+      if (execd && execd.available) {
         // The server preset already matched its own filters; re-applying them
         // client-side is idempotent and makes quick signals / taxonomy /
         // ticker chips added on top actually filter the preset rows.
@@ -1517,14 +1675,15 @@ const pages = {
                 skipped_filters: execd.pending || [], server_side: true,
                 preset_name: execd.name, universe_loaded: true };
       } else {
-        const fb = await baseFetches[3].catch(() => ({ available: false, rows: [] }));
-        scr = { ...fb, server_fallback_reason: execd.reason };
+        const fb = await api("/api/screener?" + qs).catch(() => ({ available: false, rows: [] }));
+        scr = { ...fb, server_fallback_reason: (execd && execd.reason) || "execute failed" };
       }
-      window.__homeCtx = { cands, decs, ms, scr, rail, execd };
-    } else if (!st.watchlistOnly) {
-      // Whole matched set in ONE request (server-cached 60s); every interaction
-      // after that — filters, column filters, sort, pager — is client-side and
-      // instant. First paint uses the browser's saved copy, then refreshes.
+      window.__homeCtx = { ...scrPanelSnapshot(), scr, execd };
+    } else {
+      // Whole matched set held client-side (IndexedDB, server-cached 60s):
+      // first paint is instant and every interaction — filters, column
+      // filters, sort, pager, watchlist scope — is client-side. Watchlist
+      // mode filters the same dataset by the watchlist symbols.
       const dsKey = [st.market, st.etfs ? 1 : 0, st.src || "moo"].join("|");
       const dataQs = new URLSearchParams({ market: st.market, watchlist_only: "0",
         filters: JSON.stringify([{ field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }]),
@@ -1534,31 +1693,37 @@ const pages = {
         ds = window.__scrDataset;
       } else {
         const saved = await scrLoadDataset(dsKey);
-        if (saved) { ds = { key: saved.key, ts: saved.ts, asOf: saved.asOf, rows: saved.rows }; fromCache = true; }
+        if (saved) { ds = { key: saved.key, ts: saved.ts, asOf: saved.asOf, watchlist: saved.watchlist, rows: saved.rows }; fromCache = true; }
       }
       if (!ds) {
-        const raw = await api("/api/screener?" + dataQs).catch(() => null);
+        // Cold first-ever load: dataset and panels fetch in parallel.
+        const [raw, panels] = await Promise.all([
+          api("/api/screener?" + dataQs).catch(() => null), scrPanelFetch(st.market)]);
+        if (gen !== __homeGen) return "";
         ds = { key: dsKey, ts: Date.now(), asOf: raw && raw.universe_as_of,
                watchlist: raw && raw.watchlist, rows: (raw && raw.rows) || [] };
         window.__scrDataset = ds;
         scrPersistDataset(ds);
-      } else if (fromCache) {
-        // paint the saved copy now; refresh in the background, update once
-        api("/api/screener?" + dataQs).then(raw => {
-          const fresh = { key: dsKey, ts: Date.now(), asOf: raw && raw.universe_as_of,
-                          watchlist: raw && raw.watchlist, rows: (raw && raw.rows) || [] };
-          window.__scrDataset = fresh;
-          scrPersistDataset(fresh);
-          if (state.page === "home") showPage("home");
-        }).catch(() => {});
+        window.__panelCache = { ...panels, ts: Date.now() };
+      } else {
+        if (fromCache || Date.now() - ds.ts > 60000) {
+          // paint the saved copy now; refresh in the background, update once
+          api("/api/screener?" + dataQs).then(raw => {
+            const fresh = { key: dsKey, ts: Date.now(), asOf: raw && raw.universe_as_of,
+                            watchlist: raw && raw.watchlist, rows: (raw && raw.rows) || [] };
+            window.__scrDataset = fresh;
+            scrPersistDataset(fresh);
+            if (state.page === "home") showPage("home");
+          }).catch(() => {});
+        }
+        scrStreamPanels(st.market);
       }
-      const [cands, decs, ms, rail] = await Promise.all([
-        api("/api/candidates").catch(() => ({ candidates: [] })),
-        api("/api/decisions?limit=8").catch(() => ({ decisions: [] })),
-        api("/api/market/state").catch(() => ({ available: false })),
-        api("/api/screener/presets?market=" + st.market).catch(() => ({ presets: [] })),
-      ]);
-      const all = scrSortRows(scrFieldPass(scrFieldPass(scrFieldPass(ds.rows,
+      let base = ds.rows;
+      if (st.watchlistOnly) {
+        const wset = new Set(ds.watchlist || st.watchlistSyms || []);
+        base = base.filter(r => wset.has(r.symbol));
+      }
+      const all = scrSortRows(scrFieldPass(scrFieldPass(scrFieldPass(base,
         [{ field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }]),
         st.filters || []), scrColFilterFilters()));
       const off = Math.max(0, ((st.page || 1) - 1) * (st.pageSize || 500));
@@ -1568,15 +1733,7 @@ const pages = {
               skipped_filters: [], universe_loaded: ds.rows.length > 0,
               universe_as_of: ds.asOf, watchlist: ds.watchlist,
               client_dataset: true, stale_hint: fromCache ? ds.ts : null };
-      window.__homeCtx = { cands, decs, ms, scr, rail, execd: null };
-    } else {
-      const settled = await Promise.allSettled(baseFetches);
-      const val = (i, fb) => settled[i].status === "fulfilled" ? settled[i].value : fb;
-      const cands = val(0, { candidates: [] }), decs = val(1, { decisions: [] }),
-            ms = val(2, { available: false }), scrV = val(3, { available: false, rows: [] }),
-            rail = val(4, { presets: [] });
-      scr = scrV; execd = null;
-      window.__homeCtx = { cands, decs, ms, scr, rail, execd: null };
+      window.__homeCtx = { ...scrPanelSnapshot(), scr, execd: null };
     }
     const { cands, decs, ms, rail } = window.__homeCtx;
     scr = window.__homeCtx.scr;
@@ -1699,7 +1856,7 @@ const pages = {
         <div class="pp mono ${t.pct >= 0 ? "g" : "r"}">${t.pct != null ? (t.pct >= 0 ? "+" : "") + t.pct.toFixed(2) + "%" : "--"}</div></div>`).join("");
       const all = (p.filters || []).length;
       const cov = all ? ` <span class="faint" style="font-size:9px;color:#26c68c">${all}/${all} filters · server-side</span>` : "";
-      return `<div class="preset" title="${esc(p.description || p.name)}" onclick="scrApplyPreset('${esc(p.key)}')"><div class="pname">${esc(p.name)} ›${cov}</div>
+      return `<div class="preset" title="${esc(p.description || p.name)}" onclick="scrApplyPreset('${esc(p.key)}')" onmouseenter="scrWarmPreset('${esc(p.key)}','${esc(st.market)}')"><div class="pname">${esc(p.name)} ›${cov}</div>
         <div class="prow">${top || '<div class="faint" style="font-size:10px">no matches in universe</div>'}</div></div>`;
     }).join("");
 
@@ -4636,8 +4793,13 @@ async function showPage(p) {
       return;
     }
     if (p === "report") { $("#page").innerHTML = await reportPage(state.reportRef); chartInit(); return; }
+    // Re-renders (sorts, background panel refreshes) must not yank scroll.
+    const __sy = window.scrollY;
+    const __ss = document.querySelector(".scr-scroll")?.scrollTop ?? null;
     $("#page").innerHTML = await pages[p]();
-    if (p === "home") { scrHideLoading(); scrLoadTaxonomy(); scrLoadMyPresets(); }
+    window.scrollTo(0, __sy);
+    if (__ss != null) { const __el = document.querySelector(".scr-scroll"); if (__el) __el.scrollTop = __ss; }
+    if (p === "home") { scrHideLoading(); scrLoadTaxonomy(); scrLoadMyPresets(); scrWarmPresets(); }
     if (p === "compare") cmpMount();
     if (p === "settings") {
       loadPromptsPanel();
