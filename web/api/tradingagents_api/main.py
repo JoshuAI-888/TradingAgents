@@ -592,6 +592,28 @@ def _watchlist_symbols() -> list[str]:
 _universe_meta_cache = None
 
 
+_stored_universe_cache: dict[str, tuple[float, list, str | None]] = {}
+_presets_cache: dict[str, tuple[float, dict]] = {}
+_execute_cache: dict[str, tuple[float, dict]] = {}
+
+
+def _stored_universe(market: str, max_age: float = 60.0):
+    """screener_quotes rows + newest updated_at for a market, cached in-process
+    for 60s. The loader refreshes hourly, but every screener/presets request
+    re-read ~15k rows across 16 PostgREST pages (~3s) because the response
+    cache only covered the live-fallback branch. (rows, as_of)."""
+    now = time.time()
+    hit = _stored_universe_cache.get(market)
+    if hit and now - hit[0] < max_age:
+        return hit[1], hit[2]
+    stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "row,updated_at")
+    rows = [r["row"] for r in stored if isinstance(r.get("row"), dict)]
+    stamps = [r.get("updated_at") for r in stored if r.get("updated_at")]
+    as_of = max(stamps) if stamps else None
+    _stored_universe_cache[market] = (now, rows, as_of)
+    return rows, as_of
+
+
 def _merge_universe_meta(rows: list[dict], market: str) -> list[dict]:
     """Attach plate / stock_type / exchange from the stored universe (cached 5 min)."""
     global _universe_meta_cache
@@ -743,12 +765,9 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
     universe_as_of = None
     if rows is None and not watchlist_only:
         # Preferred whole-market source: the stored universe (loaded by the
-        # universe_refresh job) — zero moomoo calls at view time.
-        stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "row,updated_at")
-        if stored:
-            rows = [r["row"] for r in stored if isinstance(r.get("row"), dict)]
-            stamps = [r.get("updated_at") for r in stored if r.get("updated_at")]
-            universe_as_of = max(stamps) if stamps else None
+        # universe_refresh job) — zero moomoo calls at view time, cached 60s.
+        rows, universe_as_of = _stored_universe(market)
+        if rows:
             universe_loaded = True
     if rows is None:
         if watchlist_only:
@@ -813,7 +832,7 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
         # page (limit/offset). CSV for everything, Excel-compatible SpreadsheetML
         # so Excel opens it natively without imports.
         if scope == "page":
-            rows = rows[max(0, offset):max(0, offset) + max(1, min(limit, 2000))]
+            rows = rows[max(0, offset):max(0, offset) + max(1, min(limit, 20000))]
         else:
             rows = rows[:20000]
         cols = ["symbol", "name", "stock_type", "plate", "price", "pct", "chg",
@@ -871,6 +890,9 @@ def screener_presets(market: str = "US", universe: str = "auto"):
     The stored universe needs no moomoo keys; only the live fallback does."""
     client = _market_client()
     cache = _cache()
+    hit = _presets_cache.get(f"{market}|{universe}")
+    if hit and time.time() - hit[0] < 60.0:
+        return hit[1]
     if universe == "watchlist":
         uk = cache.key("quotes", "screener-universe", market, 1, "market_cap", 2)
         rows = cache.get("quotes", uk)
@@ -885,12 +907,10 @@ def screener_presets(market: str = "US", universe: str = "auto"):
             cache.put("quotes", uk, rows)
     else:
         try:
-            stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "row")
+            rows, _as_of = _stored_universe(market)
         except Exception:
-            stored = []
-        if stored:
-            rows = [r["row"] for r in stored if isinstance(r.get("row"), dict)]
-        else:
+            rows = []
+        if not rows:
             uk = cache.key("quotes", "screener-universe", market, 0, "market_cap", 2)
             rows = cache.get("quotes", uk)
             if rows is None:
@@ -926,8 +946,9 @@ def screener_presets(market: str = "US", universe: str = "auto"):
                     "top": [{"symbol": r["symbol"],
                              "name": str(r.get("name") or "")[:22],
                              "pct": r.get("pct")} for r in picked]})
-    return {"available": True, "presets": out, "universe_rows": len(rows)}
-
+    out_payload = {"available": True, "presets": out, "universe_rows": len(rows)}
+    _presets_cache[f"{market}|{universe}"] = (time.time(), out_payload)
+    return out_payload
 
 @app.get("/api/screener/schedule")
 def screener_schedule_get():
@@ -1075,6 +1096,10 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60):
     """Execute a preset (or saved screener by ?key=saved:<id>) SERVER-SIDE — the
     same screening backend moomoo's own screener page uses, so results and
     result counts reconcile with moomoo.com/screener."""
+    ck = f"{key}|{market}|{min(limit, 300)}"
+    hit = _execute_cache.get(ck)
+    if hit and time.time() - hit[0] < 60.0:
+        return hit[1]
     if key.startswith("saved:"):
         sid = key.split(":", 1)[1]
         rows0 = db.select("saved_screeners", {"id": f"eq.{sid}"})
@@ -1158,8 +1183,10 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60):
             except Exception:
                 pass
         _merge_universe_meta(rows, market)
-    return {"available": True, "key": key, "name": name, "description": description,
-            "market": market, "pending": pending, "rows": rows, "shown": len(rows)}
+    out_payload = {"available": True, "key": key, "name": name, "description": description,
+                   "market": market, "pending": pending, "rows": rows, "shown": len(rows)}
+    _execute_cache[ck] = (time.time(), out_payload)
+    return out_payload
 
 
 @app.post("/api/screener/refresh")

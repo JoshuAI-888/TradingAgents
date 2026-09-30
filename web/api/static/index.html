@@ -1403,8 +1403,56 @@ function scrSortRows(rows) {
     return va.localeCompare(vb) * dir;
   });
 }
+// Client-side filter engine — mirrors the backend _apply_filters semantics:
+// a field absent from the dataset SKIPS its filter instead of failing every
+// row; values are case-insensitive overlaps; min/max inclusive numerics.
+function scrFieldPass(rows, filters) {
+  if (!Array.isArray(rows) || !rows.length) return rows;
+  const present = new Set();
+  for (const r of rows.slice(0, 50)) for (const [k, v] of Object.entries(r)) if (v != null) present.add(k);
+  const active = (filters || []).filter(f => f && present.has(f.field));
+  if (!active.length) return rows;
+  return rows.filter(r => active.every(f => {
+    const v = r[f.field];
+    if (f.values) {
+      const have = Array.isArray(v) ? v.map(x => String(x).toLowerCase())
+        : v == null ? [] : [String(v).toLowerCase()];
+      return have.length > 0 && f.values.some(w => have.includes(String(w).toLowerCase()));
+    }
+    if (v == null) return false;
+    const n = Number(v);
+    if (isNaN(n)) return false;
+    if (f.min != null && n < Number(f.min)) return false;
+    if (f.max != null && n > Number(f.max)) return false;
+    return true;
+  }));
+}
+function scrColFilterFilters() {
+  return Object.entries(window.__scr.colFilters || {})
+    .filter(([, cf]) => (cf.values || []).length || cf.min != null || cf.max != null)
+    .map(([field, cf]) => cf.values ? { field, values: cf.values } : { field, min: cf.min, max: cf.max });
+}
+// The whole matched dataset lives in memory (60s) + localStorage so first
+// paint and every interaction are instant; the server refreshes it hourly via
+// the loader and on demand via ↻ Refresh full market.
+function scrPersistDataset(ds) {
+  try {
+    const s = JSON.stringify({ key: ds.key, ts: ds.ts, asOf: ds.asOf, watchlist: ds.watchlist, rows: ds.rows });
+    if (s.length < 4500000) localStorage.setItem("scrDataset", s);
+    else localStorage.removeItem("scrDataset");
+  } catch (e) { /* quota — the in-memory copy still works */ }
+}
+function scrLoadDataset(key) {
+  try {
+    const d = JSON.parse(localStorage.getItem("scrDataset") || "null");
+    if (d && d.key === key && d.rows && d.rows.length)
+      return { key: d.key, ts: d.ts, asOf: d.asOf, watchlist: d.watchlist, rows: d.rows };
+  } catch (e) {}
+  return null;
+}
 const pages = {
   async home() {
+    const gen = ++window.__homeGen;
     const st = window.__scr;
     const effFilters = scrEffFilters();
     const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
@@ -1433,7 +1481,10 @@ const pages = {
       const rail = r3.status === "fulfilled" ? r3.value : { presets: [] };
       execd = ex.status === "fulfilled" ? ex.value : { available: false };
       if (execd.available) {
-        const xrows = scrSortRows(execd.rows || []);
+        // The server preset already matched its own filters; re-applying them
+        // client-side is idempotent and makes quick signals / taxonomy /
+        // ticker chips added on top actually filter the preset rows.
+        const xrows = scrSortRows(scrFieldPass(scrFieldPass(execd.rows || [], st.filters || []), scrColFilterFilters()));
         scr = { available: true, rows: xrows, count: xrows.length,
                 matched: xrows.length, shown: xrows.length,
                 skipped_filters: execd.pending || [], server_side: true,
@@ -1443,6 +1494,54 @@ const pages = {
         scr = { ...fb, server_fallback_reason: execd.reason };
       }
       window.__homeCtx = { cands, decs, ms, scr, rail, execd };
+    } else if (!st.watchlistOnly) {
+      // Whole matched set in ONE request (server-cached 60s); every interaction
+      // after that — filters, column filters, sort, pager — is client-side and
+      // instant. First paint uses the browser's saved copy, then refreshes.
+      const dsKey = [st.market, st.etfs ? 1 : 0, st.src || "moo"].join("|");
+      const dataQs = new URLSearchParams({ market: st.market, watchlist_only: "0",
+        filters: JSON.stringify([{ field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }]),
+        sort: "market_cap", direction: "2", src: st.src || "moo", limit: "20000", offset: "0" });
+      let ds = null, fromCache = false;
+      if (window.__scrDataset && window.__scrDataset.key === dsKey && Date.now() - window.__scrDataset.ts < 60000) {
+        ds = window.__scrDataset;
+      } else {
+        const saved = scrLoadDataset(dsKey);
+        if (saved) { ds = { key: saved.key, ts: saved.ts, asOf: saved.asOf, rows: saved.rows }; fromCache = true; }
+      }
+      if (!ds) {
+        const raw = await api("/api/screener?" + dataQs).catch(() => null);
+        ds = { key: dsKey, ts: Date.now(), asOf: raw && raw.universe_as_of,
+               watchlist: raw && raw.watchlist, rows: (raw && raw.rows) || [] };
+        window.__scrDataset = ds;
+        scrPersistDataset(ds);
+      } else if (fromCache) {
+        // paint the saved copy now; refresh in the background, update once
+        api("/api/screener?" + dataQs).then(raw => {
+          const fresh = { key: dsKey, ts: Date.now(), asOf: raw && raw.universe_as_of,
+                          watchlist: raw && raw.watchlist, rows: (raw && raw.rows) || [] };
+          window.__scrDataset = fresh;
+          scrPersistDataset(fresh);
+          if (state.page === "home") showPage("home");
+        }).catch(() => {});
+      }
+      const [cands, decs, ms, rail] = await Promise.all([
+        api("/api/candidates").catch(() => ({ candidates: [] })),
+        api("/api/decisions?limit=8").catch(() => ({ decisions: [] })),
+        api("/api/market/state").catch(() => ({ available: false })),
+        api("/api/screener/presets?market=" + st.market).catch(() => ({ presets: [] })),
+      ]);
+      const all = scrSortRows(scrFieldPass(scrFieldPass(scrFieldPass(ds.rows,
+        [{ field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }]),
+        st.filters || []), scrColFilterFilters()));
+      const off = Math.max(0, ((st.page || 1) - 1) * (st.pageSize || 500));
+      const pageRows = all.slice(off, off + (st.pageSize || 500));
+      scr = { available: true, rows: pageRows, count: all.length, matched: all.length,
+              shown: pageRows.length, offset: off,
+              skipped_filters: [], universe_loaded: ds.rows.length > 0,
+              universe_as_of: ds.asOf, watchlist: ds.watchlist,
+              client_dataset: true, stale_hint: fromCache ? ds.ts : null };
+      window.__homeCtx = { cands, decs, ms, scr, rail, execd: null };
     } else {
       const settled = await Promise.allSettled(baseFetches);
       const val = (i, fb) => settled[i].status === "fulfilled" ? settled[i].value : fb;
@@ -1459,6 +1558,9 @@ const pages = {
     // page is re-rendered exactly once, when the job finishes.
     let prog = window.__scrRefreshJob ? { status: "running", msg: "refreshing universe…" } : null;
     if (window.__scrLoadingMsg) scrShowLoading(window.__scrLoadingMsg);
+    // A slower older render must never clobber a newer one (rapid clicks race
+    // the 3-4s endpoints): drop this render if a newer one has started.
+    if (gen !== window.__homeGen) return "";
     const fmtPct = v => v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(2) + "%";
     window.__scrPresets = rail.presets || [];
     window.__scr.watchlistSyms = scr.watchlist || st.watchlistSyms;
@@ -1506,22 +1608,10 @@ const pages = {
       if (prog.status === "succeeded") progPct = 100;
     }
     const rows = scr.rows || [];
-    // Server-side presets can't take column refinements server-side — apply
-    // the ⚈ column filters over the returned rows for display. The manual
-    // path already filters server-side (they ride along in the request).
-    const cfs = Object.entries(st.colFilters || {}).filter(([, cf]) =>
-      (cf.values || []).length || cf.min != null || cf.max != null);
-    const viewRows = (scr.server_side && cfs.length)
-      ? rows.filter(r => cfs.every(([k, cf]) => {
-          const v = r[k];
-          if (cf.values) return v != null && cf.values.map(x => String(x).toLowerCase()).includes(String(v).toLowerCase());
-          const n = Number(v);
-          if (v == null || isNaN(n)) return false;
-          if (cf.min != null && n < cf.min) return false;
-          if (cf.max != null && n > cf.max) return false;
-          return true;
-        }))
-      : rows;
+    // Filtering happens before paging now: preset rows pass through
+    // scrFieldPass in the branch above, and the client-dataset path filters
+    // the full set — so `rows` is exactly what the page shows.
+    const viewRows = rows;
     const stars = st.watchlistSyms || [];
     const num = (v, dp) => v == null ? "—" : Number(v).toLocaleString(undefined, { maximumFractionDigits: dp });
     const cap = v => v == null ? "—" : "$" + fmtBig(v);
@@ -1590,7 +1680,7 @@ const pages = {
     ${msPanel}
     <div class="scr-grid">
       <div class="panel scr-main">
-        <h3 class="sec">Screener <small>${scr.server_side ? "server-side execution — matches moomoo.com/screener · " + esc(scr.preset_name || st.activePreset || "") + (execd && execd.pending && execd.pending.length ? " · not yet applied server-side: " + esc(execd.pending.join(", ")) : "") : "moomoo data · " + (st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: " + (scr.universe_loaded ? "full " + esc(st.market) + " market" + (scr.universe_as_of ? " · quotes as of " + fmtTs(scr.universe_as_of) : "") : "live slices — run ↻ Load full market")) + (st.src === "yf" ? " · Data: YFinance" + (scr.enrich_as_of ? " as of " + fmtTs(scr.enrich_as_of) : "") : "")}</small></h3>
+        <h3 class="sec">Screener <small>${scr.server_side ? "server-side execution — matches moomoo.com/screener · " + esc(scr.preset_name || st.activePreset || "") + (execd && execd.pending && execd.pending.length ? " · not yet applied server-side: " + esc(execd.pending.join(", ")) : "") : "moomoo data · " + (st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: " + (scr.universe_loaded ? "full " + esc(st.market) + " market" + (scr.universe_as_of ? " · quotes as of " + fmtTs(scr.universe_as_of) : "") : "live slices — run ↻ Load full market")) + (scr.stale_hint ? " · <b>showing data saved " + Math.max(1, Math.round((Date.now() - scr.stale_hint) / 60000)) + " min ago — updating…</b>" : "") + (st.src === "yf" ? " · Data: YFinance" + (scr.enrich_as_of ? " as of " + fmtTs(scr.enrich_as_of) : "") : "")}</small></h3>
         <div class="scr-toolbar">
           <label class="faint">Market</label>
           <select id="scr-market" onchange="scrSet('market', this.value)">
@@ -1619,7 +1709,7 @@ const pages = {
           </span>
           <button class="btn ghost" onclick="scrLoadUniverse(this)" ${window.__scrRefreshJob ? "disabled" : ""}>${scr?.universe_loaded ? "↻ Refresh full market" : "⤓ Load full market"}</button>
           ${st.filters.length ? `<button class="btn ghost" onclick="scrSet('filters', [])">Clear</button>` : ""}
-          <span class="mono dim" style="margin-left:auto">Result: ${(scr.matched ?? viewRows.length).toLocaleString()} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown.toLocaleString() : ""}${cfs.length && scr.server_side ? " · " + viewRows.length.toLocaleString() + " after column filters" : ""}${scrSummary(viewRows)}</span>
+          <span class="mono dim" style="margin-left:auto">Result: ${(scr.matched ?? viewRows.length).toLocaleString()} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown.toLocaleString() : ""}${scrSummary(viewRows)}</span>
         </div>
         ${allChips ? `<div class="scr-chips">${allChips}</div>` : ""}
         ${window.__scrFiltersCollapsed ? "" : `<div class="scr-toolbar" style="margin-bottom:6px">

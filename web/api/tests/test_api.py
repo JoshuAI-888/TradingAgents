@@ -303,6 +303,7 @@ class _NoCache:
 
 
 def test_presets_rail_scores_stored_rows_without_inline_stock_type(monkeypatch):
+    _fresh_caches(monkeypatch)
     """Regression 2026-09-29: stored quote rows carry no stock_type (classification
     lives in screener_universe), so filtering before merging dropped every row and
     the rail showed 'no matches in universe' with '0 rows scored'."""
@@ -321,6 +322,7 @@ def test_presets_rail_scores_stored_rows_without_inline_stock_type(monkeypatch):
 
 
 def test_presets_rail_filters_per_preset_and_drops_illiquid_prints(monkeypatch):
+    _fresh_caches(monkeypatch)
     """Regression 2026-09-30, verified against moomoo.com/screener: cards score
     their OWN filters by %chg. moomoo keeps dead prints out of Penny Stocks via
     the 30-day-AVERAGE volume filter (a real 100k-shares/day name never prints
@@ -349,6 +351,7 @@ def test_presets_rail_filters_per_preset_and_drops_illiquid_prints(monkeypatch):
 
 
 def test_execute_hydrates_rows_from_stored_snapshot(monkeypatch):
+    _fresh_caches(monkeypatch)
     """Regression 2026-09-29: stock-screen retrieves returned null for every item,
     leaving preset tables all dashes — display values fill from the snapshot."""
 
@@ -509,6 +512,10 @@ def _fresh_caches(monkeypatch):
     monkeypatch.setattr(api, "_universe_meta_cache", _Ttl(root=_os.path.join(root, "meta")))
     monkeypatch.setattr(api, "_groups_cache", _Ttl(root=_os.path.join(root, "grp")),
                          raising=False)
+    # in-memory response/row caches (60s) — fresh per test like the disk ones
+    monkeypatch.setattr(api, "_stored_universe_cache", {})
+    monkeypatch.setattr(api, "_presets_cache", {})
+    monkeypatch.setattr(api, "_execute_cache", {})
 
 
 # ── src=moo|yf enrichment mode (Phase A task 7) ──────────────────────────────
