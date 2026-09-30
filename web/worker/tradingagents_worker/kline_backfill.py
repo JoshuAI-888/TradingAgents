@@ -26,6 +26,30 @@ def _budgeted(fn, *args, **kwargs):
             time.sleep(max(e.retry_after, 1.0))
 
 
+def _first(b: dict, *keys):
+    """Live history-kline uses open/close/high/low/volume; older payloads used
+    *_price names — accept both, first present wins (None-aware)."""
+    for k in keys:
+        v = b.get(k)
+        if v is not None:
+            return v
+    return None
+
+
+def _bar_day(b: dict) -> str | None:
+    """Bar date: moomoo sends time_key as epoch MILLISECONDS (recorded live);
+    tolerate epoch seconds and ISO/ISO-like strings. Returns YYYY-MM-DD."""
+    raw = b.get("day") or b.get("time_key") or b.get("date")
+    if raw is None:
+        return None
+    if isinstance(raw, (int, float)) or (isinstance(raw, str) and raw.strip().isdigit()):
+        v = float(raw)
+        if v > 1e11:   # epoch ms (13 digits) → seconds
+            v /= 1000.0
+        return datetime.fromtimestamp(v, tz=timezone.utc).date().isoformat()
+    return str(raw).strip()[:10]
+
+
 def _parse(raw) -> datetime | None:
     try:
         return datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
@@ -76,13 +100,15 @@ class KlineBackfill:
                 continue
             rows = []
             for b in kl or []:
-                day = b.get("day") or b.get("time_key")
+                day = _bar_day(b)
                 if not day:
                     continue
-                rows.append({"market": self.market, "code": code, "day": str(day)[:10],
-                             "o": b.get("open_price"), "h": b.get("high_price"),
-                             "l": b.get("low_price"), "c": b.get("close_price"),
-                             "v": b.get("volume")})
+                rows.append({"market": self.market, "code": code, "day": day,
+                             "o": _first(b, "open_price", "open"),
+                             "h": _first(b, "high_price", "high"),
+                             "l": _first(b, "low_price", "low"),
+                             "c": _first(b, "close_price", "close", "last_close"),
+                             "v": _first(b, "volume")})
             if rows:
                 written_bars += self.db.upsert_many("screener_klines", "market,code,day", rows)
             self.db.upsert("screener_kline_state", "market,code",
