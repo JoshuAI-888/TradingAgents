@@ -1070,3 +1070,37 @@ closure let); localStorage UTF-16 caps ~2.5M chars so the MB dataset
 never persisted — moved to IndexedDB. Hourly loads: the universe loader
 cron already runs hourly 13–21 UTC weekdays + manual ↻ button.
 aba87ba, 8ae8c7a, 5c41754, 8432d1b + MEMORY.
+
+## 2026-09-30 (VII) — full client-side UX audit round (everything interactive is local)
+
+User asked what else is server-side that should be client-side. Audited,
+user picked ALL FOUR workstreams with EXACT preset answers (no approximate
+previews). Implemented:
+1. INSTANT FIRST PAINT: candidates/decisions/market-state/presets rail no
+   longer block the table — painted from window.__panelCache instantly,
+   fetched in background, one re-render (~5-6s later, connection-contended).
+   showPage now preserves window + .scr-scroll scroll across re-renders.
+2. PRESET WARMING (exact answers): a load-time one-shot round was stamped
+   done even when its calls failed (4-min dead zone, cache stayed empty —
+   caught in verification) → replaced with a self-healing 30s interval
+   warming up to 5 stale presets/tick (server execute cache 60s; moomoo
+   budget 30/min). Card hover prefetches too. Warm click = 28ms; cold click
+   shows an overlay instead of silence. __presetCache is a MAP now (was
+   single-slot __presetRows); inflight dedupe via __presetInflight.
+3. FACETS client-side: multi-select menus + Industry/Exchange dropdowns
+   computed from the cached dataset (0ms, counts included); concepts boards
+   still server (not row fields) but cached per session (was refetched per
+   render). Server facets remain the no-dataset fallback.
+4. WATCHLIST-ONLY filtered client-side from the dataset (watchlist symbols
+   ride along in it) — no moomoo snapshot per load.
+5. STARS: flip instantly, POST backgrounded, revert on failure.
+6. EXPORTS built in-browser from scrClientRows() (same filter chain the
+   table uses; page scope = on-screen rows): CSV 4ms, SpreadsheetML XLS 2ms,
+   no network; server export kept for the no-data fallback.
+baseFetches deleted (fired promises on creation — duplicated panel fetches).
+Verified live: warm click 28ms, facet menu 0ms, watchlist instant, exports
+local, panels stream, scroll preserved. Lesson×2: polling assertions kept
+reading stale DOM mid-render (wait 2.5s+ after actions before asserting);
+keyed-state guards that stamp done-on-entry turn transient failures into
+long dead zones — make retries self-healing. 267a139 + warmer fix, both
+branches.
