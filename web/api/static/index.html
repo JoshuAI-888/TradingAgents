@@ -638,10 +638,8 @@ function scrClearColFilter(field) {
 function scrPage(delta) { scrSet("page", Math.max(1, (window.__scr.page || 1) + delta)); }
 function scrExport(kind, scope) {
   const st = window.__scr;
-  const eff = st.filters.some(f => f.field === "stock_type") ? st.filters
-    : [...st.filters, { field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }];
   const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
-    filters: JSON.stringify(effFilters), sort: st.sort, direction: st.dir, export: kind, scope: scope || "all" });
+    filters: JSON.stringify(scrEffFilters()), sort: st.sort, direction: st.dir, export: kind, scope: scope || "all" });
   if (scope === "page") { qs.set("limit", String(st.pageSize || 500)); qs.set("offset", String(((st.page || 1) - 1) * (st.pageSize || 500))); }
   window.open("/api/screener?" + qs.toString(), "_blank");
 }
@@ -900,12 +898,17 @@ function scrApplyPreset(key) {
   if (!p) return;
   st.filters = JSON.parse(JSON.stringify(p.filters || []));
   st.activePreset = key;
+  // A screener is GLOBAL: clicking it is a clean slate over the whole market —
+  // column-filter refinements and watchlist scoping must not narrow it.
+  st.colFilters = {};
+  st.watchlistOnly = false;
+  st.page = 1;
   // Factor auto-columns (spec Phase C): each preset filter's field becomes a
   // visible column so every row shows why it qualified (moomoo parity).
   for (const f of st.filters) {
     if (SCR_COLS[f.field] && st.cols.length < 18 && !st.cols.includes(f.field)) st.cols.push(f.field);
   }
-  st.page = 1;
+  scrPersist();
   showPage("home");
 }
 window.scrApplyPreset = scrApplyPreset;
@@ -1186,6 +1189,8 @@ async function scrApplySaved(id) {
   st.filters = JSON.parse(JSON.stringify(s.filters || []));
   st.market = s.market || st.market;
   st.watchlistOnly = !!s.watchlist_only;
+  st.colFilters = {};          // clean slate — only this screener's filters apply
+  st.page = 1;
   if (s.sort) st.sort = s.sort;
   if (s.direction) st.dir = s.direction;
   scrModalClose();
@@ -1357,13 +1362,23 @@ function md(t) {
 }
 
 // ── pages ─────────────────────────────────────────────────────────────
+// Effective filter list: manual filters + the Include-ETFs type default + the
+// per-column ⚈ refinements. The backend skips fields it doesn't store (same
+// semantics as manual filters). Shared by the table fetch AND exports so
+// counts agree.
+function scrEffFilters() {
+  const st = window.__scr;
+  const base = st.filters.some(f => f.field === "stock_type") ? st.filters
+    : [...st.filters, { field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }];
+  const extra = Object.entries(st.colFilters || {})
+    .filter(([, cf]) => (cf.values || []).length || cf.min != null || cf.max != null)
+    .map(([field, cf]) => cf.values ? { field, values: cf.values } : { field, min: cf.min, max: cf.max });
+  return [...base, ...extra];
+}
 const pages = {
   async home() {
     const st = window.__scr;
-    // Include ETFs toggle — moomoo's screener counts stocks + ETFs; respect a
-    // user-defined Type filter if one exists.
-    const effFilters = st.filters.some(f => f.field === "stock_type") ? st.filters
-      : [...st.filters, { field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }];
+    const effFilters = scrEffFilters();
     const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
       filters: JSON.stringify(effFilters), sort: st.sort, direction: st.dir, src: st.src || "moo",
       limit: String(st.pageSize || 500), offset: String(((st.page || 1) - 1) * (st.pageSize || 500)) });
@@ -1462,6 +1477,22 @@ const pages = {
       if (prog.status === "succeeded") progPct = 100;
     }
     const rows = scr.rows || [];
+    // Server-side presets can't take column refinements server-side — apply
+    // the ⚈ column filters over the returned rows for display. The manual
+    // path already filters server-side (they ride along in the request).
+    const cfs = Object.entries(st.colFilters || {}).filter(([, cf]) =>
+      (cf.values || []).length || cf.min != null || cf.max != null);
+    const viewRows = (scr.server_side && cfs.length)
+      ? rows.filter(r => cfs.every(([k, cf]) => {
+          const v = r[k];
+          if (cf.values) return v != null && cf.values.map(x => String(x).toLowerCase()).includes(String(v).toLowerCase());
+          const n = Number(v);
+          if (v == null || isNaN(n)) return false;
+          if (cf.min != null && n < cf.min) return false;
+          if (cf.max != null && n > cf.max) return false;
+          return true;
+        }))
+      : rows;
     const stars = st.watchlistSyms || [];
     const num = (v, dp) => v == null ? "—" : Number(v).toLocaleString(undefined, { maximumFractionDigits: dp });
     const cap = v => v == null ? "—" : "$" + fmtBig(v);
@@ -1488,7 +1519,7 @@ const pages = {
       const arrow = st.sort === k ? (st.dir === 2 ? " ↓" : " ↑") : "";
       return `<th class="thc"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="${esc(FIELD_DEFS[k] || "sort by " + label)}">${esc(label)}${arrow}</a><a href="#" class="fic ${st.colFilters[k] ? "on" : ""}" title="filter" onclick="scrRenderColMenu('${k}','${kind}');return false">⚈</a>${filterIcon(k)}</th>`;
     };
-    const body = rows.map((r, i) => `<tr>
+    const body = viewRows.map((r, i) => `<tr>
       <td class="mono dim">${i + 1}</td>
       ${st.cols.map(k => `<td>${(cellFmt[SCR_COLS[k][1]] || cellFmt.num)(r, k)}</td>`).join("")}
       <td><button class="starbtn ${stars.includes(r.symbol) ? "on" : ""}" title="watchlist" onclick="toggleWatch('${esc(r.symbol)}')">${stars.includes(r.symbol) ? "★" : "☆"}</button></td></tr>`).join("");
@@ -1559,7 +1590,7 @@ const pages = {
           </span>
           <button class="btn ghost" onclick="scrLoadUniverse(this)" ${window.__scrRefreshJob ? "disabled" : ""}>${scr?.universe_loaded ? "↻ Refresh full market" : "⤓ Load full market"}</button>
           ${st.filters.length ? `<button class="btn ghost" onclick="scrSet('filters', [])">Clear</button>` : ""}
-          <span class="mono dim" style="margin-left:auto">Result: ${(scr.matched ?? rows.length).toLocaleString()} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown.toLocaleString() : ""}${scrSummary(rows)}</span>
+          <span class="mono dim" style="margin-left:auto">Result: ${(scr.matched ?? viewRows.length).toLocaleString()} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown.toLocaleString() : ""}${cfs.length && scr.server_side ? " · " + viewRows.length.toLocaleString() + " after column filters" : ""}${scrSummary(viewRows)}</span>
         </div>
         ${allChips ? `<div class="scr-chips">${allChips}</div>` : ""}
         ${window.__scrFiltersCollapsed ? "" : `<div class="scr-toolbar" style="margin-bottom:6px">
