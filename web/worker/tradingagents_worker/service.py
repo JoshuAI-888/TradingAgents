@@ -145,6 +145,16 @@ def _hash_cfg(cfg: dict) -> str:
     return hashlib.sha256(json.dumps(cfg, sort_keys=True).encode()).hexdigest()[:16]
 
 
+def _queue_busy(db: Db, pending_only: bool = False) -> bool:
+    """True while the LLM budget belongs to pipeline work: any run in flight,
+    or (for post-job repair) anything waiting to start."""
+    statuses = ["eq.pending"] if pending_only else ["eq.pending", "eq.running"]
+    for st in statuses:
+        if db.select("jobs", {"status": st}, "id"):
+            return True
+    return False
+
+
 def rehydrate_crashed(db: Db, worker_id: str):
     """On boot, release jobs stuck 'running' from a dead worker. requeue_job
     decides pending-vs-failed by attempts — a deploy kill must not strand a job
@@ -187,11 +197,17 @@ def run_forever():
 
     def _boot_rehydrate():
         # drain the pre-fix debate-row backlog: passes of a few rows each until
-        # nothing more is repaired (hard cap so a pathological row can't loop)
+        # nothing more is repaired (hard cap so a pathological row can't loop).
+        # A live run owns the LLM budget — with a degraded model a repair chunk
+        # can take 5-12 min, enough to starve the run's own calls (#seen-live:
+        # bear-researcher hung 35 min while boot chunks ran), so wait for quiet.
         try:
             from .rehydrate import rehydrate_debates
             total = 0
             while total < 40:
+                if _queue_busy(db):
+                    time.sleep(30)
+                    continue
                 fixed = rehydrate_debates(db)
                 if not fixed:
                     break
@@ -289,11 +305,14 @@ def run_forever():
             except Exception as e3:
                 print(f"digest (non-fatal): {e3}", flush=True)
             try:
-                from .rehydrate import rehydrate_debates
-                fixed = rehydrate_debates(db)
-                if fixed:
-                    emit.emit("report_qc", "progress",
-                              f"repaired {fixed} legacy debate row(s) · spacing restored, originals preserved")
+                # Repair only when nothing is queued behind this job — with a
+                # degraded model a pass can stall the queue for many minutes.
+                if not _queue_busy(db, pending_only=True):
+                    from .rehydrate import rehydrate_debates
+                    fixed = rehydrate_debates(db)
+                    if fixed:
+                        emit.emit("report_qc", "progress",
+                                  f"repaired {fixed} legacy debate row(s) · spacing restored, originals preserved")
             except Exception as e4:
                 print(f"rehydrate (non-fatal): {e4}", flush=True)
         except Cancelled:
