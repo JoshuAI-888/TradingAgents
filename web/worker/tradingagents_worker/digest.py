@@ -90,8 +90,13 @@ def _norm(d: dict) -> dict:
     return out
 
 
-def build_digest(db, run_id: str, ticker: str) -> dict:
-    """Generate + store the digest for a stored run. Returns {"stored": bool, ...}."""
+def build_digest(db, run_id: str, ticker: str, verified_snapshot: str | None = None) -> dict:
+    """Generate + store the digest for a stored run. Returns {"stored": bool, ...}.
+
+    ``verified_snapshot`` is the exact market-data block every agent was shown
+    at run start (price_context.py); stored alongside the digest so the report
+    page can render it next to the chart that serves the same rows.
+    """
     if not os.getenv("OPENROUTER_API_KEY"):
         return {"stored": False, "reason": "no OPENROUTER_API_KEY"}
     runs = db.select("runs", {"id": f"eq.{run_id}"},
@@ -161,6 +166,10 @@ def build_digest(db, run_id: str, ticker: str) -> dict:
         _acc(retry)
         text = retry.choices[0].message.content or ""
         digest = _norm(_parse_json(text))
+
+    if verified_snapshot:
+        # Not LLM output — the deterministic run-start snapshot, clipped for the JSONB doc.
+        digest["verified_snapshot"] = _clip(verified_snapshot, 8000)
 
     db.upsert("run_digest", "run_id", {"run_id": run_id, "digest": digest, "model": model})
 

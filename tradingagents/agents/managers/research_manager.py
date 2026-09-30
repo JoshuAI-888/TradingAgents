@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from tradingagents.agents.context import get_instrument_context_from_state, get_language_instruction
+from tradingagents.agents.context import (get_instrument_context_from_state,
+                                          get_language_instruction, get_price_context_from_state)
 from tradingagents.agents.prompts import render, resolve
 from tradingagents.agents.prompt_texts import AGENT_PROMPTS
 from tradingagents.agents.schemas import ResearchPlan, render_research_plan
@@ -18,6 +19,7 @@ def create_research_manager(llm):
 
     def research_manager_node(state) -> dict:
         instrument_context = get_instrument_context_from_state(state)
+        price_context = get_price_context_from_state(state)
         history = state["investment_debate_state"].get("history", "")
 
         investment_debate_state = state["investment_debate_state"]
@@ -25,6 +27,7 @@ def create_research_manager(llm):
         prompt = render(
             resolve("research_manager", AGENT_PROMPTS["research_manager"]),
             instrument_context=instrument_context,
+            price_context=price_context,
             history=history,
             no_external_tools=NO_EXTERNAL_TOOLS,
             language_instruction=get_language_instruction(),

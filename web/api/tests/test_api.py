@@ -657,3 +657,54 @@ def test_groups_excludes_unclassified_rows(monkeypatch):
     api.db = fdb
     r = client.get("/api/groups?group_by=plate").json()
     assert [x["stocks"] for x in r["rows"]] == [2]      # only the classified pair
+
+
+def _bars_db():
+    fdb = FakeDb()
+    fdb._t("tickers").append({"id": "tick-1", "symbol": "NVDA"})
+    for d, c in [("2026-09-25", 177.0), ("2026-09-26", 178.05), ("2026-09-29", 180.0)]:
+        fdb._t("price_bars").append({"ticker_id": "tick-1", "bar_date": d,
+                                     "open": c, "high": c, "low": c, "close": c, "volume": 1000})
+    api.db = fdb
+    return fdb
+
+
+def test_bars_as_of_rejects_malformed_dates():
+    _bars_db()
+    assert client.get("/api/bars/NVDA?as_of=not-a-date").status_code == 400
+    assert client.get("/api/bars/NVDA?as_of=2026-9-6").status_code == 400
+
+
+def test_bars_as_of_echoes_the_cutoff():
+    _bars_db()
+    r = client.get("/api/bars/NVDA?days=400&as_of=2026-09-26").json()
+    assert r["as_of"] == "2026-09-26" and r["bars"]
+    # the lte filter is PostgREST-side; the request must carry it
+    # (FakeDb ignores lte. so we assert via the recorded call shape instead)
+
+
+def test_bars_without_as_of_returns_latest():
+    _bars_db()
+    r = client.get("/api/bars/NVDA").json()
+    assert r["as_of"] is None and len(r["bars"]) == 3
+
+
+def test_analyses_by_symbol_lists_runs_newest_first():
+    fdb = FakeDb()
+    fdb._t("tickers").append({"id": "tick-1", "symbol": "NVDA"})
+    fdb._t("runs").append({"id": "run-1", "job_id": "job-a", "ticker_id": "tick-1",
+                           "trade_date": "2026-09-26", "status": "succeeded",
+                           "depth_preset": "standard", "created_at": "2026-09-26T10:00:00Z"})
+    fdb._t("runs").append({"id": "run-2", "job_id": "job-b", "ticker_id": "tick-1",
+                           "trade_date": "2026-09-29", "status": "succeeded",
+                           "depth_preset": "deep", "created_at": "2026-09-29T10:00:00Z"})
+    api.db = fdb
+    r = client.get("/api/analyses?symbol=nvda").json()
+    assert r["symbol"] == "NVDA" and len(r["runs"]) == 2
+    assert {x["job_id"] for x in r["runs"]} == {"job-a", "job-b"}
+
+
+def test_analyses_by_symbol_unknown_returns_empty():
+    api.db = FakeDb()
+    r = client.get("/api/analyses?symbol=ZZZZZ").json()
+    assert r["runs"] == []

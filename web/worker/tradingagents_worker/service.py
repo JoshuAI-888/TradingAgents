@@ -239,7 +239,34 @@ def run_forever():
             ticker, trade_date = payload["ticker"], payload["trade_date"]
             depth = payload.get("depth", "standard")
             emit.emit("analysts", "started", f"{ticker} @ {trade_date} (depth={depth})")
-            result = runner.run(ticker, trade_date, depth, payload.get("instructions"), emit, cancel)
+            # Verified as-of price snapshot BEFORE the graph: its text becomes the
+            # price_context every debate/synthesis agent renders; its rows go into
+            # price_bars so the report chart serves the same bars (price_context.py).
+            price_ctx = None
+            try:
+                if not get_runtime_flags(db).get("stub"):
+                    from .price_context import build_price_context
+                    price_ctx = build_price_context(ticker, trade_date)
+            except Exception as e:
+                print(f"price_context (non-fatal): {e}", flush=True)
+            if price_ctx:
+                try:
+                    trow = db.select("tickers", {"symbol": f"eq.{ticker}"}, "id")
+                    tid = trow[0]["id"] if trow else _ensure_ticker(db, ticker)
+                    db.upsert("price_bars", "ticker_id,bar_date,source,adjusted", [
+                        {"ticker_id": tid, "bar_date": r["date"],
+                         "open": r["open"], "high": r["high"], "low": r["low"], "close": r["close"],
+                         "volume": r["volume"], "source": "yfinance", "adjusted": True}
+                        for r in price_ctx["rows"]])
+                    emit.emit("analysts", "progress",
+                              f"verified snapshot: {len(price_ctx['rows'])} bars "
+                              f"as of {price_ctx['latest_date']} — shared by all agents and the chart")
+                except Exception as e:
+                    print(f"price_context persist (non-fatal): {e}", flush=True)
+                    price_ctx = None
+            result = runner.run(ticker, trade_date, depth, payload.get("instructions"), emit, cancel,
+                                price_context=price_ctx["text"] if price_ctx else None)
+            snapshot_text = price_ctx["text"] if price_ctx else None
             run_id = persist_run(db, job, result)
             db.finish_job(str(job["id"]), "succeeded", run_id=run_id)
             emit.emit("report_qc", "done", f"stored run {run_id[:8]}")
@@ -252,7 +279,7 @@ def run_forever():
                 print(f"enrich (non-fatal): {e2}", flush=True)
             try:
                 from .digest import build_digest
-                dig = build_digest(db, run_id, ticker)
+                dig = build_digest(db, run_id, ticker, verified_snapshot=snapshot_text)
                 if dig.get("stored"):
                     emit.emit("report_qc", "progress",
                               f"digest: {dig['evidence']} evidence · {dig['scenarios']} scenarios · "

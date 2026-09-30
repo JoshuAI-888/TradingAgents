@@ -2106,12 +2106,16 @@ const pages = {
 async function loadReport(ref) {
   const r = await api("/api/analyses/" + ref + "/report");
   const symbol = r.ticker.symbol;
+  // Daily bars truncated at the run's trade_date: the chart shows the market the
+  // agents saw (the worker stores the same rows it put in their price_context).
+  const asOf = r.run?.trade_date || null;
   const [barsR, newsR, fundR] = await Promise.all([
-    api("/api/bars/" + symbol + "?days=400").catch(() => ({ bars: [] })),
+    api("/api/bars/" + symbol + "?days=400" + (asOf ? "&as_of=" + encodeURIComponent(asOf) : "")).catch(() => ({ bars: [] })),
     api("/api/news/" + symbol).catch(() => ({ news: [] })),
     api("/api/fundamentals/" + symbol).catch(() => ({ profile: null })),
   ]);
-  return { r, bars: barsR.bars || [], news: newsR.news || [], profile: (fundR.profile || {}).payload || null, profileMeta: (fundR.profile || {}).as_of || null };
+  return { r, bars: barsR.bars || [], news: newsR.news || [], profile: (fundR.profile || {}).payload || null,
+           profileMeta: (fundR.profile || {}).as_of || null, asOf };
 }
 
 function pivots(bars) {
@@ -2324,6 +2328,10 @@ async function reportPage(ref) {
 
   // Post-run digest (evidence register, scenarios, news classification, QC grades)
   const dg = r.digest?.digest || null;
+  // The verified as-of snapshot the worker computed at run start and injected
+  // into every debate/synthesis prompt — rendered so a reader can check any
+  // cited number against it (and against the chart, which serves the same rows).
+  const snap = (dg || {}).verified_snapshot || "";
   const qccol = s => s >= 80 ? "#26c68c" : s >= 60 ? "#e8a33d" : "#f0544f";
   const DSTAGE = { market: "t-scr", news: "t-news", social: "t-mac", fundamentals: "t-ern", research: "t-scr", risk: "t-ern" };
   const DCLASS = { catalyst: "t-news", risk: "t-ern", assumption: "t-wl" };
@@ -2350,7 +2358,9 @@ async function reportPage(ref) {
   const navSections = [
     ["sec-verdict", "Verdict"],
     ...(dg?.debate_summary ? [["sec-debate-summary", "Debate summary"]] : []),
-    ["sec-chart", "Chart"], ["sec-thesis", "Thesis"],
+    ["sec-chart", "Chart"],
+    ...(snap ? [["sec-snapshot", "Verified data"]] : []),
+    ["sec-thesis", "Thesis"],
     ...((dg?.evidence || []).length ? [["sec-evidence", "Evidence"]] : []),
     ...(Object.keys((dg || {}).scenarios || {}).length ? [["sec-scenarios", "Scenarios"]] : []),
     ["sec-news", "News"], ["sec-outputs", "Agent outputs"],
@@ -2435,10 +2445,19 @@ async function reportPage(ref) {
     </div>
 
     <div class="center">
-      <div class="panel" id="sec-chart"><h3 class="sec">Price &amp; indicators <small>interactive · stored daily bars · indicators computed client-side</small></h3>
-        <div class="tf-row">
+      <div class="panel" id="sec-chart"><h3 class="sec">Price &amp; indicators <small>daily bars as of the run's trade date — the data the agents were shown · intraday / 5D / 15m are live tape · indicators computed client-side</small></h3>
+        <div class="tf-row" style="flex-wrap:wrap;row-gap:6px">
           <button class="tf" data-rep-tf="1M">1M</button><button class="tf" data-rep-tf="3M">3M</button><button class="tf on" data-rep-tf="6M">6M</button><button class="tf" data-rep-tf="1Y">1Y</button><button class="tf" data-rep-tf="ALL">2Y</button>
+          <span class="kc-sep"></span>
+          <span class="faint" style="font-size:10px">LIVE</span>
+          <select onchange="repLiveSet({src:'intraday',kind:this.value})">
+            ${STK_SESSIONS.map(([k2, l]) => `<option value="${k2}">${l}</option>`).join("")}
+          </select>
+          <button class="tf" data-rep-live-btn="5D" onclick="repLiveSet({src:'range',range:'5D'})">5D</button>
+          <button class="tf" data-rep-live-btn="15m" onclick="repLiveSet({src:'range',range:'15m'})">15m</button>
+          <span class="faint mono" id="rep-src-chip" style="font-size:10px"></span>
         </div>
+        <div class="faint" id="rep-live-note" style="display:none;font-size:10.5px;margin-top:4px"></div>
         <div class="kcwrap">
           <div class="tf-row" id="rep-ctl" style="flex-wrap:wrap;row-gap:6px"></div>
           <div class="chartbox">
@@ -2447,6 +2466,10 @@ async function reportPage(ref) {
           </div>
         </div>
       </div>
+
+      ${snap ? `<div class="panel" id="sec-snapshot"><h3 class="sec">Verified market data <small>the exact snapshot every agent was shown at run start · the chart's daily bars serve the same rows</small></h3>
+        <details open><summary>Verified snapshot — OHLCV, indicators, recent closes<span class="m">as of ${esc(r.run?.trade_date || "—")} · source of truth in every prompt</span></summary>
+        <div class="body">${md(snap)}</div></details></div>` : ""}
 
       <div class="panel" id="sec-thesis"><h3 class="sec">Investment thesis <small>from the pipeline's own words · full agent outputs below</small></h3>
         <div class="thesis">${dec?.thesis ? md(dec.thesis) : (dec?.executive_summary ? `<p>${esc(dec.executive_summary)}</p>` : '<p class="empty">Executive summary lands when the pipeline emits structured decisions (Phase 1 QC gate). The complete unedited reasoning is in the agent outputs below.</p>')}</div>
@@ -3618,13 +3641,25 @@ document.addEventListener("keydown", e => {
   if (dr && dr.style.display !== "none") cmpDrawer(false);
 });
 
-// ── report dossier chart (shared engine; stored daily bars + S/R overlay) ──
+// ── report dossier chart (shared engine) ──
+// Daily views slice the run's stored bars, truncated server-side at the run's
+// trade_date — the same rows the worker put in every agent's price_context.
+// 5D / 15m / intraday sessions are live tape (the vendor keeps ~30 days of
+// intraday history at most), fetched on demand and labeled LIVE.
 let __repBars = [];
+const __repLive = { bars: [], pts: [], loaded: "" };
 const repHost = klineHost({
   elId: "rep-kc", paneId: "candle_pane", subPaneId: "rep_sub",
   state: () => window.__repChart || (window.__repChart = { mode: "candle", ma: [20, 50], ema: false,
-    boll: true, subs: ["VOL"], tf: "6M", _maLast: [20, 50], _emaLast: [20, 50] }),
-  data: () => { const n = TF_N[repHost.state().tf] || 500; return __repBars.slice(-n); },
+    boll: true, subs: ["VOL"], tf: "6M", src: "daily", range: "5D", kind: "FULL",
+    _maLast: [20, 50], _emaLast: [20, 50] }),
+  data: () => {
+    const st = repHost.state();
+    if (st.src === "daily") return __repBars.slice(-(TF_N[st.tf] || 500));
+    return (__repLive.bars.length ? __repLive.bars : __repLive.pts).map(x => ({
+      timestamp: +x.t, open: +x.o, high: +x.h, low: +x.l, close: +x.c,
+      volume: +x.v || 0, turnover: +x.to || 0 }));
+  },
   overlays: () => {
     const sr = (window.__reportData || {}).sr || {};
     const out = [];
@@ -3645,7 +3680,8 @@ const repHost = klineHost({
     const list = repHost.chart.getDataList(), idx = list.indexOf(pd);
     const prev = idx > 0 ? list[idx - 1] : null;
     const chg = prev ? (pd.close - prev.close) / prev.close * 100 : null;
-    ro.innerHTML = `<b>${new Date(pd.timestamp).toISOString().slice(0, 10)}</b> O <b>${fmtAuto(pd.open)}</b> · H <b>${fmtAuto(pd.high)}</b> · L <b>${fmtAuto(pd.low)}</b> · C <b>${fmtAuto(pd.close)}</b> · Vol <b>${(pd.volume / 1e6).toFixed(1)}M</b>${chg != null ? ` · <span class="${chg >= 0 ? "g" : "r"}">${(chg >= 0 ? "+" : "") + chg.toFixed(2)}%</span>` : ""}`;
+    const when = repHost.state().src === "daily" ? new Date(pd.timestamp).toISOString().slice(0, 10) : stkTime(pd.timestamp);
+    ro.innerHTML = `<b>${when}</b> O <b>${fmtAuto(pd.open)}</b> · H <b>${fmtAuto(pd.high)}</b> · L <b>${fmtAuto(pd.low)}</b> · C <b>${fmtAuto(pd.close)}</b> · Vol <b>${(pd.volume / 1e6).toFixed(1)}M</b>${chg != null ? ` · <span class="${chg >= 0 ? "g" : "r"}">${(chg >= 0 ? "+" : "") + chg.toFixed(2)}%</span>` : ""}`;
   },
 });
 repHost.update = patch => {
@@ -3653,17 +3689,76 @@ repHost.update = patch => {
   klineSyncControls("rep", repHost.state());
   klineApply(repHost);
 };
+function repSetDaily(tf) {
+  const st = repHost.state();
+  Object.assign(st, { src: "daily", tf });
+  document.querySelectorAll("[data-rep-live-btn]").forEach(b => b.classList.remove("on"));
+  document.querySelectorAll("[data-rep-tf]").forEach(b => b.classList.toggle("on", b.getAttribute("data-rep-tf") === tf));
+  const chip = document.getElementById("rep-src-chip");
+  if (chip) chip.textContent = "";
+  const note = document.getElementById("rep-live-note");
+  if (note) note.style.display = "none";
+  klineSetData(repHost, repHost.data());
+}
+async function repLiveSet(patch) {
+  const st = repHost.state();
+  Object.assign(st, patch);
+  const sym = (window.__reportData || {}).sym || "";
+  const key = st.src === "intraday" ? "kind:" + st.kind : st.range;
+  document.querySelectorAll("[data-rep-tf]").forEach(b => b.classList.remove("on"));
+  document.querySelectorAll("[data-rep-live-btn]").forEach(b =>
+    b.classList.toggle("on", b.getAttribute("data-rep-live-btn") === key));
+  const chip = document.getElementById("rep-src-chip");
+  if (chip) chip.textContent = "LIVE · loading…";
+  if (__repLive.loaded !== key) {
+    try {
+      if (st.src === "intraday") {
+        const d = await api("/api/stock/" + sym + "/intraday?kind=" + st.kind).catch(() => null);
+        __repLive.bars = [];
+        // Same dead-point handling as the stock page: rt-data can omit O/H/L;
+        // deriving from cur_price keeps the candle pane's y-scale finite.
+        __repLive.pts = ((d?.section_list || [])[0]?.point_list || []).flatMap(p => {
+          const c = Number(p.cur_price);
+          if (!Number.isFinite(c) || c <= 0) return [];
+          const pick = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : c; };
+          const o = pick(p.open), h = Math.max(pick(p.high), o, c), l = Math.min(pick(p.low), o, c);
+          return [{ t: p.time, c, o, h, l, v: Number(p.volume) || 0, to: Number(p.turnover) || 0 }];
+        });
+      } else {
+        const d = await api("/api/stock/" + sym + "/candles?range=" + st.range).catch(() => null);
+        __repLive.pts = [];
+        __repLive.bars = (d?.bars || []).flatMap(b => {
+          const c = Number(b.close);
+          if (!Number.isFinite(c) || c <= 0) return [];
+          const pick = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : c; };
+          const o = pick(b.open), h = Math.max(pick(b.high), o, c), l = Math.min(pick(b.low), o, c);
+          return [{ t: b.time_key, c, o, h, l, v: Number(b.volume) || 0, to: Number(b.turnover) || 0 }];
+        });
+      }
+      __repLive.loaded = key;
+    } catch (e) { __repLive.loaded = ""; }
+  }
+  if (chip) chip.textContent = "LIVE";
+  const note = document.getElementById("rep-live-note");
+  if (note) {
+    const td = (window.__reportData || {}).asOf;
+    const stale = td && (Date.now() - Date.parse(td + "T00:00:00Z")) > 30 * 864e5;
+    note.style.display = "block";
+    note.textContent = stale
+      ? `Live tape — intraday as of ${td} is no longer available from the market-data vendor (≈30-day retention). Daily views remain as of the run date.`
+      : "Live tape from the market-data vendor — switch back to 1M–2Y for the as-of run-date view the agents were shown.";
+  }
+  klineSetData(repHost, repHost.data());
+}
 function chartInit() {  // entry point kept — openReport/showPage call it post-render
   const ctl = document.getElementById("rep-ctl");
   if (ctl) { ctl.innerHTML = klineControlsHTML("rep", repHost.state()); klineBindControls("rep", repHost); }
-  document.querySelectorAll("[data-rep-tf]").forEach(b => b.onclick = () => {
-    repHost.update({ tf: b.getAttribute("data-rep-tf") });
-    document.querySelectorAll("[data-rep-tf]").forEach(x => x.classList.toggle("on", x === b));
-    klineSetData(repHost, repHost.data());
-  });
+  document.querySelectorAll("[data-rep-tf]").forEach(b => b.onclick = () => repSetDaily(b.getAttribute("data-rep-tf")));
   const d = window.__reportData || {};
   __repBars = (d.bars || []).map(x => ({ timestamp: Date.parse(x.bar_date + "T00:00:00Z") || 0,
     open: +x.open, high: +x.high, low: +x.low, close: +x.close, volume: +x.volume || 0, turnover: 0 }));
+  __repLive.loaded = "";  // new report → refetch live buffers for the new symbol
+  __repLive.bars = []; __repLive.pts = [];
   klineSetData(repHost, repHost.data());
 }
 
@@ -4116,6 +4211,8 @@ async function renderStock() {
   $("#page").innerHTML = head;
   if (st.tab !== "overview") klineTeardown(stkHost);
   if (st.tab === "overview") { stkMountControls(); stkLoadChart(); }
+  if (st.tab !== "analysis") klineTeardown(anaHost);
+  if (st.tab === "analysis") { anaMountControls(); anaLoadChart(); }
   if (st.tab === "options") stkDrawChain();
 }
 
@@ -4239,29 +4336,30 @@ function stkMapData() {
     volume: +x.v || 0, turnover: +x.to || 0 }));
 }
 
-function stkCrosshair(d) {
+function stkCrosshair(d, roId = "stk-readout", host = stkHost) {
   try {
-    const ro = document.getElementById("stk-readout");
+    const ro = document.getElementById(roId);
     if (!ro) return;
     const p = d && d.kLineData;
     if (!p) { ro.textContent = stkState().sym + " · scroll to zoom · drag to pan · pick a DRAW tool, then click the chart"; return; }
-    const list = stkHost.chart.getDataList(), i2 = list.indexOf(p);
+    const list = host.chart.getDataList(), i2 = list.indexOf(p);
     const prev = i2 > 0 ? list[i2 - 1] : null;
     const chg = prev ? (p.close - prev.close) / prev.close * 100 : null;
     ro.innerHTML = `<b>${esc(stkTime(p.timestamp))}</b> · O <b>${fmtAuto(p.open)}</b> H <b>${fmtAuto(p.high)}</b> L <b>${fmtAuto(p.low)}</b> C <b>${fmtAuto(p.close)}</b>${chg != null ? ` · Chg <b class="${chg >= 0 ? "g" : "r"}">${stkPct(chg)}</b>` : ""} · Vol <b>${stkMoney(p.volume)}</b> · Turnover <b>${stkMoney(p.turnover)}</b>`;
   } catch (e) {}
 }
 
-async function stkLoadChart() {
-  const st = stkState(), ch = st.chart;
+async function klineLoadLive(store, sym, ch) {
+  // Shared fetch+normalize for live moomoo charts (stock page overview and
+  // analysis tab): intraday rt-data points or history-kline bars.
   let d;
   if (ch.src === "intraday") {
-    d = await api("/api/stock/" + st.sym + "/intraday?kind=" + ch.kind).catch(() => null);
-    stkChartState.bars = [];
+    d = await api("/api/stock/" + sym + "/intraday?kind=" + ch.kind).catch(() => null);
+    store.bars = [];
     // Live rt-data points can omit or blank open/high/low (the docs list them;
     // the wire does not always carry them) — derive from cur_price and drop
     // dead points, or the candle pane's y-scale goes NaN and renders blank.
-    stkChartState.pts = ((d?.section_list || [])[0]?.point_list || []).flatMap(p => {
+    store.pts = ((d?.section_list || [])[0]?.point_list || []).flatMap(p => {
       const c = Number(p.cur_price);
       if (!Number.isFinite(c) || c <= 0) return [];
       const pick = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : c; };
@@ -4269,9 +4367,9 @@ async function stkLoadChart() {
       return [{ t: p.time, c, o, h: h2, l: l2, v: Number(p.volume) || 0, to: Number(p.turnover) || 0 }];
     });
   } else {
-    d = await api("/api/stock/" + st.sym + "/candles?range=" + ch.range).catch(() => null);
-    stkChartState.pts = [];
-    stkChartState.bars = (d?.bars || []).flatMap(b => {
+    d = await api("/api/stock/" + sym + "/candles?range=" + ch.range).catch(() => null);
+    store.pts = [];
+    store.bars = (d?.bars || []).flatMap(b => {
       const c = Number(b.close);
       if (!Number.isFinite(c) || c <= 0) return [];
       const pick = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : c; };
@@ -4280,6 +4378,11 @@ async function stkLoadChart() {
                 to: Number(b.turnover) || 0, tr: b.turnover_rate, chg: b.change_rate }];
     });
   }
+}
+
+async function stkLoadChart() {
+  const st = stkState(), ch = st.chart;
+  await klineLoadLive(stkChartState, st.sym, ch);
   stkChartState.prevClose = stkQ().prev_close_price || null;
   klineSetData(stkHost, stkMapData());
 }
@@ -4299,6 +4402,44 @@ function stkChartSet(patch) {
   klineApply(stkHost);
 }
 
+// ── analysis-tab chart (shared engine; live moomoo sessions & periods) ──
+// A second instance of the Market Pulse chart on the stock page's Analysis tab,
+// next to that ticker's agent-report dossiers. One engine instance per panel.
+const anaChartState = { bars: [], pts: [] };
+const anaHost = klineHost({
+  elId: "ana-kc", paneId: "candle_pane", subPaneId: "ana_sub",
+  state: () => stkState().ana || (stkState().ana = { src: "range", range: "6M", kind: "FULL",
+    mode: "candle", ma: [20, 50], ema: false, boll: true, subs: ["VOL"],
+    _maLast: [20, 50], _emaLast: [20, 50] }),
+  data: () => (anaChartState.bars.length ? anaChartState.bars : anaChartState.pts).map(x => ({
+    timestamp: +x.t, open: +x.o, high: +x.h, low: +x.l, close: +x.c,
+    volume: +x.v || 0, turnover: +x.to || 0 })),
+  overlays: () => [],
+  crosshair: d => stkCrosshair(d, "ana-readout", anaHost),
+});
+anaHost.update = patch => anaChartSet(patch);
+
+async function anaLoadChart() {
+  const st = stkState();
+  await klineLoadLive(anaChartState, st.sym, st.ana);
+  klineSetData(anaHost, anaHost.data());
+}
+
+function anaMountControls() {
+  const c = document.getElementById("ana-ctl");
+  if (c) { c.innerHTML = klineControlsHTML("ana", stkState().ana); klineBindControls("ana", anaHost); }
+}
+
+function anaChartSet(patch) {
+  Object.assign(stkState().ana, patch);
+  if (patch.ma && Array.isArray(patch.ma)) stkState().ana._maLast = patch.ma;
+  if (patch.ema && Array.isArray(patch.ema)) stkState().ana._emaLast = patch.ema;
+  if (!document.getElementById("ana-kc")) { renderStock(); return; }
+  klineSyncControls("ana", stkState().ana);
+  if ("src" in patch || "range" in patch || "kind" in patch) { anaLoadChart(); return; }
+  klineApply(anaHost);
+}
+
 // ── news item renderer (shared by overview + news tab) ───────────────
 function stkNewsItem(n) {
   let host = "moomoo";
@@ -4313,7 +4454,11 @@ function stkNewsItem(n) {
 // ── analysis + research ──────────────────────────────────────────────
 async function stkAnalysis() {
   const st = stkState();
-  const research = st.__research || await api("/api/stock/" + st.sym + "/research").catch(() => null);
+  const [research, runsR] = await Promise.all([
+    st.__research || api("/api/stock/" + st.sym + "/research").catch(() => null),
+    api("/api/analyses?symbol=" + encodeURIComponent(st.sym) + "&limit=8").catch(() => null),
+  ]);
+  st.__research = research;
   if (!research) return stkPanel("Analyst Ratings", "", stkNa());
   const c = research.consensus || {}, detail = research.detail || {};
   const rows = (detail.inst_rating_summary_list || []).map(inst => {
@@ -4325,7 +4470,29 @@ async function stkAnalysis() {
       <td class="mono" style="text-align:right">${stkFmt(r.target_price, 2)}</td>
       <td class="mono dim" style="text-align:right">${esc(r.recommendation_date_str || "—")}</td></tr>`;
   }).join("");
-  return stkPanel(`${esc(st.sym)} Analyst Ratings, Forecast &amp; Price Target`,
+  const runList = (runsR?.runs || []);
+  const runsPanel = `<div class="trow" style="border:none"></div>${runList.length ? runList.map(x => `
+      <div class="trow"><span>${esc(x.trade_date || "—")} · ${esc(x.depth_preset || "standard")} · ${esc(x.status || "")}</span>
+      <a href="#" onclick="openReport('${esc(x.job_id)}');return false">report →</a></div>`).join("")
+    : '<div class="empty">No agent runs for this symbol yet — submit one from Analyze.</div>'}`;
+  return stkPanel(`${esc(st.sym)} Stock Chart`,
+      "live moomoo sessions &amp; periods · the same chart as the Overview tab", `
+    <div class="kcwrap">
+    <div class="stk-toolbar">
+      <select onchange="anaChartSet({src:'intraday',kind:this.value})">
+        ${STK_SESSIONS.map(([k2, l]) => `<option value="${k2}" ${st.ana?.src === "intraday" && st.ana?.kind === k2 ? "selected" : ""}>${l}</option>`).join("")}
+      </select>
+      ${STK_RANGES.map(([k2, l]) => `<button class="rng ${st.ana?.src === "range" && st.ana?.range === k2 ? "on" : ""}" onclick="anaChartSet({src:'range',range:'${k2}'})">${l}</button>`).join("")}
+      <span class="mode" id="ana-ctl" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:auto;row-gap:6px"></span>
+    </div>
+    <div class="chartbox">
+      <div class="readout" id="ana-readout">${esc(st.sym)} · scroll to zoom · drag to pan · pick a DRAW tool, then click the chart</div>
+      <div id="ana-kc" style="height:480px"></div>
+    </div>
+    </div>
+    `) +
+    stkPanel(`${esc(st.sym)} Agent reports`, "multi-agent dossiers that analyzed this ticker — full reasoning chain, decision and settlements", runsPanel) +
+    stkPanel(`${esc(st.sym)} Analyst Ratings, Forecast &amp; Price Target`,
       `${stkFmt(c.total, 0)} analysts · ${esc(c.update_time_str || "")}`, `
     ${stkRatingBar(c)}
     <div class="rt-row"><b>${stkFmt(c.total, 0)}</b> analysts${stkConsensusTag(c)}</div>

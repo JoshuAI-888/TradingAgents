@@ -177,6 +177,18 @@ def get_instrument_context_from_state(state: Mapping[str, Any]) -> str:
     )
 
 
+def get_price_context_from_state(state: Mapping[str, Any]) -> str:
+    """Return the verified as-of market snapshot for the current run.
+
+    Injected at run start by callers that compute it (the portal worker builds
+    it from the same rows the report chart serves, so debates and chart agree);
+    empty for entry points that don't — templates render the slot as nothing,
+    the same tolerated-absence pattern as ``portfolio_context``.
+    """
+    context = state.get("price_context")
+    return context if isinstance(context, str) else ""
+
+
 def report_or_absent(text: str, source: str) -> str:
     """An analyst's report, or a marker saying it was never produced.
 

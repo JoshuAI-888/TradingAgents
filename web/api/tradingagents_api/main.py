@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 import time
 import uuid
@@ -22,6 +23,8 @@ from tradingagents_worker.config import SETTINGS
 from tradingagents_worker.db import Db
 from tradingagents_worker.runner import demangle_debate
 from tradingagents_worker.screener_rows import snapshot_to_row as _snapshot_to_row
+
+_AS_OF_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 app = FastAPI(title="TradingAgents Portal API", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=[o for o in os.getenv(
@@ -253,17 +256,36 @@ def _report_payload(ref: str) -> dict:
 
 
 @app.get("/api/bars/{symbol}")
-def bars(symbol: str, days: int = 180):
+def bars(symbol: str, days: int = 180, as_of: str | None = None):
+    """Daily bars for the report chart. `as_of` (YYYY-MM-DD) truncates at that
+    date so a run's chart shows the market as its agents saw it; omit = latest."""
+    if as_of is not None and not _AS_OF_RE.fullmatch(as_of):
+        raise HTTPException(400, "as_of must be YYYY-MM-DD")
     rows = db.select("tickers", {"symbol": f"eq.{symbol.upper()}"}, "id")
     if not rows:
         raise HTTPException(404, "unknown ticker")
-    bars = db.select("price_bars", {"ticker_id": f"eq.{rows[0]['id']}",
-                                    "order": "bar_date.desc", "limit": "400"},
+    q = {"ticker_id": f"eq.{rows[0]['id']}", "order": "bar_date.desc", "limit": "400"}
+    if as_of:
+        q["bar_date"] = f"lte.{as_of}"
+    bars = db.select("price_bars", q,
                      "bar_date,open,high,low,close,volume")
     bars = list(reversed([b for b in bars if b.get("bar_date")]))
     if days > 0 and len(bars) > days:
         bars = bars[-days:]
-    return {"symbol": symbol.upper(), "bars": bars}
+    return {"symbol": symbol.upper(), "as_of": as_of, "bars": bars}
+
+
+@app.get("/api/analyses")
+def list_analyses(symbol: str, limit: int = 10):
+    """Runs most-recent-first for one symbol — the stock page's Analysis tab
+    links each row into its full report dossier (openReport takes the job id)."""
+    tick = db.select("tickers", {"symbol": f"eq.{symbol.upper()}"}, "id")
+    if not tick:
+        return {"symbol": symbol.upper(), "runs": []}
+    runs = db.select("runs", {"ticker_id": f"eq.{tick[0]['id']}", "order": "created_at.desc",
+                              "limit": str(min(limit, 25))},
+                     "id,job_id,trade_date,status,depth_preset,created_at")
+    return {"symbol": symbol.upper(), "runs": runs}
 
 
 @app.get("/api/news/{symbol}")

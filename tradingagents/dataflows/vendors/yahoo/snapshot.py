@@ -61,6 +61,31 @@ def _fmt(value) -> str:
     return str(value)
 
 
+def snapshot_with_rows(
+    symbol: str,
+    curr_date: str,
+    look_back_days: int = 30,
+    indicators: Iterable[str] | None = None,
+) -> dict:
+    """Snapshot text plus the exact OHLCV rows it was rendered from.
+
+    Callers that need the snapshot and its underlying data to agree byte-for-byte
+    (the portal worker persists the rows so the report chart serves the same
+    bars the agents were shown) use this; ``build_verified_market_snapshot``
+    remains the text-only path. Rows: {date, open, high, low, close, volume}.
+    """
+    df = _verified_rows(symbol, curr_date)
+    text = _render_snapshot(symbol, curr_date, df, look_back_days, indicators)
+    rows = [
+        {"date": r["Date"].strftime("%Y-%m-%d"),
+         "open": round(float(r["Open"]), 8), "high": round(float(r["High"]), 8),
+         "low": round(float(r["Low"]), 8), "close": round(float(r["Close"]), 8),
+         "volume": int(r["Volume"]) if r["Volume"] == r["Volume"] else None}
+        for _, r in df.iterrows()
+    ]
+    return {"text": text, "rows": rows, "latest_date": rows[-1]["date"] if rows else None}
+
+
 def build_verified_market_snapshot(
     symbol: str,
     curr_date: str,
@@ -68,10 +93,21 @@ def build_verified_market_snapshot(
     indicators: Iterable[str] | None = None,
 ) -> str:
     """Render a ground-truth snapshot: latest OHLCV row, indicators, recent closes."""
+    return _render_snapshot(symbol, curr_date, _verified_rows(symbol, curr_date),
+                            look_back_days, indicators)
+
+
+def _render_snapshot(
+    symbol: str,
+    curr_date: str,
+    df: pd.DataFrame,
+    look_back_days: int = 30,
+    indicators: Iterable[str] | None = None,
+) -> str:
+    """Render the ground-truth snapshot from verified rows."""
     # `df` keeps the original capitalized OHLCV columns (Open/High/Low/Close/
     # Volume); stockstats `wrap()` lowercases columns and adds indicator
     # columns, so read raw prices from `df` and indicators from `stock_df`.
-    df = _verified_rows(symbol, curr_date)
     stock_df = wrap(df.copy())
 
     selected = tuple(indicators or DEFAULT_SNAPSHOT_INDICATORS)
