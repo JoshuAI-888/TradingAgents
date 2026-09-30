@@ -1,9 +1,9 @@
 """Daily-bar store for computed technicals. One moomoo history-kline call per
-symbol (3y daily ≈ 780 bars ≤ count 1000); rate-budgeted like the universe
-loader. The kline_state table drives rotation: ~1,400 codes/night at the
-30/min budget → the whole ~13.5k US universe refreshes roughly every 10
-nights; the first full run is a manual, resumable backfill (state rows make
-re-runs pick up where the last left off)."""
+symbol (3y daily ≈ 780 bars ≤ count 1000); paced by moomoo's server-side
+rate limiter (the _budgeted loop sleeps through Retry-After — measured
+~16–80 symbols/min). The kline_state table drives rotation: 4,000
+codes/night → the ~15.5k US universe reaches full coverage in ~4 nights,
+then refreshes continuously (state rows make every run resumable)."""
 from __future__ import annotations
 
 import time
@@ -14,7 +14,7 @@ from .moomoo import MoomooClient, RateLimited
 
 KLINE_YEARS = 3
 KLINE_TTL_DAYS = 7
-ROTATION_LIMIT_DEFAULT = 1400
+ROTATION_LIMIT_DEFAULT = 4000
 
 
 def _budgeted(fn, *args, **kwargs):

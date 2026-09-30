@@ -57,3 +57,13 @@ def test_plates_collect_all_memberships(fake_db):
     assert rows["US.PLTR"]["plate"] == "Software"            # first stays primary
     assert rows["US.PLTR"]["plates"] == ["Software", "Semis"]
     assert r["enum"]["codes"] == 2
+
+
+def test_snapshot_row_carries_session_ohlc(fake_db):
+    """Technicals freshness: the stored row needs the session's open/high/low
+    so the nightly job can synthesize today's partial bar without new calls."""
+    from tradingagents_worker.screener_rows import snapshot_to_row
+    row = snapshot_to_row({"code": "US.X", "last_price": 10.5, "prev_close_price": 9.5,
+                           "open_price": 9.8, "high_price": 10.9, "low_price": 9.7,
+                           "volume": 123.0})
+    assert (row["open"], row["high"], row["low"]) == (9.8, 10.9, 9.7)

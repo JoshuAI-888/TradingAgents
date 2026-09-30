@@ -95,6 +95,39 @@ def perf_ytd(bars: list[dict]) -> float | None:
     return round((closes[-1] / first - 1) * 100, 4)
 
 
+def append_snapshot_bar(bars: list[dict], quote: dict,
+                        today: str | None = None) -> list[dict]:
+    """Synthesize the current session's partial bar from the stored snapshot
+    quote and append it, so computed technicals are as fresh as the hourly
+    quote refresh — zero extra vendor calls. Rules:
+      - session date = the quote's updated_at UTC date (the session the
+        snapshot describes), not wall-clock now;
+      - appended only when strictly newer than the last stored kline (the
+        real daily bar, once the kline fetcher writes it, always wins);
+      - without session OHLC the bar falls back to o=h=l=c=price (close-based
+        indicators are exact; ATR slightly conservative for that one bar)."""
+    bars = list(bars)
+    session = today or (str(quote.get("updated_at") or "")[:10] or None)
+    if not session or not bars:
+        return bars
+    if session <= bars[-1].get("day", ""):
+        return bars  # real bar already stored, or snapshot older than history
+    price = quote.get("price")
+    if price is None:
+        return bars
+    price = float(price)
+    o = quote.get("open")
+    h = quote.get("high")
+    l = quote.get("low")
+    bars.append({"day": session,
+                 "o": float(o) if o is not None else price,
+                 "h": float(h) if h is not None else price,
+                 "l": float(l) if l is not None else price,
+                 "c": price,
+                 "v": quote.get("volume") or 0.0})
+    return bars
+
+
 def compute(bars: list[dict]) -> dict:
     """bars ascending by day. Returns only keys the data actually supports."""
     closes = _closes(bars)

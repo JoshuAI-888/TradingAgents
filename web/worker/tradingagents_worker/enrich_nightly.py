@@ -6,7 +6,8 @@ batch over the whole US universe, (3) technicals per code from its stored
 bars — only for codes whose klines are fresh (KLINE_TTL_DAYS), capped at the
 2,000 most-stale fresh codes per run (steady state ≈ the nightly rotation
 slice); bars are read per code-chunk via PostgREST in.() filters, never the
-whole table. Stale klines mean the technicals keys are absent — never
+whole table. Technicals get the current session appended from the stored
+snapshot (append_snapshot_bar), so they track the hourly quote refresh. Stale klines mean the technicals keys are absent — never
 recomputed from old bars, never zero-filled (spec rule).
 Writes one screener_enrichment row per code; state lands in app_settings.
 """
@@ -19,12 +20,12 @@ from .config import SETTINGS
 from .db import Db
 from .kline_backfill import KLINE_TTL_DAYS, KlineBackfill
 from .moomoo import MoomooClient
-from .technicals import compute
+from .technicals import append_snapshot_bar, compute
 from .yf_enrich import fetch_yf_enrichment
 
-FRESH_CAP_PER_RUN = 2000
+FRESH_CAP_PER_RUN = 4000  # = the kline rotation slice: technicals compute the night klines land
 BAR_CHUNK = 100
-YF_BATCH_PER_RUN = 3000  # bound the cron: full coverage in ~5 nights, then refresh
+YF_BATCH_PER_RUN = 6000  # bound the cron: full coverage in ~3 nights, then weekly refresh
 YF_TTL_DAYS = 7          # fundamentals are slow; weekly yf refresh per code
 
 
@@ -119,6 +120,17 @@ class EnrichNightly:
 
         fresh_codes = self._fresh_codes(codes)
         bars_by_code = self._bars_for(fresh_codes) if fresh_codes else {}
+        # Freshness lift: append the current session's partial bar (from the
+        # stored snapshot) to each code's history before computing technicals —
+        # no extra vendor calls, technicals track the hourly quote refresh.
+        quotes = {r["code"]: (r.get("row") or {}) | {"updated_at": r.get("updated_at")}
+                  for r in self.db.select_all("screener_quotes",
+                                              {"market": f"eq.{self.market}"},
+                                              "code,row,updated_at")}
+        for code, bars in bars_by_code.items():
+            q = quotes.get(code)
+            if q:
+                bars_by_code[code] = append_snapshot_bar(bars, q)
 
         now = datetime.now(timezone.utc).isoformat()
         upserts = []

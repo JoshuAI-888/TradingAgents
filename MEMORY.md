@@ -18,7 +18,15 @@ Newest decisions first. Each entry: context → decision → implications.
 
 ---
 
-## 2026-09-30 — Go-live: migrations applied, enrich cron created, groups live-bug fixed
+## 2026-09-30 — Enrich pipeline speed-up round (owner-approved options 1+2)
+
+- **Live iteration on the first real run**: trigger run 1 died at the first kline write — moomoo's live history-kline carries `time_key` as epoch **ms** and `open/close/high/low/volume` keys, not the ISO-day + `*_price` shape the fixtures modeled (d1a6cc6 fixes + regression test from the recorded live shape). Trigger run 2 then ran clean: 82 symbols / 44k bars in ~5 min, server rate-limiter self-pacing via Retry-After (measured ~16–80 sym/min).
+- **Caps raised (option 1)**: kline rotation 1,400 → **4,000/night** (~4 nights to full 15.5k coverage), yf sweep 3,000 → **6,000/night** (~3 nights), FRESH_CAP_PER_RUN 2,000 → **4,000** (technicals compute the same night their klines land). The client-side 30/min budget is per-symbol-path and never binds; the real governor is moomoo's server limiter and the loop sleeps through it — a run can safely take hours in the 21:45→13:00 UTC window.
+- **Snapshot-synthesized today-bar (option 2)**: `technicals.append_snapshot_bar()` appends the current session's partial bar (o/h/l/c/v from the stored snapshot quote, session = quote's `updated_at` date) before computing technicals — RSI/SMA/perf now track the **hourly** quote refresh instead of lagging a day, zero extra vendor calls. The real daily kline always wins (append only when strictly newer than the last stored bar). `snapshot_to_row` now carries `open/high/low` (worker copy only — that's the writer of screener_quotes).
+- Deferred by design: full near-real-time = the ⚡ Live page-refresh button (2 snapshot calls/click) and/or wiring the WS POC — owner will decide after seeing on-demand freshness.
+- Worker **102** tests green.
+
+---## 2026-09-30 — Go-live: migrations applied, enrich cron created, groups live-bug fixed
 
 - **Migrations 0011 + 0012 applied to prod Supabase** via hosted MCP (project hiqasyjalspuchtacatk), verified: tables + `plates` column exist; universe is now **15,512 rows** (larger than the 13.5k working assumption — rotation/yf caps sized for it: klines 1,400/night ≈ 11 nights, yf 3,000/night with 7-day TTL ≈ 6 nights).
 - **`tradingagents-enrich` cron created via Render MCP** (crn-datv2jpsrm7s73a6v1dg, 21:45 UTC weekdays, starter/virginia, autoDeploy) with PYTHON_VERSION/TRADINGAGENTS_CACHE_DIR/ENRICH_MARKET. **REMAINING MANUAL STEP:** the MCP can't read secret env values — SUPABASE_URL, SUPABASE_SERVICE_KEY, MOOMOO_APPKEY, MOOMOO_PRIVATE_KEY must be copied from tradingagents-universe into the new cron's Environment in the dashboard, or the scheduled run fails fast at startup.
