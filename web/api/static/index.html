@@ -1435,29 +1435,40 @@ function scrColFilterFilters() {
 // The whole matched dataset lives in memory (60s) + localStorage so first
 // paint and every interaction are instant; the server refreshes it hourly via
 // the loader and on demand via ↻ Refresh full market.
-function scrPersistDataset(ds) {
-  try {
-    // Persist only the fields the UI renders — the full rows blow the ~5MB
-    // localStorage quota; the in-memory copy always keeps everything.
-    const keep = new Set(["symbol", "code", "name", "stock_type", "plate", "exchange",
-      ...Object.keys(SCR_COLS), ...Object.keys(VIEW_PRESETS).flatMap(v => VIEW_PRESETS[v])]);
-    const rows = ds.rows.map(r => { const o = {}; for (const k in r) if (keep.has(k)) o[k] = r[k]; return o; });
-    const s = JSON.stringify({ key: ds.key, ts: ds.ts, asOf: ds.asOf, watchlist: ds.watchlist, rows });
-    if (s.length < 4800000) localStorage.setItem("scrDataset", s);
-    else localStorage.removeItem("scrDataset");
-  } catch (e) { /* quota — the in-memory copy still works */ }
+// The whole matched dataset lives in memory (60s) + IndexedDB so first paint
+// and every interaction are instant; the server refreshes it hourly via the
+// loader and on demand via ↻ Refresh full market. IndexedDB, not localStorage
+// — the ~10k-row copy is several MB and localStorage caps out ~2.5M chars.
+function scrIdb() {
+  return new Promise((res, rej) => {
+    const rq = indexedDB.open("scr-ds", 1);
+    rq.onupgradeneeded = () => rq.result.createObjectStore("ds");
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  });
 }
-function scrLoadDataset(key) {
+async function scrPersistDataset(ds) {
   try {
-    const d = JSON.parse(localStorage.getItem("scrDataset") || "null");
-    if (d && d.key === key && d.rows && d.rows.length)
-      return { key: d.key, ts: d.ts, asOf: d.asOf, watchlist: d.watchlist, rows: d.rows };
-  } catch (e) {}
-  return null;
+    const db = await scrIdb();
+    db.transaction("ds", "readwrite").objectStore("ds")
+      .put({ key: ds.key, ts: ds.ts, asOf: ds.asOf, watchlist: ds.watchlist, rows: ds.rows }, "cur");
+  } catch (e) { /* private mode / quota — the in-memory copy still works */ }
 }
+async function scrLoadDataset(key) {
+  try {
+    const db = await scrIdb();
+    return await new Promise(res => {
+      const rq = db.transaction("ds").objectStore("ds").get("cur");
+      rq.onsuccess = () => { const d = rq.result;
+        res(d && d.key === key && d.rows && d.rows.length ? d : null); };
+      rq.onerror = () => res(null);
+    });
+  } catch (e) { return null; }
+}
+let __homeGen = 0;
 const pages = {
   async home() {
-    const gen = ++window.__homeGen;
+    const gen = ++__homeGen;
     const st = window.__scr;
     const effFilters = scrEffFilters();
     const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
@@ -1511,7 +1522,7 @@ const pages = {
       if (window.__scrDataset && window.__scrDataset.key === dsKey && Date.now() - window.__scrDataset.ts < 60000) {
         ds = window.__scrDataset;
       } else {
-        const saved = scrLoadDataset(dsKey);
+        const saved = await scrLoadDataset(dsKey);
         if (saved) { ds = { key: saved.key, ts: saved.ts, asOf: saved.asOf, rows: saved.rows }; fromCache = true; }
       }
       if (!ds) {
@@ -1565,7 +1576,7 @@ const pages = {
     if (window.__scrLoadingMsg) scrShowLoading(window.__scrLoadingMsg);
     // A slower older render must never clobber a newer one (rapid clicks race
     // the 3-4s endpoints): drop this render if a newer one has started.
-    if (gen !== window.__homeGen) return "";
+    if (gen !== __homeGen) return "";
     const fmtPct = v => v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(2) + "%";
     window.__scrPresets = rail.presets || [];
     window.__scr.watchlistSyms = scr.watchlist || st.watchlistSyms;
