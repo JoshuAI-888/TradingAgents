@@ -170,6 +170,10 @@ def _backfill_db(missing_ids):
                              "trade_date": "2026-09-30", "status": "succeeded"})
         if not missing:
             db.t_("run_digest").append({"run_id": rid, "digest": {"evidence": []}})
+    # a seeded-only row (no evidence key) counts as incomplete
+    db.t_("run_digest").append({"run_id": "run-seedonly", "digest": {"verified_snapshot": "S"}})
+    db.t_("runs").append({"id": "run-seedonly", "ticker_id": "tick-0",
+                          "trade_date": "2026-09-30", "status": "succeeded"})
     return db
 
 
@@ -188,7 +192,7 @@ def test_backfill_digests_rebuilds_missing_with_snapshot(monkeypatch):
     monkeypatch.setattr(dg, "build_digest", fake_build)
     db = _backfill_db(missing_ids=["run-missing"])
     written = dg.backfill_digests(db)
-    assert written == 1 and called == {"run-missing": SNAP_TEXT}
+    assert written == 2 and called == {"run-missing": SNAP_TEXT, "run-seedonly": SNAP_TEXT}
 
 
 def test_backfill_digests_skips_existing_and_needs_key(monkeypatch):

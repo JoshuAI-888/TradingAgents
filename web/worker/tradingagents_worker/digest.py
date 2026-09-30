@@ -105,7 +105,10 @@ def backfill_digests(db, cap: int = 2) -> int:
                               "limit": "40"}, "id,ticker_id,trade_date")
     if not runs:
         return 0
-    have = {r["run_id"] for r in db.select("run_digest", {}, "run_id")}
+    # A row seeded with only the verified snapshot (persist-time seed) carries
+    # no "evidence" key — treat it as incomplete so its panels get regenerated.
+    have = {r["run_id"] for r in db.select("run_digest", {}, "run_id")
+            if "evidence" in (r.get("digest") or {})}
     todo = [r for r in runs if r["id"] not in have][:cap]
     if not todo:
         return 0
