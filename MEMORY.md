@@ -964,3 +964,18 @@ WHLT/SDEV/BKYI (sane), P/B<1 BHATF/TLSS/STEK, Blue Chip/Buffett/Undervalued
 distinct + sane. Note: exact trio parity on factor-heavy cards (revenue_
 growth etc.) is impossible in a snapshot preview — click-through runs the
 real server-side screen. 162 green; b33ef7c, 2988ba9, 31caf78.
+
+## 2026-09-30 (II) — "not the entire list" = trapped in a running preset
+
+User: biggest market cap doesn't include NVDA. The Penny Stocks preset was
+still running server-side (cap<=300M — NVDA can't qualify; the 42 rows ARE
+the full penny answer, matches moomoo). Real bug: scrApplyPreset copies the
+preset's filters into st.filters AND sets st.activePreset, but scrResetAll
+cleared only the chips — activePreset kept executing with zero visible
+filters, and scrRemoveFilter's last-chip removal left it running too. No
+visible way out. Fixes: Reset all + last-chip removal clear activePreset;
+the active preset renders its own blue removable chip "Preset: <name> ×"
+(scrExitPreset exits preset + its copied filters). Verified in the user's
+tab: whole market 9,811 rows, Market Cap desc, NVDA #1 $5.48T. Note:
+"Tickers: NVDA, AAPL" in the toolbar is an input PLACEHOLDER, not a filter.
+a66e6b8, both branches.
