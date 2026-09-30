@@ -872,12 +872,16 @@ function scrLoadingFor(k, v) {
 }
 function scrSet(k, v) {
   if (k === "page" || k === "pageSize" || k === "etfs" || k === "watchlistOnly" || k === "filters" || k === "market" || k === "src") {
-    window.__scr[k] = v; scrPersist();
+    window.__scr[k] = v;
+    // "Clear" hands an empty filter list — a running preset must exit with it
+    // (the Clear button is this path; scrSet is also how the UI clears filters)
+    if (k === "filters" && Array.isArray(v) && !v.length) window.__scr.activePreset = null;
+    scrPersist();
     if (state.page === "home") scrShowLoading(scrLoadingFor(k, v));
     showPage("home");
     return;
   }
-  window.__scr[k] = v; if (k === "filters") window.__scr.activePreset = null; scrPersist(); showPage("home");
+  window.__scr[k] = v; scrPersist(); showPage("home");
 }
 function scrSort(col) {
   const st = window.__scr;
