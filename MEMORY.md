@@ -1016,3 +1016,24 @@ branch. Lesson: this is the third instance of the same trap (preset state
 split between st.filters and st.activePreset) — Reset all, chip removal,
 now Clear. Browser-verified: Penny → Clear → whole market 9,811, NVDA
 first, no chips. 46f571c, both branches.
+
+## 2026-09-30 (V) — preset opens %chg desc; preset-mode sorts fixed; full page sweep; perf profile
+
+User: clicking a screener should open sorted %chg desc ("top 3 displayed"),
+and %CHG column sorts did nothing in preset mode. Fixed: scrApplyPreset
+sets sort=pct/dir=2 (Penny opens SEER/ICU/RANI — moomoo's own card order);
+preset-mode sorts happen client-side via scrSortRows (execute returns one
+fixed server order), frontend execute call now limit=300 (was default 60 —
+also undercounted presets with >60 matches). Page sweep (live browser):
+HK preset ✓ (23 rows %desc), view tabs swap columns ✓ (RSI etc. dash under
+Moomoo source by design — fill under Data: YFinance), Reset all exits ✓,
+saved screeners ✓, signals GAP: quick-signal chips under an active preset
+change chips but not results (execute ignores st.filters) — client-side
+apply like colFilters is the fix, not yet done. MEASURED perf: /api/
+screener 3.0-3.5s, presets 2.8-3.9s per call — every request re-reads all
+~15.5k quote rows from Supabase (16 PostgREST pages); execute 1.7-2.4s
+(moomoo roundtrip). Proposal to user: (1) stale-while-revalidate shell
+(paint last data instantly, refresh in bg), (2) 60-120s server TTL cache
+for stored universe + presets, (3) 60s execute cache, (4) render
+generation guard (stale async render can clobber newer — hit it during
+testing), (5) optional single bootstrap endpoint. 51df702, both branches.
