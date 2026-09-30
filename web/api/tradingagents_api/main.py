@@ -907,15 +907,20 @@ def screener_presets(market: str = "US", universe: str = "auto"):
     # nothing to skip there. The card previews are scored here over the stored
     # universe, restricted to common stocks (classification lives in
     # screener_universe, not the quote rows, so merge it in first). Each card
-    # ranks over ITS OWN filters — one shared top-3 stamped every card with the
-    # same names. Ranking is among names actually trading: dormant tickers
-    # print +9,900% on a ~USD 1k turnover day and must not headline the cards.
+    # ranks over ITS OWN filters by %chg — verified against moomoo.com/screener,
+    # whose cards do headline +9,900% dead prints where they genuinely match
+    # (P/B < 1) but keep them out of Penny Stocks via the 30-day-AVERAGE
+    # volume filter. Our snapshot only has today's volume, so presets carrying
+    # a days-averaged volume filter additionally require USD 10k turnover
+    # today — a real 100k-shares/day name virtually never prints a $1k day.
     rows = _merge_universe_meta(rows, market)
     rows = [r for r in rows if r.get("stock_type") == "STOCK"]
     liquid = [r for r in rows if (r.get("turnover") or 0) >= 10_000]
     out = []
     for preset in PRESET_SCREENERS:
-        matched, _ = _apply_filters(liquid, preset.get("filters") or [])
+        pool = (liquid if any(f.get("field") == "volume" and f.get("days")
+                              for f in preset.get("filters") or []) else rows)
+        matched, _ = _apply_filters(pool, preset.get("filters") or [])
         picked = _sort_rows(matched, "pct", 2)[:3]
         out.append({**preset,
                     "top": [{"symbol": r["symbol"],
