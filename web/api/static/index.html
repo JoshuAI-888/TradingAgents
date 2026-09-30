@@ -714,8 +714,16 @@ function scrRemoveCol(k) {
 function scrResetAll() {
   const st = window.__scr;
   st.filters = []; st.colFilters = {}; st.sort = "market_cap"; st.dir = 2;
+  st.activePreset = null;   // else "Reset all" clears the chips but the preset keeps running server-side
   scrPersist(); showPage("home");
 }
+function scrExitPreset() {
+  const st = window.__scr;
+  st.activePreset = null;
+  st.filters = [];          // the copied preset filters came from it — leave with it
+  scrPersist(); showPage("home");
+}
+window.scrExitPreset = scrExitPreset;
 let __scrLoadTimer = null;
 function scrShowLoading(msg) {
   window.__scrLoadingMsg = msg;
@@ -880,7 +888,12 @@ function scrSort(col) {
   if (state.page === "home") scrShowLoading(`Sorting by ${(SCR_COLS[col] || [col])[0]} ${st.dir === 2 ? "descending" : "ascending"}…`);
   showPage("home");
 }
-function scrRemoveFilter(i) { window.__scr.filters.splice(i, 1); scrPersist(); showPage("home"); }
+function scrRemoveFilter(i) {
+  const st = window.__scr;
+  st.filters.splice(i, 1);
+  if (!st.filters.length) st.activePreset = null;  // last chip gone = no preset either
+  scrPersist(); showPage("home");
+}
 function scrApplyPreset(key) {
   const st = window.__scr;
   const p = (window.__scrPresets || []).find(x => x.key === key);
@@ -1488,7 +1501,12 @@ const pages = {
                             : `${cf.min != null ? "≥ " + cf.min : ""}${cf.min != null && cf.max != null ? " · " : ""}${cf.max != null ? "≤ " + cf.max : ""}`;
       return `<span class="chip-f">${esc(label)}: ${esc(val)}<a href="#" onclick="scrClearColFilter('${k}');return false" class="chip-x">×</a></span>`;
     }).join("");
-    const allChips = colChips + colFilChips;
+    // The active preset gets its own removable chip — without it a running
+    // preset is invisible (you just see 42 penny stocks and no filter chips).
+    const presetChip = st.activePreset
+      ? `<span class="chip-f" style="border-color:#3a76dd">Preset: ${esc((window.__scrPresets || []).find(x => x.key === st.activePreset)?.name || st.activePreset)}<a href="#" onclick="scrExitPreset();return false" class="chip-x" title="exit preset — back to the whole market">×</a></span>`
+      : "";
+    const allChips = presetChip + colChips + colFilChips;
     const colMenu = `<button class="btn ghost" onclick="scrToggleColPick()">Columns (${st.cols.length})</button>`;
     const table = `<div ondragover="scrDragOverTable(event)" ondrop="scrDropNewCol(event)">
       <table class="scr-table"><tr><th>No.</th>${st.cols.map(k => {
