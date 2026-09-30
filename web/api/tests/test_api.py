@@ -310,13 +310,38 @@ def test_presets_rail_scores_stored_rows_without_inline_stock_type(monkeypatch):
     monkeypatch.setattr(api, "_universe_meta_cache", _NoCache())
     api.db._t("screener_quotes").append({"market": "US", "code": "US.ZPST",
                                          "row": {"code": "US.ZPST", "symbol": "ZPST",
-                                                 "name": "Zerostate", "pct": 4.2}})
+                                                 "name": "Zerostate", "pct": 4.2,
+                                                 "turnover": 500_000}})
     api.db._t("screener_universe").append({"market": "US", "code": "US.ZPST",
                                            "stock_type": "STOCK"})
     p = client.get("/api/screener/presets?market=US").json()
     assert p["universe_rows"] >= 1
     tops = [t for x in p["presets"] for t in x["top"]]
     assert any(t["symbol"] == "ZPST" and t["pct"] == 4.2 for t in tops)
+
+
+def test_presets_rail_filters_per_preset_and_drops_illiquid_prints(monkeypatch):
+    """Regression 2026-09-30: one shared 'top 3 by pct' stamped EVERY card with
+    the same names, and dormant tickers (+9,900% on a $52 turnover day) headed
+    them. Cards must score over their own filters, among names trading."""
+
+    def seed(sym, price, pct, cap, volume, turnover, **extra):
+        row = {"code": f"US.{sym}", "symbol": sym, "name": sym, "price": price,
+               "pct": pct, "market_cap": cap, "volume": volume, "turnover": turnover, **extra}
+        api.db._t("screener_quotes").append({"market": "US", "code": f"US.{sym}", "row": row})
+        api.db._t("screener_universe").append({"market": "US", "code": f"US.{sym}",
+                                               "stock_type": "STOCK"})
+
+    monkeypatch.setattr(api, "_screener_cache", None)
+    monkeypatch.setattr(api, "_universe_meta_cache", _NoCache())
+    seed("PNY1", 3.2, 8.4, 2.0e8, 2_000_000, 6_400_000)            # liquid penny
+    seed("DIV1", 42.0, 1.2, 8e9, 1_000_000, 42_000_000, div_yield=12.0)  # not a penny
+    seed("ZOMB", 0.0001, 9900.0, 98_010, 523_610, 52.36)           # dead-ticker print
+    p = client.get("/api/screener/presets?market=US").json()
+    by_name = {x["name"]: [t["symbol"] for t in x["top"]] for x in p["presets"]}
+    assert all("ZOMB" not in syms for syms in by_name.values())    # never headlines
+    assert "PNY1" in by_name["Penny Stocks"] and "DIV1" not in by_name["Penny Stocks"]
+    assert "DIV1" in by_name["High Dividend Stocks"]
 
 
 def test_execute_hydrates_rows_from_stored_snapshot(monkeypatch):

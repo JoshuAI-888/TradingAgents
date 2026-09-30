@@ -904,15 +904,19 @@ def screener_presets(market: str = "US", universe: str = "auto"):
                     cache.put("quotes", uk, rows)
     # Presets execute server-side (see /api/screener/execute) — every filter in
     # every preset is backed by a verified stock-screen property, so there is
-    # nothing to skip. The top-3 preview is scored over the stored universe,
-    # restricted to common stocks for parity with moomoo's screener count.
-    # Classification lives in screener_universe, not the quote rows, so merge
-    # it in before filtering or every row is dropped here.
+    # nothing to skip there. The card previews are scored here over the stored
+    # universe, restricted to common stocks (classification lives in
+    # screener_universe, not the quote rows, so merge it in first). Each card
+    # ranks over ITS OWN filters — one shared top-3 stamped every card with the
+    # same names. Ranking is among names actually trading: dormant tickers
+    # print +9,900% on a $52 turnover day and must not headline the cards.
     rows = _merge_universe_meta(rows, market)
     rows = [r for r in rows if r.get("stock_type") == "STOCK"]
+    liquid = [r for r in rows if (r.get("turnover") or 0) >= 1_000]
     out = []
     for preset in PRESET_SCREENERS:
-        picked = _sort_rows(rows, "pct", 2)[:3]
+        matched, _ = _apply_filters(liquid, preset.get("filters") or [])
+        picked = _sort_rows(matched, "pct", 2)[:3]
         out.append({**preset,
                     "top": [{"symbol": r["symbol"],
                              "name": str(r.get("name") or "")[:22],
