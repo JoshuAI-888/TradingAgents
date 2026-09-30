@@ -979,3 +979,23 @@ the active preset renders its own blue removable chip "Preset: <name> ×"
 tab: whole market 9,811 rows, Market Cap desc, NVDA #1 $5.48T. Note:
 "Tickers: NVDA, AAPL" in the toolbar is an input PLACEHOLDER, not a filter.
 a66e6b8, both branches.
+
+## 2026-09-30 (III) — screener clicks are a clean global slate; column filters actually filter
+
+User: "the screener should be global — clicking it should clear all filters
+and apply only its own." scrApplyPreset now wipes st.colFilters + watchlist
+scope + page before applying (presets always ran whole-market server-side,
+but stale colFilters chips and a watchlist fallback path could scope the
+VIEW); scrApplySaved wipes colFilters (keeps its own saved watchlist flag).
+Discovered the per-column ⚈ filters (st.colFilters) were COSMETIC after the
+toolbar redesign — chips rendered but filtered nothing. Fixed by sharing
+scrEffFilters() between home()'s request and scrExport (manual path filters
+server-side, counts agree), and client-side display filtering over
+server-side preset rows (which can't take extra server filters) with an
+"after column filters" count. Also fixed scrExport's ReferenceError
+('effFilters'→'eff' rename left the stringify referencing the old name —
+every export click threw). Browser-verified end to end: dirty state
+(watchlist on + price>=100 colFilter) → Blue Chip click → checkbox off,
+chip row shows only "Preset: Blue Chip Stocks ×", 40 whole-market rows;
+tab restored to whole market / market-cap desc (NVDA first). 383310c,
+both branches.
