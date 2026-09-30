@@ -1485,11 +1485,22 @@ const pages = {
       api("/api/screener/presets?market=" + st.market).catch(() => ({ presets: [] })),
     ];
     if (st.activePreset) {
+      // The preset's matched rows are kept client-side for 60s — sort/filter
+      // toggles within a screener are instant; a new screener refetches.
+      const pKey = st.activePreset;
+      const pr = window.__presetRows;
+      const freshRows = pr && pr.key === pKey && pr.market === st.market &&
+                        pr.payload && pr.payload.available && Date.now() - pr.ts < 60000;
+      const exP = freshRows ? Promise.resolve(pr.payload)
+        : api("/api/screener/execute?key=" + encodeURIComponent(pKey) + "&market=" + st.market + "&limit=300")
+            .then(p => { if (p && p.available)
+              window.__presetRows = { key: pKey, market: st.market, ts: Date.now(), payload: p };
+              return p; })
+            .catch(() => ({ available: false }));
       const [r0, r1, r2, r3, ex] = await Promise.allSettled([
         baseFetches[0], baseFetches[1], baseFetches[2],
         api("/api/screener/presets?market=" + st.market).catch(() => ({ presets: [] })),
-        api("/api/screener/execute?key=" + encodeURIComponent(st.activePreset) + "&market=" + st.market + "&limit=300")
-          .catch(() => ({ available: false })),
+        exP,
       ]);
       const cands = r0.status === "fulfilled" ? r0.value : { candidates: [] };
       const decs = r1.status === "fulfilled" ? r1.value : { decisions: [] };
