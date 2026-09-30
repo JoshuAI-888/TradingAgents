@@ -282,9 +282,9 @@ def list_analyses(symbol: str, limit: int = 10):
     tick = db.select("tickers", {"symbol": f"eq.{symbol.upper()}"}, "id")
     if not tick:
         return {"symbol": symbol.upper(), "runs": []}
-    runs = db.select("runs", {"ticker_id": f"eq.{tick[0]['id']}", "order": "created_at.desc",
+    runs = db.select("runs", {"ticker_id": f"eq.{tick[0]['id']}", "order": "started_at.desc",
                               "limit": str(min(limit, 25))},
-                     "id,job_id,trade_date,status,depth_preset,created_at")
+                     "id,job_id,trade_date,status,depth_preset,started_at")
     return {"symbol": symbol.upper(), "runs": runs}
 
 
