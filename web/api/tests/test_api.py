@@ -657,3 +657,49 @@ def test_groups_excludes_unclassified_rows(monkeypatch):
     api.db = fdb
     r = client.get("/api/groups?group_by=plate").json()
     assert [x["stocks"] for x in r["rows"]] == [2]      # only the classified pair
+
+
+def test_execute_uses_the_preset_sort_and_reports_server_limit(monkeypatch):
+    _fresh_caches(monkeypatch)
+    api._execute_cache.clear()
+    calls = []
+
+    class Screen:
+        def call(self, method, path, body=None, **kw):
+            calls.append(body)
+            return {"items": [{"code": f"US.FIX{i}", "name": "Fixture", "results": []}
+                              for i in range(body["limit"])]}
+        def snapshot(self, codes):
+            return {"snapshot_list": []}
+
+    monkeypatch.setattr(api, "_market_client", lambda: Screen())
+    r = client.get("/api/screener/execute?key=penny&limit=3").json()
+    assert calls[0]["sort"] == {"direction": 2, "simple_property": {"name": 2210}}
+    assert r["sort"] == "pct" and r["direction"] == 2
+    assert r["result_limit"] == 3 and r["possibly_truncated"] is True
+    assert r["filters"] == next(p["filters"] for p in api.PRESET_SCREENERS if p["key"] == "penny")
+
+
+def test_execute_saved_screener_uses_saved_sort(monkeypatch):
+    api._execute_cache.clear()
+    api.db._t("saved_screeners").append({"id": "sort-fixture", "name": "Saved", "market": "US",
+                                         "filters": [], "sort": "price", "direction": 1})
+    calls = []
+    class Screen:
+        def call(self, method, path, body=None, **kw):
+            calls.append(body)
+            return {"items": []}
+    monkeypatch.setattr(api, "_market_client", lambda: Screen())
+    r = client.get("/api/screener/execute?key=saved:sort-fixture").json()
+    assert calls[0]["sort"] == {"direction": 1, "simple_property": {"name": 2201}}
+    assert r["possibly_truncated"] is False
+
+
+def test_watchlist_star_can_be_removed_without_deleting_the_ticker(monkeypatch):
+    monkeypatch.setenv("DEFAULT_USER_ID", "star-fixture")
+    api.db._t("watchlists").append({"id": "star-wl", "user_id": "star-fixture", "is_default": True})
+    api.db._t("tickers").append({"id": "star-ticker", "symbol": "STARFIX"})
+    captured = []
+    monkeypatch.setattr(api.db, "upsert", lambda table, conflict, row: captured.append(row))
+    assert client.post("/api/watchlist/STARFIX?active=false").status_code == 200
+    assert captured[-1] == {"watchlist_id": "star-wl", "ticker_id": "star-ticker", "active": False}
