@@ -67,20 +67,31 @@ class EnrichNightly:
         fresh.sort()  # oldest fetch first = most stale of the fresh
         return [c for _, c in fresh[:FRESH_CAP_PER_RUN]]
 
-    def _bars_for(self, codes: list[str]) -> dict[str, list]:
-        bars: dict[str, list] = {}
-        for i in range(0, len(codes), BAR_CHUNK):
-            chunk = codes[i:i + BAR_CHUNK]
+    def _technical_data(self, fresh_codes: list[str], quotes: dict):
+        """Stream: read bars for one BAR_CHUNK of codes, compute technicals,
+        DISCARD the bars before the next chunk. Holding every fresh code's
+        bars at once OOM-killed the 512MiB cron at ~3.2k codes (2026-10-01);
+        a chunk is ~100 codes × ~780 bars ≈ tens of MB. Yields (code, data)."""
+        for i in range(0, len(fresh_codes), BAR_CHUNK):
+            chunk = fresh_codes[i:i + BAR_CHUNK]
             if not chunk:
                 continue
             rows = self.db.select_all(
                 "screener_klines",
                 {"market": f"eq.{self.market}", "code": f"in.({','.join(chunk)})"})
+            by: dict[str, list] = {}
             for b in rows:
-                bars.setdefault(b["code"], []).append(b)
-        for code in bars:
-            bars[code].sort(key=lambda b: b["day"])
-        return bars
+                by.setdefault(b["code"], []).append(b)
+            for code in chunk:
+                bars = sorted(by.get(code) or [], key=lambda b: b["day"])
+                if not bars:
+                    continue
+                q = quotes.get(code)
+                if q:
+                    bars = append_snapshot_bar(bars, q)
+                data = compute(bars)
+                if data:
+                    yield code, data
 
     def run(self, run_klines: bool = True) -> dict:
         out: dict = {"market": self.market,
@@ -119,7 +130,6 @@ class EnrichNightly:
         by_code = {r["code"]: dict(r.get("data") or {}) for r in yf_rows}
 
         fresh_codes = self._fresh_codes(codes)
-        bars_by_code = self._bars_for(fresh_codes) if fresh_codes else {}
         # Freshness lift: append the current session's partial bar (from the
         # stored snapshot) to each code's history before computing technicals —
         # no extra vendor calls, technicals track the hourly quote refresh.
@@ -127,18 +137,17 @@ class EnrichNightly:
                   for r in self.db.select_all("screener_quotes",
                                               {"market": f"eq.{self.market}"},
                                               "code,row,updated_at")}
-        for code, bars in bars_by_code.items():
-            q = quotes.get(code)
-            if q:
-                bars_by_code[code] = append_snapshot_bar(bars, q)
+        tech: dict[str, dict] = {}
+        if fresh_codes:
+            for code, tdata in self._technical_data(fresh_codes, quotes):
+                tech[code] = tdata
 
         now = datetime.now(timezone.utc).isoformat()
         upserts = []
         for code in codes:
             data = dict(by_code.get(code) or {})
-            bars = bars_by_code.get(code)
-            if bars:
-                data.update(compute(bars))
+            if code in tech:
+                data.update(tech[code])
             if not data:
                 continue
             upserts.append({"market": self.market, "code": code, "data": data,
