@@ -260,6 +260,7 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .scr-rail .pgn a.on{color:#9cc2ff;font-weight:700}
 .preset{border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:9px;background:var(--panel2);cursor:pointer}
 .preset:hover{border-color:#33445f}
+.preset.on,.preset:focus-visible{border-color:#3a76dd;outline:2px solid #3a76dd;outline-offset:2px}
 .pname{font-size:12px;font-weight:700;margin-bottom:6px}
 .prow{display:flex;gap:10px}
 .pt{flex:1;min-width:0}
@@ -487,8 +488,15 @@ try { window.__scr = JSON.parse(localStorage.getItem("scrState")) || {}; } catch
 window.__scr = Object.assign({ market: "US", src: "moo", watchlistOnly: false, filters: [], sort: "market_cap",
                  dir: 2, watchlistSyms: [],
                  cols: ["symbol", "name", "price", "pct", "chg", "market_cap", "volume",
-                        "pe_ttm", "pb", "volume_ratio", "turnover_rate", "div_yield"],
-                 colFilters: {}, etfs: true, page: 1, pageSize: 500 }, window.__scr);
+                        "pe_ttm", "pb"],
+                 colFilters: {}, etfs: false, page: 1, pageSize: 500 }, window.__scr);
+if (!window.__scr.schemaVersion) {
+  window.__scr.etfs = false;
+  if (!window.__scr.activePreset && !window.__scr.filters.length && !Object.keys(window.__scr.colFilters).length) {
+    window.__scr.sort = "market_cap"; window.__scr.dir = 2; window.__scr.page = 1;
+  }
+}
+window.__scr.schemaVersion = 2;
 const SCR_FIELDS = {
   price: "Price", pct: "% Chg", chg: "Chg", market_cap: "Market Cap", float_cap: "Float Cap",
   shares: "Shares Outstanding", volume: "Volume", turnover: "Turnover", turnover_rate: "Turnover%",
@@ -563,14 +571,13 @@ const FIELD_DEFS = {
   target_price: "Mean 12-month analyst price target (yfinance).",
   div_yield: "Trailing 12-month dividend yield, in % (moomoo).",
 };
-function scrAddColFilter(field, kind) {
-  const st = window.__scr;
-  if (!st.colFilters[field]) st.colFilters[field] = kind === "multi" ? { values: [] } : { min: null, max: null };
-  scrPersist();
-  scrRenderColMenu(field, kind);
+function scrAddColFilter(field, kind) { scrRenderColMenu(field, kind); }
+function scrColMenuClose() {
+  document.getElementById("scr-colmenu")?.remove();
+  window.__colFilterDraft = null;
 }
-function scrColMenuClose() { const m = document.getElementById("scr-colmenu"); if (m) m.remove(); }
 function scrRenderColMenu(field, kind) {
+  if (kind === "text") kind = "multi";
   let m = document.getElementById("scr-colmenu");
   if (!m) {
     m = document.createElement("div"); m.id = "scr-colmenu";
@@ -579,7 +586,9 @@ function scrRenderColMenu(field, kind) {
     document.body.appendChild(m);
   }
   const st = window.__scr;
-  const cf = st.colFilters[field] || (st.colFilters[field] = kind === "multi" ? { values: [] } : { min: null, max: null });
+  if (window.__colFilterDraft?.field !== field) window.__colFilterDraft = { field,
+    value: JSON.parse(JSON.stringify(st.colFilters[field] || (kind === "multi" ? { values: [] } : { min: null, max: null }))) };
+  const cf = window.__colFilterDraft.value;
   const label = SCR_COLS[field] ? SCR_COLS[field][0] : field;
   let bodyHtml;
   if (kind === "multi") {
@@ -592,10 +601,10 @@ function scrRenderColMenu(field, kind) {
     bodyHtml = `<label class="msv"><input type="checkbox" ${cf.values?.length ? "checked" : ""} onchange="scrSetValues('${field}', this.checked ? [true] : [])"> ${esc(label)} only</label>`;
   } else {
     bodyHtml = `<div class="msel" style="grid-template-columns:70px 70px">
-      <input type="number" placeholder="min" value="${cf.min ?? ""}" oninput="scrDraftVal('${field}','min',this.value)">
-      <input type="number" placeholder="max" value="${cf.max ?? ""}" oninput="scrDraftVal('${field}','max',this.value)"></div>`;
+      <input type="number" placeholder="min" value="${cf.min ?? ""}" oninput="scrColDraftVal('${field}','min',this.value)">
+      <input type="number" placeholder="max" value="${cf.max ?? ""}" oninput="scrColDraftVal('${field}','max',this.value)"></div>`;
   }
-  m.innerHTML += `<div class="mbox" style="width:300px;max-height:none;position:absolute;top:15%;right:12px;left:auto">
+  m.innerHTML = '<div style="position:absolute;inset:0" onclick="scrColMenuClose()"></div>' + `<div class="mbox" style="width:300px;max-height:none;position:absolute;top:15%;right:12px;left:auto">
     <div class="mhead"><b>Filter — ${esc(label)}</b> <button class="btn ghost" onclick="scrColMenuClose()">✕</button></div>
     ${bodyHtml}
     <div class="mfoot"><button class="btn ghost" onclick="scrClearColFilter('${field}')">Reset</button>
@@ -607,40 +616,43 @@ function scrRenderColMenu(field, kind) {
     const local = scrLocalFacets(field);
     if (local) {
       window.__scrFacets = window.__scrFacets || {}; window.__scrFacets[field] = local;
-      scrColMenuClose(); scrRenderColMenu(field, kind);
+      scrRenderColMenu(field, kind);
     } else {
       api("/api/screener/facets?field=" + field + "&market=" + st.market + (st.watchlistOnly ? "&watchlist_only=1" : ""))
         .then(r => { window.__scrFacets = window.__scrFacets || {}; window.__scrFacets[field] = r.values || [];
-                     if (document.getElementById("scr-colmenu")) { scrColMenuClose(); scrRenderColMenu(field, kind); } })
+                     if (document.getElementById("scr-colmenu") && window.__colFilterDraft?.field === field) { scrRenderColMenu(field, kind); } })
         .catch(() => {});
     }
   }
 }
-function scrDraftVal(field, k, v) {
-  const cf = window.__scr.colFilters[field];
+function scrColDraftVal(field, k, v) {
+  const cf = window.__colFilterDraft?.field === field ? window.__colFilterDraft.value : null;
   if (cf) cf[k] = v === "" ? null : Number(v);
 }
 function scrSetValues(field, vals) {
-  const cf = window.__scr.colFilters[field];
-  if (cf) { cf.values = vals; scrPersist(); }
+  const cf = window.__colFilterDraft?.field === field ? window.__colFilterDraft.value : null;
+  if (cf) cf.values = vals;
 }
 function scrToggleValue(field, val, on) {
-  const cf = window.__scr.colFilters[field];
+  const cf = window.__colFilterDraft?.field === field ? window.__colFilterDraft.value : null;
   if (!cf) return;
   const set = new Set(cf.values || []);
   on ? set.add(val) : set.delete(val);
-  cf.values = [...set]; scrPersist();
+  cf.values = [...set];
 }
 function scrApplyColFilter(field) {
-  const st = window.__scr, cf = st.colFilters[field];
+  const st = window.__scr, cf = window.__colFilterDraft?.field === field ? window.__colFilterDraft.value : null;
   if (cf) {
     const empty = cf.values ? !(cf.values || []).length : cf.min == null && cf.max == null;
     if (empty) delete st.colFilters[field];
+    else st.colFilters[field] = JSON.parse(JSON.stringify(cf));
   }
+  window.__scr.page = 1;
   scrPersist(); scrColMenuClose(); showPage("home");
 }
 function scrClearColFilter(field) {
   delete window.__scr.colFilters[field];
+  window.__scr.page = 1;
   scrPersist(); scrColMenuClose(); showPage("home");
 }
 function scrPage(delta) { scrSet("page", Math.max(1, (window.__scr.page || 1) + delta)); }
@@ -669,7 +681,7 @@ function scrExport(kind, scope) {
   let blob, ext;
   if (kind === "csv") {
     const lines = [headers.map(ccell).join(",")];
-    list.forEach((r, i) => lines.push([String(i + 1), ...cols.map(k => ccell(r[k]))].join(",")));
+    list.forEach((r, i) => lines.push([String((scope === "page" ? ((st.page || 1) - 1) * (st.pageSize || 500) : 0) + i + 1), ...cols.map(k => ccell(r[k]))].join(",")));
     blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
     ext = "csv";
   } else {
@@ -678,7 +690,7 @@ function scrExport(kind, scope) {
       '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" '
       + 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Screener"><Table>',
       "<Row>" + headers.map(h => '<Cell><Data ss:Type="String">' + x(h) + "</Data></Cell>").join("") + "</Row>"];
-    list.forEach((r, i) => xml.push("<Row>" + [String(i + 1), ...cols.map(k => x(r[k]))]
+    list.forEach((r, i) => xml.push("<Row>" + [String((scope === "page" ? ((st.page || 1) - 1) * (st.pageSize || 500) : 0) + i + 1), ...cols.map(k => x(r[k]))]
       .map(v => '<Cell><Data ss:Type="String">' + v + "</Data></Cell>").join("") + "</Row>"));
     xml.push("</Table></Worksheet></Workbook>");
     blob = new Blob([xml.join("")], { type: "application/vnd.ms-excel" });
@@ -758,16 +770,14 @@ function scrRemoveCol(k) {
 }
 function scrResetAll() {
   const st = window.__scr;
-  st.filters = []; st.colFilters = {}; st.sort = "market_cap"; st.dir = 2;
-  st.activePreset = null;   // else "Reset all" clears the chips but the preset keeps running server-side
+  Object.assign(st, { filters: [], colFilters: {}, sort: "market_cap", dir: 2,
+    activePreset: null, watchlistOnly: false, etfs: false, page: 1,
+    src: "moo", view: "overview", cols: [...VIEW_PRESETS.overview] });
+  window.__scrFacets = {};
+  scrColMenuClose(); scrColPickClose(); scrModalClose();
   scrPersist(); showPage("home");
 }
-function scrExitPreset() {
-  const st = window.__scr;
-  st.activePreset = null;
-  st.filters = [];          // the copied preset filters came from it — leave with it
-  scrPersist(); showPage("home");
-}
+function scrExitPreset() { scrResetAll(); }
 window.scrExitPreset = scrExitPreset;
 let __scrLoadTimer = null;
 function scrShowLoading(msg) {
@@ -815,7 +825,7 @@ function scrColDraftCheck(k, on) {
 }
 function scrColPickApply() {
   const d = window.__colDraft;
-  if (d && d.length) { window.__scr.cols = [...d]; scrPersist(); }
+  if (d && d.length) { window.__scr.cols = [...d]; window.__scr.view = "custom"; scrPersist(); }
   scrColPickClose();
   if (state.page === "home") scrShowLoading("Applying column layout…");
   showPage("home");
@@ -837,7 +847,8 @@ function scrPersist() {
     q.set("m", st.market || "US");
     if (st.src && st.src !== "moo") q.set("src", st.src);
     if (st.watchlistOnly) q.set("wo", "1");
-    if (st.etfs === false) q.set("etfs", "0");
+    if (st.etfs) q.set("etfs", "1");
+    if (Object.keys(st.colFilters || {}).length) q.set("cf", JSON.stringify(st.colFilters));
     if ((st.filters || []).length) q.set("f", JSON.stringify(st.filters));
     if (st.sort && st.sort !== "market_cap") q.set("s", st.sort);
     if (st.dir !== 2) q.set("d", String(st.dir));
@@ -894,15 +905,16 @@ function scrRestoreFromHash() {
     const q = new URLSearchParams(location.hash.split("?")[1]);
     const st = window.__scr;
     if (q.get("m")) st.market = q.get("m");
-    if (q.get("src")) st.src = q.get("src");
+    st.src = q.get("src") || "moo";
     st.watchlistOnly = q.get("wo") === "1";
-    if (q.get("etfs") === "0") st.etfs = false;
-    if (q.get("f")) st.filters = JSON.parse(q.get("f"));
-    if (q.get("s")) st.sort = q.get("s");
-    if (q.get("d")) st.dir = Number(q.get("d")) || 2;
-    if (q.get("v")) st.view = q.get("v");
+    st.etfs = q.get("etfs") === "1";
+    st.filters = q.get("f") ? JSON.parse(q.get("f")) : [];
+    st.colFilters = q.get("cf") ? JSON.parse(q.get("cf")) : {};
+    st.sort = q.get("s") || "market_cap";
+    st.dir = Number(q.get("d")) === 1 ? 1 : 2;
+    st.view = q.get("v") || "overview";
     if (q.get("cols")) st.cols = q.get("cols").split(",");
-    if (q.get("preset")) st.activePreset = q.get("preset");
+    st.activePreset = q.get("preset") || null;
     st.page = 1;
     return true;
   } catch (e) { return false; }
@@ -919,7 +931,10 @@ function scrLoadingFor(k, v) {
 }
 function scrSet(k, v) {
   if (k === "page" || k === "pageSize" || k === "etfs" || k === "watchlistOnly" || k === "filters" || k === "market" || k === "src") {
+    if (k === "filters" && Array.isArray(v) && !v.length) { scrResetAll(); return; }
     window.__scr[k] = v;
+    if (k !== "page") window.__scr.page = 1;
+    if (["market", "src", "etfs", "watchlistOnly"].includes(k)) window.__scrFacets = {};
     // "Clear" hands an empty filter list — a running preset must exit with it
     // (the Clear button is this path; scrSet is also how the UI clears filters)
     if (k === "filters" && Array.isArray(v) && !v.length) window.__scr.activePreset = null;
@@ -939,12 +954,15 @@ function scrSort(col) {
 }
 function scrRemoveFilter(i) {
   const st = window.__scr;
+  st.activePreset = null; // editing a preset must stop its hidden server constraints
+  st.page = 1;
   st.filters.splice(i, 1);
   if (!st.filters.length) st.activePreset = null;  // last chip gone = no preset either
   scrPersist(); showPage("home");
 }
 function scrApplyPreset(key) {
   const st = window.__scr;
+  if (st.activePreset === key) { scrResetAll(); return; }
   const p = (window.__scrPresets || []).find(x => x.key === key);
   if (!p) return;
   st.filters = JSON.parse(JSON.stringify(p.filters || []));
@@ -952,12 +970,13 @@ function scrApplyPreset(key) {
   // A screener is GLOBAL: clicking it is a clean slate over the whole market —
   // column-filter refinements and watchlist scoping must not narrow it.
   st.colFilters = {};
+  window.__scrFacets = {};
   st.watchlistOnly = false;
   st.page = 1;
   // Design (moomoo parity): a screener opens sorted by %chg descending, so the
   // biggest movers within the screen lead the table just like the rail cards.
-  st.sort = "pct";
-  st.dir = 2;
+  st.sort = p.sort || "pct";
+  st.dir = p.direction || 2;
   // Factor auto-columns (spec Phase C): each preset filter's field becomes a
   // visible column so every row shows why it qualified (moomoo parity).
   for (const f of st.filters) {
@@ -1016,17 +1035,25 @@ async function scrLoadUniverse(btn) {
   } catch (e) { if (btn) btn.disabled = false; }
 }
 function toggleWatch(symbol) {
-  // Optimistic: flip the star now, sync the server in the background, revert
-  // on failure — the click must feel instant.
-  const syms = window.__scr?.watchlistSyms;
-  const had = !!(syms && syms.includes(symbol));
-  if (syms && !had) syms.push(symbol);
-  if (state.page === "stock" && stkState().sym) renderStock();
-  else showPage("home");
-  api("/api/watchlist/" + symbol, { method: "POST" }).catch(() => {
-    if (syms && !had) { const i = syms.indexOf(symbol); if (i >= 0) syms.splice(i, 1); }
-    if (state.page === "home") showPage("home");
-  });
+  const st = window.__scr;
+  if (window.__watchPending?.has(symbol)) return;
+  window.__watchPending = window.__watchPending || new Set();
+  window.__watchPending.add(symbol);
+  const before = [...(st.watchlistSyms || [])];
+  const had = before.includes(symbol);
+  const update = syms => {
+    st.watchlistSyms = syms;
+    if (window.__scrDataset) window.__scrDataset.watchlist = syms;
+  };
+  update(had ? before.filter(s => s !== symbol) : [...before, symbol]);
+  const render = () => state.page === "stock" && stkState().sym ? renderStock() : showPage("home");
+  render();
+  api("/api/watchlist/" + encodeURIComponent(symbol) + "?active=" + (!had), { method: "POST" })
+    .catch(() => {
+      const current = st.watchlistSyms || [];
+      update(had ? [...new Set([...current, symbol])] : current.filter(s => s !== symbol));
+      render();
+    }).finally(() => window.__watchPending.delete(symbol));
 }
 let scrDraft = [];
 let scrTab = "quotes";
@@ -1062,12 +1089,15 @@ function scrSignal(name) {
   const on = sigOn(name);
   st.filters = st.filters.filter(f => JSON.stringify(f) !== JSON.stringify(d.def));
   if (!on) st.filters.push(JSON.parse(JSON.stringify(d.def)));
+  if (!on && ["oversold", "overbought"].includes(name)) st.src = "yf";
+  st.page = 1;
   scrPersist(); showPage("home");
 }
 function scrTaxonomy(field, val) {
   const st = window.__scr;
   st.filters = st.filters.filter(f => f.field !== field);
   if (val) st.filters.push({ field, values: [val] });
+  st.page = 1;
   scrPersist(); showPage("home");
 }
 function scrTickers(v) {
@@ -1075,6 +1105,7 @@ function scrTickers(v) {
   st.filters = st.filters.filter(f => f.field !== "symbol");
   const list = String(v || "").split(/[,\s]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
   if (list.length) st.filters.push({ field: "symbol", values: list });
+  st.page = 1;
   scrPersist(); showPage("home");
 }
 async function scrLoadTaxonomy() {
@@ -1101,7 +1132,9 @@ async function scrLoadTaxonomy() {
         } catch (e) {}
       }
     }
-    el.innerHTML = '<option value="">' + el.options[0].text + '</option>' + (values || []).slice(0, 60).map(v =>
+    const choices = (values || []).slice(0, 60);
+    for (const value of cur) if (!choices.some(v => v.value === value)) choices.push({ value, count: 0 });
+    el.innerHTML = '<option value="">' + el.options[0].text + '</option>' + choices.map(v =>
       `<option value="${esc(v.value)}" ${cur.includes(v.value) ? "selected" : ""}>${esc(v.value)} (${v.count})</option>`).join("");
   }
 }
@@ -1126,6 +1159,7 @@ function openFilterModal() {
 }
 function scrModalConfirm() {
   window.__scr.filters = scrDraft.filter(f => f.min != null || f.max != null || f.values?.length);
+  window.__scr.activePreset = null; window.__scr.page = 1;
   scrPersist();
   scrModalClose();
   showPage("home");
@@ -1244,7 +1278,7 @@ function scrCurrentScreenerState() {
   const src = scrDraft.length ? scrDraft : st.filters;
   return { name: (document.getElementById("scr-save-name")?.value || "").trim(),
     market: st.market, watchlist_only: st.watchlistOnly,
-    filters: (src.length ? src : st.filters).filter(f => f.min != null || f.max != null),
+    filters: src.filter(f => f.min != null || f.max != null || f.values?.length),
     sort: st.sort, direction: st.dir };
 }
 async function scrSaveCurrent() {
@@ -1262,12 +1296,14 @@ async function scrApplySaved(id) {
   if (!s) return;
   const st = window.__scr;
   st.filters = JSON.parse(JSON.stringify(s.filters || []));
+  st.activePreset = null;
   st.market = s.market || st.market;
   st.watchlistOnly = !!s.watchlist_only;
   st.colFilters = {};          // clean slate — only this screener's filters apply
   st.page = 1;
   if (s.sort) st.sort = s.sort;
   if (s.direction) st.dir = s.direction;
+  scrPersist();
   scrModalClose();
   showPage("home");
 }
@@ -1314,7 +1350,7 @@ function scrEditApply() {
   if (!d) return;
   const st = window.__scr;
   st.filters = JSON.parse(JSON.stringify(d.filters));
-  st.activePreset = null;
+  st.activePreset = null; st.page = 1;
   scrPersist();
   scrModalClose();
   showPage("home");
@@ -1450,9 +1486,8 @@ function scrEffFilters() {
     .map(([field, cf]) => cf.values ? { field, values: cf.values } : { field, min: cf.min, max: cf.max });
   return [...base, ...extra];
 }
-// Client-side sort for server-side preset rows — the execute endpoint returns
-// one fixed server order (market cap), so header sorts did nothing there. The
-// frontend fetches the full matched set (limit=300) so sorting is complete.
+// Sort the loaded rows when users change table headers. Preset responses are
+// limited to 300 server matches; the table labels potentially truncated sets.
 function scrSortRows(rows) {
   const st = window.__scr;
   if (!st.sort || !Array.isArray(rows) || rows.length < 2) return rows;
@@ -1460,6 +1495,8 @@ function scrSortRows(rows) {
   const dir = st.dir === 2 ? -1 : 1;
   return [...rows].sort((a, b) => {
     let va = a[st.sort], vb = b[st.sort];
+    const missing = v => v == null || v === "" || (kind !== "text" && kind !== "multi" && isNaN(Number(v)));
+    if (missing(va) || missing(vb)) return Number(missing(va)) - Number(missing(vb));
     if (kind !== "text" && kind !== "multi") {
       va = va == null || isNaN(Number(va)) ? -Infinity : Number(va);
       vb = vb == null || isNaN(Number(vb)) ? -Infinity : Number(vb);
@@ -1476,8 +1513,8 @@ function scrSortRows(rows) {
 function scrFieldPass(rows, filters) {
   if (!Array.isArray(rows) || !rows.length) return rows;
   const present = new Set();
-  for (const r of rows.slice(0, 50)) for (const [k, v] of Object.entries(r)) if (v != null) present.add(k);
-  const active = (filters || []).filter(f => f && present.has(f.field));
+  for (const r of rows) for (const [k, v] of Object.entries(r)) if (v != null) present.add(k);
+  const active = (filters || []).filter(f => f && (present.has(f.field) || SCR_COLS[f.field]));
   if (!active.length) return rows;
   return rows.filter(r => active.every(f => {
     const v = r[f.field];
@@ -1536,27 +1573,32 @@ async function scrLoadDataset(key) {
 // These four side panels don't need to block the screener table: paint the
 // last known copy instantly, refresh in the background, re-render once.
 function scrPanelSnapshot() {
-  const p = window.__panelCache || {};
+  const p = window.__panelCache?.market === window.__scr.market ? window.__panelCache : {};
   return { cands: p.cands || { candidates: [] }, decs: p.decs || { decisions: [] },
            ms: p.ms || { available: false }, rail: p.rail || { presets: [] } };
 }
 function scrPanelFetch(market) {
-  if (window.__panelInflight) return window.__panelInflight;
-  window.__panelInflight = Promise.all([
+  window.__panelRequests = window.__panelRequests || {};
+  if (window.__panelRequests[market]) return window.__panelRequests[market];
+  window.__panelRequests[market] = Promise.all([
     api("/api/candidates").catch(() => ({ candidates: [] })),
     api("/api/decisions?limit=8").catch(() => ({ decisions: [] })),
     api("/api/market/state").catch(() => ({ available: false })),
     api("/api/screener/presets?market=" + market).catch(() => ({ presets: [] })),
   ]).then(([cands, decs, ms, rail]) => {
-    window.__panelCache = { cands, decs, ms, rail, ts: Date.now() };
-    return window.__panelCache;
-  }).finally(() => { window.__panelInflight = null; });
-  return window.__panelInflight;
+    const panels = { cands, decs, ms, rail, market, ts: Date.now() };
+    if (window.__scr.market === market) window.__panelCache = panels;
+    return panels;
+  }).finally(() => { delete window.__panelRequests[market]; });
+  return window.__panelRequests[market];
 }
 function scrStreamPanels(market) {
   const p = window.__panelCache;
-  if (p && Date.now() - (p.ts || 0) < 60000) return;
-  scrPanelFetch(market).then(() => { if (state.page === "home") showPage("home"); }).catch(() => {});
+  if (p && p.market === market && Date.now() - (p.ts || 0) < 60000) return;
+  if (window.__panelRequests?.[market]) return;
+  scrPanelFetch(market).then(() => {
+    if (state.page === "home" && window.__scr.market === market) showPage("home");
+  }).catch(() => {});
 }
 // ── preset result warming (EXACT moomoo answers, prefetched) ──
 // A screener's first click otherwise waits ~2s for moomoo. Warm every screener
@@ -1572,7 +1614,8 @@ function scrWarmPreset(key, market) {
   window.__presetInflight[ck] =
     api("/api/screener/execute?key=" + encodeURIComponent(key) + "&market=" + market + "&limit=300")
       .then(p => { if (p && p.available)
-        (window.__presetCache = window.__presetCache || {})[ck] = { ts: Date.now(), payload: p }; })
+        (window.__presetCache = window.__presetCache || {})[ck] = { ts: Date.now(), payload: p };
+        return p; })
       .catch(() => {}).finally(() => { delete window.__presetInflight[ck]; });
 }
 function scrWarmPresets() {
@@ -1614,29 +1657,46 @@ function scrLocalFacets(field) {
 }
 // The exact rows behind the current view (before paging) — shared by client
 // exports; null when we don't hold the data (server-side export fallback).
+function scrPageRows(all) {
+  const st = window.__scr, size = st.pageSize || 500;
+  st.page = Math.max(1, Math.min(st.page || 1, Math.max(1, Math.ceil(all.length / size))));
+  const offset = (st.page - 1) * size;
+  return { rows: all.slice(offset, offset + size), count: all.length, matched: all.length,
+    shown: Math.min(size, Math.max(0, all.length - offset)), offset };
+}
+function scrPresetRows(payload) {
+  const st = window.__scr;
+  let rows = payload.rows || [];
+  if (st.watchlistOnly) rows = rows.filter(r => (st.watchlistSyms || []).includes(r.symbol));
+  // Server membership is authoritative: today's snapshot volume/ratios are
+  // not equivalent to the preset's averaged/financial factors.
+  const preset = (window.__scrPresets || []).find(p => p.key === st.activePreset);
+  const original = preset?.filters || payload.filters || [];
+  const added = scrEffFilters().filter(f => !original.some(p => JSON.stringify(p) === JSON.stringify(f)));
+  return scrSortRows(scrFieldPass(rows, added));
+}
 function scrClientRows() {
   const st = window.__scr;
   if (st.activePreset) {
     const c = (window.__presetCache || {})[st.activePreset + "|" + st.market];
     if (!c) return null;
-    return scrSortRows(scrFieldPass(scrFieldPass(c.payload.rows || [], st.filters || []), scrColFilterFilters()));
+    return scrPresetRows(c.payload);
   }
   const ds = window.__scrDataset;
-  if (!ds) return null;
+  if (!ds || ds.key !== [st.market, st.etfs ? 1 : 0, st.src || "moo"].join("|")) return null;
   let base = ds.rows;
   if (st.watchlistOnly) {
     const wset = new Set(ds.watchlist || st.watchlistSyms || []);
     base = base.filter(r => wset.has(r.symbol));
   }
-  return scrSortRows(scrFieldPass(scrFieldPass(scrFieldPass(base,
-    [{ field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }]),
-    st.filters || []), scrColFilterFilters()));
+  return scrSortRows(scrFieldPass(base, scrEffFilters()));
 }
 let __homeGen = 0;
 const pages = {
   async home() {
     const gen = ++__homeGen;
-    const st = window.__scr;
+    const st = JSON.parse(JSON.stringify(window.__scr));
+    scrStreamPanels(st.market);
     const effFilters = scrEffFilters();
     const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
       filters: JSON.stringify(effFilters), sort: st.sort, direction: st.dir, src: st.src || "moo",
@@ -1653,7 +1713,7 @@ const pages = {
       const pKey = st.activePreset;
       const ck = pKey + "|" + st.market;
       const cached = (window.__presetCache || {})[ck];
-      let execd = cached && cached.payload && cached.payload.available &&
+      execd = cached && cached.payload && cached.payload.available &&
                   Date.now() - cached.ts < 60000 ? cached.payload : null;
       if (!execd) {
         scrShowLoading("Running the screener across the whole market…");
@@ -1669,16 +1729,15 @@ const pages = {
       }
       if (gen !== __homeGen) return "";
       if (execd && execd.available) {
-        // The server preset already matched its own filters; re-applying them
-        // client-side is idempotent and makes quick signals / taxonomy /
-        // ticker chips added on top actually filter the preset rows.
-        const xrows = scrSortRows(scrFieldPass(scrFieldPass(execd.rows || [], st.filters || []), scrColFilterFilters()));
-        scr = { available: true, rows: xrows, count: xrows.length,
-                matched: xrows.length, shown: xrows.length,
+        // Preserve server membership and apply only additional user filters.
+        const xrows = scrPresetRows(execd);
+        scr = { available: true, ...scrPageRows(xrows),
+                result_limit: execd.result_limit, possibly_truncated: execd.possibly_truncated,
                 skipped_filters: execd.pending || [], server_side: true,
                 preset_name: execd.name, universe_loaded: true };
       } else {
         const fb = await api("/api/screener?" + qs).catch(() => ({ available: false, rows: [] }));
+        if (gen !== __homeGen) return "";
         scr = { ...fb, server_fallback_reason: (execd && execd.reason) || "execute failed" };
       }
       window.__homeCtx = { ...scrPanelSnapshot(), scr, execd };
@@ -1696,6 +1755,7 @@ const pages = {
         ds = window.__scrDataset;
       } else {
         const saved = await scrLoadDataset(dsKey);
+        if (gen !== __homeGen) return "";
         if (saved) { ds = { key: saved.key, ts: saved.ts, asOf: saved.asOf, watchlist: saved.watchlist, rows: saved.rows }; fromCache = true; }
       }
       if (!ds) {
@@ -1714,30 +1774,30 @@ const pages = {
           api("/api/screener?" + dataQs).then(raw => {
             const fresh = { key: dsKey, ts: Date.now(), asOf: raw && raw.universe_as_of,
                             watchlist: raw && raw.watchlist, rows: (raw && raw.rows) || [] };
-            window.__scrDataset = fresh;
             scrPersistDataset(fresh);
-            if (state.page === "home") showPage("home");
+            const currentKey = [window.__scr.market, window.__scr.etfs ? 1 : 0, window.__scr.src || "moo"].join("|");
+            if (currentKey !== dsKey) return;
+            window.__scrDataset = fresh;
+            if (state.page === "home" && !window.__scr.activePreset) showPage("home");
           }).catch(() => {});
         }
         scrStreamPanels(st.market);
       }
+      window.__scrDataset = ds;
       let base = ds.rows;
       if (st.watchlistOnly) {
         const wset = new Set(ds.watchlist || st.watchlistSyms || []);
         base = base.filter(r => wset.has(r.symbol));
       }
-      const all = scrSortRows(scrFieldPass(scrFieldPass(scrFieldPass(base,
-        [{ field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }]),
-        st.filters || []), scrColFilterFilters()));
-      const off = Math.max(0, ((st.page || 1) - 1) * (st.pageSize || 500));
-      const pageRows = all.slice(off, off + (st.pageSize || 500));
-      scr = { available: true, rows: pageRows, count: all.length, matched: all.length,
-              shown: pageRows.length, offset: off,
+      const all = scrSortRows(scrFieldPass(base, scrEffFilters()));
+      scr = { available: true, ...scrPageRows(all),
               skipped_filters: [], universe_loaded: ds.rows.length > 0,
               universe_as_of: ds.asOf, watchlist: ds.watchlist,
               client_dataset: true, stale_hint: fromCache ? ds.ts : null };
       window.__homeCtx = { ...scrPanelSnapshot(), scr, execd: null };
     }
+    if (gen !== __homeGen) return "";
+    st.page = window.__scr.page;
     const { cands, decs, ms, rail } = window.__homeCtx;
     scr = window.__homeCtx.scr;
     // universe refresh progress (queued by the Load full market button):
@@ -1826,7 +1886,7 @@ const pages = {
       return `<th class="thc"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="${esc(FIELD_DEFS[k] || "sort by " + label)}">${esc(label)}${arrow}</a><a href="#" class="fic ${st.colFilters[k] ? "on" : ""}" title="filter" onclick="scrRenderColMenu('${k}','${kind}');return false">⚈</a>${filterIcon(k)}</th>`;
     };
     const body = viewRows.map((r, i) => `<tr>
-      <td class="mono dim">${i + 1}</td>
+      <td class="mono dim">${(scr.offset || 0) + i + 1}</td>
       ${st.cols.map(k => `<td>${(cellFmt[SCR_COLS[k][1]] || cellFmt.num)(r, k)}</td>`).join("")}
       <td><button class="starbtn ${stars.includes(r.symbol) ? "on" : ""}" title="watchlist" onclick="toggleWatch('${esc(r.symbol)}')">${stars.includes(r.symbol) ? "★" : "☆"}</button></td></tr>`).join("");
     const colChips = st.filters.map((f, i) => `<span class="chip-f">${esc(f._label || SCR_FIELDS[f.field] || FIELD_LABELS[f.field] || f.field)}
@@ -1851,7 +1911,7 @@ const pages = {
         const arrow = st.sort === k ? (st.dir === 2 ? " ↓" : " ↑") : "";
         return `<th class="thc" draggable="true" ondragstart="scrDragStart(event,'${k}','table')" ondragover="scrDragOverCol(event,'${k}')" ondragleave="scrDragLeaveCol(event)" ondrop="scrDropCol(event,'${k}')"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="sort by ${esc(label)} · drag to move">${esc(label)}${arrow}</a><a href="#" class="fic ${st.colFilters[k] ? "on" : ""}" title="filter" onclick="scrRenderColMenu('${k}','${kind}');return false">⚈</a>${filterIcon(k)}</th>`;
       }).join("")}<th></th></tr>
-      ${body || '<tr><td colspan="' + (st.cols.length + 2) + '" class="empty">No rows match — loosen or reset the filters (Reset all in the toolbar).</td></tr>'}</table></div>`;
+      ${body || '<tr><td colspan="' + (st.cols.length + 2) + '" class="empty">No rows match — loosen or reset the filters (Clear in the toolbar).</td></tr>'}</table></div>`;
 
     // ── recommended screeners rail ──
     const railCards = (rail.presets || []).map(p => {
@@ -1859,7 +1919,7 @@ const pages = {
         <div class="pp mono ${t.pct >= 0 ? "g" : "r"}">${t.pct != null ? (t.pct >= 0 ? "+" : "") + t.pct.toFixed(2) + "%" : "--"}</div></div>`).join("");
       const all = (p.filters || []).length;
       const cov = all ? ` <span class="faint" style="font-size:9px;color:#26c68c">${all}/${all} filters · server-side</span>` : "";
-      return `<div class="preset" title="${esc(p.description || p.name)}" onclick="scrApplyPreset('${esc(p.key)}')" onmouseenter="scrWarmPreset('${esc(p.key)}','${esc(st.market)}')"><div class="pname">${esc(p.name)} ›${cov}</div>
+      return `<div class="preset ${st.activePreset === p.key ? "on" : ""}" role="button" tabindex="0" aria-pressed="${st.activePreset === p.key}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();scrApplyPreset('${esc(p.key)}')}" title="${esc(p.description || p.name)}" onclick="scrApplyPreset('${esc(p.key)}')" onmouseenter="scrWarmPreset('${esc(p.key)}','${esc(st.market)}')"><div class="pname">${esc(p.name)} ›${cov}</div>
         <div class="prow">${top || '<div class="faint" style="font-size:10px">no matches in universe</div>'}</div></div>`;
     }).join("");
 
@@ -1880,14 +1940,14 @@ const pages = {
           <select id="scr-industry" title="Industry (moomoo plate)" onchange="scrTaxonomy('plate', this.value)"><option value="">Industry: All</option></select>
           <select id="scr-concepts" title="Concepts board (moomoo concepts plates)" onchange="scrTaxonomy('concepts', this.value)"><option value="">Concepts: All</option></select>
           <select id="scr-exchange" title="Exchange" onchange="scrTaxonomy('exchange', this.value)"><option value="">Exchange: All</option></select>
-          <input id="scr-tickers" placeholder="Tickers: NVDA, AAPL" title="Comma-separated tickers" style="background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;width:140px" onchange="scrTickers(this.value)">
+          <input id="scr-tickers" placeholder="Tickers: NVDA, AAPL" value="${esc((st.filters.find(f => f.field === "symbol")?.values || []).join(", "))}" title="Comma-separated tickers" style="background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;width:140px" onchange="scrTickers(this.value)">
           <label class="switch"><input type="checkbox" id="scr-wl" ${st.watchlistOnly ? "checked" : ""} onchange="scrSet('watchlistOnly', this.checked)"><i></i> Watchlist only</label>
           <label class="switch" title="moomoo's screener count includes ETFs — untick for common stocks only"><input type="checkbox" ${st.etfs ? "checked" : ""} onchange="scrSet('etfs', this.checked)"><i></i> Include ETFs</label>
           <button class="btn ghost" onclick="openFilterModal()">＋ Add Filter</button>
           <select id="scr-mypresets" title="Your saved screeners" onchange="if(this.value){scrApplySaved(this.value);this.value=''}"><option value="">My Presets</option></select>
           <button class="btn ghost" onclick="scrToggleFilters()">${window.__scrFiltersCollapsed ? "Filters ▸" : "Filters ▾"}</button>
           ${colMenu}
-          ${st.filters.length || Object.keys(st.colFilters).length ? '<button class="btn ghost" onclick="scrResetAll()">Reset all</button>' : ""}
+
           <span class="expgrp">
             <button class="btn ghost" title="Export this page as CSV" onclick="scrExport('csv','page')">⬇ CSV</button>
             <button class="btn ghost" title="Export all ${(scr.matched || 0).toLocaleString()} matched rows as CSV" onclick="scrExport('csv','all')">⬇ CSV · all</button>
@@ -1895,7 +1955,8 @@ const pages = {
             <button class="btn ghost" title="Export all ${(scr.matched || 0).toLocaleString()} matched rows for Excel" onclick="scrExport('xls','all')">⬇ Excel · all</button>
           </span>
           <button class="btn ghost" onclick="scrLoadUniverse(this)" ${window.__scrRefreshJob ? "disabled" : ""}>${scr?.universe_loaded ? "↻ Refresh full market" : "⤓ Load full market"}</button>
-          ${st.filters.length ? `<button class="btn ghost" onclick="scrSet('filters', [])">Clear</button>` : ""}
+          <button class="btn ghost" onclick="scrResetAll()" title="All stocks excluding ETFs, sorted by market cap">Clear</button>
+          ${scr.possibly_truncated ? `<span class="faint">Top ${scr.result_limit} server matches; additional matches may exist.</span>` : ""}
           <span class="mono dim" style="margin-left:auto">Result: ${(scr.matched ?? viewRows.length).toLocaleString()} stocks${scr.shown != null && scr.shown < scr.matched ? " · showing " + scr.shown.toLocaleString() : ""}${scrSummary(viewRows)}</span>
         </div>
         ${allChips ? `<div class="scr-chips">${allChips}</div>` : ""}
@@ -1903,7 +1964,7 @@ const pages = {
           <select title="Industry (moomoo plate)" onchange="scrTaxonomy('plate', this.value)" id="scr-industry2"><option value="">Industry: All</option></select>
           <select title="Concepts board" onchange="scrTaxonomy('concepts', this.value)" id="scr-concepts2"><option value="">Concepts: All</option></select>
           <select title="Exchange" onchange="scrTaxonomy('exchange', this.value)" id="scr-exchange2"><option value="">Exchange: All</option></select>
-          <input placeholder="Tickers: NVDA, AAPL" style="background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;width:140px" onchange="scrTickers(this.value)">
+          <input placeholder="Tickers: NVDA, AAPL" value="${esc((st.filters.find(f => f.field === "symbol")?.values || []).join(", "))}" style="background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;width:140px" onchange="scrTickers(this.value)">
           <span class="faint" style="font-size:10px">taxonomy</span></div>`}
         <div class="scr-toolbar" style="margin-bottom:6px">${Object.keys(SIG_DEFS).map(n =>
           `<button class="btn ghost" style="padding:2px 9px;font-size:11px;${sigOn(n) ? "border-color:#3a76dd;color:#8ab4ff" : ""}" title="${esc(SIG_DEFS[n].title)}" onclick="scrSignal('${n}')">${SIG_DEFS[n].label}</button>`).join("")}
@@ -1920,7 +1981,7 @@ const pages = {
           <span class="mono dim" style="font-size:11px">Page ${st.page || 1} of ${Math.max(1, Math.ceil((scr.matched || 0) / (st.pageSize || 500)))}</span>
           <button class="btn ghost" style="padding:3px 10px;font-size:11px" ${(scr.offset || 0) + (scr.shown || 0) >= (scr.matched || 0) ? "disabled" : ""} onclick="scrPage(1)">Next ›</button>
           <button class="btn ghost" style="padding:3px 10px;font-size:11px" ${(scr.offset || 0) + (scr.shown || 0) >= (scr.matched || 0) ? "disabled" : ""} onclick="scrSet('page', 999999)">Last »</button>
-          <select class="pgsz" onchange="scrSet('pageSize', Number(this.value));scrSet('page',1)">
+          <select class="pgsz" onchange="scrSet('pageSize', Number(this.value))">
             ${[100, 250, 500, 1000, 2000].map(n => `<option value="${n}" ${(st.pageSize || 500) === n ? "selected" : ""}>${n} / page</option>`).join("")}
           </select></div>` : ""}
         <div class="faint" style="font-size:10px;margin-top:6px">Exports above: "page" = the rows on screen; "all" = the full filtered set in the current sort order.</div>
@@ -4771,7 +4832,10 @@ function openStockPicker() {
 }
 window.openStockPicker = openStockPicker;
 
+let __pageGen = 0;
 async function showPage(p) {
+  const pageGen = ++__pageGen;
+  const previousPage = state.page;
   // Leaving the stock page: clear its hash so back-nav lands on Market Pulse.
   if (/^#\/stock\//.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
   state.page = p;
@@ -4781,7 +4845,7 @@ async function showPage(p) {
   if (state.poll) { clearInterval(state.poll); state.poll = null; }
   // Refreshing the same page: keep the old content on screen and show a thin
   // animated top bar — no more blank flash on every filter/toggle change.
-  const samePage = state.page === p && $("#page").innerHTML.trim() !== "" &&
+  const samePage = previousPage === p && $("#page").innerHTML.trim() !== "" &&
                    !/Loading…/.test($("#page").innerHTML);
   if (!samePage) $("#page").innerHTML = '<div class="empty">Loading…</div>';
   document.getElementById("loadbar")?.remove();
@@ -4799,7 +4863,9 @@ async function showPage(p) {
     // Re-renders (sorts, background panel refreshes) must not yank scroll.
     const __sy = window.scrollY;
     const __ss = document.querySelector(".scr-scroll")?.scrollTop ?? null;
-    $("#page").innerHTML = await pages[p]();
+    const html = await pages[p]();
+    if (pageGen !== __pageGen || state.page !== p || !html) return;
+    $("#page").innerHTML = html;
     window.scrollTo(0, __sy);
     if (__ss != null) { const __el = document.querySelector(".scr-scroll"); if (__el) __el.scrollTop = __ss; }
     if (p === "home") { scrHideLoading(); scrLoadTaxonomy(); scrLoadMyPresets(); scrWarmPresets(); }
@@ -4836,6 +4902,7 @@ async function showPage(p) {
       });
     }
   } catch (e) {
+    if (pageGen !== __pageGen || state.page !== p) return;
     document.getElementById("loadbar")?.remove();
     scrHideLoading();
     $("#page").innerHTML = `<div class="panel"><div class="empty">Failed to load: ${esc(e.message || e)}</div></div>`;
