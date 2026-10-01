@@ -965,8 +965,8 @@ def screener_presets(market: str = "US", universe: str = "auto"):
         pool = (liquid if any(f.get("field") == "volume" and f.get("days")
                               for f in preset.get("filters") or []) else rows)
         matched, _ = _apply_filters(pool, preset.get("filters") or [])
-        picked = _sort_rows(matched, "pct", 2)[:3]
-        out.append({**preset,
+        picked = _sort_rows(matched, preset.get("sort", "pct"), preset.get("direction", 2))[:3]
+        out.append({**preset, "sort": preset.get("sort", "pct"), "direction": preset.get("direction", 2),
                     "top": [{"symbol": r["symbol"],
                              "name": str(r.get("name") or "")[:22],
                              "pct": r.get("pct")} for r in picked]})
@@ -1133,6 +1133,7 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60):
         market = s.get("market") or market
         filters = s.get("filters") or []
         name = s.get("name")
+        sort, direction = s.get("sort", "market_cap"), s.get("direction", 2)
         description = s.get("description")
     else:
         preset = next((p for p in PRESET_SCREENERS if p["key"] == key), None)
@@ -1140,6 +1141,7 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60):
             raise HTTPException(404, "unknown preset")
         filters = preset["filters"]
         name, description = preset["name"], preset.get("description")
+        sort, direction = preset.get("sort", "pct"), preset.get("direction", 2)
     client = _market_client()
     if client is None:
         return {"available": False, "reason": "moomoo keys not configured"}
@@ -1155,7 +1157,8 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60):
     retrieves = _server_retrieves([f.get("field") for f in filters])
     retrieves += [{"simple_property": {"name": 2201}}, {"simple_property": {"name": 2301}},
                   {"simple_property": {"name": 2210}}]
-    body = {"screen_queries": queries, "sort": {"direction": 2, "simple_property": {"name": 2301}},
+    sort_property = {"pct": 2210, "market_cap": 2301, "price": 2201, "pe_ttm": 2303, "pb": 2304}.get(sort, 2301)
+    body = {"screen_queries": queries, "sort": {"direction": direction, "simple_property": {"name": sort_property}},
             "limit": max(1, min(limit, 300)), "retrieve_queries": retrieves}
     try:
         data = client.call("POST", "/quote/stock-screen", body=body)
@@ -1208,7 +1211,9 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60):
                 pass
         _merge_universe_meta(rows, market)
     out_payload = {"available": True, "key": key, "name": name, "description": description,
-                   "market": market, "pending": pending, "rows": rows, "shown": len(rows)}
+                   "market": market, "pending": pending, "filters": filters,
+                   "sort": sort, "direction": direction, "result_limit": body["limit"],
+                   "possibly_truncated": len(items) >= body["limit"], "rows": rows, "shown": len(rows)}
     _execute_cache[ck] = (time.time(), out_payload)
     return out_payload
 
@@ -1233,8 +1238,8 @@ def screener_refresh(market: str = "US", force: int = 0):
 
 
 @app.post("/api/watchlist/{symbol}")
-def watchlist_add(symbol: str):
-    """Star a ticker in the portal: upsert into the owner's default watchlist."""
+def watchlist_add(symbol: str, active: bool = True):
+    """Set a ticker's star in the owner's default watchlist (soft removal)."""
     user = os.getenv("DEFAULT_USER_ID") or ""
     if not user:
         raise HTTPException(503, "DEFAULT_USER_ID not configured")
@@ -1254,7 +1259,7 @@ def watchlist_add(symbol: str):
         db.insert("tickers", {"id": tid, "symbol": sym, "native_symbol": sym,
                               "asset_type": "stock"}, prefer="return=minimal")
     db.upsert("watchlist_items", "watchlist_id,ticker_id",
-              {"watchlist_id": wid, "ticker_id": tid, "active": True})
+              {"watchlist_id": wid, "ticker_id": tid, "active": active})
     return {"saved": True, "symbol": sym}
 
 
