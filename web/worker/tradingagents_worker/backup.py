@@ -52,8 +52,14 @@ def _ensure_bucket(session) -> None:
                      data=json.dumps({"name": BUCKET, "public": False}),
                      headers={**_headers(SETTINGS.supabase_service_key),
                               "Content-Type": "application/json"}, timeout=60)
-    if r.status_code not in (200, 201, 409):  # 409 = already exists
-        raise RuntimeError(f"bucket create failed: {r.status_code} {r.text[:200]}")
+    if r.status_code in (200, 201):
+        return
+    # Supabase Storage answers bucket-already-exists with HTTP 400 whose body
+    # code is BucketAlreadyExists (the body's statusCode says 409 — the wire
+    # status does not), so a plain 409 check never matches.
+    if r.status_code in (400, 409) and "BucketAlreadyExists" in r.text:
+        return
+    raise RuntimeError(f"bucket create failed: {r.status_code} {r.text[:200]}")
 
 
 def _upload(session, path: str, data: bytes) -> None:
