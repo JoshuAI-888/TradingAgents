@@ -3,15 +3,25 @@ screener API and the universe loader both use. Lives worker-side because the
 API imports worker modules (never the reverse).
 """
 from __future__ import annotations
+import math
+
+from .quote_observations import cloud_snapshot_time,snapshot_observations
+
+
+def _number(value):
+    if type(value) not in (int,float):return None
+    try:return value if math.isfinite(value) else None
+    except OverflowError:return None
 
 
 def snapshot_to_row(s: dict) -> dict:
     """A moomoo snapshot item → a screener row with normalized fields."""
-    last, prev = s.get("last_price"), s.get("prev_close_price")
-    pct = s.get("pct_change")
+    last, prev = _number(s.get("last_price")), _number(s.get("prev_close_price"))
+    pct = _number(s.get("pct_change"))
+    high52,low52 = _number(s.get('highest52weeks_price')),_number(s.get('lowest52weeks_price'))
     if pct is None and last is not None and prev:
         pct = (float(last) - float(prev)) / float(prev) * 100
-    return {
+    row = {
         "symbol": (s.get("code") or "").split(".", 1)[-1],
         "code": s.get("code"),
         "name": s.get("name") or s.get("sc_name") or "",
@@ -28,18 +38,22 @@ def snapshot_to_row(s: dict) -> dict:
         "turnover": s.get("turnover"),
         "turnover_rate": s.get("turnover_rate"),
         "volume_ratio": s.get("volume_ratio"),
-        "pe": s.get("pe_ratio") or None,
-        "pe_ttm": s.get("pe_ttm_ratio") or None,
-        "pb": s.get("pb_ratio") or None,
-        "div_yield": s.get("dividend_ratio_ttm") or None,
-        "div_ttm": s.get("dividend_ttm") or None,
-        "eps": s.get("earning_per_share") or None,
+        "pe": s.get("pe_ratio"),
+        "pe_ttm": s.get("pe_ttm_ratio"),
+        "pb": s.get("pb_ratio"),
+        "div_yield": s.get("dividend_ratio_ttm"),
+        "div_ttm": s.get("dividend_ttm"),
+        "eps": s.get("earning_per_share"),
         "amplitude": s.get("amplitude"),
         "bid_ask_ratio": s.get("bid_ask_ratio"),
-        "high52": s.get("highest52weeks_price"),
-        "low52": s.get("lowest52weeks_price"),
-        "new_high": bool(s.get("highest52weeks_price") and last
-                         and float(last) >= float(s["highest52weeks_price"]) * 0.999),
-        "new_low": bool(s.get("lowest52weeks_price") and last
-                        and float(last) <= float(s["lowest52weeks_price"]) * 1.001),
+        "high52": high52,
+        "low52": low52,
+        "new_high": bool(high52 and last and last >= high52 * 0.999),
+        "new_low": bool(low52 and last and last <= low52 * 1.001),
     }
+    for field in row.keys()-{'symbol','code','name','new_high','new_low'}:
+        row[field]=_number(row[field])
+    row['quote_observed_at']=cloud_snapshot_time(s.get('update_time'))
+    row['quote_time_semantics']='provider_snapshot_update' if row['quote_observed_at'] else None
+    row['field_observations']=snapshot_observations(s,row)
+    return row

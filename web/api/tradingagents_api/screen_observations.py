@@ -16,6 +16,7 @@ def numeric(value):
 
 def capture_observation(row, filters):
     supplied = row.get('field_evidence') if isinstance(row.get('field_evidence'),dict) else {}
+    produced = row.get('field_observations') if isinstance(row.get('field_observations'),dict) else {}
     observations = {}
     counts = {c.get('field'): sum(other.get('field') == c.get('field') for other in filters) for c in filters}
     for key, criterion in criterion_slots(filters):
@@ -23,6 +24,12 @@ def capture_observation(row, filters):
         # A period-specific record wins. Never reuse a flat value for ambiguous windows.
         contract = supplied.get(key) or (supplied.get(field) if counts[field] == 1 else None) or {}
         contract = contract if isinstance(contract,dict) and contract.get('criterion') == criterion else {}
+        contextual = any(k in criterion for k in ('days','period','term','plate_ids'))
+        if not contract and not contextual and isinstance(produced.get(field),dict):
+            actual = produced[field]
+            if actual.get('code') != row['code'] or actual.get('field') != field or actual.get('value') != row.get(field):
+                raise ValueError('Produced observation identity or value conflicts with stored row')
+            contract = {**actual,'criterion':criterion}
         value = contract.get('value') if contract else (
             row.get(field) if counts[field] == 1 and not any(k in criterion for k in ('days','period','term','plate_ids')) else None)
         if isinstance(value, float) and not math.isfinite(value):
@@ -30,7 +37,8 @@ def capture_observation(row, filters):
         if contract and not any(k in criterion for k in ('days','period','term','plate_ids')) and field in row and row[field] != value:
             raise ValueError('Conflicting stored field and observation values')
         observations[key] = {'criterion': criterion, 'value': value,
-            **{k: contract.get(k) for k in ('source', 'period', 'unit', 'currency', 'observed_at', 'clock')},
+            **{k: contract.get(k) for k in ('source', 'period', 'unit', 'currency', 'observed_at', 'clock',
+                                           'provider_data_date','timestamp_semantics','last_trade_time')},
             'cache_at': row.get('quote_cache_at')}
     return {'code': row['code'], 'symbol': row.get('symbol'), 'name': row.get('name'),
             'instrument_type': row.get('stock_type'), 'quote_cache_at': row.get('quote_cache_at'),

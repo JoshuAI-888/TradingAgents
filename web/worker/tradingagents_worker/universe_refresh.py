@@ -151,10 +151,10 @@ class UniverseRefresher:
         if not codes:
             return {"quotes": 0}
         batches = [codes[i:i + 400] for i in range(0, len(codes), 400)]
-        now = datetime.now(timezone.utc).isoformat()
         written = 0
         for i, batch in enumerate(batches, 1):
             snap = _budgeted(self.client.snapshot, batch) or {}
+            now = datetime.now(timezone.utc).isoformat()
             qrows = [{"code": s.get("code"), "market": self.market,
                       "row": snapshot_to_row(s), "updated_at": now}
                      for s in (snap.get("snapshot_list") or []) if s.get("code")]

@@ -76,6 +76,15 @@ now=datetime.now(timezone.utc).isoformat()
 for row in fixture.ROWS:
     api.db._t('screener_quotes').append({'market':'US','code':row['code'],'row':row.copy(),'updated_at':now})
     api.db._t('screener_universe').append({'market':'US',**row})
+# Optional public quote response retained from a bounded deployment read. Only
+# the quote provenance is real; chart/other fixture responses remain synthetic.
+if os.getenv('RESEARCH_PUBLIC_QUOTE_FIXTURE'):
+    from tradingagents_worker.screener_rows import snapshot_to_row
+    probe=json.loads(Path(os.environ['RESEARCH_PUBLIC_QUOTE_FIXTURE']).read_text())
+    if probe['quote'].get('code')!='US.AAPL':raise ValueError('Expected bounded AAPL quote fixture')
+    row={**snapshot_to_row(probe['quote']),'stock_type':'STOCK'}
+    api.db._t('screener_quotes').append({'market':'US','code':row['code'],'row':row,'updated_at':probe['retrieved_at']})
+    api.db._t('screener_universe').append({'market':'US',**row})
 # Controlled historical membership fixture: one exit, one entry, others retained.
 # This is interaction evidence only, never a live data/count reconciliation.
 change_definition=api.ScreenDefinition(filters=[{'field':'stock_type','values':['STOCK']}])

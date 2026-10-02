@@ -67,3 +67,18 @@ def test_snapshot_row_carries_session_ohlc(fake_db):
                            "open_price": 9.8, "high_price": 10.9, "low_price": 9.7,
                            "volume": 123.0})
     assert (row["open"], row["high"], row["low"]) == (9.8, 10.9, 9.7)
+
+
+def test_quote_refresh_persists_source_time_separately_from_cache_write(fake_db):
+    from datetime import datetime,timezone,timedelta
+    stamp=int((datetime.now(timezone.utc)-timedelta(hours=2)).timestamp()*1000)
+    class Provider(FakeMoomoo):
+        def snapshot(self,codes):
+            out=super().snapshot(codes)
+            for row in out['snapshot_list']:row['update_time']=stamp
+            return out
+    UniverseRefresher(fake_db,Provider(),'US').run()
+    for stored in fake_db.select('screener_quotes',{'market':'eq.US'}):
+        row=stored['row'];assert row['quote_observed_at']==datetime.fromtimestamp(stamp/1000,timezone.utc).isoformat()
+        assert datetime.fromisoformat(stored['updated_at'])>datetime.fromisoformat(row['quote_observed_at'])
+        assert row['field_observations']['price']['observed_at']==row['quote_observed_at']

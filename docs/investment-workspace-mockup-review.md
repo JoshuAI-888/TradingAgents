@@ -1,5 +1,7 @@
 # Current build against the approved design
 
+**Latest producer checkpoint:** [real quote provenance and remaining acceptance checks](design-gap-audit/quote-provenance-checkpoint/README.md). Cloud normalization now produces field observations and distinct source/cache clocks; the inspector no longer infers currency from market prefix. 298 API/worker and 68 JavaScript tests pass, with a fresh single AAPL quote and desktop/phone verification. Currency, fiscal/session contracts and full-universe coverage remain unqualified; all broader mockup/release gates remain open. Earlier counts/status paragraphs are dated evidence.
+
 **Latest plan recheck:** [2 October comparison and remaining build sequence](#plan-recheck-against-the-three-original-mockups). Earlier checkpoints below remain dated evidence; they are not cumulative release sign-off.
 
 Latest follow-through: [paired screen observations](paired-screen-observations.md). Stored-universe entrants/exits now retain both sides in locally verified v3 captures; exact criterion slots and persisted membership are validated. Real provenance producers/provider-wide coverage, private pair review, schedules and release qualification remain open. Fresh regression total: 272 API/worker and 67 JavaScript tests. The earlier uncommitted status in the plan-recheck section describes that review's point in time.

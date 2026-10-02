@@ -425,3 +425,9 @@ test('repeated criterion windows retain independent columns, sorts and evidence 
  const html=c.researchCriterionMatrix(definition.filters,[{criterion_key:'c0',field:'volume',previous:10,current:20,period:'30-day average',status:'comparable',assessment:'rule_retained'},{criterion_key:'c1',field:'volume',previous:100,current:200,period:'60-day average',status:'unavailable_pair'}],true);
  assert.match(html,/30-day average/);assert.match(html,/60-day average/);assert.match(html,/100/);assert.match(html,/200/);assert.match(html,/Comparable observations/);assert.match(html,/comparability unverified/);
 });
+test('quote inspector separates provider update and cache clocks without inferring currency',()=>{
+ const c=harness(),row={code:'HK.80000',quote_observed_at:'2026-10-02T00:00:00Z',quote_time_semantics:'provider_snapshot_update',quote_cache_at:'2026-10-02T01:00:00Z',data_date:'2026-10-02',update_time:1790919256};
+ assert.equal(c.researchQuoteCurrency(row),'');assert.equal(c.researchQuoteCurrency({...row,currency:'CNY'}),'CNY');assert.equal(c.researchQuoteCurrency({...row,currency:'<script>'}),'');
+ const html=c.researchQuoteProvenance(row);assert.match(html,/Provider snapshot updated:/);assert.match(html,/Cache updated:/);assert.match(html,/Currency: Not supplied/);assert.match(html,/not last-trade time/);assert.doesNotMatch(html,/HKD/);
+ const missing=c.researchQuoteProvenance({...row,quote_time_semantics:null,quote_observed_at:null,quote_cache_at:'2026-10-02 01:00:00'});assert.match(missing,/Provider snapshot updated: Unavailable/);assert.match(missing,/Cache updated: Unavailable/);
+});

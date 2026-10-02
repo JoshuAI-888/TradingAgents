@@ -1,5 +1,7 @@
 # Investment workspace release checklist
 
+**Latest producer checkpoint:** [real quote provenance and remaining acceptance checks](design-gap-audit/quote-provenance-checkpoint/README.md). Cloud normalization now produces field observations and distinct source/cache clocks; the inspector no longer infers currency from market prefix. 298 API/worker and 68 JavaScript tests pass, with a fresh single AAPL quote and desktop/phone verification. Currency, fiscal/session contracts and full-universe coverage remain unqualified; all broader mockup/release gates remain open. Earlier counts/status paragraphs are dated evidence.
+
 **Latest acceptance scope:** [fresh original-mockup recheck and revised delivery order](investment-workspace-mockup-review.md#plan-recheck-against-the-three-original-mockups). Prior checked initial-release items below are historical preservation evidence, not sign-off for the full approved build. Current full local regressions: 255 API/worker and 66 JavaScript tests pass; current browser evidence is synthetic and covers only the three desktop views. Advanced data, team/pair review, schedules, full research preservation and production qualification remain open.
 
 Subsequent evidence: [stored-universe paired observations](paired-screen-observations.md), 272 API/worker and 67 JavaScript tests, native rollback-only v3 storage contract, desktop/phone inspection and an actual 108-row synthetic comparison download checked for every row. This advances historical evidence without closing the live-provider, ownership, scheduling or release gates.

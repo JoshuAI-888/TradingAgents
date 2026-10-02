@@ -322,6 +322,15 @@ async function researchInspect(i,origin) {
  const row=researchVisibleRows()[i];if(!row)return;
  window.__inspectOrigin=origin || [...document.querySelectorAll('button[aria-label]')].find(b=>b.getAttribute('aria-label')==='Inspect '+row.symbol && b.getClientRects().length) || document.activeElement;await researchInspectRow(row,{focus:true});
 }
+function researchQuoteCurrency(row) {
+ return typeof row?.currency==='string' && /^(USD|HKD|CNY|CNH|JPY|AUD|CAD|EUR|GBP|CHF|SGD)$/.test(row.currency)?row.currency:'';
+}
+function researchQuoteProvenance(row) {
+ const valid=t=>typeof t==='string' && /(Z|[+-]\d{2}:\d{2})$/.test(t) && Number.isFinite(Date.parse(t));
+ const source=row.quote_time_semantics==='provider_snapshot_update' && valid(row.quote_observed_at)?researchCaptureTime(row.quote_observed_at):'Unavailable';
+ const cache=row.quote_cache_at || row.updated_at;
+ return `<div class="inspector-provenance"><strong>Data context</strong><p>Provider snapshot updated: ${esc(source)}<br>Cache updated: ${esc(valid(cache)?researchCaptureTime(cache):'Unavailable')}<br>Currency: ${esc(researchQuoteCurrency(row) || 'Not supplied')} · ${window.__scr.src==='yf'?'Moomoo quotes / supplemental factors':'Moomoo stored quote'}<br>Snapshot update is not last-trade time. Session, adjustment and delay are not verified.</p></div>`;
+}
 function researchInspectorKey(event) {
  if(window.matchMedia?.('(max-width:1350px)').matches)researchModalKey(event,document.getElementById('research-inspector'),()=>researchCloseInspector());
  else if(event.key==='Escape'){event.preventDefault();researchCloseInspector();}
@@ -332,13 +341,13 @@ async function researchInspectRow(row,options={}) {
  if(changed){window.__inspectTab='overview';window.__inspectRange='3M';}
  researchDisposeInspector();const gen=window.__inspectGen;
  window.__researchInspectCode=code;window.__inspectRow=row;
- const tab=window.__inspectTab || 'overview',range=window.__inspectRange || '3M',currency=row.currency || (code.startsWith('US.')?'USD':code.startsWith('HK.')?'HKD':'');
+ const tab=window.__inspectTab || 'overview',range=window.__inspectRange || '3M',currency=researchQuoteCurrency(row);
  const privateItem=state.page==='shortlists'?(window.__researchListItems || []).find(r=>r.code===code):null;window.__researchPrivateInspect=!!privateItem;
  const filters=privateItem?[]:window.__scr.filters || [],watched=(window.__scr.watchlistSyms || []).includes(row.symbol);
  const call=value=>esc(JSON.stringify(value));
  const tabs=[['overview','Overview'],['why',privateItem?'List context':'Why it matches'],['news','News']];
  const evidence=filters.map(f=>researchEvidence(row,f,window.__scr.activePreset));
- const provenance=`<div class="inspector-provenance"><strong>Data context</strong><p>Source time: ${esc(row.update_time || row.data_date || 'Unavailable')}<br>Retrieved: ${esc(row.retrieved_at || row.updated_at || 'Unavailable')}<br>Currency: ${esc(currency || 'Unavailable')} · ${window.__scr.src==='yf'?'Moomoo quotes / supplemental factors':'Moomoo stored quote'}<br>Snapshot; delay not verified</p></div>`;
+ const provenance=researchQuoteProvenance(row);
  const why=privateItem?`<h4>Research shortlist</h4><p>${esc(privateItem.review_status.replaceAll('_',' '))}</p><p>${esc(privateItem.note || 'No note')}</p><p>List membership does not establish qualification for the current screener criteria.</p>`:filters.length?`<div class="inspector-evidence">${evidence.map(e=>`<section><h4>${esc(e.label)}</h4><strong>${esc(e.value)}</strong><p>Rule: ${esc(e.threshold || 'Provider definition')}<br>${esc(e.period)}<br>${esc(e.source)}</p><small>${esc(e.status)}</small></section>`).join('')}</div>`:'<p>All stocks — no custom criteria. This stock is in the current stock-only universe.</p>';
  el.classList.add('open');el.setAttribute('role',window.matchMedia?.('(max-width:1350px)').matches?'dialog':'complementary');el.setAttribute('aria-label',row.symbol+' stock inspector');
  if(window.matchMedia?.('(max-width:1350px)').matches)el.setAttribute('aria-modal','true');else el.removeAttribute('aria-modal');

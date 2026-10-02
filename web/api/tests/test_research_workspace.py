@@ -412,3 +412,44 @@ def test_persisted_observation_contract_is_revalidated_before_membership_claims(
     result=api.screen_changes(spec.model_dump_json())
     assert result['comparable'] is False and 'no changes inferred' in result['reason']
     assert 'rows' not in result and 'counts' not in result
+
+
+def test_real_normalizer_metadata_binds_each_rule_without_claiming_absent_currency(monkeypatch):
+    from datetime import timedelta
+    now=datetime.now(timezone.utc);spec=api.ScreenDefinition(filters=[{'field':'price','max':5}]);current=[]
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now.isoformat(),'matched':1,'rows':observed_rows(current,now.isoformat())})
+    for price,hours in [(6,2),(4,1)]:
+        current[:]=[{**snapshot_to_row({'code':'US.A','last_price':price,'prev_close_price':5,'update_time':int((now-timedelta(hours=hours)).timestamp()*1000)}),'stock_type':'STOCK'}]
+        api.capture_screen_snapshot(spec)
+    row=api.screen_changes(spec.model_dump_json())['rows'][0];e=row['evidence'][0]
+    assert row['status']=='new' and (e['previous'],e['current'])==(6,4)
+    assert e['previous_observation']['source']=='moomoo_cloud_snapshot'
+    assert e['previous_observation']['timestamp_semantics']=='provider_snapshot_update'
+    assert e['status']=='unavailable_pair' and e['assessment'] is None
+    assert e['previous_observation']['currency'] is None
+
+
+def test_normalized_point_observation_supports_two_bounds_without_window_reuse(monkeypatch):
+    from datetime import timedelta
+    now=datetime.now(timezone.utc);criteria=[{'field':'shares','min':5},{'field':'shares','max':10}]
+    spec=api.ScreenDefinition(filters=criteria);current=[]
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now.isoformat(),'matched':1,'rows':observed_rows(current,now.isoformat())})
+    for shares,hours in [(4,2),(6,1)]:
+        current[:]=[{**snapshot_to_row({'code':'US.A','last_price':1,'prev_close_price':1,'outstanding_shares':shares,'update_time':int((now-timedelta(hours=hours)).timestamp()*1000)}),'stock_type':'STOCK'}]
+        api.capture_screen_snapshot(spec)
+    row=api.screen_changes(spec.model_dump_json())['rows'][0]
+    assert [e['assessment'] for e in row['evidence']]==['rule_entered','rule_retained']
+    assert [e['criterion_key'] for e in row['evidence']]==['c0','c1']
+    # A generic daily volume observation cannot satisfy a 30-day average rule.
+    current[:]=[{**snapshot_to_row({'code':'US.A','last_price':1,'volume':100,'update_time':int(now.timestamp()*1000)}),'stock_type':'STOCK'}]
+    with pytest.raises(HTTPException):api.capture_screen_snapshot(api.ScreenDefinition(filters=[{'field':'volume','days':30,'min':0}]))
+
+
+@pytest.mark.parametrize('mutation',['identity','value','field'])
+def test_produced_quote_observation_conflicts_reject_capture(monkeypatch,mutation):
+    now=datetime.now(timezone.utc).isoformat();row={**snapshot_to_row({'code':'US.A','last_price':1}),'stock_type':'STOCK'}
+    entry=row['field_observations']['price']
+    entry[{'identity':'code','value':'value','field':'field'}[mutation]]={'identity':'US.B','value':999,'field':'market_cap'}[mutation]
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'matched':1,'rows':observed_rows([row],now)})
+    with pytest.raises(HTTPException) as e:api.capture_screen_snapshot(api.ScreenDefinition(filters=[{'field':'price','min':0}]))
+    assert e.value.status_code==409 and not api.db._t('screen_captures')
