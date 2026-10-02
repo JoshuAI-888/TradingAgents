@@ -1254,9 +1254,10 @@ def _server_filter(field: str, f: dict) -> dict | None:
     return {"financial_property_query": {"property": {"name": pid, "term": _FINANCIAL_TERM}, **rng}}
 
 
-def _server_retrieves(fields: list[str]) -> list[dict]:
+def _server_retrieves(fields: list[str | dict]) -> list[dict]:
     out = []
-    for f in fields:
+    for criterion in fields:
+        f = criterion.get('field') if isinstance(criterion, dict) else criterion
         spec = _FIELD_SERVER.get(f)
         if not spec:
             continue
@@ -1264,10 +1265,58 @@ def _server_retrieves(fields: list[str]) -> list[dict]:
         if kind == "simple":
             out.append({"simple_property": {"name": pid}})
         elif kind == "cumulative":
-            out.append({"cumulative_property": {"name": pid, "periodAverage": 30}})
+            out.append({"cumulative_property": {"name": pid, "periodAverage": int(criterion.get('days') or 30) if isinstance(criterion, dict) else 30}})
         else:
             out.append({"financial_property": {"name": pid, "term": _FINANCIAL_TERM}})
-    return out
+    return list({json.dumps(q, sort_keys=True):q for q in out}.values())
+
+
+def _screen_result_number(record: dict) -> float | None:
+    res = record.get('res') or record
+    raw = res.get('ival')
+    if raw is None:
+        raw = res.get('dval')
+    if raw is None and 'res' not in record:
+        raw = record.get('value')
+    if isinstance(raw, bool) or not isinstance(raw, (str, int, float)):
+        return None
+    try:
+        value = float(raw)
+        return value if math.isfinite(value) else None
+    except (ValueError, TypeError, OverflowError):
+        return None
+
+
+def _screen_criterion_evidence(code: str, filters: list[dict], results: list[dict], retrieved_at: str) -> list[dict]:
+    """Attribute retrieval values to exact requested criteria, without inventing periods."""
+    evidence = []
+    for criterion in filters:
+        field = criterion.get('field')
+        spec = _FIELD_SERVER.get(field)
+        candidates = []
+        if spec:
+            kind, pid, scale = spec
+            windows = {int(c.get('days') or 30) for c in filters if _FIELD_SERVER.get(c.get('field'), ())[:2] == (kind,pid)}
+            for result in results:
+                result_kind, record = next(iter(result.items()))
+                prop = record.get('property', {})
+                if prop.get('name') != pid or result_kind != kind+'_property_result':
+                    continue
+                if kind == 'financial' and prop.get('term') not in (None, _FINANCIAL_TERM):
+                    continue
+                if kind == 'cumulative':
+                    days = prop.get('periodAverage')
+                    if days is None and len(windows) != 1:
+                        continue
+                    if days is not None and days != int(criterion.get('days') or 30):
+                        continue
+                candidates.append(_screen_result_number(record))
+        value = candidates[0] / spec[2] if spec and len(candidates) == 1 and candidates[0] is not None else None
+        evidence.append({'code':code, 'criterion':copy.deepcopy(criterion), 'value':value,
+                         'source':'provider_screen', 'retrieved_at':retrieved_at,
+                         'period':None, 'currency':None,
+                         'status':'retrieved_value_unqualified' if value is not None else 'value_unavailable'})
+    return evidence
 
 
 @app.get("/api/screener/execute")
@@ -1320,7 +1369,7 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_ke
     if pending:
         return {"available": False, "rows": [], "pending": pending,
                 "reason": "This screen cannot be fully evaluated: provider criteria unavailable (" + ", ".join(pending) + "). Its saved definition is preserved."}
-    retrieves = _server_retrieves([f.get("field") for f in filters])
+    retrieves = _server_retrieves(filters)
     retrieves += [{"simple_property": {"name": 2201}}, {"simple_property": {"name": 2301}},
                   {"cumulative_property": {"name": 3102, "days": 1}}]
     sort_property = {"pct": 2210, "market_cap": 2301, "price": 2201, "pe_ttm": 2303, "pb": 2304}.get(sort, 2301)
@@ -1348,6 +1397,9 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_ke
             record = next(iter(result.values()))
             if not isinstance(record,dict) or not isinstance(record.get('property',{}),dict) or ('res' in record and record['res'] is not None and not isinstance(record['res'],dict)):
                 return {'available':False,'rows':[],'reason':'Provider criterion response is invalid'}
+            pid = record.get('property', {}).get('name')
+            if pid is not None and (isinstance(pid, bool) or not isinstance(pid, int)):
+                return {'available':False,'rows':[],'reason':'Provider criterion property identity is invalid'}
     pagination = data.get('pagination')
     if pagination is not None and not isinstance(pagination,dict):
         return {'available':False,'rows':[],'reason':'Provider pagination response is invalid'}
@@ -1357,19 +1409,12 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_ke
         vals = {}
         for r in it.get("results") or []:
             rr = list(r.values())[0]
-            res = rr.get("res") or rr
-            raw = res.get("ival")
-            if raw is None:
-                raw = res.get("dval")
-            if raw is None and "res" not in rr:
-                raw = rr.get("value")  # Legacy flat response only; empty typed res is unavailable.
-            try:
-                value = float(raw) if raw not in (None, "") else None
-                if value is not None and not math.isfinite(value):
-                    value = None
-            except (ValueError, TypeError):
+            pid = rr.get("property", {}).get("name")
+            # Legacy field-only values cannot identify repeated properties/windows.
+            value = _screen_result_number(rr)
+            if next(iter(r)) == 'financial_property_result' and rr.get('property', {}).get('term') not in (None, _FINANCIAL_TERM):
                 value = None
-            vals[rr.get("property", {}).get("name")] = value
+            vals[pid] = None if pid in vals else value
         code = it.get("code") or ""
         pct = vals.get(3102, vals.get(2210))
         rows.append({
@@ -1380,6 +1425,8 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_ke
             "factors": {k: v for k, v in vals.items() if k not in (2201, 2301, 2210, 3102)},
             "criterion_values": {f: vals[spec[1]] / spec[2] for f, spec in _FIELD_SERVER.items()
                                  if vals.get(spec[1]) is not None},
+            "criterion_evidence": _screen_criterion_evidence(code, filters, it.get('results') or [], retrieved_at),
+            "criterion_retrieved_at": retrieved_at,
         })
         # Requested annual financial fields retain provider values; actual
         # reporting periods are unverified until independently supplied.
@@ -1391,11 +1438,11 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_ke
     codes = sorted({r['code'] for r in rows})
     if codes:
         by_code = {q.get('code'):q for q in cohort if q.get('code')}
-        protected = {'code','symbol','criterion_values','factors','generation_id'}
+        protected = {'code','symbol','criterion_values','criterion_evidence','criterion_retrieved_at','factors','generation_id'}
         for row in rows:
             original_fields = {k for k,v in row.items() if v is not None and v != ''}
             origins = {k:{'source':'provider_screen','retrieved_at':retrieved_at} for k in original_fields
-                       if k not in ('code','symbol','criterion_values','factors')}
+                       if k not in ('code','symbol','criterion_values','criterion_evidence','criterion_retrieved_at','factors')}
             quote = by_code.get(row['code']) or {}
             for field,value in quote.items():
                 if field in protected or value is None:

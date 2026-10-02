@@ -691,6 +691,7 @@ function scrExport(kind, scope) {
   cols.push(...moneyCols.map(k=>k+'_currency'));
   if(list.some(r=>r.field_observations))cols.push('field_observations');
   if(list.some(r=>r.display_field_sources))cols.push('display_field_sources');
+  for(const key of ['criterion_values','criterion_evidence','criterion_retrieved_at'])if(list.some(r=>r[key]!=null))cols.push(key);
   const exportValue=(r,k)=>moneyCols.some(f=>k===f+'_currency')?researchFieldCurrency(r,k.slice(0,-9)) || 'Unavailable':r[k];
   const headers = ["No.", ...cols.map(k => (SCR_COLS[k] || [k])[0])];
   const ccell = v => { let s = v == null ? "" : typeof v==='object'?JSON.stringify(v):String(v); if(typeof v === "string" && /^[=+@\-\t\r]/.test(s)) s="'"+s; return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
@@ -1512,9 +1513,9 @@ function md(t) {
 // per-column ⚈ refinements. The backend skips fields it doesn't store (same
 // semantics as manual filters). Shared by the table fetch AND exports so
 // counts agree.
-function scrEffFilters() {
+function scrEffFilters(includeDefaultInstrument = true) {
   const st = window.__scr;
-  const base = st.filters.some(f => f.field === "stock_type") ? st.filters
+  const base = !includeDefaultInstrument || st.filters.some(f => f.field === "stock_type") ? st.filters
     : [...st.filters, { field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }];
   const extra = Object.entries(st.colFilters || {})
     .filter(([, cf]) => (cf.values || []).length || cf.min != null || cf.max != null)
@@ -1905,7 +1906,8 @@ const pages = {
         : k === "pct" || k === "chg" ? `<span class="mono ${r[k] > 0 ? "g" : r[k] < 0 ? "r" : ""}">${r[k] != null ? (r[k] > 0 ? "+" : "") + fmtAuto(r[k]) + (k === "pct" ? "%" : "") : "—"}</span>`
         : k === "price" ? `<span class="mono ${(r.chg ?? 0) > 0 ? "g" : (r.chg ?? 0) < 0 ? "r" : ""}">${fmtAuto(r[k])}</span>`
         : k === "high52" || k === "low52" || k === "eps" || k === "target_price" ? `<span class="mono">${fmtAuto(r[k])}</span>`
-        : `<span class="mono ${k === "perf_w" || k === "perf_m" || k === "perf_q" || k === "perf_h" || k === "perf_y" || k === "perf_ytd" ? ((r[k] ?? 0) > 0 ? "g" : (r[k] ?? 0) < 0 ? "r" : "") : ""}">${num(r[k], 2)}</span>`,
+        : RESEARCH_PERCENT_FIELDS.has(k) ? `<span class="mono ${k.startsWith('perf_')?(r[k]>0?'g':r[k]<0?'r':''):''}">${esc(researchValue(k,r[k]))}</span>`
+        : `<span class="mono">${num(r[k], 2)}</span>`,
       multi: (r, k) => `<span class="faint" style="font-size:11px">${esc(String(r[k] || "—").slice(0, 22))}</span>`,
       bool: (r, k) => r[k] ? '<span class="g">✓</span>' : '<span class="faint">—</span>',
     };

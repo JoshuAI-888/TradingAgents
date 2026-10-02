@@ -595,6 +595,38 @@ test('criterion evidence distinguishes requested basis from matching actual obse
  r.criterion_values.roe=false;assert.equal(c.researchEvidence(r,{field:'roe'},'preset').value,'Numeric evidence unavailable');
 });
 
+test('preset and appended criteria use independent evidence sources and clocks',()=>{
+ const c=harness(),original={field:'volume',min:100,days:30},added={field:'roe',min:10};
+ c.__scrPresets=[{key:'p',filters:[original]}];
+ const r={code:'US.A',volume:9,roe:25,criterion_values:{volume:999,roe:0},criterion_retrieved_at:'2026-10-02T01:00:00Z',criterion_evidence:[{code:'US.A',criterion:original,value:120,retrieved_at:'2026-10-02T01:00:00Z'}],display_field_sources:{volume:{source:'stored_generation',cache_at:'2026-10-01T00:00:00Z'},roe:{source:'yfinance',cache_at:'2026-10-02T00:00:00Z'}}};
+ const provider=c.researchEvidence(r,original,'p');assert.equal(provider.value,'120 shares');assert.equal(provider.display_value,'9 shares');assert.match(provider.timestamp,/02 Oct/);
+ const custom=c.researchEvidence(r,added,'p');assert.equal(custom.value,'25%');assert.equal(custom.source,'yfinance cached factor');assert.equal(custom.display_value,null);
+ r.criterion_evidence[0].code='US.B';assert.equal(c.researchEvidence(r,original,'p').value,'Numeric evidence unavailable');
+ r.criterion_evidence=[];assert.equal(c.researchEvidence(r,original,'p').value,'Numeric evidence unavailable');
+});
+
+test('repeated criterion windows cannot reuse a different retrieved observation',()=>{
+ const c=harness(),a={field:'volume',min:10,days:10},b={field:'volume',max:200,days:30};c.__scrPresets=[{key:'p',filters:[a,b]}];
+ const r={code:'US.A',criterion_values:{volume:999},criterion_evidence:[{code:'US.A',criterion:a,value:11},{code:'US.A',criterion:b,value:150}]};
+ assert.equal(c.researchEvidence(r,a,'p').value,'11 shares');assert.equal(c.researchEvidence(r,b,'p').value,'150 shares');r.criterion_evidence.push({...r.criterion_evidence[0]});assert.equal(c.researchEvidence(r,a,'p').value,'Numeric evidence unavailable');
+});
+
+test('inspector evidence includes column criteria without inventing a custom default instrument rule',async()=>{
+ const c=harness(),inspector={classList:{add(){}},setAttribute(){},removeAttribute(){},querySelector:()=>null};c.document.getElementById=id=>id==='research-inspector'?inspector:null;
+ c.__scr.filters=[];c.__scr.colFilters={roe:{min:10}};c.__inspectTab='why';c.__researchInspectCode='US.A';
+ await c.researchInspectRow({code:'US.A',symbol:'A',roe:25});assert.match(inspector.innerHTML,/ROE %/);assert.match(inspector.innerHTML,/25%/);assert.doesNotMatch(inspector.innerHTML,/<h4>Type<\/h4>/);
+ assert.equal(c.scrEffFilters().some(f=>f.field==='stock_type'),true);assert.equal(c.scrEffFilters(false).length,1);
+});
+
+test('CSV and SpreadsheetML preserve per-rule membership evidence independently of table values',async()=>{
+ const c=harness();let blob;c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){},remove(){}});
+ const criteria=[{code:'US.A',criterion:{field:'volume',min:100,days:30},value:120,source:'provider_screen',retrieved_at:'2026-10-02T01:00:00Z'}];
+ const row=stock('A',10,1,{code:'US.A',volume:9,criterion_values:{volume:120},criterion_evidence:criteria,criterion_retrieved_at:'2026-10-02T01:00:00Z'});
+ c.scrClientRows=()=>[row];c.__scr.cols=['symbol','volume'];
+ c.scrExport('csv','loaded');const csv=await blob.text();assert.match(csv,/criterion_values,criterion_evidence,criterion_retrieved_at/);assert.match(csv,/""days"":30/);assert.match(csv,/""value"":120/);assert.match(csv,/,9,/);
+ c.scrExport('xls','loaded');const xml=await blob.text();assert.match(xml,/"days":30/);assert.match(xml,/"value":120/);assert.doesNotMatch(xml,/\[object Object\]/);
+});
+
 test('company context requires source and freshness and only links safe supplied websites',()=>{
  const c=harness(),now=Date.now(),origin={source:'yfinance',cache_at:new Date(now).toISOString()},p={code:'US.A',fields:{sector:'Technology',industry:'Software',website:'https://company.example/'},origins:{sector:origin,industry:origin,website:origin}};
  const html=c.researchCompanyContextHTML(p,'US.A',now);assert.match(html,/Technology/);assert.match(html,/href="https:\/\/company.example\/"/);

@@ -185,7 +185,12 @@ class Provider:
             # Keep the real API execute route and immutable quote reader active.
             if path.endswith('stock-screen'):
                 codes=['US.S0003'] if body.get('next_key') else ['US.S0001','US.S0002','US.OUT']
-                return {'items':[{'code':code,'results':[]} for code in codes],
+                def criterion_results(code):
+                    if not os.getenv('RESEARCH_CRITERION_EVIDENCE_FIXTURE') or code!='US.S0001':return []
+                    return [{'simple_property_result':{'property':{'name':2303},'res':{'ival':'2500000'}}},
+                        *[{'financial_property_result':{'property':{'name':pid,'term':100},'res':{'ival':str(value)}}}
+                          for pid,value in [(4606,6000),(4219,3000),(4107,12000)]]]
+                return {'items':[{'code':code,'results':criterion_results(code)} for code in codes],
                         'pagination':{'total':4,'has_more':not body.get('next_key'),
                                       'next_key':None if body.get('next_key') else 'fixture-page-2'}}
             if path.endswith('stock-basicinfo'):

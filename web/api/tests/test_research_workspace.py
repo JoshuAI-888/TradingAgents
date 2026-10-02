@@ -14,6 +14,7 @@ def isolated(monkeypatch):
     monkeypatch.setenv('DEFAULT_USER_ID', 'research-owner')
     monkeypatch.setattr(api, 'db', FakeDb())
     monkeypatch.setattr(api, '_execute_cache', {})
+    monkeypatch.setattr(api, '_stored_universe_cache', {})
     monkeypatch.setattr(api, '_merge_universe_meta', lambda rows,market:rows)
 
 def test_all_22_existing_preset_definitions_are_unchanged():
@@ -25,6 +26,45 @@ def test_average_volume_uses_verified_provider_period():
     f=api._server_filter('volume', {'min':100000, 'days':30})['cumulative_property_query']
     assert f['property']=={'name':3104,'periodAverage':30}
     assert f['days']==30 and f['lower']['value']==100000
+
+def test_retrieval_preserves_distinct_requested_volume_windows():
+    criteria=[{'field':'volume','days':10,'min':1},{'field':'volume','days':30,'min':2},{'field':'volume','days':10,'max':3}]
+    assert api._server_retrieves(criteria)==[
+        {'cumulative_property':{'name':3104,'periodAverage':10}},
+        {'cumulative_property':{'name':3104,'periodAverage':30}}]
+    results=[{'cumulative_property_result':{'property':{'name':3104,'periodAverage':30},'res':{'ival':'300'}}},
+             {'cumulative_property_result':{'property':{'name':3104,'periodAverage':10},'res':{'ival':'100'}}}]
+    evidence=api._screen_criterion_evidence('US.A',criteria,results,'clock')
+    assert [e['value'] for e in evidence]==[100,300,100]
+    assert [e['criterion'] for e in evidence]==criteria
+    assert all(e['period'] is None and e['currency'] is None for e in evidence)
+    for records in [[{'cumulative_property_result':{'property':{'name':3104},'res':{'ival':'999'}}}],results+results]:
+        assert all(e['value'] is None for e in api._screen_criterion_evidence('US.A',criteria,records,'clock'))
+
+@pytest.mark.parametrize('raw',[True,False,{},[],float('inf'),float('nan'),'NaN','',10**400])
+def test_provider_invalid_numeric_evidence_cannot_become_a_factor(raw):
+    assert api._screen_result_number({'res':{'ival':raw}}) is None
+
+def test_provider_criterion_clock_is_independent_of_quote_hydration(monkeypatch):
+    stamp=datetime.now(timezone.utc).isoformat()
+    api.db._t('screener_quotes').append({'market':'US','code':'US.A','updated_at':stamp,
+        'row':{'code':'US.A','symbol':'A','price':7,'volume':999,'stock_type':'STOCK'}})
+    class Provider:
+        def call(self,method,path,body):
+            return {'items':[{'code':'US.A','results':[{'cumulative_property_result':{
+                'property':{'name':3104,'periodAverage':30},'res':{'ival':'0'}}}]}]}
+    monkeypatch.setattr(api,'_market_client',lambda:Provider())
+    result=api.screener_execute('penny','US',300)
+    row=result['rows'][0]
+    evidence=next(e for e in row['criterion_evidence'] if e['criterion']['field']=='volume')
+    assert evidence['value']==0 and evidence['code']=='US.A'
+    assert row['volume']==999 and row['display_field_sources']['volume']['source']=='legacy_cache'
+    assert evidence['retrieved_at']==result['retrieved_at']==row['criterion_retrieved_at']
+
+def test_wrong_financial_basis_cannot_justify_requested_annual_criterion():
+    criteria=[{'field':'roe','min':10}]
+    result=[{'financial_property_result':{'property':{'name':4110,'term':1},'res':{'ival':'15000'}}}]
+    assert api._screen_criterion_evidence('US.A',criteria,result,'clock')[0]['value'] is None
 
 def test_exclusive_bounds_and_missing_data_are_enforced():
     rows=[{'profit':5},{'profit':5.1},{'profit':None}]

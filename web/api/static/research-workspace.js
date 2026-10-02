@@ -405,8 +405,12 @@ function researchDisplayField(field,value) {
  return researchValue(field,value);
 }
 function researchEvidence(row,filter,preset) {
- const field=filter.field,provider=!!preset;
- const value=provider?row.criterion_values?.[field]:row[field];
+ const field=filter.field,original=preset?((window.__scrPresets || []).find(p=>p.key===preset)?.filters || window.__presetCache?.[preset+'|'+window.__scr.market]?.payload?.filters):null;
+ const same=(a,b)=>JSON.stringify(researchStable(a))===JSON.stringify(researchStable(b));
+ const provider=!!preset && (!original || original.some(c=>same(c,filter)));
+ const records=provider && Array.isArray(row.criterion_evidence)?row.criterion_evidence.filter(e=>e?.code===row.code && same(e.criterion,filter)):null;
+ const record=records?.length===1?records[0]:null;
+ const value=provider?(records?record?.value:row.criterion_values?.[field]):row[field];
  const numeric=typeof value==='number' && Number.isFinite(value);
  const terms=[];
  if(filter.min!=null)terms.push((filter.excl_min?'> ':'≥ ')+researchValue(field,filter.min));
@@ -418,12 +422,13 @@ function researchEvidence(row,filter,preset) {
  const period=attributed && typeof o.period==='string' && o.period?o.period:'Reported period not supplied';
  const basis=filter.days?filter.days+'-day '+(field==='volume'?'average':'window')+' requested':provider && financial?'Annual financial basis requested':field==='pe_ttm'?'TTM definition':field==='forward_pe'?'Forward estimate definition':'No reporting basis supplied';
  const source=provider?'Moomoo screen criterion':({yfinance:'yfinance cached factor',computed_technicals:'Computed technical factor',provider_screen:'Moomoo screen value',stored_generation:'Stored quote generation',legacy_cache:'Stored quote cache',live_snapshot:'Snapshot quote'})[origin?.source] || (attributed && typeof o.source==='string'?o.source:'Source not supplied');
- const stamp=provider?row.display_field_sources?.[field]?.retrieved_at:origin?.cache_at || origin?.retrieved_at || (attributed?o.observed_at:null);
+ const stamp=provider?record?.retrieved_at || row.criterion_retrieved_at:origin?.cache_at || origin?.retrieved_at || (attributed?o.observed_at:null);
  const categorical=!provider && Array.isArray(filter.values) && (typeof value==='string' || typeof value==='boolean' || Array.isArray(value));
  let shown=numeric?researchValue(field,value):categorical?researchDisplayField(field,value):'Numeric evidence unavailable';
  if(numeric && RESEARCH_CURRENCY_FIELDS.has(field))shown=provider?shown+' · currency not supplied':researchMoneyValue(row,field);
  const passes=numeric?(filter.min==null || (filter.excl_min?value>filter.min:value>=filter.min)) && (filter.max==null || (filter.excl_max?value<filter.max:value<=filter.max)):null;
- return {label:SCR_COLS[field]?.[0] || SCR_FIELDS[field] || field,value:shown,threshold:terms.join(' and '),basis,period,source,
+ const display=provider?(RESEARCH_CURRENCY_FIELDS.has(field)?researchMoneyValue(row,field):researchDisplayField(field,row[field])):null;
+ return {label:SCR_COLS[field]?.[0] || SCR_FIELDS[field] || field,value:shown,display_value:display,threshold:terms.join(' and '),basis,period,source,
   timestamp:stamp?researchCaptureTime(stamp):'Source/retrieval time not supplied',
   status:numeric?(passes?'Supplied value passes these bounds; period/source qualification is separate':'Supplied value does not pass these bounds; review current evidence'):categorical?'Stored classification supplied':provider?'Provider screen membership; criterion value unavailable':'Value unavailable'};
 }
@@ -490,12 +495,12 @@ async function researchInspectRow(row,options={}) {
  window.__researchInspectCode=code;window.__inspectRow=row;
  const tab=window.__inspectTab || 'overview',range=window.__inspectRange || '3M',currency=researchQuoteCurrency(row);
  const privateItem=state.page==='shortlists'?(window.__researchListItems || []).find(r=>r.code===code):null;window.__researchPrivateInspect=!!privateItem;
- const filters=privateItem?[]:window.__scr.filters || [],watched=(window.__scr.watchlistSyms || []).includes(row.symbol);
+ const filters=privateItem?[]:scrEffFilters(false),watched=(window.__scr.watchlistSyms || []).includes(row.symbol);
  const call=value=>esc(JSON.stringify(value));
  const tabs=[['overview','Overview'],['why',privateItem?'List context':'Why it matches'],['news','News']];
  const evidence=filters.map(f=>researchEvidence(row,f,window.__scr.activePreset));
  const provenance=researchQuoteProvenance(row);
- const why=privateItem?`<h4>Research shortlist</h4><p>${esc(privateItem.review_status.replaceAll('_',' '))}</p><p>${esc(privateItem.note || 'No note')}</p><p>List membership does not establish qualification for the current screener criteria.</p>`:filters.length?`<div class="inspector-evidence">${evidence.map(e=>`<section><h4>${esc(e.label)}</h4><strong>${esc(e.value)}</strong><p>Rule: ${esc(e.threshold || 'Provider definition')}<br>${esc(e.basis)}<br>${esc(e.period)}<br>${esc(e.source)} · ${esc(e.timestamp)}</p><small>${esc(e.status)}</small></section>`).join('')}</div>`:'<p>All stocks — no custom criteria. This stock is in the current stock-only universe.</p>';
+ const why=privateItem?`<h4>Research shortlist</h4><p>${esc(privateItem.review_status.replaceAll('_',' '))}</p><p>${esc(privateItem.note || 'No note')}</p><p>List membership does not establish qualification for the current screener criteria.</p>`:filters.length?`<div class="inspector-evidence">${evidence.map(e=>`<section><h4>${esc(e.label)}</h4><strong>${esc(e.value)}</strong>${e.display_value!==null?`<p>Table display: ${esc(e.display_value)}. This is separate from the screen criterion observation.</p>`:''}<p>Rule: ${esc(e.threshold || 'Provider definition')}<br>${esc(e.basis)}<br>${esc(e.period)}<br>${esc(e.source)} · ${esc(e.timestamp)}</p><small>${esc(e.status)}</small></section>`).join('')}</div>`:'<p>All stocks — no custom criteria. This stock is in the current stock-only universe.</p>';
  el.classList.add('open');el.setAttribute('role',window.matchMedia?.('(max-width:1350px)').matches?'dialog':'complementary');el.setAttribute('aria-label',row.symbol+' stock inspector');
  if(window.matchMedia?.('(max-width:1350px)').matches)el.setAttribute('aria-modal','true');else el.removeAttribute('aria-modal');
  el.onkeydown=researchInspectorKey;
