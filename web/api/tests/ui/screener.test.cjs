@@ -450,3 +450,27 @@ test('local export retains canonical generation and cache time while escaping sp
  c.scrExport('csv','all');const text=await blob.text();assert.match(text,/generation_id,quote_cache_at/);assert.match(text,/US.A/);assert.match(text,/'=1\+1/);assert.ok(text.includes(gid));
  c.scrExport('xls','all');const xml=await blob.text();assert.ok(xml.includes(gid));assert.match(xml,/ss:Type="String">=1\+1/);
 });
+
+test('provider scope distinguishes retrieved, stock-filtered, unknown and display-cohort membership',()=>{
+ const c=harness(),gid='11111111-1111-4111-8111-111111111111';
+ const payload={rows:[{code:'US.A',stock_type:'STOCK',quote_generation_id:gid},{code:'US.E',stock_type:'ETF',quote_generation_id:gid},{code:'US.U',stock_type:'UNKNOWN'}],provider_total:9,quote_generation_id:gid,hydration_warnings:['<untrusted quote>'],next_key:'p2',possibly_truncated:true};
+ const html=c.researchProviderScopeHTML(payload,[payload.rows[0]],{etfs:false});
+ assert.match(html,/1 stock matches loaded/);assert.match(html,/3 provider members retrieved/);assert.match(html,/9 provider matches before exclusions/);assert.match(html,/1 retrieved instruments have unknown classification/);assert.match(html,/1 retrieved members outside this cohort/);assert.match(html,/does not freeze provider membership/);assert.match(html,/&lt;untrusted quote&gt;/);assert.doesNotMatch(html,/<untrusted quote>/);assert.match(html,/Load next 300 matches/);
+});
+test('preset paging pins display cohort and retains earlier hydration warnings',async()=>{
+ const c=harness(),gid='11111111-1111-4111-8111-111111111111';Object.assign(c.__scr,{activePreset:'p',market:'US'});
+ c.__presetCache={'p|US':{payload:{quote_generation_id:gid,next_key:'page 2',rows:[{code:'US.A'}],hydration_warnings:['Earlier page unavailable']}}};let url,rendered=0;
+ c.api=async u=>{url=u;return {available:true,quote_generation_id:gid,rows:[{code:'US.B'}],hydration_warnings:['Later page unavailable']};};c.showPage=async()=>{rendered++;};
+ await c.researchLoadMore();assert.equal(new URLSearchParams(url.split('?')[1]).get('quote_generation_id'),gid);assert.equal(new URLSearchParams(url.split('?')[1]).get('next_key'),'page 2');assert.equal(rendered,1);assert.equal(c.__presetCache['p|US'].payload.rows.map(r=>r.code).join(','),'US.A,US.B');assert.equal(c.__presetCache['p|US'].payload.hydration_warnings.join('|'),'Earlier page unavailable|Later page unavailable');
+});
+test('preset paging rejects a changed display cohort without replacing prior rows',async()=>{
+ const c=harness(),entry={payload:{quote_generation_id:'old',next_key:'p2',rows:[{code:'US.A'}]}};Object.assign(c.__scr,{activePreset:'p',market:'US'});c.__presetCache={'p|US':entry};const status={textContent:''};c.document.getElementById=id=>id==='research-page-status'?status:null;
+ c.api=async()=>({available:true,quote_generation_id:'new',rows:[{code:'US.B'}]});c.showPage=()=>assert.fail('Mismatched page rendered');await c.researchLoadMore();assert.equal(c.__presetCache['p|US'],entry);assert.match(status.textContent,/Quote display cohort changed/);
+});
+test('late provider page and error cannot overwrite a refreshed cache entry',async()=>{
+ for(const failure of [false,true]){const c=harness(),entry={payload:{next_key:'p2',rows:[{code:'US.A'}]}};Object.assign(c.__scr,{activePreset:'p',market:'US'});c.__presetCache={'p|US':entry};let resolve,reject;const status={textContent:''};c.document.getElementById=id=>id==='research-page-status'?status:null;c.api=()=>new Promise((a,b)=>{resolve=a;reject=b;});c.showPage=()=>assert.fail('Old page rendered');const pending=c.researchLoadMore();const newer={payload:{rows:[{code:'US.NEW'}]}};c.__presetCache['p|US']=newer;if(failure)reject(Error('Old request failed'));else resolve({available:true,rows:[{code:'US.OLD'}]});await pending;assert.equal(c.__presetCache['p|US'],newer);assert.equal(status.textContent,'');}
+});
+test('display field provenance separates screening and hydration without asserting reporting periods',()=>{
+ const c=harness(),html=c.researchQuoteProvenance({display_field_sources:{price:{source:'provider_screen',retrieved_at:'2026-10-02T06:00:00Z'},market_cap:{source:'stored_generation',generation_id:'<id>',cache_at:'2026-10-02T05:00:00Z'},stock_type:{source:'provider_basicinfo',retrieved_at:'2026-10-02T06:01:00Z'}}});assert.match(html,/Price: Provider screen/);assert.match(html,/Market Cap: Stored generation/);assert.match(html,/&lt;id&gt;/);assert.match(html,/Type: Provider classification/);assert.match(html,/different source times/);
+ const desk=c.researchDeskHTML({st:c.__scr,scr:{server_side:true,rows:[],matched:0},table:'',allChips:'',msPanel:''});assert.match(desk,/financial basis requested: annual; reported period unverified/);assert.doesNotMatch(desk,/financial criteria: annual/);
+});

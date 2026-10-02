@@ -176,10 +176,23 @@ api._cache=lambda:MemoryCache()
 api._merge_universe_meta=lambda rows,market:rows
 class Provider:
     def call(self,method,path,body):
+        if os.getenv('RESEARCH_PROVIDER_GENERATION_FIXTURE'):
+            # Controlled membership/hydration transport, not financial-rule QA.
+            # Keep the real API execute route and immutable quote reader active.
+            if path.endswith('stock-screen'):
+                codes=['US.S0003'] if body.get('next_key') else ['US.S0001','US.S0002','US.OUT']
+                return {'items':[{'code':code,'results':[]} for code in codes],
+                        'pagination':{'total':4,'has_more':not body.get('next_key'),
+                                      'next_key':None if body.get('next_key') else 'fixture-page-2'}}
+            if path.endswith('stock-basicinfo'):
+                return {'basic_list':[{'code':'US.WRONG','stock_type':'STOCK'}]}
         if path.endswith('stock-screen'):return {'items':[]}
         if path.endswith('stock-basicinfo'):return {'basic_list':[]}
         return {}
-    def snapshot(self,codes):return {'snapshot_list':[stock_fixtures._quote(c.split('.',1)[-1]) for c in codes]}
+    def snapshot(self,codes):
+        if os.getenv('RESEARCH_PROVIDER_GENERATION_FIXTURE'):
+            return {'snapshot_list':[{'code':'US.WRONG','last_price':999}]}
+        return {'snapshot_list':[stock_fixtures._quote(c.split('.',1)[-1]) for c in codes]}
 api._market_client=lambda:Provider()
 def execute(key='',market='US',limit=300,next_key=''):
     p=next(p for p in api.PRESET_SCREENERS if p['key']==key)
@@ -190,9 +203,10 @@ def execute(key='',market='US',limit=300,next_key=''):
     page=rows[offset:offset+limit]
     cursor=str(offset+limit) if offset+limit<len(rows) else ''
     return {'available':True,'rows':page,'filters':p['filters'],'name':p['name'],'pending':[],'sort':p.get('sort','pct'),'direction':p.get('direction',2),'result_limit':limit,'provider_total':len(rows),'next_key':cursor,'possibly_truncated':bool(cursor),'retrieved_at':now}
-api.screener_execute=execute
-for route in api.app.routes:
-    if getattr(route,'path',None)=='/api/screener/execute':route.endpoint=execute;route.dependant.call=execute
+if not os.getenv('RESEARCH_PROVIDER_GENERATION_FIXTURE'):
+    api.screener_execute=execute
+    for route in api.app.routes:
+        if getattr(route,'path',None)=='/api/screener/execute':route.endpoint=execute;route.dependant.call=execute
 api.market_state=lambda:{'available':False}
 for route in api.app.routes:
     if getattr(route,'path',None)=='/api/market/state':route.endpoint=api.market_state;route.dependant.call=api.market_state

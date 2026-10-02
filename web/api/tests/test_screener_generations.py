@@ -4,6 +4,7 @@ import uuid
 import copy
 from datetime import datetime, timedelta, timezone
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from tradingagents_api import main as api
 from test_api import FakeDb
@@ -168,3 +169,140 @@ def test_pinned_generation_rejected_for_provider_and_watchlist_captures(setup):
     for definition in [{'watchlist_only': True}, {'preset': api.PRESET_SCREENERS[0]['key']}]:
         result = client.post('/api/screener/snapshots', json=definition, headers={'X-Screener-Generation': gid})
         assert result.status_code == 400
+
+
+class ScreenProvider:
+    def __init__(self, codes=('US.A','US.OUT'), price=None, malformed=''):
+        self.codes=codes
+        self.price=price
+        self.malformed=malformed
+    def call(self, method, path, body):
+        if path.endswith('stock-basicinfo'):
+            codes=['US.WRONG'] if self.malformed=='classification' else body['code_list']
+            return {'basic_list':[{'code':c,'stock_type':'STOCK','exchange':'NASDAQ'} for c in codes]}
+        return {'items':[{'code':c,'results':[] if self.price is None else [
+            {'simple_property_result':{'property':{'name':2201},'res':{'ival':self.price}}}]} for c in self.codes]}
+    def snapshot(self, codes):
+        codes=['US.WRONG'] if self.malformed=='snapshot' else codes
+        return {'snapshot_list':[{'code':c,'last_price':7,'stock_type':None} for c in codes]}
+
+
+def test_provider_membership_keeps_pinned_quote_and_outside_live_sources(setup, monkeypatch):
+    db, _ = setup
+    gid=publish(db)
+    db._t('screener_quotes').append({'market':'US','code':'US.OUT','row':{'code':'US.OUT','price':999,'stock_type':'ETF'}})
+    monkeypatch.setattr(api,'_market_client',lambda:ScreenProvider())
+    result=api.screener_execute('penny','US',300)
+    assert result['available'] and result['quote_generation_id']==gid
+    assert result['outside_quote_cohort']==1 and result['unclassified_count']==0
+    a,out=result['rows']
+    assert a['price']==10 and a['stock_type']=='STOCK'
+    assert a['display_field_sources']['price']['generation_id']==gid
+    assert out['price']==7 and out['quote_generation_id'] is None and out['stock_type']=='STOCK'
+    assert out['display_field_sources']['price']['source']=='live_snapshot'
+    assert out['display_field_sources']['stock_type']['source']=='provider_basicinfo'
+    assert 'generation_id' not in a and 'generation_id' not in out
+
+
+def test_provider_zero_and_screen_observation_do_not_inherit_other_quote_value(setup,monkeypatch):
+    db,_=setup
+    gid=publish(db)
+    row=db.tables['screener_generation_rows'][0]['row']
+    row['field_observations']={'price':{'code':'US.A','field':'price','value':10}}
+    monkeypatch.setattr(api,'_market_client',lambda:ScreenProvider(('US.A',),price='0'))
+    result=api.screener_execute('penny','US',300)
+    a=result['rows'][0]
+    assert a['price']==0 and a['display_field_sources']['price']['source']=='provider_screen'
+    assert 'price' not in a['field_observations']
+    assert result['quote_generation_id']==gid
+
+
+@pytest.mark.parametrize('malformed',['snapshot','classification'])
+def test_invalid_hydration_cannot_fill_from_wrong_identity(setup,monkeypatch,malformed):
+    db,_=setup
+    publish(db)
+    monkeypatch.setattr(api,'_market_client',lambda:ScreenProvider(malformed=malformed))
+    result=api.screener_execute('penny','US',300)
+    assert result['available'] and result['hydration_warnings']
+    outside=result['rows'][1]
+    if malformed=='snapshot': assert outside['price'] is None
+    else: assert outside.get('stock_type') is None and result['unclassified_count']==1
+
+
+def test_execute_cache_and_later_page_pin_quote_cohort(setup,monkeypatch):
+    db,_=setup
+    first=publish(db)
+    monkeypatch.setattr(api,'_execute_cache',{})
+    monkeypatch.setattr(api,'_market_client',lambda:ScreenProvider(('US.A',)))
+    result=api.screener_execute('penny','US',300)
+    result['rows'][0]['price']=999
+    assert api.screener_execute('penny','US',300)['rows'][0]['price']==10
+    second=publish(db,price=20)
+    assert api.screener_execute('penny','US',300)['quote_generation_id']==second
+    old=api.screener_execute('penny','US',300,'page2',quote_generation_id=first)
+    assert old['quote_generation_id']==first and old['rows'][0]['price']==10
+    db.tables['app_settings'][0]['value']['last_quotes']='2000-01-01T00:00:00Z'
+    with pytest.raises(HTTPException) as error: api.screener_execute('penny','US',300)
+    assert error.value.status_code==503
+
+
+def test_invalid_provider_membership_is_not_silently_deduplicated(setup,monkeypatch):
+    db,_=setup
+    publish(db)
+    monkeypatch.setattr(api,'_execute_cache',{})
+    monkeypatch.setattr(api,'_market_client',lambda:ScreenProvider(('US.A','US.A')))
+    result=api.screener_execute('penny','US',300)
+    assert not result['available'] and result['rows']==[]
+
+
+@pytest.mark.parametrize('bad_results', [{}, [None], [{}], [{'value':3}], [{'value':{'property':3}}], [{'value':{'res':'wrong'}}]])
+def test_malformed_criterion_records_fail_closed(setup,monkeypatch,bad_results):
+    db,_=setup
+    publish(db)
+    class Malformed(ScreenProvider):
+        def call(self,method,path,body):
+            return {'items':[{'code':'US.A','results':bad_results}]}
+    monkeypatch.setattr(api,'_execute_cache',{})
+    monkeypatch.setattr(api,'_market_client',lambda:Malformed())
+    result=api.screener_execute('penny','US',300)
+    assert not result['available'] and result['rows']==[]
+    assert result['reason']=='Provider criterion response is invalid'
+
+
+def test_malformed_pagination_is_not_a_complete_result(setup,monkeypatch):
+    db,_=setup
+    publish(db)
+    class Malformed(ScreenProvider):
+        def call(self,method,path,body):
+            return {'items':[{'code':'US.A','results':[]}],'pagination':[]}
+    monkeypatch.setattr(api,'_execute_cache',{})
+    monkeypatch.setattr(api,'_market_client',lambda:Malformed())
+    result=api.screener_execute('penny','US',300)
+    assert not result['available'] and result['rows']==[]
+    assert result['reason']=='Provider pagination response is invalid'
+
+
+def test_missing_membership_array_is_not_an_empty_complete_screen(setup,monkeypatch):
+    db,_=setup
+    publish(db)
+    class Missing(ScreenProvider):
+        def call(self,method,path,body):return {}
+    monkeypatch.setattr(api,'_execute_cache',{})
+    monkeypatch.setattr(api,'_market_client',lambda:Missing())
+    result=api.screener_execute('penny','US',300)
+    assert not result['available'] and result['rows']==[]
+
+
+@pytest.mark.parametrize('initial', [None, '11111111-1111-4111-8111-111111111111'])
+def test_provider_capture_pins_later_hydration_and_refuses_changed_cohort(setup,monkeypatch,initial):
+    calls=[]
+    def execute(key,market,limit,next_key='',**kwargs):
+        calls.append((next_key,kwargs))
+        return {'available':True,'rows':[],'quote_generation_id':initial if not next_key else '22222222-2222-4222-8222-222222222222',
+                'possibly_truncated':not next_key,'next_key':'page2' if not next_key else None}
+    monkeypatch.setattr(api,'screener_execute',execute)
+    with pytest.raises(HTTPException) as error:
+        api.capture_screen_snapshot(api.ScreenDefinition(preset='penny'))
+    assert error.value.status_code==409 and 'cohort changed' in error.value.detail
+    assert calls==[('',{}),('page2',{'quote_generation_id':initial} if initial else {})]
+    assert not setup[0]._t('screen_captures')

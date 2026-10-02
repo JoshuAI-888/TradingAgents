@@ -1232,14 +1232,13 @@ def _server_retrieves(fields: list[str]) -> list[dict]:
 
 
 @app.get("/api/screener/execute")
-def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_key: str = ""):
-    """Execute a preset (or saved screener by ?key=saved:<id>) SERVER-SIDE — the
-    same screening backend moomoo's own screener page uses, so results and
-    result counts reconcile with moomoo.com/screener."""
-    ck = f"{key}|{market}|{min(limit, 300)}|{next_key}"
-    hit = _execute_cache.get(ck)
-    if hit and time.time() - hit[0] < 60.0:
-        return hit[1]
+def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_key: str = "",
+                     quote_generation_id: str | None = None):
+    """Execute provider-defined rules; hydrate display quotes from one cohort.
+
+    Provider membership and retrieval time remain distinct from stored quote
+    generation and financial/source times. Reconciliation requires live evidence.
+    """
     if key.startswith("saved:"):
         sid = key.split(":", 1)[1]
         rows0 = db.select("saved_screeners", {"id": f"eq.{sid}"})
@@ -1258,6 +1257,15 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_ke
         filters = preset["filters"]
         name, description = preset["name"], preset.get("description")
         sort, direction = preset.get("sort", "pct"), preset.get("direction", 2)
+    market = market.upper()
+    if market not in ('US', 'HK'):
+        raise HTTPException(400, 'market must be US or HK')
+    cohort, _published_at = _stored_universe(market, generation_id=quote_generation_id)
+    quote_generation = cohort[0].get('generation_id') if cohort else None
+    ck = json.dumps([key, market, min(limit,300), next_key, quote_generation, filters, sort, direction], sort_keys=True)
+    hit = _execute_cache.get(ck)
+    if hit and time.time() - hit[0] < 60.0:
+        return copy.deepcopy(hit[1])
     client = _market_client()
     if client is None:
         return {"available": False, "reason": "moomoo keys not configured"}
@@ -1285,7 +1293,26 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_ke
         data = client.call("POST", "/quote/stock-screen", body=body)
     except Exception as e:  # noqa: BLE001
         return {"available": False, "reason": str(e)[:160]}
-    items = (data or {}).get("items") or []
+    if not isinstance(data, dict) or not isinstance(data.get('items'), list):
+        return {'available':False,'rows':[],'reason':'Provider membership response is invalid'}
+    items = data.get('items') or []
+    identities = [it.get('code') if isinstance(it,dict) else None for it in items]
+    if any(not isinstance(c,str) or not re.fullmatch(re.escape(market)+r'\.[A-Z0-9][A-Z0-9._-]{0,30}',c) for c in identities) or len(set(identities)) != len(identities):
+        return {'available':False,'rows':[],'reason':'Provider membership identities are invalid or duplicated'}
+    for item in items:
+        results = item.get('results')
+        if results is not None and not isinstance(results,list):
+            return {'available':False,'rows':[],'reason':'Provider criterion response is invalid'}
+        for result in results or []:
+            if not isinstance(result,dict) or len(result) != 1:
+                return {'available':False,'rows':[],'reason':'Provider criterion response is invalid'}
+            record = next(iter(result.values()))
+            if not isinstance(record,dict) or not isinstance(record.get('property',{}),dict) or ('res' in record and record['res'] is not None and not isinstance(record['res'],dict)):
+                return {'available':False,'rows':[],'reason':'Provider criterion response is invalid'}
+    pagination = data.get('pagination')
+    if pagination is not None and not isinstance(pagination,dict):
+        return {'available':False,'rows':[],'reason':'Provider pagination response is invalid'}
+    retrieved_at = datetime.now(timezone.utc).isoformat()
     rows = []
     for it in items:
         vals = {}
@@ -1308,58 +1335,90 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_ke
         pct = vals.get(3102, vals.get(2210))
         rows.append({
             "symbol": code.split(".", 1)[-1], "code": code, "name": it.get("name") or "",
-            "price": (vals.get(2201) or 0) / 1000 or None,
+            "price": vals[2201] / 1000 if vals.get(2201) is not None else None,
             "pct": pct / 1000 if pct is not None else None,
-            "market_cap": (vals.get(2301) or 0) / 1000 or None,
+            "market_cap": vals[2301] / 1000 if vals.get(2301) is not None else None,
             "factors": {k: v for k, v in vals.items() if k not in (2201, 2301, 2210, 3102)},
             "criterion_values": {f: vals[spec[1]] / spec[2] for f, spec in _FIELD_SERVER.items()
                                  if vals.get(spec[1]) is not None},
         })
-        # Expose verified annual financial evidence in the existing columns.
+        # Requested annual financial fields retain provider values; actual
+        # reporting periods are unverified until independently supplied.
         # Period-averaged volume stays separate from the snapshot volume column.
         for field, value in rows[-1]["criterion_values"].items():
             if _FIELD_SERVER[field][0] == "financial":
                 rows[-1][field] = value
-    # moomoo's stock-screen retrieves can come back all-null for every item
-    # (2026-09-29), which left preset tables blank — display fields are filled
-    # from the stored snapshot the universe loader keeps fresh; screen values
-    # fill any gap the snapshot doesn't cover.
-    codes = sorted({r["code"] for r in rows if r["code"]})
+    hydration_warnings = []
+    codes = sorted({r['code'] for r in rows})
     if codes:
-        stored = db.select("screener_quotes", {"market": f"eq.{market}",
-                                               "code": f"in.({','.join(codes)})"}, "row")
-        by_code = {q["row"].get("code"): q["row"] for q in stored if isinstance(q.get("row"), dict)}
-        for r in rows:
-            for k, v in (by_code.get(r["code"]) or {}).items():
-                if r.get(k) is None:
-                    r[k] = v
-        # The screen can match listings our plate enumeration never captured
-        # (OTC/pink-sheet tail) — one live snapshot call fills those gaps.
-        missing = [r["code"] for r in rows if r.get("price") is None]
+        by_code = {q.get('code'):q for q in cohort if q.get('code')}
+        protected = {'code','symbol','criterion_values','factors','generation_id'}
+        for row in rows:
+            original_fields = {k for k,v in row.items() if v is not None and v != ''}
+            origins = {k:{'source':'provider_screen','retrieved_at':retrieved_at} for k in original_fields
+                       if k not in ('code','symbol','criterion_values','factors')}
+            quote = by_code.get(row['code']) or {}
+            for field,value in quote.items():
+                if field in protected or value is None:
+                    continue
+                if row.get(field) is None or field == 'name' and not row.get('name'):
+                    row[field] = copy.deepcopy(value)
+                    origins[field] = {'source':'stored_generation' if quote_generation else 'legacy_cache',
+                                      'generation_id':quote_generation,'cache_at':quote.get('quote_cache_at')}
+            row['display_field_sources'] = origins
+            row['quote_generation_id'] = quote_generation if quote else None
+        # Outside-cohort screen members stay in provider membership. Hydration
+        # is marked separately and cannot pretend to belong to the generation.
+        missing = [r['code'] for r in rows if r.get('price') is None]
         if missing:
             try:
-                snap = (client.snapshot(missing) or {}).get("snapshot_list") or []
-                live = {q.get("code"): q for q in (_snapshot_to_row(s) for s in snap)}
-                for r in rows:
-                    for k, v in (live.get(r["code"]) or {}).items():
-                        if r.get(k) is None:
-                            r[k] = v
+                snapshots = (client.snapshot(missing) or {}).get('snapshot_list') or []
+                if not isinstance(snapshots,list) or any(not isinstance(q,dict) for q in snapshots):
+                    raise ValueError('Invalid snapshot records')
+                returned = [q.get('code') for q in snapshots]
+                if len(returned) != len(set(returned)) or set(returned) != set(missing):
+                    raise ValueError('Snapshot identities differ from request')
+                cache_at = datetime.now(timezone.utc).isoformat()
+                live = {q['code']:_snapshot_to_row(q) for q in snapshots}
+                for row in rows:
+                    for field,value in (live.get(row['code']) or {}).items():
+                        if field not in protected and value is not None and row.get(field) is None:
+                            row[field] = value
+                            row['display_field_sources'][field] = {'source':'live_snapshot','cache_at':cache_at}
+                    if row['code'] in live:
+                        row['quote_cache_at'] = cache_at
             except Exception:
-                pass
-        _merge_universe_meta(rows, market)
-        unclassified = [r["code"] for r in rows if not r.get("stock_type")]
+                hydration_warnings.append('Quote display data is unavailable or has mismatched identities; no values inferred')
+        if not quote_generation:
+            _merge_universe_meta(rows, market)
+        unclassified = [r['code'] for r in rows if not r.get('stock_type')]
         if unclassified:
             try:
-                basic = client.call("POST", "/quote/stock-basicinfo", body={"code_list": unclassified}) or {}
-                info = {b.get("code"): b for b in basic.get("basic_list") or []}
-                for r in rows:
-                    b = info.get(r["code"]) or {}
-                    if not r.get("stock_type"):
-                        r["stock_type"] = b.get("stock_type")
-                    if not r.get("exchange"):
-                        r["exchange"] = b.get("exchange")
+                basic = client.call('POST','/quote/stock-basicinfo',body={'code_list':unclassified}) or {}
+                records = basic.get('basic_list') or []
+                if not isinstance(records,list) or any(not isinstance(b,dict) for b in records):
+                    raise ValueError('Invalid basic records')
+                returned = [b.get('code') for b in records]
+                if len(returned) != len(set(returned)) or set(returned) != set(unclassified):
+                    raise ValueError('Classification identities differ from request')
+                info = {b['code']:b for b in records}
+                for row in rows:
+                    for field in ('stock_type','exchange'):
+                        if not row.get(field) and row['code'] in info:
+                            row[field] = info[row['code']].get(field)
+                            row['display_field_sources'][field] = {'source':'provider_basicinfo','retrieved_at':datetime.now(timezone.utc).isoformat()}
             except Exception:
-                pass  # Unclassified instruments remain excluded by the stock-only view.
+                hydration_warnings.append('Instrument classification is unavailable or has mismatched identities; unknown instruments remain unclassified')
+    for row in rows:
+        # A provider-screen value must not inherit an observation for a different
+        # snapshot value. Only copied metric observations retain their source.
+        observations = row.get('field_observations')
+        if isinstance(observations,dict):
+            row['field_observations'] = {field:record for field,record in observations.items()
+                if isinstance(record,dict) and record.get('code') == row['code']
+                and record.get('value') == row.get(field)
+                and (row.get('display_field_sources',{}).get(field) or {}).get('source') in
+                    ('stored_generation','legacy_cache','live_snapshot')}
     pagination = data.get("pagination") or {}
     cursor = pagination.get("next_key") or data.get("next_key") or data.get("nextKey")
     has_more = pagination.get("has_more")
@@ -1369,9 +1428,15 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_ke
                    "market": market, "pending": pending, "filters": filters,
                    "sort": sort, "direction": direction, "result_limit": body["limit"],
                    "possibly_truncated": bool(has_more), "next_key": cursor if cursor != "-1" else None,
-                   "provider_total": pagination.get("total", data.get("total")), "retrieved_at": datetime.now(timezone.utc).isoformat(),
+                   "provider_total": pagination.get("total", data.get("total")), "retrieved_at": retrieved_at,
+                   "quote_generation_id": quote_generation, "quote_scope": "display_hydration",
+                   "hydration_warnings": hydration_warnings,
+                   "unclassified_count": sum(not r.get("stock_type") or str(r.get("stock_type")).upper() in ("UNKNOWN","UNKNOW","UNCLASSIFIED","N/A") for r in rows),
+                   "outside_quote_cohort": sum(r["code"] not in by_code for r in rows) if rows else 0,
                    "evidence_status": "provider_membership", "rows": rows, "shown": len(rows)}
-    _execute_cache[ck] = (time.time(), out_payload)
+    _execute_cache[ck] = (time.time(), copy.deepcopy(out_payload))
+    while len(_execute_cache) > 64:
+        _execute_cache.pop(next(iter(_execute_cache)), None)
     return out_payload
 
 
@@ -1619,13 +1684,16 @@ def capture_screen_snapshot(inp: ScreenDefinition,
     if inp.preset:
         result = screener_execute(inp.preset, inp.market, 300)
         combined = list(result.get("rows") or [])
+        hydration_generation = result.get("quote_generation_id")
         cursors = set()
         while result.get("available") and result.get("possibly_truncated") and result.get("next_key") and len(cursors) < 24:
             cursor = result["next_key"]
             if cursor in cursors:
                 break
             cursors.add(cursor)
-            result = screener_execute(inp.preset, inp.market, 300, cursor)
+            result = screener_execute(inp.preset, inp.market, 300, cursor, **({"quote_generation_id":hydration_generation} if hydration_generation else {}))
+            if result.get("quote_generation_id") != hydration_generation:
+                raise HTTPException(409, "Quote display cohort changed during provider capture; retry from a new baseline")
             combined.extend(result.get("rows") or [])
         if not result.get("available") or result.get("possibly_truncated") or result.get("pending"):
             raise HTTPException(409, "Provider results are unavailable, incomplete or have unapplied criteria; no snapshot captured")

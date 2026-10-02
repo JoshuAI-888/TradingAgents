@@ -1,5 +1,7 @@
 # Current build against the approved design
 
+**Latest preset consistency checkpoint:** [provider membership and quote display hydration](screener-preset-generation-hydration.md) pins quote fills across pages/capture, retains valid zero and field origins, renders unknown/hydration warnings and separates requested annual basis from actual period. 378 API/worker and 75 JavaScript tests pass; real API/capture routes were exercised with controlled offline provider transport. Preset membership consistency, expired-cache page retention, live/platform and release gates remain open.
+
 **Current design review:** [fresh four-step comparison and D01–D09 delivery tickets](investment-workspace-design-review-latest.md) rechecks Desk, inspector, Explorer and Changes at 1280 × 720 against the original three mockups. The latest regression is 368 API/worker and 70 JavaScript tests; pending preset hydration is uncommitted/browser-unqualified. The review and plan are complete; feature and production acceptance remain open.
 
 **Latest capture/export handoff:** [viewed-generation provenance](screener-generation-capture-handoff.md) binds capture retries/reloads to the viewed cohort and retains generation IDs in observations and downloaded CSVs. 362 API/worker and 70 JavaScript tests pass; two actual 1,176-row synthetic browser downloads reconcile. Remaining readers, native capture/PostgREST, live data, retention/cutover and full release gates remain open.
