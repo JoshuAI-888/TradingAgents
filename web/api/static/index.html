@@ -1431,8 +1431,8 @@ async function scrDeleteSaved(id) {
   scrTab = "screeners"; scrRenderModal();
 }
 </script>
-<script src="/research-workspace.js"></script>
-<script src="/research-account.js"></script>
+<script src="/research-workspace.js?v=20261002-navigation"></script>
+<script src="/research-account.js?v=20261002-navigation"></script>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -5039,14 +5039,38 @@ function openStockPicker() {
 }
 window.openStockPicker = openStockPicker;
 
+function researchPageRoute(page,previous) {
+ let hash;
+ if(page==='home'){
+  const before=location.hash;scrPersist();hash=location.hash;
+  if(previous!==page && before!==hash && !/^#\/screener(?:\?|$)/.test(before)){history.replaceState(null,'',before || location.pathname+location.search);history.pushState(null,'',hash);}return;
+ }
+ if(page==='settings')hash='#/settings';
+ if(page==='shortlists'){const id=window.__researchRouteList || window.__researchListID;hash='#/shortlists'+(researchListIDValid(id)?'/'+encodeURIComponent(id):'');}
+ if(page==='compare')hash='#/compare';
+ if(page==='info')hash='#/info';
+ if(hash && hash!==location.hash){if(previous===page)history.replaceState(null,'',hash);else history.pushState(null,'',hash);}
+}
+function stkRoute() {
+  let m = location.hash.match(/^#\/stock\/([A-Za-z0-9.%_-]+)/);
+  if (m) {try{return {stock:decodeURIComponent(m[1])};}catch(e){return null;}}
+  if (/^#\/settings$/.test(location.hash))return {page:"settings"};
+  if (/^#\/compare$/.test(location.hash))return {page:"compare"};
+  m=location.hash.match(/^#\/shortlists(?:\/([0-9a-f-]+))?$/i);
+  if(m)return {page:"shortlists",list:researchListIDValid(m[1])?m[1]:null};
+  if (/^#\/info$/.test(location.hash)) return { info: true };
+  if (/^#\/stocks\b/.test(location.hash)) return { picker: true };
+  m = location.pathname.match(/\/stock\/([A-Za-z0-9.%_-]+)/);
+  if(m){try{return {stock:decodeURIComponent(m[1])};}catch(e){return null;}}return null;
+}
+
 let __pageGen = 0;
 async function showPage(p) {
   const renderStart = window.performance?.now() || Date.now();
   const renderSource = p === 'home' ? researchRenderSource() : p;
   const pageGen = ++__pageGen;
   const previousPage = state.page;
-  // Leaving the stock page: clear its hash so back-nav lands on Market Pulse.
-  if (/^#\/stock\//.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
+  researchPageRoute(p,previousPage);
   state.page = p;
   researchDisposeInspector();
   researchDisposeDesk();
@@ -5138,28 +5162,26 @@ api("/api/meta").then(m => {
   $("#spend").textContent = m.spend?.available === false ? 'Spend unavailable' : `$${Number(m.spend?.cost_usd || 0).toFixed(3)} · ${m.spend?.runs || 0} runs`;
 }).catch(() => {});
 // stock-page routing: #/stock/{SYM}-US or the pretty /stock/{SYM}-US path; #/info; #/stocks
-function stkRoute() {
-  let m = location.hash.match(/^#\/stock\/([A-Za-z0-9.%_-]+)/);
-  if (m) return { stock: decodeURIComponent(m[1]) };
-  if (/^#\/info$/.test(location.hash)) return { info: true };
-  if (/^#\/stocks\b/.test(location.hash)) return { picker: true };
-  m = location.pathname.match(/\/stock\/([A-Za-z0-9.%_-]+)/);
-  return m ? { stock: decodeURIComponent(m[1]) } : null;
-}
 window.addEventListener("hashchange", () => {
   const r = stkRoute();
-  if (r?.stock) openStock(r.stock);
+  if(r?.page){if(r.page==="shortlists"){window.__researchRouteList=r.list;if(r.list && r.list!==window.__researchListID){window.__researchListID=r.list;window.__researchListOffset=0;window.__researchListSearch="";window.__researchListStatus="all";}}showPage(r.page);}
+  else if (r?.stock) openStock(r.stock);
   else if (r?.info) showPage("info");
   else if (r?.picker) openStockPicker();
   else if (/^#\/screener/.test(location.hash)) { scrRestoreFromHash(); showPage("home"); }
 });
 window.__researchAccountReady=researchAccountInit();
-{ scrRestoreFromHash();
+async function researchStartRoute() {
+  scrRestoreFromHash();
+  await researchOriginRestore();
   const r0 = stkRoute();
-  if (r0?.stock) openStock(r0.stock);
+  if(r0?.page){if(r0.page==="shortlists")window.__researchRouteList=r0.list;showPage(r0.page);}
+  else if (r0?.stock) openStock(r0.stock);
   else if (r0?.info) showPage("info");
   else if (r0?.picker) openStockPicker();
-  else showPage("home"); }
+  else showPage("home");
+}
+researchStartRoute();
 setInterval(loadHealth, 15000);
 setInterval(refreshInflight, 8000);
 </script>

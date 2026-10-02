@@ -30,10 +30,32 @@ function researchSelectionMount() {
   const checked=!!row && selected.includes(researchKey(row));checkbox.checked=checked;tr.classList.toggle('research-selected',checked);
  });
 }
+function researchOriginPersist() {
+ const ctx=window.__researchContext;if(!ctx)return;
+ const owner=ctx.kind==='shortlists'?window.__researchSession?.user.id:null;
+ if(ctx.kind==='shortlists' && !owner)return;
+ try{sessionStorage.setItem('researchOriginV1',JSON.stringify({version:1,owner,context:ctx}));}catch(e){}
+}
+async function researchOriginRestore() {
+ let saved;try{saved=JSON.parse(sessionStorage.getItem('researchOriginV1'));}catch(e){return;}
+ if(saved?.version!==1 || !saved.context || typeof saved.context!=='object')return;
+ const ctx=saved.context;
+ if(ctx.kind==='shortlists'){
+  await window.__researchAccountReady;
+  if(!saved.owner || saved.owner!==window.__researchSession?.user.id)return;
+ }else if(ctx.kind!=null || saved.owner || !ctx.state || typeof ctx.state!=='object' || Array.isArray(ctx.state))return;
+ if(!Array.isArray(ctx.rows) || ctx.rows.length>20000 || !ctx.rows.every(r=>r && typeof r.code==='string' && /^(US|HK)\.[A-Za-z0-9._-]{1,32}$/.test(r.code)))return;
+ const codes=new Set(ctx.rows.map(r=>r.code));
+ if(codes.size!==ctx.rows.length || !Array.isArray(ctx.selected) || ctx.selected.length>codes.size || new Set(ctx.selected).size!==ctx.selected.length || !ctx.selected.every(k=>typeof k==='string' && codes.has(k)))return;
+ if(ctx.kind==='shortlists'){if(!researchListIDValid(ctx.listID))return;ctx.q=typeof ctx.q==='string'?ctx.q.slice(0,80):'';ctx.offset=Number.isSafeInteger(ctx.offset) && ctx.offset>=0 && ctx.offset<=10000000?ctx.offset:0;ctx.review_status=['all','unreviewed','in_review','reviewed'].includes(ctx.review_status)?ctx.review_status:'all';}
+ if(!Number.isFinite(ctx.scroll) || ctx.scroll<0)return;
+ window.__researchContext=ctx;
+}
 function researchCaptureContext() {
   window.__researchContext = {state:JSON.parse(JSON.stringify(window.__scr)),hash:location.hash,
     scroll:window.scrollY || 0,tableScroll:document.querySelector('.scr-scroll')?.scrollTop || 0,tableScrollLeft:document.querySelector('.scr-scroll')?.scrollLeft || 0,
     rows:researchRows().map(r=>({code:researchKey(r),symbol:r.symbol})),selected:[...(window.__researchSelected || [])]};
+  researchOriginPersist();
 }
 function researchOpen(code) {
   if (state.page === 'home') researchCaptureContext();

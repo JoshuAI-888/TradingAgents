@@ -33,6 +33,9 @@ function researchDialogOpen(html) {
  (el.querySelector('input,textarea') || el.querySelector('button'))?.focus();return el;
 }
 function researchPrivateClear(close=true) {
+ const previousOwner=window.__researchSession?.user.id;
+ if(close || previousOwner){try{sessionStorage.removeItem('researchListNavigationV1');const origin=JSON.parse(sessionStorage.getItem('researchOriginV1'));if(origin?.owner)sessionStorage.removeItem('researchOriginV1');}catch(e){}}
+ window.__researchNavigationOwner=null;
  for(const url of window.__researchExportURLs || [])URL.revokeObjectURL(url);window.__researchExportURLs=new Set();
  window.__researchAuthGen=(window.__researchAuthGen || 0)+1;window.__researchListGen=(window.__researchListGen || 0)+1;
  window.__researchSession=null;window.__researchLists=[];window.__researchListItems=[];window.__researchCurrentList=null;window.__researchListID=null;
@@ -107,6 +110,27 @@ async function researchRetrySignOut() {
  try{await researchAuthFetch('/api/research/auth/sign-out',{method:'POST',headers:{Authorization:'Bearer '+token}});window.__researchPendingLogout=null;window.__researchAccountMessage='Server sign-out confirmed.';}
  catch(e){window.__researchAccountMessage='Server sign-out is still unavailable. Please retry.';}researchAccountOpen();
 }
+function researchListIDValid(id){return typeof id==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);}
+function researchListNavigationRestore() {
+ const owner=window.__researchSession?.user.id;if(!owner || window.__researchNavigationOwner===owner)return;
+ window.__researchNavigationOwner=owner;
+ let saved;try{saved=JSON.parse(sessionStorage.getItem('researchListNavigationV1'));}catch(e){}
+ const requested=window.__researchRouteList;
+ if(saved?.version===1 && saved.owner===owner && researchListIDValid(saved.listID) && (!requested || requested===saved.listID)){
+  window.__researchListID=saved.listID;
+  window.__researchListOffset=Number.isSafeInteger(saved.offset) && saved.offset>=0 && saved.offset<=10000000?saved.offset:0;
+  window.__researchListSearch=typeof saved.q==='string'?saved.q.slice(0,80):'';
+  window.__researchListStatus=['all','unreviewed','in_review','reviewed'].includes(saved.status)?saved.status:'all';
+  window.__researchListsArchived=saved.archived===true;
+ }
+ if(requested && requested!==window.__researchListID){window.__researchListID=requested;window.__researchListOffset=0;window.__researchListSearch='';window.__researchListStatus='all';}
+ window.__researchRouteList=null;
+}
+function researchListNavigationPersist() {
+ const owner=window.__researchSession?.user.id;if(!owner || !researchListIDValid(window.__researchListID))return;
+ try{sessionStorage.setItem('researchListNavigationV1',JSON.stringify({version:1,owner,listID:window.__researchListID,offset:window.__researchListOffset || 0,q:window.__researchListSearch || '',status:window.__researchListStatus || 'all',archived:window.__researchListsArchived===true}));}catch(e){}
+ const hash='#/shortlists/'+encodeURIComponent(window.__researchListID);if(state.page==='shortlists' && location.hash!==hash)history.replaceState(null,'',hash);
+}
 function researchListChoice(id) {window.__researchListID=id;window.__researchListOffset=0;window.__researchReviewCursor=null;showPage('shortlists');}
 function researchListQuote(item) {const r=item.quote;return r?.code===item.code?r:{code:item.code,symbol:item.code.split('.').slice(1).join('.'),name:'Quote unavailable'};}
 function researchListQuery(extra={}) {
@@ -154,6 +178,7 @@ async function researchNextUnreviewed() {
 }
 async function researchListsPage() {
  await window.__researchAccountReady;
+ researchListNavigationRestore();
  const gen=(window.__researchListGen || 0)+1;window.__researchListGen=gen;
  if(!window.__researchSession)return `<section class="panel research-lists-empty"><h2>Research shortlists</h2><p>Keep named lists, notes and review status independently of screens and watchlists.</p><button class="btn primary" onclick="researchAccountOpen()">Sign in to open shortlists</button><button class="btn ghost" onclick="showPage('home')">Back to screener</button></section>`;
  try{const d=await researchPrivateAPI('/api/research/lists?include_archived='+(window.__researchListsArchived?'true':'false'));
@@ -165,6 +190,7 @@ async function researchListsPage() {
   if(gen!==window.__researchListGen)return '';
   window.__researchListItems=data?.items || [];window.__researchCurrentList=data?.list || list;
   const current=window.__researchCurrentList,items=window.__researchListItems;
+  researchListNavigationPersist();
   return `<div class="research-lists-layout"><aside class="panel shortlist-library"><label>Shortlist<select aria-label="Choose shortlist" onchange="researchListChoice(this.value)">${d.lists.map(r=>`<option value="${esc(r.id)}" ${r.id===current?.id?'selected':''}>${esc(r.name)}${r.active?'':' · Archived'}</option>`).join('') || '<option>No shortlists yet</option>'}</select></label><details class="shortlist-library-actions"><summary>Manage lists</summary><button class="btn primary" onclick="researchListCreateOpen()">New shortlist</button><label><input type="checkbox" ${window.__researchListsArchived?'checked':''} onchange="window.__researchListsArchived=this.checked;showPage('shortlists')"> Show archived</label><button class="btn ghost" onclick="showPage('home')">Back to screener</button></details>${d.possibly_truncated?'<p>First 500 lists loaded. More lists may exist.</p>':''}</aside><main class="panel shortlist-main"><div class="shortlist-heading"><div><h2>${esc(current?.name || 'Start your research list')}</h2><p>${esc(current?.description || 'Private to your account · separate from watchlists and saved screens')}</p></div>${current?`<details class="shortlist-heading-actions"><summary>List actions</summary><button class="btn ghost" onclick="researchListEditOpen()">Edit shortlist</button><button class="btn ghost" onclick="researchListExport()">Export full shortlist CSV</button></details>`:''}</div>${current && !current.active?'<p class="delay-note">Archived shortlist. Restore it from Edit shortlist to add or review stocks.</p>':''}${current?`<div class="shortlist-tools"><label>Find stock<input id="research-list-search" aria-label="Find shortlist stock" maxlength="80" value="${esc(window.__researchListSearch || '')}" placeholder="Ticker or company name" oninput="researchListSearch(this)"></label><label>Review status<select aria-label="Filter shortlist review status" onchange="researchListStatus(this.value)">${['all','unreviewed','in_review','reviewed'].map(v=>`<option value="${v}" ${v===(window.__researchListStatus || 'all')?'selected':''}>${v==='all'?'All reviews':v.replaceAll('_',' ')}</option>`).join('')}</select></label><button class="btn ghost" onclick="researchNextUnreviewed()" ${current.active?'':'disabled'}>Next unreviewed</button></div>`:''}<p id="research-list-status" role="status">${items.length} stocks on this page${data?.has_more?' · more stocks available':''}${window.__researchListSearch || (window.__researchListStatus || 'all')!=='all'?' · filtered review':''}</p>${window.__researchUndo?.list===current?.id?'<button class="btn ghost" onclick="researchListUndo()">Undo last removal</button>':''}<div class="shortlist-table"><table><thead><tr><th>Stock</th><th>Stored price</th><th>Review</th><th>Note</th><th>Actions</th></tr></thead><tbody>${items.map(item=>researchListRow(item,current)).join('')}</tbody></table></div><div class="shortlist-mobile">${items.map(item=>researchListCard(item,current)).join('')}</div>${current && !items.length?'<p>No stocks in this review. Change stock/status filters or add stocks through Inspect → Add to shortlist. Company names use stored quotes; try the ticker if its name is unavailable.</p>':''}<div class="pager"><button class="btn ghost" onclick="researchListPage(-1)" ${(window.__researchListOffset || 0)<=0?'disabled':''}>Previous shortlist page</button><button class="btn ghost" onclick="researchListPage(1)" ${data?.has_more?'':'disabled'}>Next shortlist page</button></div></main><aside id="research-inspector" class="research-inspector"></aside></div>`;
  }catch(e){if(gen!==window.__researchListGen || e.status===499)return '';return `<section class="panel"><h2>Shortlists unavailable</h2><p>${esc(e.message)}</p><button class="btn ghost" onclick="showPage('shortlists')">Retry shortlists</button><button class="btn ghost" onclick="researchAccountOpen()">Account</button></section>`;}
 }
@@ -233,7 +259,7 @@ function researchListInspect(code,origin) {
 }
 function researchListOpenStock(code) {
  window.__researchContext={kind:'shortlists',listID:window.__researchListID,offset:window.__researchListOffset || 0,q:window.__researchListSearch || '',review_status:window.__researchListStatus || 'all',scroll:window.scrollY || 0,
-  rows:window.__researchListItems.map(r=>({code:r.code,symbol:researchListQuote(r).symbol})),selected:[]};openStock(code);
+  rows:window.__researchListItems.map(r=>({code:r.code,symbol:researchListQuote(r).symbol})),selected:[]};researchListNavigationPersist();researchOriginPersist();openStock(code);
 }
 function researchListCSV(list,items) {
  const cell=v=>{let s=v==null?'':String(v);if(typeof v==='string' && (/^\s*[=+\-@]/.test(s) || /^[\t\r\n]/.test(s)))s="'"+s;return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;};

@@ -13,7 +13,7 @@ function harness(saved = {}, hash = '') {
     getElementById:id=>elements.get(id), addEventListener(){}, visibilityState:'visible',
     createElement:()=>({style:{},remove(){}}), body:{appendChild(){}}};
   const c = {document, localStorage:{getItem:k=>k==='scrState'?JSON.stringify(saved):null,setItem(){}},
-    location:{hash,pathname:'/',search:''}, history:{replaceState(_a,_b,h){c.location.hash=h;}},
+    location:{hash,pathname:'/',search:''}, history:{replaceState(_a,_b,h){c.location.hash=h;},pushState(_a,_b,h){c.location.hash=h;}},
     sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},URLSearchParams, URL, console, setTimeout:()=>1,clearTimeout(){},setInterval:()=>1,clearInterval(){},
     fetch:async()=>({ok:true,json:async()=>({})})};
   c.window=c; c.addEventListener=()=>{}; c.scrollTo=()=>{};
@@ -748,4 +748,54 @@ test('catalog recovery retains active model IDs absent from the refreshed catalo
  assert.match(result,/<option value="current\/quick" selected>current\/quick — current model · pricing unavailable/);
  assert.match(result,/<option value="current\/deep" selected>current\/deep — current model · pricing unavailable/);
  assert.doesNotMatch(result,/<option value="auto" selected/);
+});
+
+test('Settings, Compare and anonymous shortlist deep links preserve route through rendering',()=>{
+ const c=harness();for(const page of ['settings','compare']){c.researchPageRoute(page,'home');assert.equal(c.location.hash,'#/'+page);assert.equal(c.stkRoute().page,page);}
+ const id='00000000-0000-4000-8000-000000000003';c.location.hash='#/shortlists/'+id;
+ assert.equal(c.stkRoute().list,id);c.__researchRouteList=id;c.researchPageRoute('shortlists','home');assert.equal(c.location.hash,'#/shortlists/'+id);
+ c.location.hash='#/stock/%';assert.equal(c.stkRoute(),null);
+ c.location.hash='';c.location.pathname='/stock/%';assert.equal(c.stkRoute(),null);
+});
+
+test('owner-bound shortlist navigation retains filters and paging without exposing them in URL',()=>{
+ const c=harness(),id='00000000-0000-4000-8000-000000000003';const storage=new Map();c.sessionStorage={getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};
+ c.__researchSession={user:{id:'owner-a'}};c.__researchListID=id;c.__researchListOffset=100;c.__researchListSearch='private company search';c.__researchListStatus='in_review';c.__researchListsArchived=true;
+ vm.runInContext("state.page='shortlists'",c);c.researchListNavigationPersist();assert.equal(c.location.hash,'#/shortlists/'+id);assert.doesNotMatch(c.location.hash,/private|review/);
+ c.__researchListID=null;c.__researchListOffset=0;c.__researchListSearch='';c.__researchListStatus='all';c.researchListNavigationRestore();
+ assert.equal(c.__researchListID,id);assert.equal(c.__researchListOffset,100);assert.equal(c.__researchListSearch,'private company search');assert.equal(c.__researchListStatus,'in_review');assert.equal(c.__researchListsArchived,true);
+ c.__researchSession={user:{id:'owner-b'}};c.__researchListID=null;c.__researchListSearch='';c.__researchListOffset=0;c.researchListNavigationRestore();assert.equal(c.__researchListID,null);assert.equal(c.__researchListSearch,'');
+});
+
+test('public origin restores screening state and selection while private origin requires validated matching account',async()=>{
+ const c=harness(),storage=new Map();c.sessionStorage={getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};
+ const rows=[{code:'US.A',symbol:'A'},{code:'HK.00700',symbol:'00700'}];
+ c.__researchContext={state:{market:'HK',sort:'market_cap',page:2},rows,selected:['HK.00700'],scroll:150,tableScroll:30};c.researchOriginPersist();c.__researchContext=null;await c.researchOriginRestore();
+ assert.equal(c.__researchContext.state.page,2);assert.deepEqual(Array.from(c.__researchContext.selected),['HK.00700']);assert.equal(c.__researchContext.scroll,150);
+ c.__researchSession={user:{id:'owner-a'}};c.__researchContext={kind:'shortlists',listID:'00000000-0000-4000-8000-000000000003',offset:100,q:'A',review_status:'reviewed',rows,selected:[],scroll:20};c.researchOriginPersist();c.__researchContext=null;
+ c.__researchAccountReady=Promise.resolve();c.__researchSession={user:{id:'owner-b'}};await c.researchOriginRestore();assert.equal(c.__researchContext,null);
+ c.__researchSession={user:{id:'owner-a'}};await c.researchOriginRestore();assert.equal(c.__researchContext.kind,'shortlists');assert.equal(c.__researchContext.offset,100);
+});
+
+test('invalid persisted origins fail closed without replacing current context',async()=>{
+ const c=harness(),valid={state:{market:'US'},rows:[{code:'US.A'}],selected:['US.A'],scroll:0};
+ for(const context of [{...valid,kind:'unknown'},{...valid,state:[]},{...valid,selected:['US.A','US.A']},{...valid,rows:[{code:'US.A'},{code:'US.A'}]},{...valid,scroll:-1}]){
+  c.sessionStorage.getItem=()=>JSON.stringify({version:1,owner:null,context});c.__researchContext=null;await c.researchOriginRestore();assert.equal(c.__researchContext,null);
+ }
+});
+
+test('private navigation and research origin are cleared on sign-out',()=>{
+ const c=harness(),storage=new Map([['researchListNavigationV1','private'],['researchOriginV1',JSON.stringify({owner:'owner-a'})]]);
+ c.sessionStorage={getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};c.__researchSession={user:{id:'owner-a'}};
+ c.researchPrivateClear();assert.equal(storage.has('researchListNavigationV1'),false);assert.equal(storage.has('researchOriginV1'),false);
+});
+
+test('normalizing an existing screener deep link does not push another browser history entry',()=>{
+ const c=harness({},'#/screener');let pushed=0;c.history.pushState=()=>pushed++;
+ c.researchPageRoute('home','settings');assert.equal(pushed,0);assert.match(c.location.hash,/^#\/screener\?/);
+ c.location.hash='#/settings';c.researchPageRoute('home','settings');assert.equal(pushed,1);
+});
+
+test('navigation helpers are loaded through versioned browser assets',()=>{
+ assert.match(html,/research-workspace\.js\?v=20261002-navigation/);assert.match(html,/research-account\.js\?v=20261002-navigation/);
 });
