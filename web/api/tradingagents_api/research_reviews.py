@@ -23,7 +23,7 @@ def _call(method,path,**kwargs):
     try:return db._call(method,path,**kwargs) or []
     except (RuntimeError,OSError):raise HTTPException(503,'Pair review storage is temporarily unavailable. Your draft has not been saved.') from None
 
-def _lookup(owner):
+def _lookup(owner,state=None):
     def read(key,previous,current):
         payload=_call('POST','rpc/research_pair_review_read',body={'p_owner':owner.id,'p_key':key,
             'p_previous':previous,'p_current':current})
@@ -32,6 +32,9 @@ def _lookup(owner):
             raise HTTPException(503,'Pair review state was not confirmed; no partial review returned.')
         if len(rows)>40000:
             raise HTTPException(409,'Review state exceeds supported scope; no partial review returned.')
+        if state is not None:
+            import hashlib,json
+            state['review_revision_hash']=hashlib.sha256(json.dumps(rows,sort_keys=True,separators=(',',':')).encode()).hexdigest()
         return {row['code']:row for row in rows}
     return read
 
@@ -44,14 +47,20 @@ def _pair(definition,previous,current,**kwargs):
 
 @router.get('')
 def reviews(definition:str,previous_id:str,current_id:str,status:str='all',q:str='',sort:str='symbol',direction:int=1,
-            review_status:Literal['all','unreviewed','in_review','reviewed']='all',limit:int=100,offset:int=0,
+            review_status:Literal['all','unreviewed','in_review','reviewed']='all',limit:int=100,offset:int=0,history_offset:int=0,next_code:str|None=None,code:str|None=None,next_review:bool=False,
             owner:ResearchOwner=Depends(require_research_owner)):
     import json
     try:pair=PairIn(definition=json.loads(definition),previous_id=previous_id,current_id=current_id)
     except ValueError:raise HTTPException(422,'Invalid capture pair.') from None
+    for canonical in (next_code,code):
+        if canonical is None:continue
+        from .research_lists import ItemIn
+        try:ItemIn(code=canonical)
+        except ValueError:raise HTTPException(422,'Invalid canonical review code.') from None
+    state={}
     result=_pair(pair.definition,pair.previous_id,pair.current_id,status=status,q=q,sort=sort,direction=direction,
-                 limit=limit,offset=offset,review_lookup=_lookup(owner),review_status=review_status)
-    return {**result,'review_scope':'private_capture_pair','owner_id':owner.id,'review_filter':review_status}
+                 limit=limit,offset=offset,history_offset=history_offset,review_lookup=_lookup(owner,state),review_status=review_status,next_review_code=(next_code or '') if next_review else next_code,review_code=code)
+    return {**result,**state,'review_scope':'private_capture_pair','owner_id':owner.id,'review_filter':review_status}
 
 @router.patch('')
 def save(inp:ReviewIn,owner:ResearchOwner=Depends(require_research_owner)):

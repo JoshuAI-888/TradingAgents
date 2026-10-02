@@ -131,3 +131,4 @@
 @media(max-width:760px){.explore-action-strip .export-options{left:0;right:auto;width:245px}}
 
 .screen-value{display:block;font-size:11px;line-height:1.5;color:#b4c8e1;font-weight:400;white-space:normal;max-width:210px}.provider-scope .provider-value-context{margin:4px 0;font-size:12px;line-height:1.5;max-width:85ch}
+.pair-review-tools,.pair-review-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}.pair-review-tools label,.pair-review-editor label{display:flex;flex-direction:column;gap:5px}.pair-review-editor{padding:12px;border:1px solid var(--border,#33415a);border-radius:8px;margin-bottom:16px}.pair-review-editor form{display:grid;gap:10px}.pair-review-editor textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:88px}.pair-review-editor details p{white-space:pre-wrap;overflow-wrap:anywhere}.pair-review-tools button,.pair-review-actions button,.pair-review-editor select{min-height:44px}

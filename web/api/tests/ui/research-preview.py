@@ -13,7 +13,7 @@ import uvicorn
 spec=importlib.util.spec_from_file_location('fixture',Path(__file__).with_name('preview.py'));fixture=importlib.util.module_from_spec(spec);spec.loader.exec_module(fixture)
 api.db=FakeDb()
 # Synthetic account/store transport for UI verification only. No remote Auth.
-from tradingagents_api import research_auth, research_lists
+from tradingagents_api import research_auth, research_lists, research_reviews
 from fastapi import HTTPException
 import json,base64,uuid,time,hashlib
 PREVIEW_OWNER='00000000-0000-4000-8000-000000000001'
@@ -30,6 +30,15 @@ research_auth._auth_user=lambda token:{'id':PREVIEW_OWNER,'is_anonymous':False}
 research_auth._session_active=lambda owner,session:True
 class PreviewResearchDb:
     def _call(self,method,path,body=None,query=None,prefer=None):
+        if path=='rpc/research_pair_review_read':
+            keys={'owner_id':body['p_owner'],'history_key':body['p_key'],'previous_id':body['p_previous'],'current_id':body['p_current']}
+            return {'reviews':[dict(r) for r in api.db._t('research_pair_reviews') if all(r[k]==v for k,v in keys.items())]}
+        if path=='rpc/research_pair_review_save':
+            keys={'owner_id':body['p_owner'],'history_key':body['p_key'],'previous_id':body['p_previous'],'current_id':body['p_current'],'code':body['p_code']}
+            rows=api.db._t('research_pair_reviews');row=next((r for r in rows if all(r[k]==v for k,v in keys.items())),None)
+            if row and row['revision']!=body['p_revision'] or not row and body['p_revision']!=0:return []
+            if not row:row={**keys,'revision':0};rows.append(row)
+            row.update(note=body['p_note'],review_status=body['p_status'],revision=row['revision']+1);return [dict(row)]
         if path=='rpc/research_list_search':
             text=body['p_query'].strip().casefold()
             names={r['code']:r['row'].get('name','') for r in api.db._t('screener_quotes') if isinstance(r.get('row'),dict) and r['row'].get('code')==r['code'] and isinstance(r['row'].get('name'),str)}
@@ -70,6 +79,7 @@ class PreviewResearchDb:
             for r in matching:r.update(body)
             return [dict(r) for r in matching]
 research_lists.db=PreviewResearchDb()
+research_reviews.db=research_lists.db
 api.db._t('research_lists').append({'id':'00000000-0000-4000-8000-000000000003','owner_id':PREVIEW_OWNER,'name':'Investment review fixture','description':'Synthetic UI verification only','active':True,'revision':1,'updated_at':datetime.now(timezone.utc).isoformat()})
 api.db._t('research_list_items').append({'list_id':'00000000-0000-4000-8000-000000000003','owner_id':PREVIEW_OWNER,'code':'US.S0001','note':'Review balance sheet quality','review_status':'unreviewed','active':True,'revision':1})
 now=datetime.now(timezone.utc).isoformat()

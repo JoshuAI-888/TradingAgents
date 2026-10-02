@@ -97,3 +97,33 @@ def test_storage_failure_does_not_return_a_false_unreviewed_state(pair_client,mo
     monkeypatch.setattr(store,'_call',failed)
     response=c.get('/api/research/pair-reviews',headers=headers(),params=params())
     assert response.status_code==503 and 'private internal details' not in response.text
+
+
+def test_next_unreviewed_respects_sort_wrap_and_query(pair_client):
+    c,_,_=pair_client
+    first=c.get('/api/research/pair-reviews',headers=headers(),params=params(review_status='unreviewed',next_code='US.A0100',limit=100)).json()
+    assert first['next_review_code']=='US.A0101' and first['offset']==100
+    backwards=c.get('/api/research/pair-reviews',headers=headers(),params=params(review_status='unreviewed',next_code='US.A0100',direction=2,limit=100)).json()
+    assert backwards['next_review_code']=='US.A0099' and backwards['offset']==400
+    wrapped=c.get('/api/research/pair-reviews',headers=headers(),params=params(review_status='unreviewed',next_code='US.A0502')).json()
+    assert wrapped['next_review_code']=='US.A0000'
+    limited=c.get('/api/research/pair-reviews',headers=headers(),params=params(review_status='unreviewed',next_code='US.A0000',q='Company 502')).json()
+    assert limited['next_review_code']=='US.A0502'
+    assert c.get('/api/research/pair-reviews',headers=headers(),params=params(next_code='US.BAD,owner_id.eq.x')).status_code==422
+
+
+def test_review_hash_detects_revision_changes_and_exact_code_reload(pair_client):
+    c,_,_=pair_client
+    original=c.get('/api/research/pair-reviews',headers=headers(),params=params(limit=1)).json()['review_revision_hash']
+    assert c.patch('/api/research/pair-reviews',headers=headers(),json=payload()).status_code==200
+    updated=c.get('/api/research/pair-reviews',headers=headers(),params=params(code='US.A0000',limit=1)).json()
+    assert updated['review_revision_hash']!=original
+    assert updated['matched']==1 and updated['rows'][0]['review']['note']=='First pair'
+    same=c.get('/api/research/pair-reviews',headers=headers(),params=params(offset=400)).json()
+    assert same['review_revision_hash']==updated['review_revision_hash']
+
+
+def test_next_queue_start_does_not_require_an_invented_ticker(pair_client):
+    c,_,_=pair_client
+    data=c.get('/api/research/pair-reviews',headers=headers(),params=params(next_review=True,review_status='unreviewed')).json()
+    assert data['next_review_code']=='US.A0000' and data['offset']==0

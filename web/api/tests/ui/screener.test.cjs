@@ -797,7 +797,7 @@ test('normalizing an existing screener deep link does not push another browser h
 });
 
 test('navigation helpers are loaded through versioned browser assets',()=>{
- assert.match(html,/research-workspace\.js\?v=20261002-export-values/);assert.match(html,/research-account\.js\?v=20261002-export-values/);
+ assert.match(html,/research-workspace\.js\?v=20261002-pair-review/);assert.match(html,/research-account\.js\?v=20261002-pair-review/);
 });
 
 
@@ -872,4 +872,51 @@ test('download blobs retain scope, typed Excel cells and invalid-source diagnost
  assert.equal(rows[0].price,true);assert.equal(rows[0].volume,Infinity);
  const shortlist=c.researchListCSV({name:'Quality',revision:4},[{code:'US.BAD',quote:rows[0],note:'  =1+1'},{code:'US.ZERO',quote:rows[1]}]);
  assert.match(shortlist,/export_value_issues/);assert.match(shortlist,/Unavailable/);assert.match(shortlist,/'  =1\+1/);assert.match(shortlist,/invalid_numeric/);
+});
+
+test('pair review presentation distinguishes private state, storage failure and anonymous access',()=>{
+ const c=harness(),d={previous_id:'1',current_id:'2',owner_id:'owner',review_scope:'private_capture_pair'},r={code:'US.A',review:{revision:1,note:'<private>',review_status:'in_review'}};
+ assert.match(c.researchPairToolsHTML(d,{}),/Sign in to review/);c.__researchSession={user:{id:'owner'}};
+ assert.match(c.researchPairToolsHTML(d,{review_status:'unreviewed'}),/Next unreviewed/);assert.match(c.researchPairToolsHTML({...d,review_error:'storage <failed>'},{}),/storage &lt;failed&gt;/);
+ assert.match(c.researchPairFormHTML(d,r),/&lt;private&gt;/);assert.match(c.researchPairFormHTML(d,r),/Save pair review/);
+ const key=c.__researchPairDraftKey;c.researchPairDraftUpdate({elements:{note:{value:'unsaved'},review_status:{value:'reviewed'}}});
+ assert.match(c.researchPairFormHTML(d,r),/unsaved/);assert.equal(c.__researchPairDraftKey,key);
+ assert.doesNotMatch(c.researchPairFormHTML({...d,current_id:'3'},r),/unsaved/);
+});
+
+test('pair review save conflicts retain drafts and late success retains newer edits',async()=>{
+ const c=harness();c.__researchSession={user:{id:'owner'}};const pair={previous_id:'1',current_id:'2',definition:{market:'US'},owner_id:'owner',review_scope:'private_capture_pair',rows:[{code:'US.A',review:{revision:1,note:'saved',review_status:'unreviewed'}}]};c.__changePayload=pair;
+ c.researchPairFormHTML(pair,pair.rows[0]);const key=c.__researchPairDraftKey,button={isConnected:true},status={};const form={isConnected:true,elements:{note:{value:'draft'},review_status:{value:'in_review'}},querySelector:s=>s==='button[type=submit]'?button:status};
+ c.researchPrivateAPI=async()=>{throw c.researchAuthError('conflict',409);};await c.researchPairSave(form);
+ assert.equal(c.__researchPairDrafts[key].note,'draft');assert.match(status.textContent,/Your draft is kept/);
+ let complete;c.researchPrivateAPI=()=>new Promise(resolve=>complete=resolve);const saving=c.researchPairSave(form);
+ form.elements.note.value='newer draft';c.researchPairDraftUpdate(form);complete({review:{revision:2,note:'draft',review_status:'in_review'}});await saving;
+ assert.equal(c.__researchPairDrafts[key].note,'newer draft');assert.equal(c.__researchPairDrafts[key].revision,2);assert.match(status.textContent,/newer edits are still unsaved/);
+});
+
+test('sign-out clears pair notes and rejects late review responses',async()=>{
+ const c=harness();c.__researchSession={user:{id:'owner'}};c.__researchPairDrafts={secret:{note:'private'}};c.__changePayload={review_scope:'private_capture_pair',rows:[{review:{note:'private'}}]};
+ c.researchPrivateClear();assert.equal(Object.keys(c.__researchPairDrafts).length,0);assert.equal(c.__changePayload,null);
+});
+
+test('pair review filters retain string states and reset pagination',()=>{
+ const c=harness();c.researchLoadChanges=()=>{};c.researchChangeState().offset=500;
+ c.researchChangeSet('review_status','reviewed');assert.equal(c.researchChangeState().review_status,'reviewed');assert.equal(c.researchChangeState().offset,0);
+ c.researchChangeSet('review_status','malformed');assert.equal(c.researchChangeState().review_status,'reviewed');
+});
+
+test('review-filtered comparison export preserves private scope and rejects changing revisions',async()=>{
+ const c=harness(),pair={comparable:true,previous_id:'1',current_id:'2',definition:{market:'US'},review_scope:'private_capture_pair',owner_id:'owner',rows:[]};c.__changePayload=pair;c.__researchSession={user:{id:'owner'}};c.researchChangeState().review_status='reviewed';
+ let blob,clicks=0,warning;c.alert=m=>warning=m;c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){clicks++;},remove(){}});
+ c.researchPrivateAPI=async path=>{assert.equal(new URLSearchParams(path.split('?')[1]).get('review_status'),'reviewed');return {...pair,matched:1,review_revision_hash:'hash',rows:[{code:'US.A',review:{revision:2,review_status:'reviewed',note:'  =1+1'}}]};};
+ await c.researchChangesExport();assert.equal(clicks,1);assert.match(await blob.text(),/review_revision_hash,review_revision,review_status,private_note/);assert.match(await blob.text(),/private_capture_pair,hash,2,reviewed,'  =1\+1/);
+ let pages=0;c.researchPrivateAPI=async()=>({...pair,matched:501,review_revision_hash:++pages===1?'first':'changed',rows:Array.from({length:pages===1?500:1},(_,i)=>({code:'US.A'+(pages===1?i:500)}))});
+ await c.researchChangesExport();assert.equal(clicks,1);assert.match(warning,/Review revisions changed/);
+});
+
+test('reload saved pair review adopts the current revision without replacing the draft',async()=>{
+ const c=harness();c.__researchSession={user:{id:'owner'}};const pair={previous_id:'1',current_id:'2',definition:{market:'US'},owner_id:'owner',review_scope:'private_capture_pair',rows:[{code:'US.A',review:{revision:1,note:'saved',review_status:'unreviewed'}}]};c.__changePayload=pair;c.researchPairFormHTML(pair,pair.rows[0]);const key=c.__researchPairDraftKey,status={};
+ const form={isConnected:true,elements:{note:{value:'my draft'},review_status:{value:'in_review'}},querySelector:()=>status};let rendered;
+ c.researchChangeInspect=code=>rendered=code;c.researchPrivateAPI=async path=>{const query=new URLSearchParams(path.split('?')[1]);assert.equal(query.get('code'),'US.A');assert.equal(query.get('review_status'),'all');return {rows:[{code:'US.A',review:{revision:3,note:'other edit',review_status:'reviewed'}}]};};
+ await c.researchPairReload(form);const draft=c.__researchPairDrafts[key];assert.equal(draft.note,'my draft');assert.equal(draft.review_status,'in_review');assert.equal(draft.revision,3);assert.equal(draft.latest.note,'other edit');assert.equal(rendered,'US.A');
 });

@@ -18,7 +18,7 @@ function researchDialogClose(keepDraft=true) {
  const el=window.__researchDialog;if(!el)return;
  if(keepDraft && el.querySelector('form[data-review]') && window.__researchReviewDraft){const form=el.querySelector('form[data-review]'),d=window.__researchReviewDraft;
   (window.__researchNoteDrafts ||= {})[d.list+'|'+d.code]={...d,note:form.elements.note.value,review_status:form.elements.review_status.value};}
- if(el.querySelector('input[name=password]'))window.__researchPendingAdd=null;
+ if(el.querySelector('input[name=password]')){window.__researchPendingAdd=null;window.__researchPendingPairReview=false;}
  window.__researchDialog=null;
  el.close?.();el.remove();if(window.__researchDialogOrigin?.isConnected)window.__researchDialogOrigin.focus();
 }
@@ -36,6 +36,8 @@ function researchPrivateClear(close=true) {
  const previousOwner=window.__researchSession?.user.id;
  if(close || previousOwner){try{sessionStorage.removeItem('researchListNavigationV1');const origin=JSON.parse(sessionStorage.getItem('researchOriginV1'));if(origin?.owner)sessionStorage.removeItem('researchOriginV1');}catch(e){}}
  window.__researchNavigationOwner=null;
+ window.__researchPairDrafts={};window.__researchPairDraftKey=null;window.__changeGen=(window.__changeGen || 0)+1;
+ if(window.__changePayload?.review_scope==='private_capture_pair'){window.__changePayload=null;researchCloseInspector(false);const changes=document.getElementById('research-change-results');if(changes){changes.innerHTML='Private review cleared. Reloading comparison…';researchChangeState().review_status='all';}}
  for(const url of window.__researchExportURLs || [])URL.revokeObjectURL(url);window.__researchExportURLs=new Set();
  window.__researchAuthGen=(window.__researchAuthGen || 0)+1;window.__researchListGen=(window.__researchListGen || 0)+1;
  window.__researchSession=null;window.__researchLists=[];window.__researchListItems=[];window.__researchCurrentList=null;window.__researchListID=null;
@@ -47,12 +49,14 @@ function researchPrivateClear(close=true) {
  if(close || window.__researchDialog?.querySelector('form[data-review]'))researchDialogClose(false);
  try{sessionStorage.removeItem('researchAuthSessionV1');}catch(e){}
  researchAccountButton();
+ if(document.getElementById('research-change-results'))researchLoadChanges();
 }
 function researchSessionSet(s) {
  if(!researchSessionValid(s))throw researchAuthError('Authentication returned an unusable session.');
  if(window.__researchSession?.user.id!==s.user.id)researchPrivateClear(false);
  window.__researchSession=s;try{sessionStorage.setItem('researchAuthSessionV1',JSON.stringify(s));}catch(e){}
  researchAccountButton();
+ if(document.getElementById('research-change-results'))researchLoadChanges();
 }
 async function researchRefreshSession() {
  if(window.__researchRefresh)return window.__researchRefresh;
@@ -95,7 +99,7 @@ async function researchSignIn(form) {
  const password=form.elements.password.value;form.elements.password.value='';
  try{const s=await researchAuthFetch('/api/research/auth/sign-in',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:form.elements.email.value,password})});
   if(window.__researchDialog!==el || gen!==(window.__researchAuthGen || 0)){researchAuthFetch('/api/research/auth/sign-out',{method:'POST',headers:{Authorization:'Bearer '+s.access_token}}).catch(()=>{});return;}
-  const pending=window.__researchPendingAdd;researchSessionSet(s);window.__researchAccountMessage='';researchDialogClose();window.__researchPendingAdd=null;if(pending)await researchShortlistPicker(pending);else await showPage('shortlists');
+  const pending=window.__researchPendingAdd,pairReview=window.__researchPendingPairReview;researchSessionSet(s);window.__researchAccountMessage='';researchDialogClose();window.__researchPendingAdd=null;if(pending)await researchShortlistPicker(pending);else await showPage(pairReview?'home':'shortlists');
  }catch(e){if(window.__researchDialog===el)status.textContent=e.message;}finally{if(button.isConnected)button.disabled=false;}
 }
 async function researchSignOut() {

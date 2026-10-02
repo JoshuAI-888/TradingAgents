@@ -1964,7 +1964,7 @@ def screen_changes(definition: str, previous_id: str | None = None, current_id: 
 
 def _screen_changes(definition: str, previous_id: str | None = None, current_id: str | None = None,
                    status: str = "all", q: str = "", sort: str = "symbol", direction: int = 1,
-                   limit: int = 100, offset: int = 0, history_offset: int = 0, *, review_lookup=None, review_status="all", review_code=None):
+                   limit: int = 100, offset: int = 0, history_offset: int = 0, *, review_lookup=None, review_status="all", review_code=None, next_review_code=None):
     if status not in ("new", "exited", "all"):
         raise HTTPException(400, "Invalid review filter or sort")
     if direction not in (1, 2) or not 1 <= limit <= 500 or not 0 <= offset <= 40000 or len(q) > 100:
@@ -2077,7 +2077,13 @@ def _screen_changes(definition: str, previous_id: str | None = None, current_id:
     known = [r for r in filtered if sort_value(r) is not None]
     missing = [r for r in filtered if sort_value(r) is None]
     known.sort(key=lambda r: (sort_value(r), r["code"]), reverse=direction == 2)
-    selected = (known + missing)[offset:offset + limit]
+    ordered=known+missing
+    next_code=None
+    if next_review_code is not None and ordered:
+        current_index=next((i for i,row in enumerate(ordered) if row['code']==next_review_code),-1)
+        next_index=(current_index+1)%len(ordered)
+        next_code=ordered[next_index]['code'];offset=(next_index//limit)*limit
+    selected = ordered[offset:offset + limit]
     for row in selected:
         row["evidence"] = paired_evidence(row['previous'],row['current'],inp.filters,times) if observed else _change_evidence(row["previous"], row["current"], inp)
         if row['status'] != 'unchanged' and any(e.get('status') == 'comparable' for e in row['evidence']):
@@ -2090,6 +2096,7 @@ def _screen_changes(definition: str, previous_id: str | None = None, current_id:
             "previous_generation_id": previous.get("source_generation_id"), "current_generation_id": current.get("source_generation_id"),
             "previous_source_clock": previous.get("source_clock", "unverified"), "current_source_clock": current.get("source_clock", "unverified"),
             "rows": selected, "counts": counts, "matched": len(filtered), "offset": offset, "limit": limit,
+            **({"next_review_code":next_code} if next_review_code is not None else {}),
             "definition": inp.model_dump(), "added": [b[k] for k in sorted(b.keys() - a.keys())],
             "exited": [a[k] for k in sorted(a.keys() - b.keys())], "unchanged": len(a.keys() & b.keys())}
 
