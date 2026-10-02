@@ -1,0 +1,1199 @@
+[
+  {
+    "code": "US.GREH",
+    "field": "net_profit_growth",
+    "source_display": "36.84%",
+    "api_criterion_value": 36.837,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.GREH",
+    "field": "revenue_growth",
+    "source_display": "58.59%",
+    "api_criterion_value": 58.589,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.GREH",
+    "field": "debt_ratio",
+    "source_display": "36.60%",
+    "api_criterion_value": 36.6,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.NMTC",
+    "field": "net_profit_growth",
+    "source_display": "70.73%",
+    "api_criterion_value": 70.731,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.NMTC",
+    "field": "revenue_growth",
+    "source_display": "163.47%",
+    "api_criterion_value": 163.471,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.NMTC",
+    "field": "debt_ratio",
+    "source_display": "34.43%",
+    "api_criterion_value": 34.426,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MWYN",
+    "field": "net_profit_growth",
+    "source_display": "10.88%",
+    "api_criterion_value": 10.879,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MWYN",
+    "field": "revenue_growth",
+    "source_display": "427.50%",
+    "api_criterion_value": 427.501,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MWYN",
+    "field": "debt_ratio",
+    "source_display": "14.22%",
+    "api_criterion_value": 14.216,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CTNT",
+    "field": "net_profit_growth",
+    "source_display": "29.66%",
+    "api_criterion_value": 29.662,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CTNT",
+    "field": "revenue_growth",
+    "source_display": "182.69%",
+    "api_criterion_value": 182.694,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CTNT",
+    "field": "debt_ratio",
+    "source_display": "21.11%",
+    "api_criterion_value": 21.106,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HIT",
+    "field": "net_profit_growth",
+    "source_display": "90.74%",
+    "api_criterion_value": 90.736,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HIT",
+    "field": "revenue_growth",
+    "source_display": "70.99%",
+    "api_criterion_value": 70.99,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HIT",
+    "field": "debt_ratio",
+    "source_display": "25.89%",
+    "api_criterion_value": 25.889,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ZHUD",
+    "field": "net_profit_growth",
+    "source_display": "8.07%",
+    "api_criterion_value": 8.068,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ZHUD",
+    "field": "revenue_growth",
+    "source_display": "24.53%",
+    "api_criterion_value": 24.531,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ZHUD",
+    "field": "debt_ratio",
+    "source_display": "29.95%",
+    "api_criterion_value": 29.948,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.JZXN",
+    "field": "net_profit_growth",
+    "source_display": "82.77%",
+    "api_criterion_value": 82.765,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.JZXN",
+    "field": "revenue_growth",
+    "source_display": "105.89%",
+    "api_criterion_value": 105.889,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.JZXN",
+    "field": "debt_ratio",
+    "source_display": "18.20%",
+    "api_criterion_value": 18.202,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.NAGE",
+    "field": "net_profit_growth",
+    "source_display": "103.30%",
+    "api_criterion_value": 103.298,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.NAGE",
+    "field": "revenue_growth",
+    "source_display": "29.95%",
+    "api_criterion_value": 29.946,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.NAGE",
+    "field": "debt_ratio",
+    "source_display": "28.07%",
+    "api_criterion_value": 28.074,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.GURE",
+    "field": "net_profit_growth",
+    "source_display": "26.68%",
+    "api_criterion_value": 26.677,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.GURE",
+    "field": "revenue_growth",
+    "source_display": "231.79%",
+    "api_criterion_value": 231.788,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.GURE",
+    "field": "debt_ratio",
+    "source_display": "16.64%",
+    "api_criterion_value": 16.64,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CAN",
+    "field": "net_profit_growth",
+    "source_display": "15.81%",
+    "api_criterion_value": 15.809,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CAN",
+    "field": "revenue_growth",
+    "source_display": "96.69%",
+    "api_criterion_value": 96.69,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CAN",
+    "field": "debt_ratio",
+    "source_display": "27.45%",
+    "api_criterion_value": 27.454,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.RFL",
+    "field": "net_profit_growth",
+    "source_display": "52.86%",
+    "api_criterion_value": 52.859,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.RFL",
+    "field": "revenue_growth",
+    "source_display": "43.96%",
+    "api_criterion_value": 43.956,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.RFL",
+    "field": "debt_ratio",
+    "source_display": "13.79%",
+    "api_criterion_value": 13.792,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MTEN",
+    "field": "net_profit_growth",
+    "source_display": "68.53%",
+    "api_criterion_value": 68.532,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MTEN",
+    "field": "revenue_growth",
+    "source_display": "15.26%",
+    "api_criterion_value": 15.263,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MTEN",
+    "field": "debt_ratio",
+    "source_display": "29.44%",
+    "api_criterion_value": 29.44,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.SEER",
+    "field": "net_profit_growth",
+    "source_display": "15.01%",
+    "api_criterion_value": 15.01,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.SEER",
+    "field": "revenue_growth",
+    "source_display": "16.99%",
+    "api_criterion_value": 16.993,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.SEER",
+    "field": "debt_ratio",
+    "source_display": "12.42%",
+    "api_criterion_value": 12.42,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.VLN",
+    "field": "net_profit_growth",
+    "source_display": "13.67%",
+    "api_criterion_value": 13.667,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.VLN",
+    "field": "revenue_growth",
+    "source_display": "22.06%",
+    "api_criterion_value": 22.063,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.VLN",
+    "field": "debt_ratio",
+    "source_display": "22.06%",
+    "api_criterion_value": 22.062,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.RANI",
+    "field": "net_profit_growth",
+    "source_display": "27.63%",
+    "api_criterion_value": 27.629,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.RANI",
+    "field": "revenue_growth",
+    "source_display": "58.85%",
+    "api_criterion_value": 58.852,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.RANI",
+    "field": "debt_ratio",
+    "source_display": "29.19%",
+    "api_criterion_value": 29.185,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HYPD",
+    "field": "net_profit_growth",
+    "source_display": "9.04%",
+    "api_criterion_value": 9.04,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HYPD",
+    "field": "revenue_growth",
+    "source_display": "1318.75%",
+    "api_criterion_value": 1318.75,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HYPD",
+    "field": "debt_ratio",
+    "source_display": "20.68%",
+    "api_criterion_value": 20.677,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ZTG",
+    "field": "net_profit_growth",
+    "source_display": "25.37%",
+    "api_criterion_value": 25.368,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ZTG",
+    "field": "revenue_growth",
+    "source_display": "55.77%",
+    "api_criterion_value": 55.768,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ZTG",
+    "field": "debt_ratio",
+    "source_display": "5.87%",
+    "api_criterion_value": 5.87,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.FTFT",
+    "field": "net_profit_growth",
+    "source_display": "91.70%",
+    "api_criterion_value": 91.699,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.FTFT",
+    "field": "revenue_growth",
+    "source_display": "81.13%",
+    "api_criterion_value": 81.128,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.FTFT",
+    "field": "debt_ratio",
+    "source_display": "17.51%",
+    "api_criterion_value": 17.508,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CPSH",
+    "field": "net_profit_growth",
+    "source_display": "113.41%",
+    "api_criterion_value": 113.406,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CPSH",
+    "field": "revenue_growth",
+    "source_display": "54.31%",
+    "api_criterion_value": 54.314,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CPSH",
+    "field": "debt_ratio",
+    "source_display": "16.52%",
+    "api_criterion_value": 16.523,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ELTP",
+    "field": "net_profit_growth",
+    "source_display": "1140.01%",
+    "api_criterion_value": 1140.005,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ELTP",
+    "field": "revenue_growth",
+    "source_display": "77.13%",
+    "api_criterion_value": 77.133,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ELTP",
+    "field": "debt_ratio",
+    "source_display": "28.50%",
+    "api_criterion_value": 28.495,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.YDDL",
+    "field": "net_profit_growth",
+    "source_display": "82.37%",
+    "api_criterion_value": 82.368,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.YDDL",
+    "field": "revenue_growth",
+    "source_display": "23.12%",
+    "api_criterion_value": 23.116,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.YDDL",
+    "field": "debt_ratio",
+    "source_display": "25.38%",
+    "api_criterion_value": 25.379,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.IVVD",
+    "field": "net_profit_growth",
+    "source_display": "69.11%",
+    "api_criterion_value": 69.11,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.IVVD",
+    "field": "revenue_growth",
+    "source_display": "110.47%",
+    "api_criterion_value": 110.471,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.IVVD",
+    "field": "debt_ratio",
+    "source_display": "12.76%",
+    "api_criterion_value": 12.764,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CTM",
+    "field": "net_profit_growth",
+    "source_display": "75.97%",
+    "api_criterion_value": 75.969,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CTM",
+    "field": "revenue_growth",
+    "source_display": "18.10%",
+    "api_criterion_value": 18.097,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CTM",
+    "field": "debt_ratio",
+    "source_display": "14.68%",
+    "api_criterion_value": 14.676,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MSGM",
+    "field": "net_profit_growth",
+    "source_display": "324.56%",
+    "api_criterion_value": 324.564,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MSGM",
+    "field": "revenue_growth",
+    "source_display": "30.05%",
+    "api_criterion_value": 30.048,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MSGM",
+    "field": "debt_ratio",
+    "source_display": "36.65%",
+    "api_criterion_value": 36.654,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HLP",
+    "field": "net_profit_growth",
+    "source_display": "203.25%",
+    "api_criterion_value": 203.252,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HLP",
+    "field": "revenue_growth",
+    "source_display": "38.96%",
+    "api_criterion_value": 38.956,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HLP",
+    "field": "debt_ratio",
+    "source_display": "19.89%",
+    "api_criterion_value": 19.889,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CSDX",
+    "field": "net_profit_growth",
+    "source_display": "9258.61%",
+    "api_criterion_value": 9258.607,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CSDX",
+    "field": "revenue_growth",
+    "source_display": "83.93%",
+    "api_criterion_value": 83.931,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CSDX",
+    "field": "debt_ratio",
+    "source_display": "0.00%",
+    "api_criterion_value": 0.003,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.AAPJ",
+    "field": "net_profit_growth",
+    "source_display": "42.55%",
+    "api_criterion_value": 42.553,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.AAPJ",
+    "field": "revenue_growth",
+    "source_display": "20.00%",
+    "api_criterion_value": 20.0,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.AAPJ",
+    "field": "debt_ratio",
+    "source_display": "31.25%",
+    "api_criterion_value": 31.25,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MSMY",
+    "field": "net_profit_growth",
+    "source_display": "40.49%",
+    "api_criterion_value": 40.491,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MSMY",
+    "field": "revenue_growth",
+    "source_display": "542.25%",
+    "api_criterion_value": 542.246,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MSMY",
+    "field": "debt_ratio",
+    "source_display": "13.09%",
+    "api_criterion_value": 13.092,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.LGBS",
+    "field": "net_profit_growth",
+    "source_display": "99.69%",
+    "api_criterion_value": 99.694,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.LGBS",
+    "field": "revenue_growth",
+    "source_display": "50.00%",
+    "api_criterion_value": 50.0,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.LGBS",
+    "field": "debt_ratio",
+    "source_display": "25.89%",
+    "api_criterion_value": 25.891,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.WDLF",
+    "field": "net_profit_growth",
+    "source_display": "134.32%",
+    "api_criterion_value": 134.32,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.WDLF",
+    "field": "revenue_growth",
+    "source_display": "223.28%",
+    "api_criterion_value": 223.275,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.WDLF",
+    "field": "debt_ratio",
+    "source_display": "29.81%",
+    "api_criterion_value": 29.809,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.TFFP",
+    "field": "net_profit_growth",
+    "source_display": "33.13%",
+    "api_criterion_value": 33.134,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.TFFP",
+    "field": "revenue_growth",
+    "source_display": "48.02%",
+    "api_criterion_value": 48.016,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.TFFP",
+    "field": "debt_ratio",
+    "source_display": "20.46%",
+    "api_criterion_value": 20.455,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.DAVA",
+    "field": "net_profit_growth",
+    "source_display": "34.51%",
+    "api_criterion_value": 34.508,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.DAVA",
+    "field": "revenue_growth",
+    "source_display": "13.19%",
+    "api_criterion_value": 13.19,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.DAVA",
+    "field": "debt_ratio",
+    "source_display": "37.70%",
+    "api_criterion_value": 37.704,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.XBIO",
+    "field": "net_profit_growth",
+    "source_display": "32.31%",
+    "api_criterion_value": 32.306,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.XBIO",
+    "field": "revenue_growth",
+    "source_display": "19.04%",
+    "api_criterion_value": 19.042,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.XBIO",
+    "field": "debt_ratio",
+    "source_display": "11.57%",
+    "api_criterion_value": 11.573,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.LUNA",
+    "field": "net_profit_growth",
+    "source_display": "571.42%",
+    "api_criterion_value": 571.418,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.LUNA",
+    "field": "revenue_growth",
+    "source_display": "25.12%",
+    "api_criterion_value": 25.12,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.LUNA",
+    "field": "debt_ratio",
+    "source_display": "38.15%",
+    "api_criterion_value": 38.147,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.IDN",
+    "field": "net_profit_growth",
+    "source_display": "238.67%",
+    "api_criterion_value": 238.671,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.IDN",
+    "field": "revenue_growth",
+    "source_display": "13.35%",
+    "api_criterion_value": 13.347,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.IDN",
+    "field": "debt_ratio",
+    "source_display": "15.46%",
+    "api_criterion_value": 15.456,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.TWG",
+    "field": "net_profit_growth",
+    "source_display": "257.96%",
+    "api_criterion_value": 257.956,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.TWG",
+    "field": "revenue_growth",
+    "source_display": "92.30%",
+    "api_criterion_value": 92.302,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.TWG",
+    "field": "debt_ratio",
+    "source_display": "5.68%",
+    "api_criterion_value": 5.677,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ORKT",
+    "field": "net_profit_growth",
+    "source_display": "45.24%",
+    "api_criterion_value": 45.235,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ORKT",
+    "field": "revenue_growth",
+    "source_display": "48.88%",
+    "api_criterion_value": 48.884,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ORKT",
+    "field": "debt_ratio",
+    "source_display": "28.14%",
+    "api_criterion_value": 28.139,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.TPET",
+    "field": "net_profit_growth",
+    "source_display": "24.36%",
+    "api_criterion_value": 24.355,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.TPET",
+    "field": "revenue_growth",
+    "source_display": "87.02%",
+    "api_criterion_value": 87.019,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.TPET",
+    "field": "debt_ratio",
+    "source_display": "14.46%",
+    "api_criterion_value": 14.459,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CGEN",
+    "field": "net_profit_growth",
+    "source_display": "348.35%",
+    "api_criterion_value": 348.352,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CGEN",
+    "field": "revenue_growth",
+    "source_display": "161.14%",
+    "api_criterion_value": 161.139,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CGEN",
+    "field": "debt_ratio",
+    "source_display": "34.39%",
+    "api_criterion_value": 34.386,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.AMPG",
+    "field": "net_profit_growth",
+    "source_display": "37.67%",
+    "api_criterion_value": 37.672,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.AMPG",
+    "field": "revenue_growth",
+    "source_display": "164.99%",
+    "api_criterion_value": 164.986,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.AMPG",
+    "field": "debt_ratio",
+    "source_display": "36.16%",
+    "api_criterion_value": 36.163,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.AMST",
+    "field": "net_profit_growth",
+    "source_display": "14.41%",
+    "api_criterion_value": 14.41,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.AMST",
+    "field": "revenue_growth",
+    "source_display": "230.24%",
+    "api_criterion_value": 230.237,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.AMST",
+    "field": "debt_ratio",
+    "source_display": "12.41%",
+    "api_criterion_value": 12.408,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HOLO",
+    "field": "net_profit_growth",
+    "source_display": "18.50%",
+    "api_criterion_value": 18.5,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HOLO",
+    "field": "revenue_growth",
+    "source_display": "45.09%",
+    "api_criterion_value": 45.088,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HOLO",
+    "field": "debt_ratio",
+    "source_display": "2.98%",
+    "api_criterion_value": 2.978,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.KRMD",
+    "field": "net_profit_growth",
+    "source_display": "56.52%",
+    "api_criterion_value": 56.517,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.KRMD",
+    "field": "revenue_growth",
+    "source_display": "22.23%",
+    "api_criterion_value": 22.233,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.KRMD",
+    "field": "debt_ratio",
+    "source_display": "39.55%",
+    "api_criterion_value": 39.546,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.XPON",
+    "field": "net_profit_growth",
+    "source_display": "53.74%",
+    "api_criterion_value": 53.743,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.XPON",
+    "field": "revenue_growth",
+    "source_display": "71.59%",
+    "api_criterion_value": 71.59,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.XPON",
+    "field": "debt_ratio",
+    "source_display": "19.03%",
+    "api_criterion_value": 19.025,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.BGMS",
+    "field": "net_profit_growth",
+    "source_display": "73.26%",
+    "api_criterion_value": 73.26,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.BGMS",
+    "field": "revenue_growth",
+    "source_display": "1637.21%",
+    "api_criterion_value": 1637.209,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.BGMS",
+    "field": "debt_ratio",
+    "source_display": "16.41%",
+    "api_criterion_value": 16.408,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.NIXX",
+    "field": "net_profit_growth",
+    "source_display": "33.69%",
+    "api_criterion_value": 33.685,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.NIXX",
+    "field": "revenue_growth",
+    "source_display": "1631666.67%",
+    "api_criterion_value": 1631666.666,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.NIXX",
+    "field": "debt_ratio",
+    "source_display": "39.49%",
+    "api_criterion_value": 39.488,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.OGI",
+    "field": "net_profit_growth",
+    "source_display": "47.07%",
+    "api_criterion_value": 47.068,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.OGI",
+    "field": "revenue_growth",
+    "source_display": "57.52%",
+    "api_criterion_value": 57.521,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.OGI",
+    "field": "debt_ratio",
+    "source_display": "37.90%",
+    "api_criterion_value": 37.9,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.IMRN",
+    "field": "net_profit_growth",
+    "source_display": "25.83%",
+    "api_criterion_value": 25.828,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.IMRN",
+    "field": "revenue_growth",
+    "source_display": "11.28%",
+    "api_criterion_value": 11.284,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.IMRN",
+    "field": "debt_ratio",
+    "source_display": "15.11%",
+    "api_criterion_value": 15.105,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MYSE",
+    "field": "net_profit_growth",
+    "source_display": "39.50%",
+    "api_criterion_value": 39.5,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MYSE",
+    "field": "revenue_growth",
+    "source_display": "26.15%",
+    "api_criterion_value": 26.146,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.MYSE",
+    "field": "debt_ratio",
+    "source_display": "15.18%",
+    "api_criterion_value": 15.182,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.GMEX",
+    "field": "net_profit_growth",
+    "source_display": "92.67%",
+    "api_criterion_value": 92.668,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.GMEX",
+    "field": "revenue_growth",
+    "source_display": "16.42%",
+    "api_criterion_value": 16.418,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.GMEX",
+    "field": "debt_ratio",
+    "source_display": "19.35%",
+    "api_criterion_value": 19.354,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.SAGT",
+    "field": "net_profit_growth",
+    "source_display": "12.29%",
+    "api_criterion_value": 12.293,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.SAGT",
+    "field": "revenue_growth",
+    "source_display": "64.43%",
+    "api_criterion_value": 64.432,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.SAGT",
+    "field": "debt_ratio",
+    "source_display": "12.56%",
+    "api_criterion_value": 12.558,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CIMG",
+    "field": "net_profit_growth",
+    "source_display": "45.50%",
+    "api_criterion_value": 45.495,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CIMG",
+    "field": "revenue_growth",
+    "source_display": "433.48%",
+    "api_criterion_value": 433.483,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.CIMG",
+    "field": "debt_ratio",
+    "source_display": "37.27%",
+    "api_criterion_value": 37.269,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.IPSC",
+    "field": "net_profit_growth",
+    "source_display": "92.43%",
+    "api_criterion_value": 92.43,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.IPSC",
+    "field": "revenue_growth",
+    "source_display": "1556.76%",
+    "api_criterion_value": 1556.761,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.IPSC",
+    "field": "debt_ratio",
+    "source_display": "28.95%",
+    "api_criterion_value": 28.952,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ORGO",
+    "field": "net_profit_growth",
+    "source_display": "4201.05%",
+    "api_criterion_value": 4201.045,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ORGO",
+    "field": "revenue_growth",
+    "source_display": "17.04%",
+    "api_criterion_value": 17.037,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.ORGO",
+    "field": "debt_ratio",
+    "source_display": "27.53%",
+    "api_criterion_value": 27.526,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.SPRO",
+    "field": "net_profit_growth",
+    "source_display": "112.50%",
+    "api_criterion_value": 112.501,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.SPRO",
+    "field": "revenue_growth",
+    "source_display": "39.24%",
+    "api_criterion_value": 39.237,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.SPRO",
+    "field": "debt_ratio",
+    "source_display": "14.36%",
+    "api_criterion_value": 14.361,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HHSE",
+    "field": "net_profit_growth",
+    "source_display": "5067.56%",
+    "api_criterion_value": 5067.561,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HHSE",
+    "field": "revenue_growth",
+    "source_display": "159.97%",
+    "api_criterion_value": 159.973,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.HHSE",
+    "field": "debt_ratio",
+    "source_display": "17.35%",
+    "api_criterion_value": 17.347,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.VIOT",
+    "field": "net_profit_growth",
+    "source_display": "137.53%",
+    "api_criterion_value": 137.525,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.VIOT",
+    "field": "revenue_growth",
+    "source_display": "19.56%",
+    "api_criterion_value": 19.562,
+    "within_display_rounding": true
+  },
+  {
+    "code": "US.VIOT",
+    "field": "debt_ratio",
+    "source_display": "35.91%",
+    "api_criterion_value": 35.913,
+    "within_display_rounding": true
+  }
+]
