@@ -49,3 +49,15 @@ def test_transforms_reject_bad_numeric_legs_and_nonfinite_results():
     assert ef.apply_transform({'lt':True,'eq':4},'best_effort_lt_de') is None
     assert ef.apply_transform({'lt':1e308,'eq':1e-320},'best_effort_lt_de') is None
     assert ef.apply_transform(0,'pct')==0
+
+
+def test_debt_ratios_require_nonnegative_debt_and_positive_equity():
+    for equity in [0,-40,None,True,'40',float('inf'),float('nan')]:
+        assert ef.apply_transform({'lt':10,'eq':equity},'best_effort_lt_de') is None
+    for debt in [-10,None,True,'10',float('inf'),float('nan')]:
+        assert ef.apply_transform({'lt':debt,'eq':40},'best_effort_lt_de') is None
+    assert ef.apply_transform({'lt':0,'eq':40},'best_effort_lt_de')==0
+    for value in [-25,True,'25',float('inf'),float('nan'),10**400]:
+        assert ef.apply_transform(value,'nonnegative') is None
+    assert ef.apply_transform(0,'nonnegative')==0
+    assert ef.apply_transform(25,'nonnegative')==25

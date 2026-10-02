@@ -669,3 +669,20 @@ def test_company_context_has_exact_identity_freshness_and_no_provider_list_fallb
     api.db._t('screener_enrichment')[0]['data']['_meta']['fundamentals_at']=old
     assert api.screener_company_context('US.BRK.B')['fields']=={}
     with pytest.raises(HTTPException):api.screener_company_context('BRK.B')
+
+
+def test_debt_cache_requires_new_contract_and_rejects_negative_even_with_current_contract():
+    from tradingagents_worker.enrich_fields import YF_FIELD_CONTRACTS
+    now=datetime.now(timezone.utc).isoformat()
+    for contracts in [None,{}, {'lt_debt_eq':'old','total_debt_eq':'old'}]:
+        values,_=api._fresh_supplemental({'lt_debt_eq':25,'total_debt_eq':25,
+            '_meta':{'fundamentals_at':now,'field_contracts':contracts}},now)
+        assert values=={}
+    for value in [-25,True,'25',float('inf')]:
+        values,_=api._fresh_supplemental({'lt_debt_eq':value,'total_debt_eq':value,
+            '_meta':{'fundamentals_at':now,'field_contracts':YF_FIELD_CONTRACTS}},now)
+        assert values=={}
+    values,origins=api._fresh_supplemental({'lt_debt_eq':0,'total_debt_eq':25,
+        '_meta':{'fundamentals_at':now,'field_contracts':YF_FIELD_CONTRACTS}},now)
+    assert values=={'lt_debt_eq':0,'total_debt_eq':25}
+    assert origins['lt_debt_eq']['field_contract']==YF_FIELD_CONTRACTS['lt_debt_eq']

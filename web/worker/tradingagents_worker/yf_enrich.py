@@ -78,7 +78,12 @@ def fetch_yf_enrichment(codes: list[str], prices: dict[str, float],
                 if okey == "_lt_de":
                     # staged: equity arrives as totalStockholderEquity on the
                     # same info dict; combine before exposing
-                    eq = info.get("totalStockholderEquity") or info.get("StockholdersEquity")
+                    # Zero/negative/invalid primary equity cannot borrow a
+                    # positive alternate. Conflicting supplied legs are unknown.
+                    primary, alternate = info.get("totalStockholderEquity"), info.get("StockholdersEquity")
+                    if primary is not None and alternate is not None and primary != alternate:
+                        continue
+                    eq = primary if primary is not None else alternate
                     if eq is not None and not isinstance(eq, bool):
                         got = apply_transform({"lt": info.get(ykey), "eq": eq},
                                               transform)

@@ -855,6 +855,8 @@ def _fresh_supplemental(data, row_stamp, now=None):
         text = field in {'country', 'sector', 'industry', 'website', 'earnings_date', 'ex_div_date'}
         if (text and not (isinstance(value, str) and value.strip())) or (not text and not numeric(value)):
             continue
+        if field in ('lt_debt_eq', 'total_debt_eq') and value < 0:
+            continue  # negative equity/debt is not a qualifying low-leverage value
         values[field] = value.strip() if text else value
         origins[field] = {'source': 'computed_technicals' if technical else 'yfinance',
                           'cache_at': stamp, 'timestamp_semantics': 'retrieval_or_computation_not_reporting_period'}

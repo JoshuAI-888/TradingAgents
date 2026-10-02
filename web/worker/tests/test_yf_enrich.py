@@ -152,3 +152,17 @@ def test_untransformed_huge_vendor_number_cannot_abort_other_tickers():
     rows=ye.fetch_yf_enrichment(['US.AAPL','US.MSFT'],prices={},yf_module=FakeYfModule({
         'AAPL':{'forwardPE':10**400,'payoutRatio':1e308},'MSFT':{'payoutRatio':0}}))
     assert rows[0]['data']=={} and rows[1]['data']=={'payout_ratio':0}
+
+
+def test_debt_fetch_rejects_nonpositive_and_conflicting_equity_without_borrowing_fallback():
+    cases=[{'totalStockholderEquity':-40}, {'totalStockholderEquity':0,'StockholdersEquity':40},
+           {'totalStockholderEquity':'40','StockholdersEquity':40},
+           {'totalStockholderEquity':40,'StockholdersEquity':50}]
+    for legs in cases:
+        row=ye.fetch_yf_enrichment(['US.AAPL'],{},yf_module=FakeYfModule({'AAPL':{
+            'longTermDebt':10,'debtToEquity':-25,'beta':0,**legs}}))[0]
+        assert row['data']=={'beta':0}
+    row=ye.fetch_yf_enrichment(['US.AAPL'],{},yf_module=FakeYfModule({'AAPL':{
+        'longTermDebt':0,'StockholdersEquity':40,'debtToEquity':0}}))[0]
+    assert row['data']=={'lt_debt_eq':0,'total_debt_eq':0}
+    assert row['field_contracts']['lt_debt_eq']==ye.YF_FIELD_CONTRACTS['lt_debt_eq']

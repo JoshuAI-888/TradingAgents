@@ -301,3 +301,35 @@ def test_wrong_ticker_identity_cannot_replace_cached_fundamentals_or_their_clock
     data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
     assert data['beta']==1 and data['_meta']['fundamentals_at']==old
     assert data['_meta']['technicals_at']!=old
+
+
+def test_actual_debt_correction_and_screener_filter_cannot_treat_negative_equity_as_low_debt(fake_db,monkeypatch):
+    from tradingagents_api import main as api
+    from tradingagents_worker.yf_enrich import fetch_yf_enrichment
+    from tradingagents_worker.enrich_fields import YF_FIELD_CONTRACTS
+    from test_yf_enrich import FakeYfModule
+    _seed(fake_db)
+    now=datetime.now(timezone.utc).isoformat()
+    monkeypatch.setattr(api,'db',fake_db)
+    monkeypatch.setattr(api,'_market_client',lambda:object())
+    monkeypatch.setattr(api,'_merge_universe_meta',lambda rows,market:rows)
+    monkeypatch.setattr(api,'_stored_universe',lambda *args,**kwargs:([{
+        'code':'US.AAPL','symbol':'AAPL','stock_type':'STOCK','price':128}],now))
+    for equity, debt, expected in [(-40,10,None),(0,10,None),(40,-10,None),(40,0,0),(40,10,25)]:
+        # Fresh legacy clocks still get priority and cannot establish eligibility.
+        fake_db.upsert('screener_enrichment','market,code',{'market':'US','code':'US.AAPL','as_of':now,
+            'data':{'lt_debt_eq':-25,'total_debt_eq':-25,'_meta':{'fundamentals_at':now}}})
+        seen=[]
+        def fetch(codes,prices,market):
+            seen.extend(codes)
+            return fetch_yf_enrichment(codes,prices,market,yf_module=FakeYfModule({'AAPL':{
+                'longTermDebt':debt,'totalStockholderEquity':equity,'debtToEquity':-25,'beta':0}}))
+        EnrichNightly(fake_db,yf_fetch=fetch).run(run_klines=False)
+        assert seen==['US.AAPL']
+        data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
+        assert data.get('lt_debt_eq')==expected and 'total_debt_eq' not in data
+        assert data['_meta']['field_contracts']['lt_debt_eq']==YF_FIELD_CONTRACTS['lt_debt_eq']
+        result=api.screener(watchlist_only=0,src='yf',filters='[{"field":"lt_debt_eq","max":30}]')
+        assert len(result['rows'])==(0 if expected is None else 1)
+        if result['rows']:assert result['rows'][0]['lt_debt_eq']==expected
+        assert api.screener(watchlist_only=0,src='yf',filters='[{"field":"total_debt_eq","max":30}]')['rows']==[]
