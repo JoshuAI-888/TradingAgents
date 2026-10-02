@@ -1945,7 +1945,7 @@ const pages = {
     ${msPanel}
     <div class="scr-grid">
       <div class="panel scr-main">
-        <h3 class="sec">Screener <small>${scr.server_side ? "server-side execution — provider-qualified membership · " + esc(scr.preset_name || st.activePreset || "") + (execd && execd.pending && execd.pending.length ? " · not yet applied server-side: " + esc(execd.pending.join(", ")) : "") : "moomoo data · " + (st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: " + (scr.universe_loaded ? "full " + esc(st.market) + " market" + (scr.universe_as_of ? " · quotes as of " + fmtTs(scr.universe_as_of) : "") : "live slices — run ↻ Load full market")) + (scr.stale_hint ? " · <b>showing data saved " + Math.max(1, Math.round((Date.now() - scr.stale_hint) / 60000)) + " min ago — updating…</b>" : "") + (st.src === "yf" ? " · Data: YFinance" + (scr.enrich_as_of ? " as of " + fmtTs(scr.enrich_as_of) : "") : "")}</small></h3>
+        <h3 class="sec">Screener <small>${scr.server_side ? "provider-qualified membership · financial criteria: annual · " + esc(scr.preset_name || st.activePreset || "") + (execd && execd.pending && execd.pending.length ? " · not yet applied server-side: " + esc(execd.pending.join(", ")) : "") : "moomoo data · " + (st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: " + (scr.universe_loaded ? "full " + esc(st.market) + " market" + (scr.universe_as_of ? " · quotes as of " + fmtTs(scr.universe_as_of) : "") : "live slices — run ↻ Load full market")) + (scr.stale_hint ? " · <b>showing data saved " + Math.max(1, Math.round((Date.now() - scr.stale_hint) / 60000)) + " min ago — updating…</b>" : "") + (st.src === "yf" ? " · Data: YFinance" + (scr.enrich_as_of ? " as of " + fmtTs(scr.enrich_as_of) : "") : "")}</small></h3>
         <div class="scr-toolbar">
           <label class="faint">Market</label>
           <select id="scr-market" aria-label="Market" onchange="scrSet('market', this.value)">
@@ -4205,6 +4205,18 @@ function stkMoney(v) {
   if (a >= 1e4) return (n / 1e3).toFixed(1) + "K";
   return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
+function stkCapitalTotals(capital, period) {
+  const dist = capital?.distribution || {};
+  const total = side => {
+    const values = ['super','big','mid','small'].map(size => dist['capital_' + side + '_' + size]);
+    return values.every(v => v != null && Number.isFinite(Number(v))) ? values.reduce((sum,v) => sum + Number(v),0) : null;
+  };
+  const inflow = period === 'intraday' ? total('in') : null;
+  const outflow = period === 'intraday' ? total('out') : null;
+  const latest = [...(capital?.flow || [])].sort((a,b) => Number(a.capital_flow_item_time) - Number(b.capital_flow_item_time)).pop();
+  const net = inflow != null && outflow != null ? inflow - outflow : latest?.in_flow;
+  return {inflow,outflow,net:net != null && Number.isFinite(Number(net)) ? Number(net) : null};
+}
 function stkPct(v, dp) { return v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(dp ?? 2) + "%"; }
 // Moomoo analyst consensus: US/CA return only 3 tiers (strong_buy/hold/sell —
 // the buy/underperform fields are HK/CN/SG/MY/AU/JP only), so render every
@@ -4392,21 +4404,19 @@ async function stkOverview() {
                    ["L", dist.capital_in_big, dist.capital_out_big, "Large"],
                    ["M", dist.capital_in_mid, dist.capital_out_mid, "Medium"],
                    ["S", dist.capital_in_small, dist.capital_out_small, "Small"]];
-  const flow = capital?.flow || [];
-  const totIn = flow.reduce((s, f) => s + (Number(f.in_flow) || 0), 0);
-  const totOut = flow.reduce((s, f) => s + (Number(f.out_flow) || 0), 0);
-  const net = totIn - totOut;
-  const unit = v => "$" + stkMoney(v / 1000) + "K";
+  const {inflow:totIn,outflow:totOut,net} = stkCapitalTotals(capital, st.trendPeriod);
+  const unit = v => v == null ? '—' : stkMoney(v);
   const oflow = `
     <div class="stk-sub">${[["intraday","Intraday"],["day","Day"],["week","Week"],["month","Month"]].map(([k, l]) =>
       `<button class="${st.trendPeriod === k ? "on" : ""}" onclick="stkSet('trendPeriod','${k}')">${l}</button>`).join("")}
-      <span class="delay-note" style="margin-left:auto">Orderflow units: trade currency</span></div>
+      <span class="delay-note" style="margin-left:auto">Trade currency · ${st.trendPeriod === 'intraday' ? 'latest session distribution' : 'latest selected period; gross flows unavailable'}</span></div>
     ${!capital ? stkNa() : `
     <div class="oflow-tot">
       <div class="b"><div class="v ${net >= 0 ? "g" : "r"}">${unit(net)}</div><div class="k">Net Inflow</div></div>
       <div class="b"><div class="v g">${unit(totIn)}</div><div class="k">Inflow</div></div>
       <div class="b"><div class="v r">${unit(totOut)}</div><div class="k">Outflow</div></div>
     </div>
+    <p class="faint">Order-size distribution: latest session${dist.update_time ? ' · ' + stkTime(dist.update_time) : ''}</p>
     ${buckets.map(([k, i, o, label]) => {
       const ti = Number(i) || 0, to = Number(o) || 0, mx = Math.max(ti, to, 1);
       return `<div class="dist-row"><b>${k}</b>

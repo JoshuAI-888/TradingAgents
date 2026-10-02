@@ -129,3 +129,10 @@ test('screener ticker links enter full research with return context',()=>{
  c.__scr.page=1;assert.equal(c.__researchContext.state.page,3);
  assert.match(html,/event.preventDefault\(\);researchOpen\('\$\{esc\(r.code \|\| r.symbol\)\}'\)/);
 });
+test('capital-flow totals use gross distribution, not a sum of cumulative net observations',()=>{
+ const c=harness();
+ const data={flow:[{capital_flow_item_time:1,in_flow:10},{capital_flow_item_time:2,in_flow:20}],distribution:{capital_in_super:100,capital_in_big:200,capital_in_mid:300,capital_in_small:400,capital_out_super:20,capital_out_big:30,capital_out_mid:40,capital_out_small:50}};
+ const intraday=c.stkCapitalTotals(data,'intraday');assert.equal(intraday.inflow,1000);assert.equal(intraday.outflow,140);assert.equal(intraday.net,860);
+ const daily=c.stkCapitalTotals(data,'day');assert.equal(daily.net,20);assert.equal(daily.inflow,null);assert.equal(daily.outflow,null);
+ assert.equal(c.stkCapitalTotals({},'intraday').net,null);
+});
