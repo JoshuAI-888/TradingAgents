@@ -797,7 +797,7 @@ test('normalizing an existing screener deep link does not push another browser h
 });
 
 test('navigation helpers are loaded through versioned browser assets',()=>{
- assert.match(html,/research-workspace\.js\?v=20261002-pair-selection-touch/);assert.match(html,/research-account\.js\?v=20261002-pair-selection-touch/);
+ assert.match(html,/research-workspace\.js\?v=20261002-explorer-encoding/);assert.match(html,/research-account\.js\?v=20261002-explorer-encoding/);
 });
 
 
@@ -972,4 +972,20 @@ test('closing Changes bulk dialog stops later batches and mismatched confirmatio
  pending.forEach((resolve,i)=>resolve({item:{code:i===1?'US.WRONG':codes[i]}}));await operation;
  assert.deepEqual(calls,codes.slice(0,4));assert.deepEqual(Array.from(bulk.done),['US.A','US.C','US.D']);assert.equal(bulk.failures[0].code,'US.B');assert.equal(bulk.running,false);
  c.__researchDialog=dialog;c.researchPrivateAPI=async(path,opts)=>{const code=JSON.parse(opts.body).code;calls.push(code);return {item:{code}};};await c.researchChangeBulkAdd();assert.deepEqual(calls.slice(4),['US.B','US.E']);assert.equal(bulk.done.length,5);
+});
+
+test('Explorer sector context qualifies source and freshness without provider-list substitution',()=>{
+ const c=harness(),now=Date.now(),fresh=new Date(now-1000).toISOString(),row={code:'US.A',sector:' Technology ',plate:'Vendor theme',display_field_sources:{sector:{source:'yfinance',cache_at:fresh}}};
+ assert.equal(c.researchExploreSector(row,now),'Technology');assert.equal(c.researchExploreSector({...row,sector:null},now),'Unknown');
+ for(const origin of [{source:'moomoo',cache_at:fresh},{source:'yfinance',cache_at:'invalid'},{source:'yfinance',cache_at:new Date(now+1000).toISOString()},{source:'yfinance',cache_at:new Date(now-8*86400000).toISOString()}])assert.equal(c.researchExploreSector({...row,display_field_sources:{sector:origin}},now),'Unknown');
+ const rows=[row,{code:'US.B',plate:'Technology'}],encoding=c.researchExploreEncoding(rows,{plotted:[row]},now);
+ assert.equal(encoding.sectors.reduce((n,g)=>n+g.loaded,0),2);assert.equal(encoding.sectors.reduce((n,g)=>n+g.plotted,0),1);assert.equal(encoding.sectors.find(g=>g.sector==='Unknown').loaded,1);
+ assert.equal(c.researchExploreSectorColor('Technology'),c.researchExploreSectorColor('Technology'));assert.match(c.researchExploreEncodingHTML(rows,{plotted:[row]},{}),/1\/2 loaded classified/);
+});
+
+test('Explorer cap encoding requires complete identity-attributed single-currency positive caps',()=>{
+ const c=harness(),row=(code,cap,currency)=>({code,market_cap:cap,field_observations:{market_cap:{code,field:'market_cap',unit:'currency',value:cap,currency}}}),a=row('US.A',10,'USD'),b=row('US.B',20,'USD');
+ const encoding=rows=>c.researchExploreEncoding(rows,{plotted:rows});assert.equal(encoding([a,b]).capReady,true);assert.equal(encoding([a,b]).currency,'USD');assert.equal(encoding([a,b]).maxCap,20);
+ for(const invalid of [row('HK.B',20,'HKD'),{...b,field_observations:{}},row('US.B',0,'USD'),row('US.B',-1,'USD'),row('US.B',true,'USD'),{...b,field_observations:{market_cap:{...b.field_observations.market_cap,code:'US.OTHER'}}}])assert.equal(encoding([a,invalid]).capReady,false);
+ assert.equal(encoding([]).capReady,false);assert.match(c.researchExploreEncodingHTML([a,{...b,field_observations:{}}],{plotted:[a,{...b,field_observations:{}}]},{}),/value="cap"[^>]*disabled/);
 });

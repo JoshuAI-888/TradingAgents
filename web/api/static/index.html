@@ -416,7 +416,7 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 ::-webkit-scrollbar-thumb:hover{background:#33445f}
 *{scrollbar-width:thin;scrollbar-color:#26344a var(--bg)}
 </style>
-<link rel="stylesheet" href="/research-workspace.css?v=20261002-pair-selection-touch">
+<link rel="stylesheet" href="/research-workspace.css?v=20261002-explorer-encoding">
 </head>
 <body>
 <div class="wrap">
@@ -1431,8 +1431,8 @@ async function scrDeleteSaved(id) {
   scrTab = "screeners"; scrRenderModal();
 }
 </script>
-<script src="/research-workspace.js?v=20261002-pair-selection-touch"></script>
-<script src="/research-account.js?v=20261002-pair-selection-touch"></script>
+<script src="/research-workspace.js?v=20261002-explorer-encoding"></script>
+<script src="/research-account.js?v=20261002-explorer-encoding"></script>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
