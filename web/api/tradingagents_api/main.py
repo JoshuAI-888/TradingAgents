@@ -849,13 +849,26 @@ def _fresh_supplemental(data, row_stamp, now=None):
             continue
         if not 0 <= age <= (86400 if technical else 7 * 86400):
             continue
-        text = field in {'country', 'sector', 'industry', 'earnings_date', 'ex_div_date'}
+        text = field in {'country', 'sector', 'industry', 'website', 'earnings_date', 'ex_div_date'}
         if (text and not (isinstance(value, str) and value.strip())) or (not text and not numeric(value)):
             continue
         values[field] = value.strip() if text else value
         origins[field] = {'source': 'computed_technicals' if technical else 'yfinance',
                           'cache_at': stamp, 'timestamp_semantics': 'retrieval_or_computation_not_reporting_period'}
     return values, origins
+
+
+@app.get('/api/screener/company-context')
+def screener_company_context(code: str):
+    """Bounded public cached company context; no quote/provider fetch or fallback taxonomy."""
+    if not re.fullmatch(r'(US|HK)\.[A-Z0-9][A-Z0-9._-]{0,30}',code):
+        raise HTTPException(400,'Invalid canonical security code')
+    entries=db.select('screener_enrichment',{'market':f"eq.{code.split('.',1)[0]}",'code':f'eq.{code}'},'code,data,as_of')
+    entry=entries[0] if len(entries)==1 and entries[0].get('code')==code else {}
+    values,origins=_fresh_supplemental(entry.get('data'),entry.get('as_of'))
+    fields={field:values[field] for field in ('sector','industry','country','website') if field in values}
+    return {'code':code,'fields':fields,'origins':{field:origins[field] for field in fields},
+            'scope':'Current cached yfinance company classifications; not pinned to the quote generation. Missing/stale values remain unavailable.'}
 
 
 @app.get("/api/screener")
@@ -1866,8 +1879,8 @@ def _change_evidence(before: dict | None, after: dict | None, inp: ScreenDefinit
         unique = sum(c.get('field') == field for c in inp.filters) == 1
         prior = (before or {}).get("evidence", {}).get(field) if unique else None
         current = (after or {}).get("evidence", {}).get(field) if unique else None
-        period = (str(criterion["days"]) + "-day window") if criterion.get("days") else (
-            "TTM" if field == "pe_ttm" else "Annual provider financial criterion" if inp.preset and
+        period = (str(criterion["days"]) + "-day window requested; actual observation window unverified") if criterion.get("days") else (
+            "TTM definition; reported period not supplied" if field == "pe_ttm" else "Annual basis requested; reported period not supplied" if inp.preset and
             field in ("revenue_growth", "net_profit_growth", "roe", "roe_yoy", "debt_ratio", "eps_growth") else "Period not supplied")
         evidence.append({"field": field, "previous": prior, "current": current,
                          "criterion": criterion, "period": period,

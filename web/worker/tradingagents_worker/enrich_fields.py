@@ -50,6 +50,7 @@ YF_FIELDS: dict[str, tuple[str, str | None]] = {
     "earningsGrowth": ("eps_growth", "pct"),
     "sector": ("sector", None),
     "industry": ("industry", None),
+    "website": ("website", None),
 }
 
 # Computed from stored moomoo daily klines (available in BOTH modes).
@@ -73,7 +74,7 @@ FIELD_LABELS = {
     "analyst_recom": "Analyst Recom.", "country": "Country",
     "employees": "Employees", "earnings_date": "Earnings Date",
     "ex_div_date": "Div Ex-Date", "payout_ratio": "Payout Ratio",
-    "sector": "Sector", "industry": "Industry",
+    "sector": "Sector", "industry": "Industry", "website": "Website",
     "roe": "ROE %", "gross_margin": "Gross Margin %",
     "operating_margin": "Operating Margin %", "net_margin": "Net Margin %",
     "revenue_growth": "Revenue Growth %", "eps_growth": "EPS Growth %",

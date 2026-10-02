@@ -38,6 +38,14 @@ INFO_A = {"forwardPE": 22.5, "shortPercentOfFloat": 0.021, "country": "USA",
 INFO_B = {"beta": 1.1}
 
 
+def test_company_website_is_retained_as_text_and_structured_values_are_rejected():
+    rows=ye.fetch_yf_enrichment(['US.AAPL','US.MSFT'],prices={},yf_module=FakeYfModule({
+        'AAPL':{'website':' https://company.example ','sector':'Technology'},'MSFT':{'website':{'url':'https://wrong.example'}}}))
+    by={row['code']:row['data'] for row in rows}
+    assert by['US.AAPL']['website']=='https://company.example'
+    assert 'website' not in by['US.MSFT']
+
+
 def test_fetch_maps_codes_and_transforms():
     yf = FakeYfModule({"AAPL": INFO_A, "MSFT": INFO_B})
     rows = ye.fetch_yf_enrichment(["US.AAPL", "US.MSFT"], prices={"US.AAPL": 200.0},

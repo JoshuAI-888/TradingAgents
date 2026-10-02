@@ -78,7 +78,7 @@ def fetch_yf_enrichment(codes: list[str], prices: dict[str, float],
                     continue
                 got = apply_transform(info.get(ykey), transform,
                                       price=price, market_cap=mcap)
-                text_field = okey in {"country", "sector", "industry", "earnings_date", "ex_div_date"}
+                text_field = okey in {"country", "sector", "industry", "website", "earnings_date", "ex_div_date"}
                 if text_field:
                     if isinstance(got, str) and got.strip():
                         data[okey] = got.strip()

@@ -143,9 +143,9 @@ test('inspector values retain percent units, short cap units and unavailable num
  assert.equal(c.researchValue('market_cap',5.564e12,'USD'),'USD 5.56T');
  assert.equal(c.researchValue('pe_ttm',null),'Unavailable');
  const e=c.researchEvidence({revenue_growth:99,criterion_values:{}},{field:'revenue_growth',min:5,excl_min:1},'penny');
- assert.equal(e.value,'Numeric evidence unavailable');assert.equal(e.threshold,'> 5%');assert.equal(e.period,'Annual financial criterion');
+ assert.equal(e.value,'Numeric evidence unavailable');assert.equal(e.threshold,'> 5%');assert.equal(e.basis,'Annual financial basis requested');assert.equal(e.period,'Reported period not supplied');
  const v=c.researchEvidence({criterion_values:{volume:100001}},{field:'volume',min:100000,days:30},'penny');
- assert.equal(v.value,'100,001 shares');assert.equal(v.period,'30-day average');
+ assert.equal(v.value,'100,001 shares');assert.equal(v.basis,'30-day average requested');assert.equal(v.period,'Reported period not supplied');
  assert.equal(c.researchValue('price',0.000001),'0.000001');assert.equal(c.researchValue('price',123.4),'123.40');
 });
 test('desk library groups retain every original preset and leave future definitions reachable',()=>{
@@ -223,7 +223,7 @@ test('a late inspector response cannot replace the newer stock status',async()=>
  const c=harness(),status={textContent:''},chart={innerHTML:''},pending=[];
  const inspector={classList:{add(){}},setAttribute(){},removeAttribute(){},querySelector:()=>null};
  c.document.getElementById=id=>({'research-inspector':inspector,'inspect-chart':chart,'inspect-chart-status':status})[id];
- c.api=()=>new Promise(resolve=>pending.push(resolve));
+ c.api=url=>url.startsWith('/api/screener/company-context')?Promise.resolve({fields:{},origins:{}}):new Promise(resolve=>pending.push(resolve));
  const old=c.researchInspectRow(stock('A',10,1,{code:'US.A'}));
  const newer=c.researchInspectRow(stock('B',9,2,{code:'US.B'}));
  pending[1]({available:false,reason:'B unavailable'});await newer;
@@ -585,4 +585,26 @@ test('currency and typed provenance survive CSV and Excel selected exports',asyn
  let blob;c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){},remove(){}});
  c.scrExport('csv','selected');const csv=await blob.text();assert.match(csv,/market_cap_currency,price_currency,field_observations/);assert.match(csv,/,HKD,Unavailable,/);assert.match(csv,/""currency"":""HKD""/);
  c.scrExport('xls','selected');const xml=await blob.text();assert.match(xml,/market_cap_currency/);assert.match(xml,/>HKD</);assert.match(xml,/"currency":"HKD"/);assert.doesNotMatch(xml,/\[object Object\]/);
+});
+
+test('criterion evidence distinguishes requested basis from matching actual observations',()=>{
+ const c=harness(),r={code:'US.A',roe:25,criterion_values:{roe:0},display_field_sources:{roe:{source:'yfinance',cache_at:'2026-10-02T00:00:00Z'}},field_observations:{roe:{code:'US.A',field:'roe',value:25,period:'FY2025',source:'source fixture'}}};
+ const provider=c.researchEvidence(r,{field:'roe',min:10},'preset');assert.equal(provider.value,'0%');assert.equal(provider.period,'Reported period not supplied');assert.match(provider.status,/does not pass/);
+ const stored=c.researchEvidence(r,{field:'roe',min:10},null);assert.equal(stored.period,'FY2025');assert.equal(stored.source,'yfinance cached factor');assert.match(stored.status,/passes/);
+ r.field_observations.roe.code='US.B';assert.equal(c.researchEvidence(r,{field:'roe'},null).period,'Reported period not supplied');
+ r.criterion_values.roe=false;assert.equal(c.researchEvidence(r,{field:'roe'},'preset').value,'Numeric evidence unavailable');
+});
+
+test('company context requires source and freshness and only links safe supplied websites',()=>{
+ const c=harness(),now=Date.now(),origin={source:'yfinance',cache_at:new Date(now).toISOString()},p={code:'US.A',fields:{sector:'Technology',industry:'Software',website:'https://company.example/'},origins:{sector:origin,industry:origin,website:origin}};
+ const html=c.researchCompanyContextHTML(p,'US.A',now);assert.match(html,/Technology/);assert.match(html,/href="https:\/\/company.example\/"/);
+ assert.doesNotMatch(c.researchCompanyContextHTML(p,'US.B',now),/Technology|href=/);
+ assert.doesNotMatch(c.researchCompanyContextHTML(p,'US.A',now+8*86400000),/Technology|href=/);
+ for(const site of ['javascript:alert(1)','data:text/html,bad','https://user:password@company.example/']){p.fields.website=site;assert.doesNotMatch(c.researchCompanyContextHTML(p,'US.A',now),/href=/);}
+});
+
+test('late company metadata cannot replace a newer inspector and cached fields avoid repeat requests',async()=>{
+ const c=harness();let resolve,markup='',calls=0;c.api=()=>{calls++;return new Promise(r=>resolve=r);};c.document.getElementById=()=>({set innerHTML(v){markup=v;}});c.__inspectGen=1;c.__researchInspectCode='US.A';
+ const pending=c.researchCompanyMount('US.A',1);c.__inspectGen=2;c.__researchInspectCode='US.B';resolve({code:'US.A',fields:{},origins:{}});await pending;assert.equal(markup,'');
+ c.__researchInspectCode='US.A';await c.researchCompanyMount('US.A',2);assert.equal(calls,1);assert.match(markup,/Unavailable/);
 });

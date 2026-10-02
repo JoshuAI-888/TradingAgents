@@ -122,3 +122,4 @@
 
 #explore-point-picker{scroll-margin-top:220px}@media(max-width:760px){#explore-point-picker{scroll-margin-top:16px}}
 .research-desk abbr[title], .research-inspector abbr[title] { font-size:12px; font-weight:400; color:var(--dim); white-space:nowrap; }
+.inspector-company{margin:12px 0 18px;padding:12px 0;border-top:1px solid var(--line)}.inspector-company h4{margin:0 0 10px}.inspector-company dl{margin:0;font-size:13px;gap:8px 12px}.inspector-company dd{overflow-wrap:anywhere}.inspector-company .faint{font-size:12px;line-height:1.5}

@@ -407,16 +407,40 @@ function researchDisplayField(field,value) {
 function researchEvidence(row,filter,preset) {
  const field=filter.field,provider=!!preset;
  const value=provider?row.criterion_values?.[field]:row[field];
- const numeric=value!=null && value!=='' && Number.isFinite(Number(value));
+ const numeric=typeof value==='number' && Number.isFinite(value);
  const terms=[];
  if(filter.min!=null)terms.push((filter.excl_min?'> ':'≥ ')+researchValue(field,filter.min));
  if(filter.max!=null)terms.push((filter.excl_max?'< ':'≤ ')+researchValue(field,filter.max));
  if(filter.values)terms.push(filter.values.join(', '));
- const financial=['roe','roe_yoy','revenue_growth','net_profit_growth','debt_ratio','gross_margin','net_margin','eps','eps_growth','op_ebt'].includes(field);
- return {label:SCR_COLS[field]?.[0] || SCR_FIELDS[field] || field,value:numeric?researchValue(field,value):'Numeric evidence unavailable',threshold:terms.join(' and '),
-  period:filter.days?filter.days+'-day '+(field==='volume'?'average':'window'):provider && financial?'Annual financial criterion':field==='pe_ttm'?'TTM':field==='forward_pe'?'Forward estimate':'Period not supplied',
-  source:provider?'Moomoo screen criterion':window.__scr.src==='yf'?'Supplemental stored factor':'Stored quote',
-  status:numeric?'Numeric evidence supplied':provider?'Provider-qualified membership; value unavailable':'Value unavailable'};
+ const financial=['roe','roe_yoy','revenue_growth','net_profit_growth','debt_ratio','gross_margin','net_margin','eps','eps_growth','op_ebt','op_profit_growth','div_yield','float_cap'].includes(field);
+ const o=provider?null:row.field_observations?.[field],origin=row.display_field_sources?.[field];
+ const attributed=o && o.code===row.code && o.field===field && o.value===value;
+ const period=attributed && typeof o.period==='string' && o.period?o.period:'Reported period not supplied';
+ const basis=filter.days?filter.days+'-day '+(field==='volume'?'average':'window')+' requested':provider && financial?'Annual financial basis requested':field==='pe_ttm'?'TTM definition':field==='forward_pe'?'Forward estimate definition':'No reporting basis supplied';
+ const source=provider?'Moomoo screen criterion':({yfinance:'yfinance cached factor',computed_technicals:'Computed technical factor',provider_screen:'Moomoo screen value',stored_generation:'Stored quote generation',legacy_cache:'Stored quote cache',live_snapshot:'Snapshot quote'})[origin?.source] || (attributed && typeof o.source==='string'?o.source:'Source not supplied');
+ const stamp=provider?row.display_field_sources?.[field]?.retrieved_at:origin?.cache_at || origin?.retrieved_at || (attributed?o.observed_at:null);
+ const categorical=!provider && Array.isArray(filter.values) && (typeof value==='string' || typeof value==='boolean' || Array.isArray(value));
+ let shown=numeric?researchValue(field,value):categorical?researchDisplayField(field,value):'Numeric evidence unavailable';
+ if(numeric && RESEARCH_CURRENCY_FIELDS.has(field))shown=provider?shown+' · currency not supplied':researchMoneyValue(row,field);
+ const passes=numeric?(filter.min==null || (filter.excl_min?value>filter.min:value>=filter.min)) && (filter.max==null || (filter.excl_max?value<filter.max:value<=filter.max)):null;
+ return {label:SCR_COLS[field]?.[0] || SCR_FIELDS[field] || field,value:shown,threshold:terms.join(' and '),basis,period,source,
+  timestamp:stamp?researchCaptureTime(stamp):'Source/retrieval time not supplied',
+  status:numeric?(passes?'Supplied value passes these bounds; period/source qualification is separate':'Supplied value does not pass these bounds; review current evidence'):categorical?'Stored classification supplied':provider?'Provider screen membership; criterion value unavailable':'Value unavailable'};
+}
+
+function researchCompanyContextHTML(payload,code,now=Date.now()) {
+ const qualified=field=>{const value=payload?.fields?.[field],origin=payload?.origins?.[field],stamp=Date.parse(origin?.cache_at),age=now-stamp;return payload?.code===code && typeof value==='string' && value.trim() && origin?.source==='yfinance' && Number.isFinite(stamp) && age>=0 && age<=7*86400000?value.trim():null;};
+ const sector=qualified('sector'),industry=qualified('industry'),site=qualified('website');let url;
+ try{const parsed=new URL(site);if(['http:','https:'].includes(parsed.protocol) && !parsed.username && !parsed.password && parsed.hostname)url=parsed;}catch(e){}
+ return `<section class="inspector-company" aria-label="Company context"><h4>Company context</h4><dl><dt>Sector</dt><dd>${esc(sector || 'Unavailable')}</dd><dt>Industry</dt><dd>${esc(industry || 'Unavailable')}</dd><dt>Website</dt><dd>${url?`<a href="${esc(url.href)}" target="_blank" rel="noopener noreferrer">${esc(url.hostname)}</a>`:'Unavailable'}</dd></dl><p class="faint">Current cached yfinance classifications · retrieval time is not a financial reporting period. Provider lists are separate; this context is not pinned to quote generation.</p></section>`;
+}
+async function researchCompanyMount(code,gen) {
+ const cache=window.__researchCompanyCache || (window.__researchCompanyCache=new Map());let entry=cache.get(code);
+ try{
+  if(!entry || Date.now()-entry.at>30000){const payload=await api('/api/screener/company-context?code='+encodeURIComponent(code));entry={payload,at:Date.now()};if(payload?.code===code){if(cache.size>=128 && !cache.has(code))cache.delete(cache.keys().next().value);cache.set(code,entry);}}
+  if(gen!==window.__inspectGen || window.__researchInspectCode!==code)return;
+  const target=document.getElementById('inspect-company');if(target)target.innerHTML=researchCompanyContextHTML(entry.payload,code);
+ }catch(e){if(gen===window.__inspectGen && window.__researchInspectCode===code){const target=document.getElementById('inspect-company');if(target)target.textContent='Company context unavailable. Reopen Overview to retry.';}}
 }
 function researchDisposeInspector() {
  researchModalRelease('inspector');
@@ -471,11 +495,11 @@ async function researchInspectRow(row,options={}) {
  const tabs=[['overview','Overview'],['why',privateItem?'List context':'Why it matches'],['news','News']];
  const evidence=filters.map(f=>researchEvidence(row,f,window.__scr.activePreset));
  const provenance=researchQuoteProvenance(row);
- const why=privateItem?`<h4>Research shortlist</h4><p>${esc(privateItem.review_status.replaceAll('_',' '))}</p><p>${esc(privateItem.note || 'No note')}</p><p>List membership does not establish qualification for the current screener criteria.</p>`:filters.length?`<div class="inspector-evidence">${evidence.map(e=>`<section><h4>${esc(e.label)}</h4><strong>${esc(e.value)}</strong><p>Rule: ${esc(e.threshold || 'Provider definition')}<br>${esc(e.period)}<br>${esc(e.source)}</p><small>${esc(e.status)}</small></section>`).join('')}</div>`:'<p>All stocks — no custom criteria. This stock is in the current stock-only universe.</p>';
+ const why=privateItem?`<h4>Research shortlist</h4><p>${esc(privateItem.review_status.replaceAll('_',' '))}</p><p>${esc(privateItem.note || 'No note')}</p><p>List membership does not establish qualification for the current screener criteria.</p>`:filters.length?`<div class="inspector-evidence">${evidence.map(e=>`<section><h4>${esc(e.label)}</h4><strong>${esc(e.value)}</strong><p>Rule: ${esc(e.threshold || 'Provider definition')}<br>${esc(e.basis)}<br>${esc(e.period)}<br>${esc(e.source)} · ${esc(e.timestamp)}</p><small>${esc(e.status)}</small></section>`).join('')}</div>`:'<p>All stocks — no custom criteria. This stock is in the current stock-only universe.</p>';
  el.classList.add('open');el.setAttribute('role',window.matchMedia?.('(max-width:1350px)').matches?'dialog':'complementary');el.setAttribute('aria-label',row.symbol+' stock inspector');
  if(window.matchMedia?.('(max-width:1350px)').matches)el.setAttribute('aria-modal','true');else el.removeAttribute('aria-modal');
  el.onkeydown=researchInspectorKey;
- el.innerHTML=`<div class="inspector-heading"><div><h2>${esc(row.symbol)}</h2><p>${esc(row.name)}</p></div><button class="btn ghost inspector-close" onclick="researchCloseInspector()">Close preview</button></div><div class="inspector-price">${researchMoneyHTML(row,'price')}<small class="${Number(row.pct)>=0?'g':'r'}">${esc(researchValue('pct',row.pct))}</small></div><div class="inspector-tabs" role="group" aria-label="Inspector section">${tabs.map(([id,label])=>`<button class="btn ${tab===id?'primary':'ghost'}" aria-pressed="${tab===id}" onclick="researchInspectorTab('${id}')">${label}</button>`).join('')}</div><div class="inspector-scroll"><div id="inspector-content">${tab==='overview'?`<dl class="inspector-key-metrics" aria-label="Quote metrics">${['market_cap','pe_ttm','pb','volume','high52','low52'].map(k=>`<dt>${esc(SCR_COLS[k]?.[0] || k)}</dt><dd>${RESEARCH_CURRENCY_FIELDS.has(k)?researchMoneyHTML(row,k):esc(researchValue(k,row[k]))}</dd>`).join('')}</dl><div id="inspect-chart" aria-label="${esc(row.symbol)} price history" style="height:220px"></div><div class="inspector-ranges" role="group" aria-label="Chart range">${Object.keys(RESEARCH_RANGES).map(r=>`<button class="btn ${range===r?'primary':'ghost'}" aria-pressed="${range===r}" onclick="researchInspectorRange('${r}')">${r}</button>`).join('')}</div><p id="inspect-chart-status" role="status">Loading ${range} history…</p><h4>${privateItem?'List context':'Screen context'}</h4><p>${privateItem?'Research shortlist · see List context':filters.length?filters.length+' criteria · see Why it matches':'All stocks — no custom criteria'}</p>`:tab==='why'?why:'<div id="inspect-news" role="status">Loading recent news…</div>'}</div>${provenance}</div><div class="inspector-actions"><button class="btn ghost" onclick="researchShortlistPicker(${call(code)})">Add to shortlist</button><button class="btn ghost" onclick="toggleWatch(${call(row.symbol)})" ${window.__watchPending?.has(row.symbol)?'disabled':''}>${watched?'Remove from watchlist':'Add to watchlist'}</button><button class="btn primary" onclick="researchOpen(${call(code)})">Open full research</button></div><p class="faint">All stock tabs and KLine tools remain in full research.</p>`;
+ el.innerHTML=`<div class="inspector-heading"><div><h2>${esc(row.symbol)}</h2><p>${esc(row.name)}</p></div><button class="btn ghost inspector-close" onclick="researchCloseInspector()">Close preview</button></div><div class="inspector-price">${researchMoneyHTML(row,'price')}<small class="${Number(row.pct)>=0?'g':'r'}">${esc(researchValue('pct',row.pct))}</small></div><div class="inspector-tabs" role="group" aria-label="Inspector section">${tabs.map(([id,label])=>`<button class="btn ${tab===id?'primary':'ghost'}" aria-pressed="${tab===id}" onclick="researchInspectorTab('${id}')">${label}</button>`).join('')}</div><div class="inspector-scroll"><div id="inspector-content">${tab==='overview'?`<dl class="inspector-key-metrics" aria-label="Quote metrics">${['market_cap','pe_ttm','pb','volume','high52','low52'].map(k=>`<dt>${esc(SCR_COLS[k]?.[0] || k)}</dt><dd>${RESEARCH_CURRENCY_FIELDS.has(k)?researchMoneyHTML(row,k):esc(researchValue(k,row[k]))}</dd>`).join('')}</dl><div id="inspect-company" role="status">Loading cached company context…</div><div id="inspect-chart" aria-label="${esc(row.symbol)} price history" style="height:220px"></div><div class="inspector-ranges" role="group" aria-label="Chart range">${Object.keys(RESEARCH_RANGES).map(r=>`<button class="btn ${range===r?'primary':'ghost'}" aria-pressed="${range===r}" onclick="researchInspectorRange('${r}')">${r}</button>`).join('')}</div><p id="inspect-chart-status" role="status">Loading ${range} history…</p><h4>${privateItem?'List context':'Screen context'}</h4><p>${privateItem?'Research shortlist · see List context':filters.length?filters.length+' criteria · see Why it matches':'All stocks — no custom criteria'}</p>`:tab==='why'?why:'<div id="inspect-news" role="status">Loading recent news…</div>'}</div>${provenance}</div><div class="inspector-actions"><button class="btn ghost" onclick="researchShortlistPicker(${call(code)})">Add to shortlist</button><button class="btn ghost" onclick="toggleWatch(${call(row.symbol)})" ${window.__watchPending?.has(row.symbol)?'disabled':''}>${watched?'Remove from watchlist':'Add to watchlist'}</button><button class="btn primary" onclick="researchOpen(${call(code)})">Open full research</button></div><p class="faint">All stock tabs and KLine tools remain in full research.</p>`;
  if(window.matchMedia?.('(max-width:1350px)').matches)researchModalIsolate(el,'inspector');
  if(options.focus)el.querySelector('.inspector-close')?.focus();
  if(options.focusControl)el.querySelector(options.focusControl==='tab'?'.inspector-tabs [aria-pressed="true"]':'.inspector-ranges [aria-pressed="true"]')?.focus();
@@ -493,6 +517,7 @@ async function researchInspectRow(row,options={}) {
   return;
  }
  if(tab!=='overview')return;
+ researchCompanyMount(code,gen);
  const config=RESEARCH_RANGES[range];
  try{
   const data=await api('/api/stock/'+encodeURIComponent(code)+'/candles?range='+config.request);

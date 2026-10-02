@@ -73,6 +73,10 @@ research_lists.db=PreviewResearchDb()
 api.db._t('research_lists').append({'id':'00000000-0000-4000-8000-000000000003','owner_id':PREVIEW_OWNER,'name':'Investment review fixture','description':'Synthetic UI verification only','active':True,'revision':1,'updated_at':datetime.now(timezone.utc).isoformat()})
 api.db._t('research_list_items').append({'list_id':'00000000-0000-4000-8000-000000000003','owner_id':PREVIEW_OWNER,'code':'US.S0001','note':'Review balance sheet quality','review_status':'unreviewed','active':True,'revision':1})
 now=datetime.now(timezone.utc).isoformat()
+if os.getenv('RESEARCH_COMPANY_CONTEXT_FIXTURE'):
+    api.db._t('screener_enrichment').append({'market':'US','code':'US.S0001','as_of':now,
+        'data':{'sector':'Technology','industry':'Synthetic classification','website':'https://company.example/',
+                '_meta':{'fundamentals_at':now}}})
 if os.getenv('RESEARCH_REFRESH_FAILURE_FIXTURE'):
     api.db._t('app_settings').extend([
         {'key':'universe_state','value':{'interval_h':4}},

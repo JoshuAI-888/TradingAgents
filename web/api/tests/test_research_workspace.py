@@ -606,3 +606,18 @@ def test_field_currency_and_server_exports_preserve_attribution_without_inferenc
     assert json.loads(data[1]['field_observations'])['price']['currency']=='HKD'
     xml=api.screener(watchlist_only=0,export='xls').body.decode()
     assert 'price_currency' in xml and '>HKD<' in xml and '"currency": "HKD"' in xml
+
+
+def test_company_context_has_exact_identity_freshness_and_no_provider_list_fallback():
+    from datetime import timedelta
+    now=datetime.now(timezone.utc).isoformat();old=(datetime.now(timezone.utc)-timedelta(days=8)).isoformat()
+    api.db._t('screener_enrichment').append({'code':'US.BRK.B','market':'US','as_of':now,
+        'data':{'sector':' Financial Services ','industry':'Insurance','website':'https://company.example',
+                'plate':'Banks','price':999,'_meta':{'fundamentals_at':now}}})
+    out=api.screener_company_context('US.BRK.B')
+    assert out['fields']=={'sector':'Financial Services','industry':'Insurance','website':'https://company.example'}
+    assert out['origins']['website']['cache_at']==now
+    assert api.screener_company_context('US.BRK.A')['fields']=={}
+    api.db._t('screener_enrichment')[0]['data']['_meta']['fundamentals_at']=old
+    assert api.screener_company_context('US.BRK.B')['fields']=={}
+    with pytest.raises(HTTPException):api.screener_company_context('BRK.B')
