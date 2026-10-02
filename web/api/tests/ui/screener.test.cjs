@@ -12,7 +12,7 @@ function harness(saved = {}, hash = '') {
   const document = {querySelector: s => s === '#page' ? page : null, querySelectorAll:()=>[],
     getElementById:id=>elements.get(id), addEventListener(){}, visibilityState:'visible',
     createElement:()=>({style:{},remove(){}}), body:{appendChild(){}}};
-  const c = {document, localStorage:{getItem:k=>k==='scrState'?JSON.stringify(saved):null,setItem(){}},
+  const c = {__researchExtendedWorkspace:true,document, localStorage:{getItem:k=>k==='scrState'?JSON.stringify(saved):null,setItem(){}},
     location:{hash,pathname:'/',search:''}, history:{replaceState(_a,_b,h){c.location.hash=h;},pushState(_a,_b,h){c.location.hash=h;}},
     sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},URLSearchParams, URL, console, setTimeout:()=>1,clearTimeout(){},setInterval:()=>1,clearInterval(){},
     fetch:async()=>({ok:true,json:async()=>({})})};
@@ -24,6 +24,182 @@ function harness(saved = {}, hash = '') {
   return c;
 }
 const stock = (symbol,cap,pct,extra={})=>({symbol,market_cap:cap,pct,stock_type:'STOCK',...extra});
+test('research headers reject price sentinels and HK extended-hour placeholders while preserving negative ratios',async()=>{
+ const c=harness();vm.runInContext('state.page="stock"',c);const st=c.stkState();st.sym='HK.00700';st.tab='overview';
+ let quote={code:'HK.00700',last_price:421.2,prev_close_price:431,pre_price:0,after_price:0,lowest_history_price:-23.001796322,pe_ratio:-2,bid_ask_ratio:-10.76,update_time:1790928485000};
+ c.api=async()=>quote;c.stkHeaderSwitch=async()=>'';c.stkTabPage=async()=>'';c.stkMountControls=c.stkLoadChart=c.klineTeardown=()=>{};
+ await c.renderStock();let html=c.document.querySelector('#page').innerHTML;
+ assert.doesNotMatch(html,/Pre-market|After-hours|-23\.002/);assert.match(html,/GMT\+8|HKT/);assert.match(html,/-10\.76%/);assert.match(html,/>-2</);assert.match(html,/stk-px r/);
+ quote={...quote,pre_price:500,after_price:500};await c.renderStock();assert.doesNotMatch(c.document.querySelector('#page').innerHTML,/Pre-market|After-hours/);
+ st.sym='AAPL';quote={...quote,code:'US.AAPL',last_price:0,prev_close_price:-1,pre_price:0,after_price:0};await c.renderStock();html=c.document.querySelector('#page').innerHTML;
+ assert.doesNotMatch(html,/Pre-market|After-hours|▼ -1/);
+ quote={...quote,last_price:200,prev_close_price:201,pre_price:199,after_price:202};await c.renderStock();html=c.document.querySelector('#page').innerHTML;
+ assert.match(html,/Pre-market \(ET\)/);assert.match(html,/After-hours \(ET\)/);assert.doesNotMatch(html,/04:00|19:30/);
+});
+test('HK chart dates and event matching use the source trading day without changing OHLC',()=>{
+ const c=harness(),t=1790870400000;assert.equal(new Date(t).toISOString().slice(0,10),'2026-10-01');
+ assert.equal(c.stockTradingDate(t,'HK.00700'),'2026-10-02');assert.equal(c.stockTradingDate(1790913600000,'US.AAPL'),'2026-10-02');
+ const bars=c.cmpSanitizeBars([{time_key:t,open:422,high:425,low:419.8,close:421.2,volume:19108045}]);
+ const mapped=c.cmpMapData({sym:'HK.00700',bars})[0];assert.equal(mapped.timestamp,t);assert.equal(mapped.tradingDate,'2026-10-02');assert.equal(mapped.open,422);assert.equal(mapped.close,421.2);
+ const el={innerHTML:''};c.document.getElementById=id=>id==='cmp-readout-0'?el:null;
+ c.__cmp={cells:[{sym:'HK.00700',events:true,_ev:{earn:{'2026-10-02':{type:'BMC'}},div:{}}}]};c.__cmpHosts=[{chart:{getDataList:()=>[mapped]}}];c.cmpReadout(0,{kLineData:mapped});assert.match(el.innerHTML,/E 2026-10-02 BMC/);
+ const zones=[],chart={setTimezone:z=>zones.push(z),applyNewData:()=>{}};const host={elId:'cmp-kc-0',state:()=>({sym:'HK.00700'}),chart,drawingIds:[]};c.klineEnsure=()=>chart;c.klineApply=()=>{};
+ c.klineSetData(host,[mapped]);assert.deepEqual(zones,['Asia/Hong_Kong']);
+});
+test('invalid bar timestamps cannot reach a chart or event-date formatter',async()=>{
+ const c=harness(),rows=[{time_key:null,close:1},{time_key:'bad',close:1},{time_key:Infinity,close:1},{time_key:1000,close:1}];
+ assert.equal(c.cmpSanitizeBars(rows).length,1);const store={};c.api=async()=>({bars:rows});await c.klineLoadLive(store,'A',{src:'range',range:'Q'});assert.equal(store.bars.length,1);
+ c.api=async()=>({section_list:[{point_list:[{cur_price:1,time:'bad'},{cur_price:1,time:1000}]}]});await c.klineLoadLive(store,'A',{src:'intraday',kind:'FULL'});assert.equal(store.pts.length,1);
+});
+test('stock switchers and quote cards preserve HK prefixes and US share classes',async()=>{
+ const c=harness(),hk={code:'HK.00700',symbol:'00700',name:'Tencent'},brk={code:'US.BRK.B',symbol:'BRK.B'};
+ c.stkState().sym='HK.00700';assert.equal(c.stkCurrentMarket(),'HK');assert.equal(c.stkRowCode(hk),'HK.00700');assert.equal(c.stkRowCode({symbol:'BRK.B'}),'US.BRK.B');
+ assert.match(c.stkDropRow(hk),/openStock\(&quot;HK\.00700&quot;\)/);assert.match(c.stkDropRow(brk),/US\.BRK\.B/);
+ const drop={style:{},innerHTML:''};c.document.getElementById=id=>id==='stk-drop'?drop:null;
+ vm.runInContext('__stkDropRows=[{code:"HK.00700",symbol:"00700"}]',c);let opened;c.openStock=s=>opened=s;
+ c.stkSearchKey({key:'Enter',target:{value:'00700'}});assert.equal(opened,'HK.00700');
+ c.__pk={market:'HK',q:'',sector:'',watchlist:false};c.stkUniverse=async()=>[hk];c.api=async()=>({rows:[]});
+ assert.match(await c.stkPickerPage(),/openStock\(&quot;HK\.00700&quot;\)/);
+ let market;c.stkUniverse=async m=>{market=m;return []};await c.stkHeaderSwitch('HK.00700');assert.equal(market,'HK');
+});
+test('late stock-universe and dropdown responses cannot restore a previous market or query',async()=>{
+ const c=harness(),pending=[];c.api=url=>new Promise(resolve=>pending.push({url,resolve}));
+ const us=c.stkUniverse('US'),hk=c.stkUniverse('HK');pending[1].resolve({rows:[{symbol:'00700',code:'HK.00700'}]});await hk;
+ pending[0].resolve({rows:[{symbol:'AAPL',code:'US.AAPL'}]});await us;assert.equal(c.__stkUniverse.market,'HK');assert.equal(c.__stkUniverse.rows[0].code,'HK.00700');
+ vm.runInContext('state.page="stock"',c);c.stkState().sym='HK.00700';const drop={style:{},innerHTML:''};c.document.getElementById=id=>id==='stk-drop'?drop:null;
+ const searches=[];c.stkUniverse=()=>new Promise(resolve=>searches.push(resolve));
+ const old=c.stkSearchDrop('00'),fresh=c.stkSearchDrop('007');searches[1]([{symbol:'00700',code:'HK.00700'}]);await fresh;const latest=drop.innerHTML;
+ searches[0]([{symbol:'00005',code:'HK.00005'}]);await old;assert.equal(drop.innerHTML,latest);assert.match(latest,/00700/);
+});
+test('a delayed stock directory cannot replace a newer directory or an opened stock',async()=>{
+ const c=harness(),pending=[],page=c.document.querySelector('#page');c.stkPickerPage=()=>new Promise(resolve=>pending.push(resolve));
+ c.openStockPicker();c.openStockPicker();pending[1]('latest directory');await Promise.resolve();assert.equal(page.innerHTML,'latest directory');
+ pending[0]('old directory');await Promise.resolve();assert.equal(page.innerHTML,'latest directory');
+ c.openStockPicker();vm.runInContext('state.page="stock"',c);page.innerHTML='current stock';pending[2]('late directory');await Promise.resolve();assert.equal(page.innerHTML,'current stock');
+});
+test('chart loading distinguishes unavailable, empty and failed responses and offers retry',async()=>{
+ const c=harness(),status={hidden:true,innerHTML:'',style:{}},node={};vm.runInContext('state.page="stock"',c);
+ const st=c.stkState();st.sym='A';st.tab='overview';st.chart={src:'range',range:'Q',kind:'FULL'};
+ c.document.getElementById=id=>id==='stk-kc'?node:id==='stk-kc-status'?status:null;c.klineSetData=()=>{};
+ let resolve;c.api=()=>new Promise(r=>resolve=r);const pending=c.stkLoadChart();assert.match(status.innerHTML,/Loading A chart/);
+ resolve({available:false,bars:[{close:22,time_key:1000}]});await pending;
+ assert.match(status.innerHTML,/source unavailable/);assert.match(status.innerHTML,/Retry chart/);
+ assert.equal(vm.runInContext('stkChartState.bars.length',c),0);
+ c.api=async()=>({available:true,bars:[]});await c.stkLoadChart();assert.match(status.innerHTML,/No chart data/);
+ c.api=async()=>{throw Error('private transport details')};await c.stkLoadChart();assert.match(status.innerHTML,/request failed/);assert.doesNotMatch(status.innerHTML,/private transport/);
+ c.api=async()=>({available:true,bars:[{time_key:1000,close:22}]});await c.klineRetry('stk-kc');assert.equal(status.hidden,true);assert.equal(status.style.display,'none');
+ assert.equal(vm.runInContext('stkChartState.bars[0].c',c),22);
+});
+test('unavailable intraday source cannot render embedded points as current data',async()=>{
+ const c=harness(),store={};c.api=async()=>({available:false,section_list:[{point_list:[{time:1000,cur_price:22}]}]});
+ await c.klineLoadLive(store,'A',{src:'intraday',kind:'FULL'});
+ assert.equal(store.pts.length,0);assert.equal(store.status,'Chart source unavailable.');
+});
+test('stock and analysis chart responses commit only for the current ticker, tab and request',async()=>{
+ for(const [loader,tab,nodeId,storeName] of [['stkLoadChart','overview','stk-kc','stkChartState'],['anaLoadChart','analysis','ana-kc','anaChartState']]){
+  const c=harness(),pending=[],paint=[];let node={};
+  vm.runInContext('state.page="stock"',c);const st=c.stkState();st.sym='A';st.tab=tab;
+  c.document.getElementById=id=>id===nodeId?node:null;
+  c.api=url=>new Promise(resolve=>pending.push({url,resolve}));c.klineSetData=(_h,data)=>paint.push(data);
+  const a=c[loader]();st.sym='B';const b=c[loader]();
+  const reply=value=>({bars:[{time_key:1000,close:value}],section_list:[{point_list:[{time:1000,cur_price:value}]}]});
+  pending[1].resolve(reply(22));await b;pending[0].resolve(reply(11));await a;
+  assert.equal(paint.length,1);assert.equal(paint[0][0].close,22);
+  const stale=c[loader]();st.tab='news';pending[2].resolve(reply(33));await stale;assert.equal(paint.length,1);
+  st.tab=tab;const replaced=c[loader]();node={};pending[3].resolve(reply(44));await replaced;assert.equal(paint.length,1);
+  assert.equal(vm.runInContext(`(${storeName}.bars.length?${storeName}.bars:${storeName}.pts)[0].c`,c),22);
+  const first=c[loader](),latest=c[loader]();pending[5].resolve(reply(66));await latest;pending[4].resolve(reply(55));await first;
+  assert.equal(paint.length,2);assert.equal(paint[1][0].close,66);
+ }
+});
+test('Compare rejects obsolete ranges, removed panels and ticker event responses',async()=>{
+ const c=harness(),pending=[],paint=[];vm.runInContext('state.page="compare"',c);
+ const cell={sym:'A',range:'Q',ext:false,_ev:{}},host={};c.__cmp={cells:[cell]};c.__cmpHosts=[host];c.__cmpData={};
+ c.api=url=>new Promise(resolve=>pending.push({url,resolve}));c.klineSetData=(_h,data)=>paint.push(data);
+ c.cmpApplyOvls=c.cmpApplyEvt=c.cmpBindSync=c.cmpEqualize=()=>{};
+ const old=c.cmpLoadCell(0);cell.range='Y';const fresh=c.cmpLoadCell(0);
+ pending[1].resolve({bars:[{time_key:1000,close:22}]});await fresh;
+ pending[0].resolve({bars:[{time_key:1000,close:11}]});await old;
+ assert.equal(paint.length,1);assert.equal(cell.bars[0].c,22);assert.equal(c.__cmpData['A|Q'],undefined);
+ const removed=c.cmpLoadCell(0,true);c.__cmp.cells[0]={sym:'B',range:'Y'};pending[2].resolve({bars:[{time_key:1000,close:33}]});await removed;
+ assert.equal(paint.length,1);
+ c.__cmp.cells[0]=cell;const events=c.cmpLoadEvents(0);cell.sym='B';pending.slice(3).forEach(p=>p.resolve({list:[{ex_date:'2026-01-01'}],calendar:{'Earnings Date':'2026-01-02'}}));await events;
+ assert.equal(cell._ev.next,undefined);
+});
+test('Compare studies opening and closing preserves keyboard origin without scrolling',()=>{
+ const c=harness(),calls=[];
+ const opener={isConnected:true,focus:opts=>calls.push(['opener',opts.preventScroll])};
+ const close={focus:opts=>calls.push(['close',opts.preventScroll])};
+ const drawer={style:{display:'none'},querySelector:()=>close};
+ c.document.activeElement=opener;c.document.getElementById=id=>id==='cmp-drawer'?drawer:null;c.cmpDrawerRender=()=>{};
+ c.cmpDrawer(true);assert.equal(drawer.style.display,'block');assert.equal(c.__cmpDrawerFocus,opener);
+ c.document.activeElement=close;c.cmpDrawer(true);assert.equal(c.__cmpDrawerFocus,opener);
+ c.cmpDrawer(false);assert.equal(drawer.style.display,'none');assert.equal(c.__cmpDrawerFocus,null);
+ assert.deepEqual(calls,[['close',true],['close',true],['opener',true]]);
+ c.document.activeElement=opener;c.cmpDrawer(true);opener.isConnected=false;c.cmpDrawer(false);
+ assert.equal(calls.filter(x=>x[0]==='opener').length,1);
+});
+test('Compare quote polling cannot replace a newer quote or a rebuilt workspace',async()=>{
+ const c=harness(),pending=[],quote={innerHTML:''};let grid={};vm.runInContext('state.page="compare"',c);
+ c.__cmp={cells:[{sym:'A'}]};c.document.getElementById=id=>id==='cmp-grid'?grid:id==='cmp-q-0'?quote:null;
+ c.api=()=>new Promise(resolve=>pending.push(resolve));
+ const old=c.cmpQuotePoll(),fresh=c.cmpQuotePoll();const reply=p=>({available:true,quotes:{A:{last_price:p,pct_change:1,volume:1}}});
+ pending[1](reply(22));await fresh;const latestHTML=quote.innerHTML;assert.match(latestHTML,/22\.00/);
+ pending[0](reply(11));await old;assert.equal(quote.innerHTML,latestHTML);
+ const rebuilt=c.cmpQuotePoll();grid={};pending[2](reply(33));await rebuilt;assert.equal(quote.innerHTML,latestHTML);
+});
+test('facets never read the previous market dataset and respect watchlist scope',()=>{
+ const c=harness();c.__scrDataset={key:'US|0|moo',rows:[stock('A',2,1,{name:'Alpha'}),stock('B',1,2,{name:'Beta'})],watchlist:['B']};
+ assert.equal(c.scrLocalFacets('name').map(v=>v.value).join(','),'Alpha,Beta');
+ c.__scr.watchlistOnly=true;assert.equal(c.scrLocalFacets('name').map(v=>v.value).join(','),'Beta');
+ c.__scr.market='HK';assert.equal(c.scrLocalFacets('name'),null);
+ c.__scrDataset={key:'HK|0|moo',rows:[],watchlist:[]};assert.equal(c.scrLocalFacets('name').length,0);
+});
+test('late facet responses cannot poison a newer market or generation cache',async()=>{
+ const c=harness(),pending=[];let menu;
+ c.document.createElement=()=>({style:{},contains:()=>false,querySelectorAll:()=>[],querySelector:()=>null});
+ c.document.body.appendChild=el=>menu=el;c.document.getElementById=id=>id==='scr-colmenu'?menu:null;
+ c.researchModalIsolate=()=>{};c.scrLocalFacets=()=>null;c.api=url=>new Promise(resolve=>pending.push({url,resolve}));
+ c.scrRenderColMenu('name','multi');assert.match(pending[0].url,/market=US/);
+ c.scrSet('market','HK');c.scrRenderColMenu('name','multi');assert.match(pending[1].url,/market=HK/);
+ pending[0].resolve({values:[{value:'US only',count:1}]});await Promise.resolve();assert.equal(c.__scrFacets.name,undefined);
+ pending[1].resolve({values:[{value:'HK only',count:1}]});await Promise.resolve();assert.equal(c.__scrFacets.name[0].value,'HK only');
+ c.__scrDataset={key:'HK|0|moo',ts:10,rows:[]};c.scrEnsureFacetScope();assert.equal(c.__scrFacets.name,undefined);
+ c.__scrFacets.name=[{value:'old generation',count:1}];c.__scrDataset.ts=11;c.scrEnsureFacetScope();assert.equal(c.__scrFacets.name,undefined);
+});
+test('large facet lists remain searchable and paged without losing off-page selections or quoted names',()=>{
+ const c=harness();c.__scrFacets={name:Array.from({length:12045},(_,i)=>({value:i===12044?"O'Reilly & Sons":'Company '+i,count:1}))};
+ c.__colFilterDraft={field:'name',value:{values:['Company 2']}};
+ let html=c.scrColFacetHTML('name');assert.equal((html.match(/type="checkbox"/g)||[]).length,100);assert.match(html,/12,045 values/);
+ c.__colFilterDraft.facetOffset=12000;html=c.scrColFacetHTML('name');assert.equal((html.match(/type="checkbox"/g)||[]).length,45);
+ assert.match(html,/this.value,this.checked/);assert.doesNotMatch(html,/scrToggleValue\('name','O'/);
+ c.__colFilterDraft.facetQuery='REILLY';html=c.scrColFacetHTML('name');assert.equal((html.match(/type="checkbox"/g)||[]).length,1);assert.match(html,/1–1 of 1 values/);
+ c.scrToggleValue('name',"O'Reilly & Sons",true);assert.equal(c.__colFilterDraft.value.values.join('|'),"Company 2|O'Reilly & Sons");
+ c.__colFilterDraft.facetQuery='absent';assert.match(c.scrColFacetHTML('name'),/No matching values/);
+ c.scrApplyColFilter('name');assert.equal(c.__scr.colFilters.name.values.join('|'),"Company 2|O'Reilly & Sons");
+});
+test('column filter isolates background, traps keyboard focus and restores its origin',()=>{
+ const c=harness(),background={tagName:'MAIN',inert:false},origin={isConnected:true,getClientRects:()=>[{}],focus(){c.document.activeElement=this;}};
+ const controls=['Close column filter','Minimum Price','Maximum Price','Reset','Apply'].map(name=>({getAttribute:key=>key==='aria-label'?name:null,getClientRects:()=>[{}],focus(){c.document.activeElement=this;}}));
+ let menu;const body={children:[background],appendChild(el){menu=el;el.parentElement=this;this.children.push(el);}};c.document.body=body;c.document.activeElement=origin;
+ c.document.createElement=()=>({style:{},contains:el=>controls.includes(el),querySelectorAll:()=>controls,querySelector:s=>s==='input'?controls[1]:null,remove(){body.children=body.children.filter(e=>e!==this);menu=null;}});
+ c.document.getElementById=id=>id==='scr-colmenu'?menu:null;
+ c.scrRenderColMenu('price','num');assert.equal(background.inert,true);assert.equal(c.document.activeElement,controls[1]);assert.match(menu.innerHTML,/role="dialog" aria-modal="true" aria-label="Filter Price"/);assert.match(menu.innerHTML,/aria-label="Maximum Price"/);
+ let prevented=false;c.document.activeElement=controls[0];menu.onkeydown({key:'Tab',shiftKey:true,preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(c.document.activeElement,controls[4]);
+ menu.onkeydown({key:'Tab',shiftKey:false,preventDefault(){}});assert.equal(c.document.activeElement,controls[0]);
+ menu.onkeydown({key:'Escape',preventDefault(){}});assert.equal(menu,null);assert.equal(background.inert,false);assert.equal(c.document.activeElement,origin);assert.equal(c.__colFilterDraft,null);
+});
+test('header sign-in retains the current workflow and explicit add/review intents',async()=>{
+ for(const [page,intent,expected] of [['home','header','home'],['info','header','info'],['settings','header','settings'],['shortlists','header','shortlists'],['info','pair','home'],['home','add','picker']]){
+  const c=harness();vm.runInContext(`state.page=${JSON.stringify(page)}`,c);
+  const status={},button={isConnected:true},dialog={querySelector:()=>status};c.__researchDialog=dialog;
+  const form={elements:{email:{value:'reviewer@example.test'},password:{value:'preview-password'}},querySelector:()=>button};
+  c.researchAuthFetch=async()=>({access_token:'synthetic'});c.researchSessionSet=()=>{};c.researchDialogClose=()=>{c.__researchDialog=null;};
+  const actions=[];c.showPage=async name=>actions.push(name);c.researchShortlistPicker=async code=>actions.push(code==='US.S0001'?'picker':'unexpected');
+  if(intent==='pair')c.__researchPendingPairReview=true;if(intent==='add')c.__researchPendingAdd='US.S0001';
+  await c.researchSignIn(form);assert.deepEqual(actions,[expected]);assert.equal(form.elements.password.value,'');
+ }
+});
 test('clean boot excludes ETFs and migrates legacy empty-view sorting',()=>{
   const c=harness({etfs:true,sort:'pct'});
   assert.equal(c.__scr.etfs,false); assert.equal(c.__scr.sort,'market_cap');
@@ -797,7 +973,7 @@ test('normalizing an existing screener deep link does not push another browser h
 });
 
 test('navigation helpers are loaded through versioned browser assets',()=>{
- assert.match(html,/research-workspace\.js\?v=20261002-explorer-currency/);assert.match(html,/research-account\.js\?v=20261002-explorer-currency/);
+ assert.match(html,/research-workspace\.js\?v=20261003-desk-mvp1/);assert.match(html,/research-account\.js\?v=20261003-desk-mvp1/);
 });
 
 
@@ -879,7 +1055,7 @@ test('pair review presentation distinguishes private state, storage failure and 
  assert.match(c.researchPairToolsHTML(d,{}),/Sign in to review/);c.__researchSession={user:{id:'owner'}};
  assert.match(c.researchPairToolsHTML(d,{review_status:'unreviewed'}),/Next unreviewed/);assert.match(c.researchPairToolsHTML({...d,review_error:'storage <failed>'},{}),/storage &lt;failed&gt;/);
  assert.match(c.researchPairFormHTML(d,r),/&lt;private&gt;/);assert.match(c.researchPairFormHTML(d,r),/Save pair review/);
- const key=c.__researchPairDraftKey;c.researchPairDraftUpdate({elements:{note:{value:'unsaved'},review_status:{value:'reviewed'}}});
+ const key=c.__researchPairDraftKey,status={};c.researchPairDraftUpdate({elements:{note:{value:'unsaved'},review_status:{value:'reviewed'}},querySelector:()=>status});assert.match(status.textContent,/Unsaved changes/);
  assert.match(c.researchPairFormHTML(d,r),/unsaved/);assert.equal(c.__researchPairDraftKey,key);
  assert.doesNotMatch(c.researchPairFormHTML({...d,current_id:'3'},r),/unsaved/);
 });
@@ -1009,4 +1185,274 @@ test('client CSV preserves same-response provider context without inventing fact
  const c=harness(),context={code:'HK.00700',fields:{currency:'HKD',financialCurrency:'CNY'},scope:'calendar not metric period'},rows=[{code:'HK.00700',symbol:'00700',forward_pe:12,supplemental_provider_context:context}];
  c.scrClientRows=()=>rows;c.__scr.cols=['symbol','forward_pe'];let blob;c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){},remove(){}});c.scrExport('csv','loaded');const csv=await blob.text();
  assert.match(csv,/supplemental_provider_context/);assert.match(csv,/HKD/);assert.match(csv,/CNY/);assert.match(csv,/calendar not metric period/);assert.equal(rows[0].forward_pe,12);assert.equal(rows[0].period,undefined);
+});
+
+
+test('private capture history refreshes absent schedules and fences late source responses',async()=>{
+ const c=harness();c.__researchSession={user:{id:'owner'}};const st=c.researchChangeState();st.source='private';c.__changeGen=2;
+ let calls=0;c.researchPrivateAPI=async()=>{calls++;return {schedules:[]};};
+ assert.equal((await c.researchLoadPrivateChanges(st,2)).comparable,false);
+ await c.researchLoadPrivateChanges(st,2);assert.equal(calls,2);
+ let release;c.researchPrivateAPI=()=>new Promise(r=>release=r);
+ const pending=c.researchLoadPrivateChanges(st,2);c.researchChangeSource('manual');release({schedules:[{id:'late'}]});
+ await assert.rejects(pending,/Comparison changed/);assert.equal(c.researchChangeState().source,'manual');assert.equal(c.__researchCaptureSchedule.schedule,null);
+});
+
+test('capture source switches clear obsolete rows/actions immediately and retain scoped drafts',()=>{
+ const c=harness();c.__researchSession={user:{id:'owner'}};const results={innerHTML:'shared note and shared rows'},notice={innerHTML:''};
+ c.document.getElementById=id=>id==='research-change-results'?results:id==='research-change-load-status'?notice:null;
+ const st=c.researchChangeState();Object.assign(st,{review_status:'scope_conflict',previous_id:'before',current_id:'after',offset:100,history_offset:100});
+ c.__changePayload={rows:[{code:'US.A'}]};c.__researchChangeSelection={codes:['US.A']};c.__researchPairDraftKey='original';c.__researchPairDrafts={original:{note:'retained private draft'}};
+ let cancelled;c.__changeSearchTimer=42;c.clearTimeout=value=>cancelled=value;
+ c.researchChangeSource('private');
+ assert.equal(cancelled,42);assert.equal(st.review_status,'all');assert.equal(st.previous_id,'');assert.equal(st.current_id,'');assert.equal(st.offset,0);assert.equal(st.history_offset,0);
+ assert.equal(c.__changePayload,null);assert.equal(c.__researchChangeSelection,null);assert.equal(c.__researchPairDraftKey,null);assert.equal(c.__changeLoading,true);
+ assert.equal(results.innerHTML,'Loading capture history…');assert.match(notice.innerHTML,/Loading your private capture history/);assert.equal(c.__researchPairDrafts.original.note,'retained private draft');
+});
+
+test('account transitions refresh capture source controls before loading new results',()=>{
+ const c=harness();let header='';const target={querySelector:()=>({textContent:'Changes in All stocks'}),set outerHTML(value){header=value;}};
+ c.document.querySelector=s=>s==='.change-context'?target:null;c.document.getElementById=id=>id==='research-change-results'?{}:null;c.researchLoadChanges=()=>{};
+ c.researchSessionSet(privateSession());c.researchChangeState().source='private';c.researchRefreshChangeHeader();assert.match(header,/value="private" selected/);
+ c.researchPrivateClear();assert.match(header,/value="manual" selected/);assert.match(header,/value="private"[^>]*disabled/);assert.match(header,/Capture schedule<\/button>/);assert.match(header,/onclick="researchCaptureScheduleOpen\(\)" disabled/);
+});
+
+test('private Next unreviewed retains the full capture timeline and paging',async()=>{
+ const c=harness();c.__researchSession={user:{id:'owner'}};
+ const pair={review_scope:'private_schedule_pair',schedule_id:'schedule',previous_id:'before',current_id:'after',definition:{market:'US'},history:[{id:'older'},{id:'before'},{id:'after'}],history_offset:100,history_has_more:true};
+ c.__changePayload=pair;c.researchChangeState().source='private';
+ c.researchPrivateAPI=async path=>{assert.match(path,/capture-schedules\/schedule\/pair-reviews/);return {...pair,history:[{id:'before'},{id:'after'}],offset:20,next_review_code:'US.B'};};
+ await c.researchPairNext();assert.equal(c.__changePayload.history,pair.history);assert.equal(c.__changePayload.history_offset,100);assert.equal(c.__changePayload.history_has_more,true);assert.equal(c.researchChangeState().offset,20);
+});
+
+test('private scheduled export sends exact selected scope and suppresses obsolete downloads',async()=>{
+ const c=harness();c.__researchSession={user:{id:'owner'}};
+ const pair={comparable:true,review_scope:'private_schedule_pair',schedule_id:'schedule',previous_id:'before',current_id:'after',definition:{market:'US'},review_revision_hash:'a'.repeat(64),rows:[{code:'US.A'}]};
+ c.__changePayload=pair;c.researchChangeSelectPage(true);let clicks=0,body,filename;
+ c.URL={createObjectURL:()=> 'blob:test',revokeObjectURL(){}};c.document.createElement=()=>({click(){clicks++;filename=this.download;},remove(){}});
+ c.researchPrivateAPI=async(path,options)=>{assert.match(path,/schedule\/pair-export$/);assert.equal(options.responseType,'blob');body=JSON.parse(options.body);return {};};
+ await c.researchChangesExport('selected','excel');assert.equal(clicks,1);assert.equal(body.scope,'selected');assert.deepEqual(body.codes,['US.A']);assert.equal(body.review_revision_hash,pair.review_revision_hash);assert.match(filename,/_selected\.xls$/);
+ let release;c.researchPrivateAPI=()=>new Promise(r=>release=r);const pending=c.researchChangesExport();c.__changeGen=99;release({});await pending;assert.equal(clicks,1);assert.equal(c.__scheduledExportBusy,false);
+});
+
+
+test('capture cadence saves disabled settings and keeps drafts on conflict',async()=>{
+ const c=harness();c.__researchSession={user:{id:'owner'}};
+ const key=c.researchChangeState().key,ctx={owner:'owner',authGen:0,key,definition:c.researchDefinition(),schedule:{id:'schedule',revision:2}};c.__researchScheduleContext=ctx;
+ const status={},button={isConnected:true},form={elements:{name:{value:'Review'},timezone:{value:'Pacific/Auckland'},time:{value:'09:15'}},querySelectorAll:()=>[{value:'0'},{value:'4'}],querySelector:()=>button};
+ const dialog={querySelector:()=>status};c.__researchDialog=dialog;let body;
+ c.researchPrivateAPI=async(path,opts)=>{assert.equal(path,'/api/research/capture-schedules/schedule');assert.equal(opts.method,'PATCH');body=JSON.parse(opts.body);throw c.researchAuthError('Schedule changed',409);};
+ await c.researchCaptureScheduleSave(form);assert.equal(body.enabled,false);assert.equal(body.revision,2);assert.equal(body.cadence.hour,9);assert.deepEqual(body.cadence.weekdays,[0,4]);assert.match(status.textContent,/draft is kept/);assert.equal(c.__researchScheduleDrafts['owner|'+key].name,'Review');
+ c.researchPrivateAPI=async()=>({runtime_available:false,schedule:{id:'schedule',owner_id:'owner',revision:3}});
+ await c.researchCaptureScheduleSave(form);assert.equal(ctx.schedule.revision,3);assert.equal(c.__researchScheduleDrafts['owner|'+key],undefined);assert.match(status.textContent,/no captures will run/);
+});
+
+test('capture cadence rejects no weekdays and changed owner before any write',async()=>{
+ const c=harness();c.__researchSession={user:{id:'owner'}};c.__researchScheduleContext={owner:'owner',authGen:0,key:c.researchChangeState().key};
+ const status={},form={elements:{name:{value:'Draft'},timezone:{value:'UTC'},time:{value:'10:00'}},querySelectorAll:()=>[],querySelector:()=>({})};c.__researchDialog={querySelector:()=>status};let calls=0;c.researchPrivateAPI=async()=>calls++;
+ await c.researchCaptureScheduleSave(form);assert.match(status.textContent,/weekday/);assert.equal(calls,0);
+ c.__researchSession.user.id='other';await c.researchCaptureScheduleSave(form);assert.match(status.textContent,/Account or screen changed/);assert.equal(calls,0);
+ c.__researchDialog=null;c.researchPrivateClear();assert.equal(c.__researchScheduleContext,null);assert.deepEqual(Object.keys(c.__researchScheduleDrafts),[]);
+});
+
+
+test('capture status distinguishes expired leases and failures without replacing success',()=>{
+ const c=harness();const html=c.researchCaptureStatusHTML({last_success:{published_at:'2026-10-02T00:00:00Z',schedule_revision:1},latest_occurrence:{display_status:'awaiting_recovery',attempts:2,current_revision:false,error_code:'incomplete_data'}});
+ assert.match(html,/Last successful publication/);assert.match(html,/Lease expired/);assert.match(html,/earlier schedule revision/);assert.match(html,/no capture published/);assert.match(html,/Prior successful captures remain/);
+ assert.throws(()=>c.researchCaptureStatusHTML({latest_occurrence:{display_status:'failed',error_code:'untrusted raw error'}}),/not confirmed/);
+});
+
+test('capture status failure keeps settings editable and ignores an obsolete dialog',async()=>{
+ const c=harness(),target={},el={querySelector:()=>target},ctx={authGen:0,schedule:{id:'schedule'}};c.__researchDialog=el;
+ c.researchPrivateAPI=async()=>{throw Error('offline');};await c.researchCaptureScheduleStatus(ctx,el);assert.match(target.textContent,/Settings remain editable/);
+ let release;c.researchPrivateAPI=()=>new Promise(r=>release=r);const pending=c.researchCaptureScheduleStatus(ctx,el);c.__researchDialog=null;release({scope:'authenticated_owner',schedule_id:'schedule',runtime_available:false});await pending;assert.equal(target.textContent,'Loading private capture status…');assert.equal(target.innerHTML,undefined);
+});
+
+
+test('cadence feedback and monitoring status use distinct regions',()=>{
+ const c=harness();const html=c.researchCaptureScheduleFormHTML({schedule:null});assert.match(html,/data-capture-status role="status"/);assert.match(html,/role="status" data-schedule-message/);
+});
+
+test('late monitoring status cannot replace a newer status read',async()=>{
+ const c=harness(),target={},el={querySelector:()=>target},ctx={authGen:0,schedule:{id:'schedule'}};c.__researchDialog=el;const replies=[];
+ c.researchPrivateAPI=()=>new Promise(r=>replies.push(r));const first=c.researchCaptureScheduleStatus(ctx,el),second=c.researchCaptureScheduleStatus(ctx,el);
+ replies[1]({scope:'authenticated_owner',schedule_id:'schedule',runtime_available:false,last_success:null,latest_occurrence:null});await second;const rendered=target.innerHTML;
+ replies[0]({scope:'wrong'});await first;assert.equal(target.innerHTML,rendered);assert.equal(target.textContent,'Loading private capture status…');
+});
+
+test('comparison interruption offers retry and success clears the pending notice',async()=>{
+ const c=harness(),results={innerHTML:'last successful rows'},notice={innerHTML:''},checkbox={disabled:false};
+ c.document.querySelectorAll=selector=>selector==='input[data-change-code]'?[checkbox]:[];c.__changePayload={comparable:true,history:[{id:'retained'}]};
+ c.document.getElementById=id=>id==='research-change-results'?results:id==='research-change-load-status'?notice:null;
+ let reject;c.api=()=>new Promise((_resolve,r)=>reject=r);c.researchChangesRender=(el,d)=>el.innerHTML=d.comparable?'recovered rows':d.reason;
+ const pending=c.researchLoadChanges();assert.match(notice.innerHTML,/previous successful request/);assert.equal(results.innerHTML,'last successful rows');assert.equal(c.__changeLoading,true);assert.equal(checkbox.disabled,true);
+ reject(Error('Network interrupted'));await pending;assert.match(notice.innerHTML,/Retry comparison/);assert.match(results.innerHTML,/Network interrupted/);assert.equal(c.__changeLoading,false);assert.equal(c.__changePayload,null);assert.equal(checkbox.disabled,false);
+ c.api=async()=>({comparable:true});await c.researchLoadChanges();assert.equal(notice.innerHTML,'');assert.equal(results.innerHTML,'recovered rows');
+});
+test('late failed comparison cannot replace recovered rows or restore an obsolete retry notice',async()=>{
+ const c=harness(),results={innerHTML:''},notice={innerHTML:''};c.document.getElementById=id=>id==='research-change-results'?results:id==='research-change-load-status'?notice:null;
+ const requests=[];c.api=()=>new Promise((resolve,reject)=>requests.push({resolve,reject}));c.researchChangesRender=(el,d)=>el.innerHTML=d.tag;
+ const first=c.researchLoadChanges();c.researchChangeState().status='exited';const second=c.researchLoadChanges();requests[1].resolve({tag:'latest exited rows'});await second;
+ requests[0].reject(Error('Obsolete failure'));await first;assert.equal(results.innerHTML,'latest exited rows');assert.equal(notice.innerHTML,'');assert.equal(c.__changeLoading,false);
+});
+test('comparison search immediately labels retained rows before the debounce request',()=>{
+ const c=harness(),notice={innerHTML:''};c.document.getElementById=id=>id==='research-change-load-status'?notice:null;c.researchChangeSearch({value:'ABC'});
+ assert.equal(c.__changeLoading,true);assert.equal(c.researchChangeState().q,'ABC');assert.match(notice.innerHTML,/Updating comparison search/);assert.match(notice.innerHTML,/selection and exports are paused/);
+});
+
+test('captured monetary display and CSV retain attributed currency without inferring legacy currency',()=>{
+ const c=harness(),record={code:'US.A',metrics:{market_cap:2000000000},metric_observations:{market_cap:{code:'US.A',field:'market_cap',value:2000000000,unit:'currency',currency:'USD'}}};
+ assert.match(c.researchCapturedMoneyHTML(record,'market_cap'),/USD/);assert.match(c.researchCapturedMoneyHTML({...record,metric_observations:{}},'market_cap'),/Currency not supplied/);
+ assert.match(c.researchCapturedMoneyHTML({...record,metric_observations:{market_cap:{...record.metric_observations.market_cap,code:'US.B'}}},'market_cap'),/Currency not supplied/);
+ const csv=c.researchChangesCSV({market_cap_sort:{ready:true,currencies:['USD']}},[{code:'US.A',current:record}]);
+ assert.match(csv,/previous_metric_observations,current_metric_observations,market_cap_sort_json/);assert.match(csv,/USD/);
+});
+
+test('Captured criterion sorts disclose qualification and monetary cells retain exact attribution',()=>{
+ const c=harness(),el={innerHTML:'',querySelector:()=>null};c.document.activeElement=null;
+ const criterion={field:'price',max:10},observation={criterion,value:4,unit:'currency',currency:'USD'};
+ const d={comparable:true,previous_id:'a',current_id:'b',counts:{new:0,exited:0,all:1,unchanged:1},matched:1,definition:{filters:[criterion]},criterion_sorts:{'criterion:before:price':{ready:true},'criterion:after:price':{ready:false}},rows:[{code:'US.A',symbol:'A',status:'unchanged',previous:{evidence:{price:4},criterion_observations:{c0:observation}},current:{evidence:{price:5}}}]};
+ c.researchChangesRender(el,d);
+ assert.match(el.innerHTML,/value="criterion:before:price"\s+>Price · before/);
+ assert.match(el.innerHTML,/value="criterion:after:price" disabled/);
+ assert.match(el.innerHTML,/USD 4/);assert.match(el.innerHTML,/Currency not supplied for this value/);
+ assert.match(c.researchChangesCSV(d,d.rows),/criterion_sorts_json/);
+ assert.doesNotMatch(c.researchCriterionValueHTML(criterion,4,{...observation,value:999}),/USD/);
+ assert.doesNotMatch(c.researchCriterionValueHTML(criterion,4,{...observation,criterion:{field:'price',max:100}}),/USD/);
+});
+
+test('Equivalent labelled criteria retain captured currency and cross-history review scope is explicit',()=>{
+ const c=harness(),original={field:'price',max:10},decorated={field:'price',max:10,min:null,_label:'Price'};
+ assert.match(c.researchCriterionValueHTML(decorated,8,{criterion:original,value:8,unit:'currency',currency:'USD'}),/USD 8/);
+ assert.doesNotMatch(c.researchCriterionValueHTML({...decorated,max:9},8,{criterion:original,value:8,unit:'currency',currency:'USD'}),/USD/);
+ const html=c.researchPairToolsHTML({review_unavailable_reason:'Separate histories; original notes retained'},{});
+ assert.match(html,/original notes retained/);assert.doesNotMatch(html,/Sign in to review|Next unreviewed/);
+});
+
+
+test('Reload saved review refreshes filtered rows and fingerprint without replacing the draft',async()=>{
+ const c=harness(),results={innerHTML:'old reviewed row'},notice={innerHTML:''};
+ c.document.getElementById=id=>id==='research-change-results'?results:id==='research-change-load-status'?notice:null;
+ c.__researchSession={user:{id:'owner'}};
+ const pair={comparable:true,definition:{market:'US',filters:[]},previous_id:'before',current_id:'after',review_scope:'private_capture_pair',review_contract:'cross_history',review_revision_hash:'old',rows:[{code:'US.A',review:{revision:1,note:'saved',review_status:'reviewed'}}]};
+ c.researchDefinition=()=>pair.definition;c.__changePayload=pair;c.researchPairFormHTML(pair,pair.rows[0]);const key=c.__researchPairDraftKey;
+ const form={isConnected:true,elements:{note:{value:'my retained draft'},review_status:{value:'reviewed'}},querySelector:()=>({})};
+ c.researchChangeState().review_status='reviewed';c.researchDefinition=()=>pair.definition;
+ c.api=async()=>pair;let fullReads=0;
+ c.researchPrivateAPI=async path=>{const query=new URLSearchParams(path.split('?')[1]);
+  if(query.has('code'))return {rows:[{code:'US.A',review:{revision:2,note:'concurrent edit',review_status:'in_review'}}]};
+  fullReads++;assert.equal(query.get('review_status'),'reviewed');return {...pair,review_revision_hash:'new',matched:0,rows:[]};
+ };
+ c.researchChangesRender=(el,d)=>el.innerHTML=d.matched===0?'No reviewed matches': 'stale';
+ await c.researchPairReload(form);
+ assert.equal(fullReads,1);assert.equal(results.innerHTML,'No reviewed matches');assert.equal(c.__changePayload.review_revision_hash,'new');
+ assert.equal(c.__researchPairDrafts[key].note,'my retained draft');assert.equal(c.__researchPairDrafts[key].latest.note,'concurrent edit');assert.equal(c.__researchPairDrafts[key].revision,2);
+});
+
+
+test('Comparison CSV retains the exact before/after instrument classification evidence',()=>{
+ const c=harness(),before={version:'instrument_classification_v1',code:'US.PLD',provider_type:'ETF',stock_type:'STOCK',subtype_context:{fields:{quoteType:'EQUITY'}}},after={...before,reason:'qualified_trust_fund_subtype'};
+ const csv=c.researchChangesCSV({},[{code:'US.PLD',previous:{instrument_classification:before},current:{instrument_classification:after}}]);
+ assert.match(csv.split('\n')[0],/previous_instrument_classification,current_instrument_classification,review_anchor_json,review_variants_json$/);
+ assert.match(csv,/EQUITY/);assert.match(csv,/qualified_trust_fund_subtype/);assert.match(csv,/provider_type/);
+});
+
+test('Duplicate review scope choices preserve separate drafts and export every original variant',()=>{
+ const c=harness();c.__researchSession={user:{id:'owner'}};
+ const anchorA={previous_history_key:'original-a',current_history_key:'original-a'},anchorB={previous_history_key:'original-b',current_history_key:'original-b'};
+ const variants=[{revision:2,note:'First original',review_status:'reviewed',review_anchor:anchorA},{revision:4,note:'Second original',review_status:'in_review',review_anchor:anchorB}];
+ const row={code:'US.A',review:{scope_conflict:true,review_status:'scope_conflict',revision:0,note:'',review_variants:variants}};
+ const pair={previous_id:'before',current_id:'after',owner_id:'owner',review_scope:'private_capture_pair',rows:[row],review_scope_conflicts:1};c.__changePayload=pair;c.__researchChangeCode=row.code;
+ assert.match(c.researchPairFormHTML(pair,row),/Choose an original review/);assert.equal(c.__researchPairDraftKey,null);
+ c.researchChangeInspect=()=>c.researchPairFormHTML(pair,row);
+ c.researchPairChooseScope(0);const first=c.__researchPairDraftKey;c.__researchPairDrafts[first].note='First retained draft';
+ c.researchPairChooseScope(1);const second=c.__researchPairDraftKey;assert.notEqual(second,first);assert.equal(c.__researchPairDrafts[second].note,'Second original');
+ c.researchPairChooseScope(0);assert.equal(c.__researchPairDraftKey,first);assert.equal(c.__researchPairDrafts[first].note,'First retained draft');
+ c.researchChangeState=()=>({key:'changed display label'});assert.equal(c.researchPairDraftKey(pair,row.code,anchorA),first);
+ const csv=c.researchChangesCSV(pair,[row]);assert.match(csv,/review_anchor_json,review_variants_json/);assert.match(csv,/First original/);assert.match(csv,/Second original/);assert.match(csv,/original-a/);assert.match(csv,/original-b/);
+ c.researchPrivateClear();assert.equal(Object.keys(c.__researchPairScopeChoices).length,0);
+});
+
+test('Original-anchor save sends the chosen scope and a late result cannot restore another comparison',async()=>{
+ const c=harness();c.__researchSession={user:{id:'owner'}};const anchor={previous_history_key:'old',current_history_key:'old'};
+ const pair={previous_id:'before',current_id:'after',definition:{market:'US'},owner_id:'owner',review_scope:'private_capture_pair',rows:[{code:'US.A',review:{revision:2,note:'saved',review_status:'reviewed',review_anchor:anchor}}]};c.__changePayload=pair;
+ c.researchPairFormHTML(pair,pair.rows[0]);const key=c.__researchPairDraftKey,button={isConnected:true},status={};
+ const form={isConnected:true,elements:{note:{value:'submitted'},review_status:{value:'in_review'}},querySelector:s=>s==='button[type=submit]'?button:status};
+ let finish,body;c.researchPrivateAPI=(_path,options)=>{body=JSON.parse(options.body);return new Promise(resolve=>finish=resolve);};
+ const saving=c.researchPairSave(form);assert.deepEqual(body.review_anchor,anchor);
+ c.__changePayload={previous_id:'other',current_id:'pair',rows:[]};c.__changeGen=(c.__changeGen || 0)+1;
+ finish({review:{revision:3,note:'submitted',review_status:'in_review',review_anchor:anchor}});await saving;
+ assert.equal(c.__changePayload.previous_id,'other');assert.equal(c.__researchPairDrafts[key].revision,2);
+});
+
+test('Original-scope reload adopts only the chosen revision and retains independent drafts',async()=>{
+ const c=harness();c.__researchSession={user:{id:'owner'}};
+ const a={previous_history_key:'a',current_history_key:'a'},b={previous_history_key:'a',current_history_key:'b'};
+ const variants=[{revision:2,note:'same saved',review_status:'reviewed',review_anchor:a},{revision:5,note:'cross saved',review_status:'in_review',review_anchor:b}];
+ const row={code:'US.A',review:{scope_conflict:true,review_status:'scope_conflict',review_variants:variants}};
+ const pair={previous_id:'before',current_id:'after',owner_id:'owner',review_scope:'private_capture_pair',definition:{market:'US'},rows:[row]};c.__changePayload=pair;c.__researchChangeCode='US.A';
+ c.researchChangeInspect=()=>c.researchPairFormHTML(pair,row);
+ c.researchPairChooseScope(0);const first=c.__researchPairDraftKey;c.__researchPairDrafts[first].note='same draft';
+ c.researchPairChooseScope(1);const second=c.__researchPairDraftKey;
+ const form={isConnected:true,elements:{note:{value:'cross draft'},review_status:{value:'in_review'}},querySelector:()=>({})};
+ c.researchPrivateAPI=async()=>({rows:[{code:'US.A',review:{...row.review,review_variants:[{...variants[0],revision:99},{...variants[1],revision:6,note:'concurrent cross edit'}]}}]});
+ await c.researchPairReload(form);
+ assert.equal(c.__researchPairDrafts[second].revision,6);assert.equal(c.__researchPairDrafts[second].note,'cross draft');assert.equal(c.__researchPairDrafts[second].latest.note,'concurrent cross edit');
+ assert.equal(c.__researchPairDrafts[first].revision,2);assert.equal(c.__researchPairDrafts[first].note,'same draft');
+});
+
+test('Delayed save and reload failures cannot alter a switched pair or scope',async()=>{
+ for(const operation of ['researchPairSave','researchPairReload'])for(const change of ['payload','generation','scope']){
+  const c=harness();c.__researchSession={user:{id:'owner'}};
+  const pair={previous_id:'before',current_id:'after',definition:{market:'US'},review_scope:'private_capture_pair',rows:[{code:'US.A',review:{revision:2,note:'saved',review_status:'reviewed'}}]};
+  c.__changePayload=pair;c.researchPairFormHTML(pair,pair.rows[0]);const key=c.__researchPairDraftKey,draft=c.__researchPairDrafts[key],status={},button={isConnected:true};
+  const form={isConnected:true,elements:{note:{value:'retained draft'},review_status:{value:'reviewed'}},querySelector:s=>s==='button[type=submit]'?button:status};
+  let reject;c.researchPrivateAPI=()=>new Promise((_resolve,r)=>reject=r);const request=c[operation](form);const originalStatus=status.textContent,originalMessage=draft.message;
+  if(change==='payload')c.__changePayload={...pair};if(change==='generation')c.__changeGen=(c.__changeGen || 0)+1;if(change==='scope')c.__researchPairDraftKey='another original scope';
+  reject(Object.assign(new Error('obsolete conflict'),{status:409}));await request;
+  assert.equal(status.textContent,originalStatus);assert.equal(draft.message,originalMessage);assert.equal(draft.note,'retained draft');assert.equal(draft.revision,2);
+ }
+});
+
+ test('Desk MVP redirects deferred presentations without changing saved criteria or sorts',()=>{
+ const c=harness();c.__researchExtendedWorkspace=false;
+ for(const mode of ['explore','changes']){
+  c.location.hash='#/screener?m=HK&mode='+mode+'&s=pe_ttm&d=1&f='+encodeURIComponent(JSON.stringify([{field:'pb',max:1}]));
+  c.scrRestoreFromHash();assert.equal(c.__scr.presentation,'table');assert.equal(c.__scr.market,'HK');assert.equal(c.__scr.sort,'pe_ttm');assert.equal(c.__scr.dir,1);assert.equal(c.__scr.filters[0].max,1);
+  c.__scr.presentation=mode;const desk=c.researchDeskHTML({st:c.__scr,scr:{rows:[],matched:0},table:'',allChips:'',msPanel:''});
+  assert.equal(c.__scr.presentation,'table');assert.doesNotMatch(desk,/researchMode\('explore'\)|researchMode\('changes'\)|Research shortlists|Capture snapshot/);assert.match(desk,/scrResetAll/);assert.match(desk,/scrExport/);
+ }
+ c.researchMode('changes');assert.equal(c.__scr.presentation,'table');
+ const saved={market:'HK',filters:c.__scr.filters,sort:c.__scr.sort,direction:c.__scr.dir,settings:{presentation:'explore'}};
+ assert.equal(c.researchSavedModified(saved,c.__scr),false);assert.equal(saved.settings.presentation,'explore');
+});
+
+test('unsupported RSI presets stay visible, disabled and never warmed or applied',()=>{
+ const c=harness();c.__researchExtendedWorkspace=false;
+ c.__scrPresets=[{key:'rsi-30',name:'Oversold',sort:'pct',filters:[{field:'rsi14',max:30}]},{key:'small-growth',name:'Small growth',filters:[{field:'rsi14',min:50}]},{key:'penny',name:'Penny',filters:[{field:'price',max:5}]}];
+ const before=JSON.stringify(c.__scr);for(const key of ['rsi-30','small-growth']){c.scrWarmPreset(key,'US');c.scrApplyPreset(key);}
+ assert.equal(JSON.stringify(c.__scr),before);assert.equal(c.__presetWarmQueue,undefined);
+ const library=c.researchLibraryHTML(c.__scr,c.__scrPresets);assert.equal((library.match(/Unavailable — RSI provider unsupported/g)||[]).length,2);
+ for(const key of ['rsi-30','small-growth'])assert.match(library,new RegExp('data-screen-key="'+key+'" disabled'));
+ assert.doesNotMatch(library,/data-screen-key="penny" disabled/);
+ assert.equal(c.__scrPresets[0].filters[0].max,30);
+});
+
+test('cold unavailable market stays unavailable through actual Desk rendering and cannot export',async()=>{
+ const c=harness();c.__researchExtendedWorkspace=false;c.__scr.market='HK';c.scrLoadDataset=async()=>null;
+ c.scrPanelFetch=async()=>({rail:{presets:[]}});c.scrIdb=()=>assert.fail('Unavailable response persisted');
+ c.api=async()=>({available:false,rows:[],refresh_required:true,reason:'No stored HK market data is available.'});
+ const result=await vm.runInContext('pages.home()',c);assert.equal(c.__homeCtx.scr.available,false);assert.equal(c.__scrDataset.available,false);
+ assert.match(result,/Data unavailable/);assert.match(result,/Load HK market/);assert.match(result,/Market data unavailable/);assert.doesNotMatch(result,/0 stocks/);
+ let alert;c.alert=message=>{alert=message;};c.scrExport('csv','all');assert.match(alert,/No stored HK/);
+ // Failed results must be rejected before touching IndexedDB.
+ c.scrIdb=()=>assert.fail('Unavailable response persisted');await vm.runInContext('scrPersistDataset(window.__scrDataset)',c);
+});
+test('failed background market refresh retains the previous successful cohort and clock',async()=>{
+ const c=harness(),saved={key:'US|0|moo',ts:Date.now()-120000,asOf:'2026-10-02T00:00:00Z',rows:[stock('A',10,1,{code:'US.A'})]};
+ c.scrLoadDataset=async()=>saved;c.__panelCache={market:'US',rail:{presets:[]}};c.scrStreamPanels=()=>{};
+ let finish;c.api=()=>new Promise(resolve=>{finish=resolve;});c.scrPersistDataset=()=>assert.fail('Failed refresh replaced stored success');
+ await vm.runInContext('pages.home()',c);const original=c.__scrDataset;assert.equal(c.__homeCtx.scr.matched,1);
+ finish({available:false,rows:[],reason:'Provider unavailable'});await Promise.resolve();await Promise.resolve();
+ assert.equal(c.__scrDataset,original);assert.equal(c.__scrDataset.rows[0].code,'US.A');assert.equal(c.__scrDataset.asOf,saved.asOf);assert.equal(c.__scrDataset.refreshError,'Provider unavailable');
 });

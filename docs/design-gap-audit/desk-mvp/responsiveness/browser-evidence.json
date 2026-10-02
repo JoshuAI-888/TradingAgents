@@ -1,0 +1,99 @@
+{
+  "capturedAt": "2026-10-02T19:33:24.638Z",
+  "scope": "Synthetic local US fixture; browser viewport 1280px; not live data or production p95",
+  "timings": [
+    {
+      "name": "desk.usable-frame",
+      "ms": 385.2,
+      "source": "uncached-or-persisted",
+      "rows": 500,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 316,
+      "source": "dataset-memory",
+      "rows": 500,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 157,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 93.7,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 60.4,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 70.5,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 68.9,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 74.9,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 85.4,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    }
+  ],
+  "layout": {
+    "documentWidth": 1280,
+    "firstDataRow": "1\n      S0001Fixture Stock 12.00 cur?-4.90%11.99B cur?80.20M\n      ☆",
+    "headers": [
+      "Select",
+      "No.",
+      "SymbolFilter",
+      "Stock NameFilter",
+      "PriceFilter",
+      "% ChgFilter",
+      "Market Cap ↓Filter",
+      "P/E (TTM)Filter",
+      "VolumeFilter",
+      ""
+    ],
+    "resultSummary": "1,176 stocks · 100 on this page ",
+    "viewport": 1280
+  },
+  "console": [],
+  "download": {
+    "scope": "US available matches 1176",
+    "result": "In-app browser download event timed out after 10s; actual file acceptance remains open"
+  },
+  "resetTiming": {
+    "name": "desk.usable-frame",
+    "ms": 82.4,
+    "source": "dataset-memory",
+    "rows": 100,
+    "mode": "table"
+  }
+}

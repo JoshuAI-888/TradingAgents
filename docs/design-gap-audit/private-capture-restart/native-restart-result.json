@@ -1,0 +1,16 @@
+{
+  "database": "capture_restart_qualification",
+  "worker_killed_after_actual_build": true,
+  "process_exit_code": -9,
+  "immediate_restart": "idle/live lease preserved",
+  "lease_expiry": "actual 120 seconds; never modified",
+  "restart_result": "same occurrence succeeded",
+  "recovered_attempt": 2,
+  "new_capture_rows": 1,
+  "total_capture_rows": 2,
+  "prior_success_preserved": true,
+  "subsequent_restart": "idle/no duplicate",
+  "elapsed_seconds": 121.388,
+  "limits": "Actual CaptureExecutor subprocess crash/restart and native PostgreSQL; synthetic two-stock provider/store transport. Not deployed service, PostgREST, real Auth or financial/provider qualification.",
+  "disposable_database_removed": true
+}

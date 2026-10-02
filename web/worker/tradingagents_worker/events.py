@@ -2,6 +2,7 @@
 
 Stage naming matches the portal's pipeline visualization.
 """
+
 from __future__ import annotations
 
 from .db import Db
@@ -27,21 +28,29 @@ class Emitter:
         # every order-by-seq reader (live trace, report dossier). Best-effort:
         # if the max-seq read fails, number from 1 rather than block the job.
         try:
-            rows = db.select("job_events", {"job_id": f"eq.{job_id}", "order": "seq.desc", "limit": "1"}, "seq")
+            rows = db.select(
+                "job_events", {"job_id": f"eq.{job_id}", "order": "seq.desc", "limit": "1"}, "seq"
+            )
             self._seq = int(rows[0]["seq"] or 0) if rows else 0
         except Exception:
             self._seq = 0
 
-    def emit(self, stage: str, status: str, message: str | None = None, payload: dict | None = None):
+    def emit(
+        self, stage: str, status: str, message: str | None = None, payload: dict | None = None
+    ):
         self._seq += 1
-        self.db.insert("job_events", {
-            "job_id": self.job_id,
-            "seq": self._seq,
-            "stage": stage,
-            "status": status,
-            "message": message,
-            "payload": payload or {},
-        }, prefer="return=minimal")
+        self.db.insert(
+            "job_events",
+            {
+                "job_id": self.job_id,
+                "seq": self._seq,
+                "stage": stage,
+                "status": status,
+                "message": message,
+                "payload": payload or {},
+            },
+            prefer="return=minimal",
+        )
 
     def stage_done(self, stage: str, message: str | None = None, payload: dict | None = None):
         self.emit(stage, "done", message, payload)

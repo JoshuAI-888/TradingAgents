@@ -236,8 +236,8 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .scr-table th.thc{white-space:nowrap}
 .thsort{text-decoration:none;color:inherit}
 .thsort.on{color:#9cc2ff}
-.fic{color:#5c6f86;text-decoration:none;font-size:9px;margin-left:4px}
-.fic.on{color:#f2c14e}
+.fic{color:var(--dim);background:transparent;border:1px solid transparent;border-radius:4px;font-size:10px;margin-left:4px;padding:2px 4px;min-height:24px;cursor:pointer}
+.fic.on{color:#f2c14e;border-color:#f2c14e}
 .colpick{position:relative;display:inline-block}
 .colpick summary{list-style:none;cursor:pointer}
 .colpick-list{position:absolute;top:110%;left:0;z-index:50;width:220px;max-height:300px;overflow:auto;background:#0d1420;border:1px solid var(--line);border-radius:10px;padding:8px 10px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
@@ -306,8 +306,8 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .statgrid .k{font-size:10px;color:var(--faint);margin-top:1px}
 .stk-toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .stk-toolbar select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:5px 9px;font-size:12px}
-.stk-toolbar .rng{background:var(--panel2);border:1px solid var(--line);color:var(--dim);font-size:11.5px;padding:5px 11px;border-radius:7px;cursor:pointer}
-.stk-toolbar .rng.on{color:var(--txt);border-color:var(--amber);background:rgba(242,193,78,.1)}
+.stk-toolbar .rng,.cmp-toolbar .rng,.cmp-chead .rng,.cmp-drawer .rng{background:var(--panel2);border:1px solid var(--line);color:var(--dim);font-size:11.5px;padding:5px 11px;border-radius:7px;cursor:pointer}
+.stk-toolbar .rng.on,.cmp-toolbar .rng.on,.cmp-chead .rng.on,.cmp-drawer .rng.on{color:var(--txt);border-color:var(--amber);background:rgba(242,193,78,.1)}
 .stk-toolbar .mode{margin-left:auto}
 .readout{font-size:11px;font-family:var(--mono);color:var(--dim);min-height:16px;margin-bottom:4px}
 .rating-bar{display:flex;height:26px;border-radius:7px;overflow:hidden;font-size:11px;font-weight:700;color:#04121c}
@@ -416,7 +416,7 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 ::-webkit-scrollbar-thumb:hover{background:#33445f}
 *{scrollbar-width:thin;scrollbar-color:#26344a var(--bg)}
 </style>
-<link rel="stylesheet" href="/research-workspace.css?v=20261002-explorer-currency">
+<link rel="stylesheet" href="/research-workspace.css?v=20261003-desk-mvp1">
 </head>
 <body>
 <div class="wrap">
@@ -494,7 +494,7 @@ try { window.__scr = JSON.parse(localStorage.getItem("scrState")) || {}; } catch
 window.__scr = Object.assign({ market: "US", src: "moo", watchlistOnly: false, filters: [], sort: "market_cap",
                  dir: 2, watchlistSyms: [],
                  cols: ["symbol", "name", "price", "pct", "market_cap", "pe_ttm", "volume"],
-                 colFilters: {}, etfs: false, page: 1, pageSize: 500 }, window.__scr);
+                 colFilters: {}, etfs: false, page: 1, pageSize: 100 }, window.__scr);
 if (!window.__scr.schemaVersion) {
   window.__scr.etfs = false;
   if (!window.__scr.activePreset && !window.__scr.filters.length && !Object.keys(window.__scr.colFilters).length) {
@@ -577,14 +577,49 @@ const FIELD_DEFS = {
   div_yield: "Trailing 12-month dividend yield, in % (moomoo).",
 };
 function scrAddColFilter(field, kind) { scrRenderColMenu(field, kind); }
+function scrFacetScope() {
+  const st=window.__scr,ds=st.activePreset?(window.__presetCache || {})[st.activePreset+'|'+st.market]:window.__scrDataset;
+  return JSON.stringify([st.market,st.src || 'moo',!!st.etfs,!!st.watchlistOnly,st.activePreset || null,ds?.key,ds?.generationId,ds?.ts]);
+}
+function scrEnsureFacetScope() {
+  const scope=scrFacetScope();
+  if(window.__scrFacetScope!==scope){window.__scrFacets={};window.__scrFacetScope=scope;}
+  return scope;
+}
+function scrColFacetHTML(field) {
+  const draft=window.__colFilterDraft;
+  if(draft?.field!==field)return '';
+  const query=(draft.facetQuery || '').trim().toLocaleLowerCase();
+  const facets=(window.__scrFacets?.[field] || []).filter(v=>!query || String(v.value).toLocaleLowerCase().includes(query));
+  const size=100,offset=Math.min(Math.max(0,draft.facetOffset || 0),Math.max(0,Math.floor((facets.length-1)/size)*size));
+  draft.facetOffset=offset;
+  const selected=new Set(draft.value.values || []);
+  const items=facets.slice(offset,offset+size).map(v=>`<label class="msv"><input type="checkbox" value="${esc(String(v.value))}" ${selected.has(v.value)?'checked':''} onchange="scrToggleValue('${field}',this.value,this.checked)"> ${esc(v.value)} <span class="faint">(${v.count})</span></label>`).join('');
+  return `<div class="msvwrap">${items || '<p class="faint">No matching values.</p>'}</div><p role="status">${facets.length?offset+1:0}–${Math.min(offset+size,facets.length)} of ${facets.length.toLocaleString()} values · <span id="scr-colfacet-selected">${selected.size}</span> selected</p><div class="mfoot"><button class="btn ghost" aria-label="Previous filter values" ${offset===0?'disabled':''} onclick="scrColFacetPage('${field}',-1)">Previous</button><button class="btn ghost" aria-label="Next filter values" ${offset+size>=facets.length?'disabled':''} onclick="scrColFacetPage('${field}',1)">Next</button></div>`;
+}
+function scrColFacetUpdate(field,query) {
+  const draft=window.__colFilterDraft;if(draft?.field!==field)return;
+  draft.facetQuery=query;draft.facetOffset=0;
+  const list=document.getElementById('scr-colfacet-values');if(list)list.innerHTML=scrColFacetHTML(field);
+}
+function scrColFacetPage(field,delta) {
+  const draft=window.__colFilterDraft;if(draft?.field!==field)return;
+  draft.facetOffset=Math.max(0,(draft.facetOffset || 0)+delta*100);
+  const list=document.getElementById('scr-colfacet-values');if(list){list.innerHTML=scrColFacetHTML(field);list.querySelector('input')?.focus();}
+}
 function scrColMenuClose() {
+  researchModalRelease('column-filter');
   document.getElementById("scr-colmenu")?.remove();
   window.__colFilterDraft = null;
+  const origin=window.__colFilterOrigin;window.__colFilterOrigin=null;
+  if(origin?.isConnected && origin.getClientRects().length)origin.focus({preventScroll:true});
 }
 function scrRenderColMenu(field, kind) {
   if (kind === "text") kind = "multi";
+  if(kind==='multi')scrEnsureFacetScope();
   let m = document.getElementById("scr-colmenu");
   if (!m) {
+    window.__colFilterOrigin=document.activeElement;
     m = document.createElement("div"); m.id = "scr-colmenu";
     m.style.cssText = "position:fixed;inset:0;z-index:61";
     m.innerHTML = '<div style="position:absolute;inset:0" onclick="scrColMenuClose()"></div>';
@@ -597,24 +632,25 @@ function scrRenderColMenu(field, kind) {
   const label = SCR_COLS[field] ? SCR_COLS[field][0] : field;
   let bodyHtml;
   if (kind === "multi") {
-    const sel = new Set(cf.values || []);
-    const items = (window.__scrFacets && window.__scrFacets[field] || [])
-      .map(v => `<label class="msv"><input type="checkbox" ${sel.has(v.value) ? "checked" : ""} onchange="scrToggleValue('${field}','${esc(String(v.value)).replace(/'/g, "\'")}',this.checked)"> ${esc(v.value)} <span class="faint">(${v.count})</span></label>`).join("")
-      || '<div class="faint" style="font-size:11px">No values in the universe.</div>';
-    bodyHtml = `<div class="msvwrap">${items}</div>`;
+    bodyHtml = `<label>Search values<input type="search" aria-label="Search ${esc(label)} values" value="${esc(window.__colFilterDraft.facetQuery || '')}" oninput="scrColFacetUpdate('${field}',this.value)"></label><div id="scr-colfacet-values">${scrColFacetHTML(field)}</div>`;
   } else if (kind === "bool") {
     bodyHtml = `<label class="msv"><input type="checkbox" ${cf.values?.length ? "checked" : ""} onchange="scrSetValues('${field}', this.checked ? [true] : [])"> ${esc(label)} only</label>`;
   } else {
-    bodyHtml = `<div class="msel" style="grid-template-columns:70px 70px">
-      <input type="number" placeholder="min" value="${cf.min ?? ""}" oninput="scrColDraftVal('${field}','min',this.value)">
-      <input type="number" placeholder="max" value="${cf.max ?? ""}" oninput="scrColDraftVal('${field}','max',this.value)"></div>`;
+    bodyHtml = `<div class="msel" style="grid-template-columns:1fr 1fr">
+      <label>Minimum<input type="number" aria-label="Minimum ${esc(label)}" placeholder="No minimum" value="${cf.min ?? ""}" oninput="scrColDraftVal('${field}','min',this.value)"></label>
+      <label>Maximum<input type="number" aria-label="Maximum ${esc(label)}" placeholder="No maximum" value="${cf.max ?? ""}" oninput="scrColDraftVal('${field}','max',this.value)"></label></div>`;
   }
-  m.innerHTML = '<div style="position:absolute;inset:0" onclick="scrColMenuClose()"></div>' + `<div class="mbox" style="width:300px;max-height:none;position:absolute;top:15%;right:12px;left:auto">
-    <div class="mhead"><b>Filter — ${esc(label)}</b> <button class="btn ghost" onclick="scrColMenuClose()">✕</button></div>
+  const focused=m.contains?.(document.activeElement)?document.activeElement?.getAttribute('aria-label'):null;
+  m.innerHTML = '<div style="position:absolute;inset:0" onclick="scrColMenuClose()"></div>' + `<div class="mbox column-filter-box" role="dialog" aria-modal="true" aria-label="Filter ${esc(label)}" style="width:min(440px,calc(100vw - 24px));max-height:calc(100vh - 32px);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);overflow:auto">
+    <div class="mhead"><b>Filter — ${esc(label)}</b> <button class="btn ghost" aria-label="Close column filter" onclick="scrColMenuClose()">Close</button></div>
     ${bodyHtml}
     <div class="mfoot"><button class="btn ghost" onclick="scrClearColFilter('${field}')">Reset</button>
       <button class="btn primary" onclick="scrApplyColFilter('${field}')">Apply</button></div>
   </div>`;
+  researchModalIsolate(m,'column-filter');
+  m.onkeydown=e=>researchModalKey(e,m,scrColMenuClose);
+  const controls=[...m.querySelectorAll('input,button')];
+  (controls.find(control=>focused && control.getAttribute('aria-label')===focused) || m.querySelector('input') || controls[0])?.focus();
   if (kind === "multi" && !window.__scrFacets?.[field]) {
     // Distinct values + counts computed from the cached dataset — instant, no
     // round trip; server facets only when we hold no data.
@@ -623,9 +659,11 @@ function scrRenderColMenu(field, kind) {
       window.__scrFacets = window.__scrFacets || {}; window.__scrFacets[field] = local;
       scrRenderColMenu(field, kind);
     } else {
+      const scope=scrFacetScope(),cache=window.__scrFacets,draft=window.__colFilterDraft;
       api("/api/screener/facets?field=" + field + "&market=" + st.market + (st.watchlistOnly ? "&watchlist_only=1" : ""))
-        .then(r => { window.__scrFacets = window.__scrFacets || {}; window.__scrFacets[field] = r.values || [];
-                     if (document.getElementById("scr-colmenu") && window.__colFilterDraft?.field === field) { scrRenderColMenu(field, kind); } })
+        .then(r => { if(scope!==scrFacetScope() || cache!==window.__scrFacets)return;
+                     cache[field] = r.values || [];
+                     if (document.getElementById("scr-colmenu") && window.__colFilterDraft===draft) { scrRenderColMenu(field, kind); } })
         .catch(() => {});
     }
   }
@@ -644,6 +682,7 @@ function scrToggleValue(field, val, on) {
   const set = new Set(cf.values || []);
   on ? set.add(val) : set.delete(val);
   cf.values = [...set];
+  const count=document.getElementById('scr-colfacet-selected');if(count)count.textContent=String(set.size);
 }
 function scrApplyColFilter(field) {
   const st = window.__scr, cf = window.__colFilterDraft?.field === field ? window.__colFilterDraft.value : null;
@@ -663,6 +702,7 @@ function scrClearColFilter(field) {
 function scrPage(delta) { scrSet("page", Math.max(1, (window.__scr.page || 1) + delta)); }
 function scrExport(kind, scope) {
   const st = window.__scr;
+  if(!st.activePreset && window.__homeCtx?.scr?.available===false){alert(window.__homeCtx.scr.server_fallback_reason || 'Market data is unavailable. Load full market, then retry.');return;}
   const rows = scrClientRows();
   if (!rows && st.activePreset) { alert("This provider screen is unavailable. No unqualified results can be exported."); return; }
   if (["selected","explore"].includes(scope) && !rows) { alert("Selection export needs the current loaded cohort. Load the results first."); return; }
@@ -944,7 +984,7 @@ function scrRestoreFromHash() {
     if (q.get("cols")) st.cols = q.get("cols").split(",");
     st.activePreset = q.get("preset") || null;
     st.savedScreenId = q.get("saved") || null;
-    st.presentation = ["table","explore","changes"].includes(q.get("mode")) ? q.get("mode") : "table";
+    st.presentation = researchPresentationMode(q.get("mode"));
     st.page = Math.max(1, Number(q.get("p")) || 1);
     return true;
   } catch (e) { return false; }
@@ -994,7 +1034,7 @@ function scrApplyPreset(key) {
   const st = window.__scr;
   if (st.activePreset === key) { scrResetAll(); return; }
   const p = (window.__scrPresets || []).find(x => x.key === key);
-  if (!p) return;
+  if (!p || researchPresetUnavailable(p)) return;
   st.filters = JSON.parse(JSON.stringify(p.filters || []));
   st.activePreset = key;
   st.savedScreenId = null;
@@ -1140,7 +1180,7 @@ function scrTickers(v) {
   scrPersist(); showPage("home");
 }
 async function scrLoadTaxonomy() {
-  const st = window.__scr;
+  const st = JSON.parse(JSON.stringify(window.__scr)),scope=scrEnsureFacetScope(),cache=window.__scrFacets;
   for (const [fld, id] of [["plate", "scr-industry"], ["concepts", "scr-concepts"], ["exchange", "scr-exchange"],
                             ["plate", "scr-industry2"], ["concepts", "scr-concepts2"], ["exchange", "scr-exchange2"]]) {
     const el = document.getElementById(id); if (!el) continue;
@@ -1153,16 +1193,19 @@ async function scrLoadTaxonomy() {
       if (fld !== "concepts" && !window.__scrDataset) {
         try {
           const r = await api("/api/screener/facets?field=" + fld + "&market=" + st.market + (st.watchlistOnly ? "&watchlist_only=1" : ""));
+          if(scope!==scrFacetScope() || cache!==window.__scrFacets)return;
           values = r.values || [];
         } catch (e) {}
       } else if (fld === "concepts") {
         try {
           const r = await api("/api/screener/facets?field=concepts&market=" + st.market);
+          if(scope!==scrFacetScope() || cache!==window.__scrFacets)return;
           values = r.values || [];
-          window.__scrFacets = window.__scrFacets || {}; window.__scrFacets.concepts = values;
+          cache.concepts = values;
         } catch (e) {}
       }
     }
+    if(scope!==scrFacetScope() || cache!==window.__scrFacets || document.getElementById(id)!==el)return;
     const choices = (values || []).slice(0, 60);
     for (const value of cur) if (!choices.some(v => v.value === value)) choices.push({ value, count: 0 });
     el.innerHTML = '<option value="">' + el.options[0].text + '</option>' + choices.map(v =>
@@ -1271,14 +1314,15 @@ async function scrLoadSaved() {
     <div class="mlabel" style="margin-top:4px">Moomoo recommended screeners — click one to view, tune and save its filters:</div>
     ${presets.map(p => {
       const nf = (p.filters || []).length;
-      const status = `<span class="faint" style="font-size:9.5px;color:#26c68c">${nf} criteria · provider screen</span>`;
+      const unavailable=researchPresetUnavailable(p);
+      const status = unavailable ? `<span class="faint">Unavailable — ${esc(unavailable)}</span>` : `<span class="faint" style="font-size:9.5px;color:#26c68c">${nf} criteria · provider screen</span>`;
       return `<div style="border-bottom:1px solid rgba(38,52,74,.4);padding:6px 0;margin-bottom:4px;cursor:pointer" ${sel(p.key)} title="${esc(p.description || "")}">
         <div style="display:flex;gap:8px;align-items:flex-start">
           <div style="flex:1;min-width:0"><b style="font-size:12px">${esc(p.name)}</b> ${status}
             <div class="faint" style="font-size:10px;margin:2px 0">${esc(p.description || "")}</div>
             <div class="faint mono" style="font-size:9.5px">${(p.filters || []).map(fldStr).join(" · ")}</div>
           </div>
-          <button class="btn ghost" style="padding:2px 8px;font-size:10px" onclick="event.stopPropagation();scrApplyPreset('${esc(p.key)}')">Run</button>
+          <button class="btn ghost" style="padding:2px 8px;font-size:10px" onclick="event.stopPropagation();scrApplyPreset('${esc(p.key)}')" ${unavailable?'disabled':''}>${unavailable?'Unavailable':'Run'}</button>
         </div></div>`;
     }).join("")}` : `<div class="mnote">Moomoo preset definitions load once the screener data is available.</div>`;
   const savedBlock = dbDown
@@ -1434,8 +1478,8 @@ async function scrDeleteSaved(id) {
   scrTab = "screeners"; scrRenderModal();
 }
 </script>
-<script src="/research-workspace.js?v=20261002-explorer-currency"></script>
-<script src="/research-account.js?v=20261002-explorer-currency"></script>
+<script src="/research-workspace.js?v=20261003-desk-mvp1"></script>
+<script src="/research-account.js?v=20261003-desk-mvp1"></script>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -1593,7 +1637,15 @@ function scrIdb() {
     rq.onerror = () => rej(rq.error);
   });
 }
+function scrDatasetResult(raw,key) {
+ const available=raw?.available===true;
+ return {key,ts:Date.now(),asOf:raw?.universe_as_of,generationId:raw?.generation_id,
+  watchlist:raw?.watchlist,rows:available && Array.isArray(raw.rows)?raw.rows:[],available,
+  refreshRequired:!!raw?.refresh_required,
+  failureReason:available?'':raw?.reason || 'Market data could not be loaded. Retry or load full market.'};
+}
 async function scrPersistDataset(ds) {
+  if(ds.available===false)return;
   try {
     const db = await scrIdb();
     db.transaction("ds", "readwrite").objectStore("ds")
@@ -1646,7 +1698,7 @@ function scrStreamPanels(market) {
 // Warm only screens the user approaches. One bounded FIFO worker avoids
 // repeatedly warming the first five cards or creating a request per tab stop.
 function scrWarmPreset(key, market) {
-  if (!key) return;
+  if (!key || researchPresetUnavailable((window.__scrPresets || []).find(p=>p.key===key))) return;
   const ck = key + "|" + market;
   const cached = window.__presetCache?.[ck];
   if ((cached && (cached.retained || Date.now() - cached.ts < 60000)) || window.__presetInflight?.[ck]) return;
@@ -1675,10 +1727,11 @@ function scrLocalFacets(field) {
   if (st.activePreset) {
     const c = (window.__presetCache || {})[st.activePreset + "|" + st.market];
     if (c) rows = c.payload.rows || [];
-  } else if (window.__scrDataset) {
+  } else if (window.__scrDataset?.key === [st.market,st.etfs?1:0,st.src || 'moo'].join('|')) {
     rows = window.__scrDataset.rows;
   }
-  if (!rows || !rows.length) return null;
+  if (!rows) return null;
+  if(st.watchlistOnly){const watchlist=new Set(window.__scrDataset?.watchlist || st.watchlistSyms || []);rows=rows.filter(r=>watchlist.has(r.symbol));}
   const counts = new Map();
   for (const r of rows) {
     const v = r[field];
@@ -1788,7 +1841,7 @@ const pages = {
         filters: JSON.stringify([{ field: "stock_type", values: st.etfs ? ["STOCK", "ETF"] : ["STOCK"] }]),
         sort: "market_cap", direction: "2", src: st.src || "moo", limit: "20000", offset: "0" });
       let ds = null, fromCache = false;
-      if (window.__scrDataset && window.__scrDataset.key === dsKey && Date.now() - window.__scrDataset.ts < 60000) {
+      if (window.__scrDataset && window.__scrDataset.key === dsKey && window.__scrDataset.available!==false && Date.now() - window.__scrDataset.ts < 60000) {
         ds = window.__scrDataset;
       } else {
         const saved = await scrLoadDataset(dsKey);
@@ -1800,8 +1853,7 @@ const pages = {
         const [raw, panels] = await Promise.all([
           api("/api/screener?" + dataQs).catch(() => null), scrPanelFetch(st.market)]);
         if (gen !== __homeGen) return "";
-        ds = { key: dsKey, ts: Date.now(), asOf: raw && raw.universe_as_of, generationId: raw && raw.generation_id,
-               watchlist: raw && raw.watchlist, rows: (raw && raw.rows) || [] };
+        ds = scrDatasetResult(raw,dsKey);
         window.__scrDataset = ds;
         scrPersistDataset(ds);
         window.__panelCache = { ...panels, ts: Date.now() };
@@ -1809,8 +1861,8 @@ const pages = {
         if (fromCache || Date.now() - ds.ts > 60000) {
           // paint the saved copy now; refresh in the background, update once
           api("/api/screener?" + dataQs).then(raw => {
-            const fresh = { key: dsKey, ts: Date.now(), asOf: raw && raw.universe_as_of, generationId: raw && raw.generation_id,
-                            watchlist: raw && raw.watchlist, rows: (raw && raw.rows) || [] };
+            if(raw?.available!==true){ds.refreshError=raw?.reason || 'Refresh unavailable; showing the previously loaded dataset.';return;}
+            const fresh = scrDatasetResult(raw,dsKey);
             scrPersistDataset(fresh);
             const currentKey = [window.__scr.market, window.__scr.etfs ? 1 : 0, window.__scr.src || "moo"].join("|");
             if (currentKey !== dsKey) return;
@@ -1830,7 +1882,8 @@ const pages = {
         base = base.filter(r => wset.has(r.symbol));
       }
       const all = scrSortRows(scrFieldPass(base, scrEffFilters()));
-      scr = { available: true, ...scrPageRows(all),
+      scr = { available: ds.available!==false, ...scrPageRows(all),
+              refresh_required:ds.refreshRequired,server_fallback_reason:ds.failureReason || ds.refreshError,
               skipped_filters: [], universe_loaded: ds.rows.length > 0,
               universe_as_of: ds.asOf, generation_id: ds.generationId || null, watchlist: ds.watchlist,
               client_dataset: true, stale_hint: fromCache ? ds.ts : null };
@@ -1917,15 +1970,10 @@ const pages = {
       multi: (r, k) => `<span class="faint" style="font-size:11px">${esc(String(r[k] || "—").slice(0, 22))}</span>`,
       bool: (r, k) => `<span class="${[true,1,'1'].includes(r[k])?'g':'faint'}">${esc(researchDisplayField(k,r[k]))}</span>`,
     };
-    const filterIcon = k => {
-      const cf = st.colFilters[k];
-      const on = cf && ((cf.values || []).length || cf.min != null || cf.max != null);
-      return on ? `<a href="#" class="fic on" title="filter: on" onclick="scrRenderColMenu('${k}','${SCR_COLS[k][1]}');return false"> funnel</a>` : "";
-    };
     const th = k => {
       const [label, kind] = SCR_COLS[k];
       const arrow = st.sort === k ? (st.dir === 2 ? " ↓" : " ↑") : "";
-      return `<th class="thc"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="${esc(FIELD_DEFS[k] || "sort by " + label)}">${esc(label)}${arrow}</a><a href="#" class="fic ${st.colFilters[k] ? "on" : ""}" title="filter" onclick="scrRenderColMenu('${k}','${kind}');return false">⚈</a>${filterIcon(k)}</th>`;
+      return `<th class="thc"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="${esc(FIELD_DEFS[k] || "sort by " + label)}">${esc(label)}${arrow}</a><button type="button" class="fic ${st.colFilters[k] ? "on" : ""}" aria-label="Filter ${esc(label)}${st.colFilters[k] ? ' · active' : ''}" aria-haspopup="dialog" title="Filter ${esc(label)}" onclick="scrRenderColMenu('${k}','${kind}')">Filter</button></th>`;
     };
     const body = viewRows.map((r, i) => `<tr>
       <td><label class="stock-select"><input type="checkbox" data-research-index="${i}" aria-label="Select ${esc(r.symbol)} for comparison" ${(window.__researchSelected || []).includes(r.code || r.symbol) ? "checked" : ""} onchange="researchSelect(${i},this.checked)"></label></td><td class="mono dim">${(scr.offset || 0) + i + 1}</td>
@@ -1950,9 +1998,9 @@ const pages = {
       <table class="scr-table"><tr><th>Select</th><th>No.</th>${st.cols.map(k => {
         const [label, kind] = SCR_COLS[k];
         const arrow = st.sort === k ? (st.dir === 2 ? " ↓" : " ↑") : "";
-        return `<th class="thc" data-field="${k}" aria-sort="${st.sort===k?(st.dir===2?'descending':'ascending'):'none'}" draggable="true" ondragstart="scrDragStart(event,'${k}','table')" ondragover="scrDragOverCol(event,'${k}')" ondragleave="scrDragLeaveCol(event)" ondrop="scrDropCol(event,'${k}')"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="sort by ${esc(label)} · drag to move">${esc(label)}${arrow}</a><a href="#" class="fic ${st.colFilters[k] ? "on" : ""}" title="filter" onclick="scrRenderColMenu('${k}','${kind}');return false">⚈</a>${filterIcon(k)}</th>`;
+        return `<th class="thc" data-field="${k}" aria-sort="${st.sort===k?(st.dir===2?'descending':'ascending'):'none'}" draggable="true" ondragstart="scrDragStart(event,'${k}','table')" ondragover="scrDragOverCol(event,'${k}')" ondragleave="scrDragLeaveCol(event)" ondrop="scrDropCol(event,'${k}')"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="sort by ${esc(label)} · drag to move">${esc(label)}${arrow}</a><button type="button" class="fic ${st.colFilters[k] ? "on" : ""}" aria-label="Filter ${esc(label)}${st.colFilters[k] ? ' · active' : ''}" aria-haspopup="dialog" title="Filter ${esc(label)}" onclick="scrRenderColMenu('${k}','${kind}')">Filter</button></th>`;
       }).join("")}<th></th></tr>
-      ${body || '<tr><td colspan="' + (st.cols.length + 3) + '" class="empty">No rows match — loosen or reset the filters (Clear in the toolbar).</td></tr>'}</table></div>`;
+      ${body || '<tr><td colspan="' + (st.cols.length + 3) + '" class="empty">'+(scr.available===false?'Market data unavailable — load the market or retry.':'No rows match — loosen or reset the filters (Clear in the toolbar).')+'</td></tr>'}</table></div>`;
 
     return `
     ${researchDeskHTML({st,scr,execd,ms,msPanel,table,allChips,prog,progPct})}
@@ -2552,6 +2600,19 @@ function klineHost(o) {
   return Object.assign({ chart: null, subsCur: null, maCur: null, emaCur: null,
                          builtType: null, staticOverlays: [] }, o);
 }
+function klineStatus(h, message, retry = false) {
+  const el = document.getElementById(h.elId + "-status");
+  if (!el) return;
+  el.hidden = !message;
+  el.style.display = message ? "" : "none";
+  el.innerHTML = message ? `${esc(message)}${retry ? ` <button class="btn ghost" onclick="klineRetry('${h.elId}')">Retry chart</button>` : ""}` : "";
+}
+function klineRetry(id) {
+  if (id === "stk-kc") return stkLoadChart();
+  if (id === "ana-kc") return anaLoadChart();
+  const i = (window.__cmpHosts || []).findIndex(h => h?.elId === id);
+  if (i >= 0) return cmpLoadCell(i, true);
+}
 const __kcHosts = [];
 function klineTeardownAll() { __kcHosts.slice().forEach(klineTeardown); }
 
@@ -2705,6 +2766,8 @@ function klineSetData(h, data) {
   if (h.drawingScope !== scope) klineSaveDrawings(h);
   let c = klineEnsure(h);
   if (!c) return;
+  const symbol = h.state().sym || (['stk-kc','ana-kc'].includes(h.elId) ? stkState().sym : null);
+  if (symbol) c.setTimezone(stockTimezone(symbol));
   c.applyNewData(data);
   klineApply(h);
   c = h.chart;
@@ -2935,7 +2998,7 @@ function cmpRegisterIndicators() {
       for (let i = visibleRange.from; i < visibleRange.to; i++) {
         const b = kLineDataList[i];
         if (!b) continue;
-        const d = new Date(b.timestamp).toISOString().slice(0, 10);
+        const d = b.tradingDate || stockTradingDate(b.timestamp, ev.sym);
         const tags = [];
         if (ev.earn[d]) tags.push(["E", "#26c68c"]);
         if (ev.div[d]) tags.push(["D", "#3fc1c9"]);
@@ -3070,7 +3133,7 @@ function cmpRegisterIndicators() {
   KC.registerIndicator({ name: "VWAP", shortName: "VWAP", series: "price", figures: [
       { key: "vwap", title: "VWAP: ", type: "line", color: "#e8a33d" }],
     calc: dl => { let day = "", pv = 0, vv = 0;
-      return dl.map(x => { const d = new Date(x.timestamp).toISOString().slice(0, 10);
+      return dl.map(x => { const d = x.tradingDate || new Date(x.timestamp).toISOString().slice(0, 10);
         if (d !== day) { day = d; pv = 0; vv = 0; }
         const v = x.volume || 0, tp = (x.high + x.low + x.close) / 3;
         pv += tp * v; vv += v;
@@ -3079,16 +3142,16 @@ function cmpRegisterIndicators() {
 
 function cmpSanitizeBars(rows) {
   return (rows || []).flatMap(b => {
-    const c = Number(b.close);
-    if (!Number.isFinite(c) || c <= 0) return [];
+    const c = Number(b.close), t = Number(b.time_key);
+    if (!Number.isFinite(c) || c <= 0 || !Number.isFinite(t) || t <= 0) return [];
     const pick = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : c; };
     const o = pick(b.open), h2 = Math.max(pick(b.high), o, c), l2 = Math.min(pick(b.low), o, c);
-    return [{ t: Number(b.time_key), c, o, h: h2, l: l2, v: Number(b.volume) || 0, to: Number(b.turnover) || 0 }];
+    return [{ t, c, o, h: h2, l: l2, v: Number(b.volume) || 0, to: Number(b.turnover) || 0 }];
   });
 }
 function cmpMapData(c) {
   return (c.bars || []).map(x => ({ timestamp: +x.t, open: +x.o, high: +x.h, low: +x.l,
-    close: +x.c, volume: +x.v || 0, turnover: +x.to || 0 }));
+    close: +x.c, volume: +x.v || 0, turnover: +x.to || 0, tradingDate:stockTradingDate(x.t,c.sym) }));
 }
 
 function cmpCellHTML(c, i) {
@@ -3112,24 +3175,37 @@ function cmpCellHTML(c, i) {
     </div>
     <div class="kcwrap">
       <div class="readout" id="cmp-readout-${i}">${esc(c.sym)} · ${esc(c.range)}</div>
+      <div id="cmp-kc-${i}-status" role="status" class="delay-note" hidden></div>
       <div id="cmp-kc-${i}" style="height:${base}px"></div>
     </div></div>`;
 }
 
 async function cmpLoadCell(i, force) {
   const c = cmpState().cells[i];
+  if (!c) return;
+  const request = c._chartRequest = (c._chartRequest || 0) + 1;
+  const sym = c.sym, range = c.range, ext = !!c.ext, host = window.__cmpHosts[i];
+  const current = () => state.page === "compare" && cmpState().cells[i] === c &&
+    c._chartRequest === request && c.sym === sym && c.range === range && !!c.ext === ext && window.__cmpHosts[i] === host;
   const key = c.sym + "|" + c.range + (c.ext ? "|x" : "");
+  if (host) klineStatus(host, `Loading ${sym} ${range} chart…${c.bars?.length ? " Previous chart shown until loading finishes." : ""}`);
   if (force || !window.__cmpData[key]) {
+    let data;
     try {
-      const d = await api("/api/stock/" + c.sym + "/candles?range=" + encodeURIComponent(c.range) +
-                          (c.ext ? "&ext=1" : ""));
-      window.__cmpData[key] = { bars: cmpSanitizeBars((d && d.bars) || []) };
-    } catch (e) { window.__cmpData[key] = { bars: [] }; }
+      const d = await api("/api/stock/" + sym + "/candles?range=" + encodeURIComponent(range) +
+                          (ext ? "&ext=1" : ""));
+      data = { bars: d?.available === false ? [] : cmpSanitizeBars((d && d.bars) || []),
+        status: d?.available === false || !d ? "Chart source unavailable." : "" };
+    } catch (e) { data = { bars: [], status: "Chart request failed." }; }
+    if (!current()) return;
+    window.__cmpData[key] = data;
   }
+  if (!current()) return;
   c.bars = window.__cmpData[key].bars;
   const h = window.__cmpHosts[i];
   if (!h) return;
   klineSetData(h, cmpMapData(c));
+  klineStatus(h, window.__cmpData[key].status || (c.bars.length ? "" : "No chart data for this timeframe."), !c.bars.length);
   cmpApplyOvls(i);
   cmpApplyEvt(i);
   cmpBindSync(i);
@@ -3177,11 +3253,14 @@ function cmpApplyEvt(i) {
 
 async function cmpLoadEvents(i) {
   const c = cmpState().cells[i];
+  if (!c) return;
+  const sym = c.sym, request = c._eventRequest = (c._eventRequest || 0) + 1;
   const [earn, div, est] = await Promise.all([
     api("/api/stock/" + c.sym + "/earnings").catch(() => null),
     api("/api/stock/" + c.sym + "/dividends").catch(() => null),
     api("/api/stock/" + c.sym + "/estimates").catch(() => null)]);
-  const ev = { earn: {}, div: {}, eps: [], next: null };
+  if (state.page !== "compare" || cmpState().cells[i] !== c || c.sym !== sym || c._eventRequest !== request) return;
+  const ev = { sym, earn: {}, div: {}, eps: [], next: null };
   ((earn && earn.list) || []).forEach(r => {
     const d = String(r.pub_trading_day_str || "").slice(0, 10);
     if (d) ev.earn[d] = { period: r.period_text, pub: r.pub_time_str || "",
@@ -3234,9 +3313,9 @@ function cmpReadout(i, d) {
   const ix = list.indexOf(p);
   const prev = ix > 0 ? list[ix - 1] : null;
   const chg = prev ? (p.close - prev.close) / prev.close * 100 : null;
-  el.innerHTML = `<b>${esc(stkTime(p.timestamp))}</b> · O <b>${fmtAuto(p.open)}</b> H <b>${fmtAuto(p.high)}</b> L <b>${fmtAuto(p.low)}</b> C <b>${fmtAuto(p.close)}</b>${chg != null ? ` · <span class="${chg >= 0 ? "g" : "r"}">${stkPct(chg)}</span>` : ""}`;
+  el.innerHTML = `<b>${esc(stockChartTime(p.timestamp,c.sym))}</b> · O <b>${fmtAuto(p.open)}</b> H <b>${fmtAuto(p.high)}</b> L <b>${fmtAuto(p.low)}</b> C <b>${fmtAuto(p.close)}</b>${chg != null ? ` · <span class="${chg >= 0 ? "g" : "r"}">${stkPct(chg)}</span>` : ""}`;
   if (c.events && c._ev) {
-    const ds = new Date(p.timestamp).toISOString().slice(0, 10);
+    const ds = stockTradingDate(p.timestamp,c.sym);
     const bits = [];
     if (c._ev.earn[ds]) bits.push("E " + ds + (c._ev.earn[ds].type ? " " + c._ev.earn[ds].type : "") + (c._ev.earn[ds].period ? " · " + c._ev.earn[ds].period : ""));
     if (c._ev.div[ds]) bits.push("D " + ds + " · " + fmtAuto(c._ev.div[ds].amt) + " " + c._ev.div[ds].cur);
@@ -3403,11 +3482,14 @@ function cmpSyncToggle(k, el) {
 }
 
 async function cmpQuotePoll() {
-  if (!document.getElementById("cmp-grid")) return;
+  const grid = document.getElementById("cmp-grid");
+  if (!grid) return;
   const st = cmpState();
+  const request = window.__cmpQuoteRequest = (window.__cmpQuoteRequest || 0) + 1;
   const syms = [...new Set(st.cells.map(c => c.sym))];
   try {
     const d = await api("/api/stock/quotes?symbols=" + encodeURIComponent(syms.join(",")));
+    if (request !== window.__cmpQuoteRequest || state.page !== "compare" || cmpState() !== st || document.getElementById("cmp-grid") !== grid) return;
     if (!d || !d.available) return;
     st.cells.forEach((c, i) => {
       const q = d.quotes[c.sym], el = document.getElementById("cmp-q-" + i);
@@ -3450,7 +3532,7 @@ function cmpPickRender() {
     (!q || String(r.symbol).includes(q) || String(r.name || "").toUpperCase().includes(q)));
   rows.sort((a, b) => (stars.includes(b.symbol) ? 1 : 0) - (stars.includes(a.symbol) ? 1 : 0));
   el.innerHTML = rows.slice(0, 60).map(r => `
-    <div class="cmp-pick-row" onclick="cmpAssign(window.__cmpPickIdx,'${esc(r.symbol)}')">
+    <div class="cmp-pick-row" onclick="cmpAssign(window.__cmpPickIdx,${esc(JSON.stringify(stkRowCode(r)))})">
       <b>${esc(r.symbol)}</b> <span class="faint">${esc(String(r.name || "").slice(0, 26))}</span>
       ${stars.includes(r.symbol) ? '<span class="g">★</span>' : '<span class="faint">☆</span>'}
       ${(r.last_price ?? r.cur_price) != null ? `<span style="margin-left:auto" class="mono">${fmtAuto(r.last_price ?? r.cur_price)}</span>` : ""}</div>`).join("") ||
@@ -3477,8 +3559,16 @@ async function cmpAssign(i, sym) {
 function cmpDrawer(on) {
   const el = document.getElementById("cmp-drawer");
   if (!el) return;
+  if (on && el.style.display === "none") window.__cmpDrawerFocus = document.activeElement;
   el.style.display = on ? "block" : "none";
-  if (on) cmpDrawerRender();
+  if (on) {
+    cmpDrawerRender();
+    el.querySelector('[aria-label="Close study settings"]')?.focus({preventScroll:true});
+  } else {
+    const opener = window.__cmpDrawerFocus;
+    window.__cmpDrawerFocus = null;
+    if (opener?.isConnected) opener.focus({preventScroll:true});
+  }
 }
 function cmpSubLabel(s) { return (STK_SUBS.concat(CMP_SUBS_EXTRA).find(x => x[0] === s) || [s, s])[1]; }
 
@@ -3490,7 +3580,7 @@ function cmpDrawerRender() {
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <b>Study Settings <span class="faint" style="font-weight:400">· ${esc(c.sym)}</span></b>
-      <button class="rng" onclick="cmpDrawer(false)">✕</button></div>
+      <button class="rng" aria-label="Close study settings" onclick="cmpDrawer(false)">✕</button></div>
     <div class="cmp-sec">Chart type</div>
     <div style="display:flex;gap:6px">
       <button class="rng ${c.mode !== "line" ? "on" : ""}" onclick="cmpSet(${i},{mode:'candle'});cmpDrawerRender()">Candle</button>
@@ -3507,15 +3597,15 @@ function cmpDrawerRender() {
       return `<div class="cmp-row"><b style="flex:1">${esc(label)}</b>
         ${o.name === "VP" ? `<input class="cmp-num" type="number" min="5" max="500" value="${(o.params || [20])[0]}"
              title="profile bars" onchange="cmpOvlParam(${i},${k},+this.value)"> <span class="faint">bars</span>` : ""}
-        <button class="rng" title="Remove" onclick="cmpOvlDel(${i},${k})">🗑</button></div>`;
+        <button class="rng" aria-label="Remove ${esc(label)} overlay" title="Remove" onclick="cmpOvlDel(${i},${k})">🗑</button></div>`;
     }).join("")}
-    <select class="cmp-sel" onchange="cmpOvlAdd(${i},this.value);this.selectedIndex=0">
+    <select class="cmp-sel" aria-label="Add chart overlay" onchange="cmpOvlAdd(${i},this.value);this.selectedIndex=0">
       <option value="">+ Overlay</option>
       ${CMP_MAIN.map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select>
     <div class="cmp-sec">Indicators — lower panes</div>
     ${(c.subs || []).map(s => `<div class="cmp-row"><b style="flex:1">${esc(cmpSubLabel(s))}</b>
-        <button class="rng" title="Remove" onclick="cmpSubDel(${i},'${s}')">🗑</button></div>`).join("")}
-    <select class="cmp-sel" onchange="cmpSubAdd(${i},this.value);this.selectedIndex=0">
+        <button class="rng" aria-label="Remove ${esc(cmpSubLabel(s))} indicator" title="Remove" onclick="cmpSubDel(${i},'${s}')">🗑</button></div>`).join("")}
+    <select class="cmp-sel" aria-label="Add chart indicator" onchange="cmpSubAdd(${i},this.value);this.selectedIndex=0">
       <option value="">+ Indicator</option>
       ${STK_SUBS.concat(CMP_SUBS_EXTRA).map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select>
     <div class="faint" style="font-size:10px;margin-top:10px">Settings apply to the selected (outlined) panel. Volume Profile, Donchian, Keltner, Supertrend, Pivots, VWAP and the pane indicators are computed from moomoo OHLCV client-side.</div>`;
@@ -3612,7 +3702,7 @@ pages.compare = async function () {
   window.__scr = window.__scr || {};
   if (window.__cmpWl.watchlist.length) window.__scr.watchlistSyms = window.__cmpWl.watchlist;
   return `
-  <div class="panel" style="padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  <div class="panel cmp-toolbar" style="padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <b style="font-size:13px">Compare</b>
     <span class="faint" style="font-size:10.5px">multi-chart workspace · tickers from your watchlist · moomoo klines</span>
     <span style="flex:1"></span>
@@ -3636,7 +3726,7 @@ pages.compare = async function () {
       <div id="cmp-pick-list" class="cmp-pick-list"></div>
       <div class="faint" style="font-size:10px;margin-top:6px">Your watchlist (★) first · Ticker sync ${st.sync.ticker ? "ON — a pick applies to every panel" : "OFF"}</div>
     </div></div>
-  <div id="cmp-drawer" class="cmp-drawer" style="display:none"></div>
+  <div id="cmp-drawer" class="cmp-drawer" role="dialog" aria-label="Chart study settings" aria-modal="false" style="display:none"></div>
   <div id="cmp-pop" class="cmp-pop" style="display:none" onclick="event.stopPropagation()"></div>`;
 };
 
@@ -3655,7 +3745,7 @@ document.addEventListener("click", e => {
     pop.style.display = "none";
     return;
   }
-  const ds = new Date(hov.ts).toISOString().slice(0, 10);
+  const ds = stockTradingDate(hov.ts,c.sym);
   const html = cmpEvPopover(c, ds);
   if (!html) { pop.style.display = "none"; return; }
   pop.innerHTML = html;
@@ -4183,6 +4273,11 @@ function stkMoney(v) {
   if (a >= 1e4) return (n / 1e3).toFixed(1) + "K";
   return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
+function stkPrice(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 function stkCapitalTotals(capital, period) {
   const dist = capital?.distribution || {};
   const total = side => {
@@ -4228,6 +4323,18 @@ function stkTime(ms) {
   const d = new Date(Number(ms));
   return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
+function stockTimezone(symbol) { return /^HK\./i.test(symbol || '') ? 'Asia/Hong_Kong' : 'America/New_York'; }
+const __stockDateFormatters = new Map();
+function stockTradingDate(ms, symbol) {
+  const zone=stockTimezone(symbol);
+  if(!__stockDateFormatters.has(zone))__stockDateFormatters.set(zone,new Intl.DateTimeFormat('en-US',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}));
+  const parts = __stockDateFormatters.get(zone).formatToParts(new Date(Number(ms)));
+  const value = type => parts.find(p=>p.type===type)?.value;
+  return `${value('year')}-${value('month')}-${value('day')}`;
+}
+function stockChartTime(ms, symbol) {
+  return new Date(Number(ms)).toLocaleString(undefined,{timeZone:stockTimezone(symbol),month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
+}
 function stkStmtNum(it) { return it == null ? null : Number(it.data ?? it.value); }
 function stkStmtVal(name, it) {
   // Statement figures live in `data` (live moomoo shape; a few records only
@@ -4255,30 +4362,31 @@ async function renderStock() {
   if (gen !== __stockRenderGen || state.page !== "stock" || st.sym !== requestedSym) return;
   st.quote = (quoteR && quoteR.available !== false && quoteR.code) ? quoteR : (st.quote || null);
   const q = stkQ();
-  const last = q.last_price, prev = q.prev_close_price;
-  let pct = q.pct_change;
+  const last = stkPrice(q.last_price), prev = stkPrice(q.prev_close_price);
+  let pct = last == null ? null : q.pct_change;
   if (pct == null && last != null && prev) pct = (last - prev) / prev * 100;
   const chg = last != null && prev != null ? last - prev : null;
   const g = v => v >= 0;
+  const move = chg ?? pct, priceTone = move == null ? '' : g(move) ? 'g' : 'r';
   // Live REST snapshot carries flat pre_*/after_* session fields; tolerate the
   // documented nested shape too.
   const sessOf = pfx => q[pfx + "_price"] != null
     ? { price: q[pfx + "_price"], chg: q[pfx + "_change_rate"] }
     : (q[pfx === "pre" ? "pre_market" : "after_market"] || {});
   const sess = sessOf("pre"), aft = sessOf("after");
-  const sessLine = (label, s) => s && s.price != null ? `<span class="stk-session">${stkFmt(s.price, 3)}
+  const sessLine = (label, s) => !/^HK\./i.test(st.sym) && stkPrice(s?.price) != null ? `<span class="stk-session">${stkFmt(s.price, 3)}
       <span class="${(s.chg ?? 0) >= 0 ? "g" : "r"}">${stkPct(s.chg)}</span> · ${label}</span>` : "";
   const stats = [
-    ["High", stkFmt(q.high_price, 3)], ["Low", stkFmt(q.low_price, 3)], ["Volume", stkMoney(q.volume)],
-    ["Open", stkFmt(q.open_price, 3)], ["Prev Close", stkFmt(prev, 3)], ["Turnover", stkMoney(q.turnover)],
+    ["High", stkFmt(stkPrice(q.high_price), 3)], ["Low", stkFmt(stkPrice(q.low_price), 3)], ["Volume", stkMoney(q.volume)],
+    ["Open", stkFmt(stkPrice(q.open_price), 3)], ["Prev Close", stkFmt(prev, 3)], ["Turnover", stkMoney(q.turnover)],
     ["Turnover Ratio", q.turnover_rate != null ? q.turnover_rate.toFixed(2) + "%" : "—"],
     ["P/E (Static)", stkFmt(q.pe_ratio, 2)], ["Shares", stkMoney(q.issued_shares)],
-    ["52wk High", stkFmt(q.highest52weeks_price, 3)], ["P/B", stkFmt(q.pb_ratio, 2)],
-    ["Float Cap", stkMoney(q.circular_market_val)], ["52wk Low", stkFmt(q.lowest52weeks_price, 3)],
+    ["52wk High", stkFmt(stkPrice(q.highest52weeks_price), 3)], ["P/B", stkFmt(q.pb_ratio, 2)],
+    ["Float Cap", stkMoney(q.circular_market_val)], ["52wk Low", stkFmt(stkPrice(q.lowest52weeks_price), 3)],
     ["Dividend TTM", stkFmt(q.dividend_ttm, 3)], ["Shs Float", stkMoney(q.outstanding_shares)],
-    ["Highest", stkFmt(q.highest_history_price, 3)], ["Div Yield TTM", q.dividend_ratio_ttm != null ? q.dividend_ratio_ttm.toFixed(2) + "%" : "—"],
+    ["Highest", stkFmt(stkPrice(q.highest_history_price), 3)], ["Div Yield TTM", q.dividend_ratio_ttm != null ? q.dividend_ratio_ttm.toFixed(2) + "%" : "—"],
     ["Range %", q.amplitude != null ? q.amplitude.toFixed(2) + "%" : "—"],
-    ["Lowest", stkFmt(q.lowest_history_price, 3)], ["Avg Price", stkFmt(q.avg_price, 3)],
+    ["Lowest", stkFmt(stkPrice(q.lowest_history_price), 3)], ["Avg Price", stkFmt(stkPrice(q.avg_price), 3)],
     ["Lot Size", stkFmt(q.lot_size, 0)], ["Volume Ratio", stkFmt(q.volume_ratio, 2)],
     ["Bid/Ask %", q.bid_ask_ratio != null ? q.bid_ask_ratio.toFixed(2) + "%" : "—"],
   ];
@@ -4290,12 +4398,12 @@ async function renderStock() {
       <div>
         <div class="stk-co">${esc(q.name || st.sym)} (${esc(st.sym)})</div>
         <div style="display:flex;gap:14px;align-items:baseline;margin-top:6px;flex-wrap:wrap">
-          <span class="stk-px ${g(last ?? 0) ? "g" : "r"}">${stkFmt(last, 3)}</span>
+          <span class="stk-px ${priceTone}">${stkFmt(last, 3)}</span>
           <span class="stk-chg ${g(chg ?? 0) ? "g" : "r"}">${chg != null ? (chg >= 0 ? "▲ +" : "▼ ") : ""}${stkFmt(chg, 3)}  ${stkPct(pct)}</span>
-          <span class="stk-session">${q.data_date ? "Close " + esc(q.data_date) : ""}${q.update_time ? " · " + stkTime(q.update_time) : ""}</span>
+          <span class="stk-session">${q.data_date ? "Close " + esc(q.data_date) : ""}${q.update_time ? " · " + esc(stockChartTime(q.update_time,st.sym)) : ""}</span>
         </div>
         <div style="display:flex;gap:14px;margin-top:4px;flex-wrap:wrap">
-          ${sessLine("Pre 04:00 ET", sess)}${sessLine("Post 19:30 ET", aft)}
+          ${sessLine("Pre-market (ET)", sess)}${sessLine("After-hours (ET)", aft)}
         </div>
       </div>
       <div class="stk-cap">
@@ -4373,6 +4481,7 @@ async function stkOverview() {
     </div>
     <div class="chartbox">
       <div class="readout" id="stk-readout">${esc(st.sym)} · scroll to zoom · drag to pan · pick a DRAW tool, then click the chart</div>
+      <div id="stk-kc-status" role="status" class="delay-note" hidden></div>
       <div id="stk-kc" style="height:480px"></div>
     </div>
     </div>
@@ -4408,7 +4517,7 @@ async function stkOverview() {
     `<div class="comm-card"><div class="t"><a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(p.title || "(untitled post)")}</a></div>
      <div class="m">${esc(p.community_type || "")} · ${stkTime(Number(p.publish_time) * 1000)}</div></div>`).join("");
   return `
-    ${stkPanel(`${esc(st.sym)} Stock Chart`, "moomoo sessions & periods · live quotes via moomoo REST", chartPanel)}
+    ${stkPanel(`${esc(st.sym)} Stock Chart`, "moomoo sessions & periods · quotes via moomoo REST", chartPanel)}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="scr-grid">
       ${stkPanel("Analyst Ratings &amp; Price Target", "S&P-consensus via moomoo research API", research ? ratings : stkNa())}
       ${stkPanel(`${esc(st.sym)} Orderflow Trend`, "capital-flow + capital-distribution", oflow)}
@@ -4452,46 +4561,55 @@ function stkCrosshair(d, roId = "stk-readout", host = stkHost) {
     const list = host.chart.getDataList(), i2 = list.indexOf(p);
     const prev = i2 > 0 ? list[i2 - 1] : null;
     const chg = prev ? (p.close - prev.close) / prev.close * 100 : null;
-    ro.innerHTML = `<b>${esc(stkTime(p.timestamp))}</b> · O <b>${fmtAuto(p.open)}</b> H <b>${fmtAuto(p.high)}</b> L <b>${fmtAuto(p.low)}</b> C <b>${fmtAuto(p.close)}</b>${chg != null ? ` · Chg <b class="${chg >= 0 ? "g" : "r"}">${stkPct(chg)}</b>` : ""} · Vol <b>${stkMoney(p.volume)}</b> · Turnover <b>${stkMoney(p.turnover)}</b>`;
+    ro.innerHTML = `<b>${esc(stockChartTime(p.timestamp,stkState().sym))}</b> · O <b>${fmtAuto(p.open)}</b> H <b>${fmtAuto(p.high)}</b> L <b>${fmtAuto(p.low)}</b> C <b>${fmtAuto(p.close)}</b>${chg != null ? ` · Chg <b class="${chg >= 0 ? "g" : "r"}">${stkPct(chg)}</b>` : ""} · Vol <b>${stkMoney(p.volume)}</b> · Turnover <b>${stkMoney(p.turnover)}</b>`;
   } catch (e) {}
 }
 
 async function klineLoadLive(store, sym, ch) {
   // Shared fetch+normalize for live moomoo charts (stock page overview and
   // analysis tab): intraday rt-data points or history-kline bars.
-  let d;
+  let d, failed = false;
   if (ch.src === "intraday") {
-    d = await api("/api/stock/" + sym + "/intraday?kind=" + ch.kind).catch(() => null);
+    d = await api("/api/stock/" + sym + "/intraday?kind=" + ch.kind).catch(() => { failed = true; return null; });
     store.bars = [];
     // Live rt-data points can omit or blank open/high/low (the docs list them;
     // the wire does not always carry them) — derive from cur_price and drop
     // dead points, or the candle pane's y-scale goes NaN and renders blank.
-    store.pts = ((d?.section_list || [])[0]?.point_list || []).flatMap(p => {
-      const c = Number(p.cur_price);
-      if (!Number.isFinite(c) || c <= 0) return [];
+    store.pts = (d?.available === false ? [] : ((d?.section_list || [])[0]?.point_list || [])).flatMap(p => {
+      const c = Number(p.cur_price), t = Number(p.time);
+      if (!Number.isFinite(c) || c <= 0 || !Number.isFinite(t) || t <= 0) return [];
       const pick = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : c; };
       const o = pick(p.open), h2 = Math.max(pick(p.high), o, c), l2 = Math.min(pick(p.low), o, c);
-      return [{ t: p.time, c, o, h: h2, l: l2, v: Number(p.volume) || 0, to: Number(p.turnover) || 0 }];
+      return [{ t, c, o, h: h2, l: l2, v: Number(p.volume) || 0, to: Number(p.turnover) || 0 }];
     });
   } else {
-    d = await api("/api/stock/" + sym + "/candles?range=" + ch.range).catch(() => null);
+    d = await api("/api/stock/" + sym + "/candles?range=" + ch.range).catch(() => { failed = true; return null; });
     store.pts = [];
-    store.bars = (d?.bars || []).flatMap(b => {
-      const c = Number(b.close);
-      if (!Number.isFinite(c) || c <= 0) return [];
+    store.bars = (d?.available === false ? [] : d?.bars || []).flatMap(b => {
+      const c = Number(b.close), t = Number(b.time_key);
+      if (!Number.isFinite(c) || c <= 0 || !Number.isFinite(t) || t <= 0) return [];
       const pick = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : c; };
       const o = pick(b.open), h2 = Math.max(pick(b.high), o, c), l2 = Math.min(pick(b.low), o, c);
-      return [{ t: b.time_key, c, o, h: h2, l: l2, v: Number(b.volume) || 0,
+      return [{ t, c, o, h: h2, l: l2, v: Number(b.volume) || 0,
                 to: Number(b.turnover) || 0, tr: b.turnover_rate, chg: b.change_rate }];
     });
   }
+  store.status = failed ? "Chart request failed." : !d || d.available === false ? "Chart source unavailable." :
+    store.bars.length || store.pts.length ? "" : "No chart data for this session or timeframe.";
 }
 
 async function stkLoadChart() {
-  const st = stkState(), ch = st.chart;
-  await klineLoadLive(stkChartState, st.sym, ch);
+  const st = stkState(), ch = {...st.chart}, sym = st.sym, node = document.getElementById("stk-kc");
+  const request = stkChartState.request = (stkChartState.request || 0) + 1;
+  klineStatus(stkHost, `Loading ${sym} chart…${stkChartState.bars.length || stkChartState.pts.length ? " Previous chart shown until loading finishes." : ""}`);
+  const data = {bars:[],pts:[]};
+  await klineLoadLive(data, sym, ch);
+  if (request !== stkChartState.request || state.page !== "stock" || stkState() !== st || st.sym !== sym || st.tab !== "overview" ||
+      document.getElementById("stk-kc") !== node || !node || st.chart.src !== ch.src || st.chart.range !== ch.range || st.chart.kind !== ch.kind) return;
+  Object.assign(stkChartState, data);
   stkChartState.prevClose = stkQ().prev_close_price || null;
   klineSetData(stkHost, stkMapData());
+  klineStatus(stkHost, data.status, !!data.status);
 }
 
 function stkMountControls() {
@@ -4527,9 +4645,16 @@ const anaHost = klineHost({
 anaHost.update = patch => anaChartSet(patch);
 
 async function anaLoadChart() {
-  const st = stkState();
-  await klineLoadLive(anaChartState, st.sym, anaHost.state());
+  const st = stkState(), ch = {...anaHost.state()}, sym = st.sym, node = document.getElementById("ana-kc");
+  const request = anaChartState.request = (anaChartState.request || 0) + 1;
+  klineStatus(anaHost, `Loading ${sym} chart…${anaChartState.bars.length || anaChartState.pts.length ? " Previous chart shown until loading finishes." : ""}`);
+  const data = {bars:[],pts:[]};
+  await klineLoadLive(data, sym, ch);
+  if (request !== anaChartState.request || state.page !== "stock" || stkState() !== st || st.sym !== sym || st.tab !== "analysis" ||
+      document.getElementById("ana-kc") !== node || !node || st.ana.src !== ch.src || st.ana.range !== ch.range || st.ana.kind !== ch.kind) return;
+  Object.assign(anaChartState, data);
   klineSetData(anaHost, anaHost.data());
+  klineStatus(anaHost, data.status, !!data.status);
 }
 
 function anaMountControls() {
@@ -4583,7 +4708,7 @@ async function stkAnalysis() {
       <a href="#" onclick="openReport('${esc(x.job_id)}');return false">report →</a></div>`).join("")
     : '<div class="empty">No agent runs for this symbol yet — submit one from Analyze.</div>'}`;
   return stkPanel(`${esc(st.sym)} Stock Chart`,
-      "live moomoo sessions &amp; periods · the same chart as the Overview tab", `
+      "moomoo sessions &amp; periods · the same chart as the Overview tab", `
     <div class="kcwrap">
     <div class="stk-toolbar">
       <select onchange="anaChartSet({src:'intraday',kind:this.value})">
@@ -4594,6 +4719,7 @@ async function stkAnalysis() {
     </div>
     <div class="chartbox">
       <div class="readout" id="ana-readout">${esc(st.sym)} · scroll to zoom · drag to pan · pick a DRAW tool, then click the chart</div>
+      <div id="ana-kc-status" role="status" class="delay-note" hidden></div>
       <div id="ana-kc" style="height:480px"></div>
     </div>
     </div>
@@ -4918,15 +5044,22 @@ async function stkComments() {
 
 // ── ticker switcher + Quotes picker (search / sector / market / watchlist) ──
 window.__stkUniverse = { rows: null, at: 0, market: "US" };
+function stkRowCode(row, market = "US") {
+  if (row.code) return row.code;
+  const symbol = String(row.symbol || "").toUpperCase();
+  return /^(US|HK|SH|SZ|AU)\./.test(symbol) ? symbol : `${row.market || market}.${symbol}`;
+}
+function stkCurrentMarket() { return /^(US|HK)\./.exec(stkState().sym || "")?.[1] || "US"; }
 async function stkUniverse(market) {
   const U = window.__stkUniverse;
   market = (market || U.market || "US").toUpperCase();
   if (U.rows && U.market === market && Date.now() - U.at < 5 * 60 * 1000) return U.rows;
+  const request = U.request = (U.request || 0) + 1;
   const r = await api("/api/screener?market=" + market + "&watchlist_only=0&sort=market_cap&direction=2&limit=1200")
     .catch(() => ({ rows: [] }));
-  U.rows = (r.rows || []).filter(x => x.symbol);
-  U.market = market; U.at = Date.now();
-  return U.rows;
+  const rows = (r.rows || []).filter(x => x.symbol);
+  if (request === U.request) { U.rows = rows; U.market = market; U.at = Date.now(); }
+  return rows;
 }
 function stkMatches(q, rows, n) {
   const s = q.trim().toUpperCase();
@@ -4940,12 +5073,12 @@ function stkMatches(q, rows, n) {
   return sym.concat(name).slice(0, n);
 }
 function stkDropRow(r) {
-  return `<div class="dr" onclick="openStock('${esc(r.symbol)}')">
+  return `<div class="dr" onclick="openStock(${esc(JSON.stringify(stkRowCode(r,stkCurrentMarket())))})">
     <span class="s">${esc(r.symbol)}</span><span class="n">${esc(r.name || "")}</span>
     <span class="p ${r.pct >= 0 ? "g" : "r"}">${stkFmt(r.price, 2)} ${stkPct(r.pct)}</span></div>`;
 }
 async function stkHeaderSwitch(sym) {
-  const rows = await stkUniverse().catch(() => []);
+  const rows = await stkUniverse(stkCurrentMarket()).catch(() => []);
   const matches = stkMatches("", rows, 0);  // preload
   return `<div class="stk-switch">
     <input id="stk-search" placeholder="Search ticker / company…" autocomplete="off"
@@ -4956,7 +5089,9 @@ async function stkHeaderSwitch(sym) {
 let __stkDropRows = [];
 async function stkSearchDrop(q) {
   const drop = document.getElementById("stk-drop"); if (!drop) return;
-  const rows = await stkUniverse().catch(() => []);
+  const sym = stkState().sym, request = window.__stkSearchRequest = (window.__stkSearchRequest || 0) + 1;
+  const rows = await stkUniverse(stkCurrentMarket()).catch(() => []);
+  if (request !== window.__stkSearchRequest || state.page !== "stock" || stkState().sym !== sym || document.getElementById("stk-drop") !== drop) return;
   __stkDropRows = stkMatches(q, rows, 9);
   drop.innerHTML = __stkDropRows.map(stkDropRow).join("")
     || '<div class="dr"><span class="n">No matches — try the full symbol (e.g. MSFT).</span></div>';
@@ -4969,7 +5104,7 @@ function stkSearchKey(ev) {
     const first = __stkDropRows[0];
     const q = (ev.target.value || "").trim().toUpperCase();
     const exact = __stkDropRows.find(r => r.symbol === q) || first;
-    if (exact) { drop.style.display = "none"; openStock(exact.symbol); }
+    if (exact) { drop.style.display = "none"; openStock(stkRowCode(exact,stkCurrentMarket())); }
   }
 }
 document.addEventListener("click", ev => {
@@ -4981,7 +5116,7 @@ document.addEventListener("click", ev => {
 window.__pk = { q: "", market: "US", watchlist: false, sector: "", rows: null };
 function pkSet(k, v) { window.__pk[k] = v; openStockPicker(); }
 async function stkPickerPage() {
-  const pk = window.__pk;
+  const pk = {...window.__pk};
   const [universe, sectorsR, wlR] = await Promise.all([
     stkUniverse(pk.market).catch(() => []),
     api("/api/sectors?market=" + pk.market).catch(() => null),
@@ -4997,7 +5132,7 @@ async function stkPickerPage() {
   }
   if (pk.q.trim()) rows = stkMatches(pk.q, rows, 200);
   window.__pkRows = rows;
-  const cards = rows.slice(0, 120).map(r => `<div class="pk-card" onclick="openStock('${esc(r.symbol)}')">
+  const cards = rows.slice(0, 120).map(r => `<div class="pk-card" onclick="openStock(${esc(JSON.stringify(stkRowCode(r,pk.market)))})">
     ${stars.includes(r.symbol) ? '<span class="star">★</span>' : ""}
     <div class="s">${esc(r.symbol)}</div><div class="n" title="${esc(r.name || "")}">${esc(r.name || "")}</div>
     <div class="m"><span>${stkFmt(r.price, 2)}</span>
@@ -5033,15 +5168,17 @@ async function stkPickerPage() {
     <div class="faint" style="font-size:10px;margin-top:10px">Universe: moomoo stock-screen top slices (market-cap ordered, ~1,200 per market) + your watchlist + sector members. Real-time quotes per symbol on the stock page.</div>
   </div>`;
 }
+let __stockPickerGen = 0;
 function openStockPicker() {
+  const gen = ++__stockPickerGen;
   if (state.poll) { clearInterval(state.poll); state.poll = null; }
   state.page = "quotes";
   history.replaceState(null, "", "#/stocks");
   document.querySelectorAll(".nav button").forEach(b =>
     b.classList.toggle("on", b.dataset.page === "quotes"));
   $("#page").innerHTML = '<div class="empty">Loading directory…</div>';
-  stkPickerPage().then(h => { $("#page").innerHTML = h; })
-    .catch(e => { $("#page").innerHTML = `<div class="panel"><div class="empty">Picker failed: ${esc(e.message || e)}</div></div>`; });
+  stkPickerPage().then(h => { if (gen === __stockPickerGen && state.page === "quotes") $("#page").innerHTML = h; })
+    .catch(e => { if (gen === __stockPickerGen && state.page === "quotes") $("#page").innerHTML = `<div class="panel"><div class="empty">Picker failed: ${esc(e.message || e)}</div></div>`; });
 }
 window.openStockPicker = openStockPicker;
 
@@ -5072,6 +5209,7 @@ function stkRoute() {
 
 let __pageGen = 0;
 async function showPage(p) {
+  if(p==='shortlists' && !researchExtendedWorkspaceEnabled())p='home';
   const renderStart = window.performance?.now() || Date.now();
   const renderSource = p === 'home' ? researchRenderSource() : p;
   const pageGen = ++__pageGen;
@@ -5176,7 +5314,8 @@ window.addEventListener("hashchange", () => {
   else if (r?.picker) openStockPicker();
   else if (/^#\/screener/.test(location.hash)) { scrRestoreFromHash(); showPage("home"); }
 });
-window.__researchAccountReady=researchAccountInit();
+document.getElementById('research-account-button').hidden=!researchExtendedWorkspaceEnabled();
+window.__researchAccountReady=researchExtendedWorkspaceEnabled()?researchAccountInit():Promise.resolve();
 async function researchStartRoute() {
   scrRestoreFromHash();
   await researchOriginRestore();

@@ -1,0 +1,14 @@
+{
+  "source": "actual browser Export comparison CSV action; download event timed out but saved file found and parsed",
+  "fixture": "synthetic flagged local API, not production/provider/PostgREST",
+  "rows": 1,
+  "code": "US.S0001",
+  "status": "new",
+  "price_before": 12,
+  "price_after": 8,
+  "currency": "USD",
+  "original_definitions_retained": true,
+  "original_common_review_key_retained": true,
+  "legacy_identity_remains_blank": true,
+  "sha256": "48093586c9760e62333f3a82399f154a7986280fda7a8a2464ffb847d4624b59"
+}

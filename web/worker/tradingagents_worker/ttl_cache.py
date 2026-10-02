@@ -3,6 +3,7 @@
 quotes 5m · news 1h · OHLCV 1d · fundamentals 7d. Keys = sha1(method+args).
 Disk-backed under the mounted cache dir; process-local dict fast path.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -21,7 +22,9 @@ class TtlCache:
         self._mem: dict[str, tuple[float, bytes]] = {}
 
     def key(self, category: str, *parts) -> str:
-        return hashlib.sha1(json.dumps([category, *parts], sort_keys=True, default=str).encode()).hexdigest()
+        return hashlib.sha1(
+            json.dumps([category, *parts], sort_keys=True, default=str).encode()
+        ).hexdigest()
 
     def get(self, category: str, k: str):
         ttl = self.DEFAULTS.get(category, 600)

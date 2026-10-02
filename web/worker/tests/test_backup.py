@@ -1,6 +1,6 @@
 """Backup hygiene: snapshot everything EXCEPT secrets."""
-import pytest
 
+import pytest
 from tradingagents_worker.backup import BUCKET, TABLES, _ensure_bucket
 
 

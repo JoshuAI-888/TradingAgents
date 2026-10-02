@@ -61,8 +61,8 @@ def _base_state():
 
 
 def test_debate_nodes_render_the_verified_snapshot_into_their_prompt():
-    from tradingagents.agents.researchers.bull_researcher import create_bull_researcher
     from tradingagents.agents.researchers.bear_researcher import create_bear_researcher
+    from tradingagents.agents.researchers.bull_researcher import create_bull_researcher
     from tradingagents.agents.risk_mgmt.aggressive_debator import create_aggressive_debator
 
     for factory, state in (

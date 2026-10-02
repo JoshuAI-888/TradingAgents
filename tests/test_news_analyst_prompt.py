@@ -3,8 +3,6 @@
 The prompt used to advertise ``get_news(query, ...)`` while the tool takes a
 ``ticker``, tricking the LLM into hallucinating free-text query calls.
 """
-import inspect
-
 import pytest
 
 import tradingagents.agents.analysts.news_analyst as na
@@ -20,6 +18,6 @@ def test_get_news_takes_ticker_not_query():
 
 @pytest.mark.unit
 def test_news_prompt_matches_get_news_signature():
-    src = inspect.getsource(na)
+    src = na.resolve("news_analyst", na.AGENT_PROMPTS["news_analyst"])
     assert "get_news(ticker, start_date, end_date)" in src
     assert "get_news(query" not in src

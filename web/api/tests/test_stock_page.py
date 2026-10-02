@@ -2,19 +2,21 @@
 
 No network, no keys — TA_STOCK_FIXTURES=1 serves recorded payloads.
 """
-import os
 
 import pytest
 from fastapi.testclient import TestClient
-
 from tradingagents_api import main as api
 
 
 class _StubDb:
     """Offline Db: the real one snapshots SUPABASE_URL at import time."""
+
     def __init__(self):
         self.tables = {}
-    def _t(self, n): return self.tables.setdefault(n, [])
+
+    def _t(self, n):
+        return self.tables.setdefault(n, [])
+
     def select(self, table, query=None, columns="*"):
         rows = [dict(r) for r in self._t(table)]
         for k, v in (query or {}).items():
@@ -24,22 +26,29 @@ class _StubDb:
             elif k == "order":
                 rows = rows  # ordering not needed by these tests
         return rows
+
     def insert(self, table, row, prefer="return=representation"):
         row = {**row, "id": f"{table}-{len(self._t(table)) + 1}"}
         self._t(table).append(row)
         return [row]
+
     def update(self, table, filter, row):
         col, _, val = filter.partition("=eq.")
         for r in self._t(table):
             if str(r.get(col)) == val:
                 r.update(row)
         return None
+
     def delete(self, table, filter):
         col, _, val = filter.partition("=eq.")
         self._t(table)[:] = [r for r in self._t(table) if str(r.get(col)) != val]
         return None
-    def upsert(self, *a, **k): return None
-    def upsert_many(self, *a, **k): return 0
+
+    def upsert(self, *a, **k):
+        return None
+
+    def upsert_many(self, *a, **k):
+        return 0
 
 
 @pytest.fixture()
@@ -61,9 +70,16 @@ def test_quote_returns_snapshot_item(client):
     assert body["available"] is True
     assert body["code"] == "US.CHE"
     assert body["last_price"] == 512.16
-    for f in ("pe_ttm_ratio", "total_market_val", "highest52weeks_price",
-              "turnover_rate", "pre_price", "after_price", "lot_size",
-              "dividend_ratio_ttm"):
+    for f in (
+        "pe_ttm_ratio",
+        "total_market_val",
+        "highest52weeks_price",
+        "turnover_rate",
+        "pre_price",
+        "after_price",
+        "lot_size",
+        "dividend_ratio_ttm",
+    ):
         assert f in body
 
 
@@ -71,7 +87,15 @@ def test_candles_ranges_and_validation(client):
     r = client.get("/api/stock/CHE/candles", params={"range": "Y"})  # 1Y daily window
     body = r.json()
     assert body["available"] is True and body["range"] == "Y"
-    assert body["bars"] and {"time_key", "open", "close", "high", "low", "volume", "turnover"} <= set(body["bars"][0])
+    assert body["bars"] and {
+        "time_key",
+        "open",
+        "close",
+        "high",
+        "low",
+        "volume",
+        "turnover",
+    } <= set(body["bars"][0])
     r5 = client.get("/api/stock/CHE/candles", params={"range": "5D"}).json()
     assert r5["available"] and r5["bars"]
     r10 = client.get("/api/stock/CHE/candles", params={"range": "10Y"}).json()
@@ -102,6 +126,42 @@ def test_quotes_batch(client):
     assert set(body["quotes"]) == {"MSFT", "AAPL"}
     assert body["quotes"]["MSFT"]["last_price"] > 0
     assert client.get("/api/stock/quotes", params={"symbols": ""}).status_code == 400
+
+
+def test_live_quotes_keep_market_and_share_class_identity(client, monkeypatch):
+    monkeypatch.delenv("TA_STOCK_FIXTURES")
+
+    class Quotes:
+        def snapshot(self, codes):
+            assert codes == ["HK.00700", "US.BRK.B", "US.AAPL", "US.00700"]
+            return {
+                "snapshot_list": [
+                    {"code": "US.00700", "last_price": 1},
+                    {"code": "HK.00700", "last_price": 700},
+                    {"code": "US.B", "last_price": 2},
+                    {"code": "US.BRK.B", "last_price": 500},
+                    {"code": "US.AAPL", "last_price": 200},
+                ]
+            }
+
+    monkeypatch.setattr(api, "_market_client", lambda: Quotes())
+    body = client.get(
+        "/api/stock/quotes", params={"symbols": "HK.00700,BRK.B,US.AAPL,00700"}
+    ).json()
+    assert {k: v["last_price"] for k, v in body["quotes"].items()} == {
+        "HK.00700": 700,
+        "BRK.B": 500,
+        "US.AAPL": 200,
+        "00700": 1,
+    }
+
+
+def test_single_quote_rejects_another_instrument(client, monkeypatch):
+    monkeypatch.setattr(api, "_stock_fetch", lambda *args: {"code": "US.00700", "last_price": 1})
+    body = client.get("/api/stock/HK.00700/quote").json()
+    assert body["available"] is False
+    assert "last_price" not in body
+    assert "identity" in body["reason"]
 
 
 def test_intraday_sessions(client):
@@ -136,10 +196,16 @@ def test_statements_pivot_source(client):
     names = " | ".join(i["display_name"] for i in top["item_list"])
     assert "Total Revenue" in names and "Diluted EPS" in names
     assert top["item_list"][0]["data"] == 673250000  # live `data` field, full units
-    assert client.get("/api/stock/CHE/financials/statements",
-                      params={"statement_type": 9}).status_code == 400
-    assert client.get("/api/stock/CHE/financials/statements",
-                      params={"financial_type": 102}).status_code == 400
+    assert (
+        client.get("/api/stock/CHE/financials/statements", params={"statement_type": 9}).status_code
+        == 400
+    )
+    assert (
+        client.get(
+            "/api/stock/CHE/financials/statements", params={"financial_type": 102}
+        ).status_code
+        == 400
+    )
 
 
 def test_revenue_breakdown_live_shape(client):
@@ -172,7 +238,7 @@ def test_research(client):
 
 
 def test_news_types(client):
-    for t, marker in (("news", "post:"), ("notice", "notice:"), ("report", "post:")):
+    for t, _marker in (("news", "post:"), ("notice", "notice:"), ("report", "post:")):
         body = client.get("/api/stock/CHE/news", params={"type": t}).json()
         assert body["available"] is True and body["news_list"]
     assert client.get("/api/stock/CHE/news", params={"type": "x"}).status_code == 400
@@ -181,7 +247,7 @@ def test_news_types(client):
 def test_company_and_community(client):
     comp = client.get("/api/stock/CHE/company").json()
     assert comp["available"] is True
-    items = {l["name"]: l["value"] for l in comp["profile"]["items"]}
+    items = {item["name"]: item["value"] for item in comp["profile"]["items"]}
     assert items["ISIN"] == "US16359R1032"
     assert comp["executives"][0]["name"] == "Kevin J. Mcnamara"
     com = client.get("/api/stock/CHE/community").json()
@@ -206,9 +272,18 @@ def test_upstream_error_becomes_available_false(client, monkeypatch):
 
 def test_estimates_empty_becomes_unavailable(client, monkeypatch):
     monkeypatch.delenv("TA_STOCK_FIXTURES", raising=False)
-    monkeypatch.setattr(api, "_estimates_fetch", lambda s: {
-        "symbol": s.upper(), "revenue_estimate": [], "earnings_estimate": [],
-        "eps_trend": [], "earnings_history": [], "calendar": {}})
+    monkeypatch.setattr(
+        api,
+        "_estimates_fetch",
+        lambda s: {
+            "symbol": s.upper(),
+            "revenue_estimate": [],
+            "earnings_estimate": [],
+            "eps_trend": [],
+            "earnings_history": [],
+            "calendar": {},
+        },
+    )
     body = client.get("/api/stock/CHE/estimates").json()
     assert body["available"] is False
     assert "no data" in body["reason"]
@@ -220,9 +295,18 @@ def test_meta_exposes_stock_page_mode(client):
 
 
 def test_estimates_stubbed(client, monkeypatch):
-    monkeypatch.setattr(api, "_estimates_fetch", lambda s: {
-        "symbol": s.upper(), "revenue_estimate": [{"period": "0q", "avg": 685036720}],
-        "earnings_estimate": [], "eps_trend": [], "earnings_history": [], "calendar": {}})
+    monkeypatch.setattr(
+        api,
+        "_estimates_fetch",
+        lambda s: {
+            "symbol": s.upper(),
+            "revenue_estimate": [{"period": "0q", "avg": 685036720}],
+            "earnings_estimate": [],
+            "eps_trend": [],
+            "earnings_history": [],
+            "calendar": {},
+        },
+    )
     body = client.get("/api/stock/CHE/estimates").json()
     assert body["available"] is True
     assert body["revenue_estimate"][0]["avg"] == 685036720
@@ -255,8 +339,7 @@ def test_stock_code_normalization():
 def test_sectors_and_members(client):
     s = client.get("/api/sectors", params={"market": "US"}).json()
     assert s["available"] is True and s["sectors"][0]["plate_name"] == "Pharmaceuticals"
-    r = client.get("/api/sectors/stocks",
-                   params={"plate": "US.LIST2470"}).json()
+    r = client.get("/api/sectors/stocks", params={"plate": "US.LIST2470"}).json()
     assert r["available"] is True and r["rows"][0]["symbol"] == "NVDA"
     assert "price" in r["rows"][0] and "pct" in r["rows"][0]
 
@@ -267,22 +350,27 @@ def test_preset_screeners_moomoo_exact():
     names = {p["key"]: p for p in api.PRESET_SCREENERS}
     assert len(api.PRESET_SCREENERS) == 22
     assert names["penny"]["filters"] == [
-        {"field": "price", "max": 5}, {"field": "market_cap", "max": 3e8},
+        {"field": "price", "max": 5},
+        {"field": "market_cap", "max": 3e8},
         {"field": "volume", "min": 1e5, "days": 30},
         {"field": "revenue_growth", "min": 10},
         {"field": "net_profit_growth", "min": 5, "excl_min": 1},
-        {"field": "debt_ratio", "max": 40}]
+        {"field": "debt_ratio", "max": 40},
+    ]
     assert names["buffett"]["filters"] == [
         {"field": "float_cap", "min": 5e8},
         {"field": "net_profit_growth", "min": 10},
         {"field": "gross_margin", "min": 50},
         {"field": "op_ebt", "min": 70},
         {"field": "roe", "min": 15},
-        {"field": "roe_yoy", "min": 20}]
+        {"field": "roe_yoy", "min": 20},
+    ]
     assert names["undervalued-banks"]["filters"] == [
         {"field": "sector", "plate_ids": [10002481, 10002456]},
-        {"field": "pe_ttm", "max": 10}, {"field": "pb", "max": 1},
-        {"field": "roe", "min": 12}]
+        {"field": "pe_ttm", "max": 10},
+        {"field": "pb", "max": 1},
+        {"field": "roe", "min": 12},
+    ]
     assert names["speculative"]["filters"][-1] == {"field": "new_low_10d", "min": 1}
     assert names["rsi-30"]["filters"] == [{"field": "rsi14", "max": 30}]
     assert "best-lt-high-div" in names and "lt-high-div" in names
@@ -291,42 +379,69 @@ def test_preset_screeners_moomoo_exact():
 def test_server_filter_matches_moomoo_payloads():
     """Our builder reproduces moomoo's own strategy payloads byte-for-byte."""
     f = api._server_filter("price", {"max": 5})
-    assert f == {"simple_property_query": {"property": {"name": 2201},
-                                           "upper": {"value": 5000, "includes": True}}}
+    assert f == {
+        "simple_property_query": {
+            "property": {"name": 2201},
+            "upper": {"value": 5000, "includes": True},
+        }
+    }
     f = api._server_filter("market_cap", {"max": 3e8})
     assert f["simple_property_query"]["upper"]["value"] == 300000000000
     f = api._server_filter("pe_ttm", {"max": 18})
-    assert f == {"simple_property_query": {"property": {"name": 2303},
-                                           "upper": {"value": 1800000, "includes": True}}}
+    assert f == {
+        "simple_property_query": {
+            "property": {"name": 2303},
+            "upper": {"value": 1800000, "includes": True},
+        }
+    }
     f = api._server_filter("revenue_growth", {"min": 10})
-    assert f == {"financial_property_query": {"property": {"name": 4106, "term": 100},
-                                              "lower": {"value": 10000, "includes": True}}}
+    assert f == {
+        "financial_property_query": {
+            "property": {"name": 4106, "term": 100},
+            "lower": {"value": 10000, "includes": True},
+        }
+    }
     f = api._server_filter("rsi14", {"max": 30})
     assert f is None  # Unverified provider criteria fail closed.
     f = api._server_filter("new_low_10d", {"min": 1})
-    assert f == {"cumulative_property_query": {"property": {"name": 3108, "days": 10}, "days": 10,
-                                               "upper": {"value": 0, "includes": False}}}
+    assert f == {
+        "cumulative_property_query": {
+            "property": {"name": 3108, "days": 10},
+            "days": 10,
+            "upper": {"value": 0, "includes": False},
+        }
+    }
     f = api._server_filter("sector", {"plate_ids": [10002481, 10002456]})
     assert f == {"plate_query": {"plateList": [{"plateIdList": [10002481, 10002456]}]}}
     f = api._server_filter("volume", {"min": 1e5, "days": 30})
     assert f["cumulative_property_query"]["periodAverage"] == 30
     assert f["cumulative_property_query"]["lower"]["value"] == 100000
-    assert api._server_filter("op_ebt", {"min": 70})["financial_property_query"]["lower"]["value"] == 70000
+    assert (
+        api._server_filter("op_ebt", {"min": 70})["financial_property_query"]["lower"]["value"]
+        == 70000
+    )
 
 
 def test_apply_filters_skips_absent_fields():
     rows = [{"price": 4, "pb": 0.8, "pe_ttm": 9}, {"price": 9, "pb": 2.5, "pe_ttm": 30}]
-    out, skipped = api._apply_filters(rows, [
-        {"field": "price", "max": 5}, {"field": "pb", "max": 1},
-        {"field": "roe", "min": 15, "needs": 1}, {"field": "debt_ratio", "max": 40}])
+    out, skipped = api._apply_filters(
+        rows,
+        [
+            {"field": "price", "max": 5},
+            {"field": "pb", "max": 1},
+            {"field": "roe", "min": 15, "needs": 1},
+            {"field": "debt_ratio", "max": 40},
+        ],
+    )
     assert out == []
     assert sorted(skipped) == ["debt_ratio", "roe"]
 
 
 def test_apply_filters_applies_when_present():
     rows = [{"price": 4, "roe": 20}, {"price": 4, "roe": 5}, {"price": 9, "roe": 20}]
-    out, skipped = api._apply_filters(rows, [{"field": "price", "max": 5},
-                                             {"field": "roe", "min": 15}])
+    out, skipped = api._apply_filters(
+        rows, [{"field": "price", "max": 5}, {"field": "roe", "min": 15}]
+    )
     assert [r["roe"] for r in out] == [20]
     assert skipped == []
 
@@ -334,11 +449,18 @@ def test_apply_filters_applies_when_present():
 def test_saved_screeners_crud(client, monkeypatch):
     monkeypatch.setenv("DEFAULT_USER_ID", "user-1")
     # create
-    r = client.post("/api/screeners", json={
-        "name": "My Value Picks", "description": "cheap and solid",
-        "market": "US", "watchlist_only": True,
-        "filters": [{"field": "pe_ttm", "max": 12}, {"field": "pb", "max": 1.2}],
-        "sort": "market_cap", "direction": 2})
+    r = client.post(
+        "/api/screeners",
+        json={
+            "name": "My Value Picks",
+            "description": "cheap and solid",
+            "market": "US",
+            "watchlist_only": True,
+            "filters": [{"field": "pe_ttm", "max": 12}, {"field": "pb", "max": 1.2}],
+            "sort": "market_cap",
+            "direction": 2,
+        },
+    )
     assert r.status_code == 200 and r.json()["saved"] is True
     sid = r.json()["screener"]["id"]
     # list
@@ -346,9 +468,17 @@ def test_saved_screeners_crud(client, monkeypatch):
     assert [s["name"] for s in rows] == ["My Value Picks"]
     assert rows[0]["filters"][0]["field"] == "pe_ttm"
     # update
-    r = client.put(f"/api/screeners/{sid}", json={
-        "name": "My Value Picks II", "market": "US", "watchlist_only": False,
-        "filters": [{"field": "pe_ttm", "max": 10}], "sort": "pct", "direction": 2})
+    r = client.put(
+        f"/api/screeners/{sid}",
+        json={
+            "name": "My Value Picks II",
+            "market": "US",
+            "watchlist_only": False,
+            "filters": [{"field": "pe_ttm", "max": 10}],
+            "sort": "pct",
+            "direction": 2,
+        },
+    )
     assert r.json()["saved"] is True
     rows = client.get("/api/screeners").json()["screeners"]
     assert rows[0]["name"] == "My Value Picks II" and rows[0]["sort"] == "pct"
@@ -356,6 +486,10 @@ def test_saved_screeners_crud(client, monkeypatch):
     assert client.delete(f"/api/screeners/{sid}").json()["deleted"] is True
     assert client.get("/api/screeners").json()["screeners"] == []
     # ownership + 404s
-    assert client.put("/api/screeners/nope", json={
-        "name": "x", "market": "US", "filters": []}).status_code == 404
+    assert (
+        client.put(
+            "/api/screeners/nope", json={"name": "x", "market": "US", "filters": []}
+        ).status_code
+        == 404
+    )
     assert client.delete("/api/screeners/nope").status_code == 404

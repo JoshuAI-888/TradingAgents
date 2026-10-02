@@ -1,0 +1,48 @@
+{
+  "observed_at": "2026-10-02T20:09:29.098534+00:00",
+  "scope": "Public deployed API transport samples; not direct provider-site or full-market reconciliation",
+  "checks": [
+    {
+      "symbol": "HK.00700",
+      "url": "https://tradingagents-portal.onrender.com/api/stock/HK.00700/candles?range=Q",
+      "sha256": "7c38a102d8811cafa33f9b647a4a288a74e3e9a2538a47f811cd7978cb9c9b7a",
+      "rows": 73,
+      "available": true,
+      "timestamp_duplicates": 0,
+      "ordering_inversions": 0,
+      "source_trading_date_mismatches": 0,
+      "last_source_date": 20261002,
+      "last_timestamp": 1790870400000,
+      "last_utc_date": "2026-10-01",
+      "last_ohlcv": {
+        "open": 422,
+        "high": 425,
+        "low": 419.8,
+        "close": 421.2,
+        "volume": 19108045
+      },
+      "invalid_ohlcv_rows": 0
+    },
+    {
+      "symbol": "US.AAPL",
+      "url": "https://tradingagents-portal.onrender.com/api/stock/US.AAPL/candles?range=Q",
+      "sha256": "ba87941ad5bbb806f718c14df082fac441f7218e333250b656598c6a154f99c9",
+      "rows": 73,
+      "available": true,
+      "timestamp_duplicates": 0,
+      "ordering_inversions": 0,
+      "source_trading_date_mismatches": 0,
+      "last_source_date": 20261002,
+      "last_timestamp": 1790913600000,
+      "last_utc_date": "2026-10-02",
+      "last_ohlcv": {
+        "open": 333.26,
+        "high": 334.54,
+        "low": 330.61,
+        "close": 333.69,
+        "volume": 29724671
+      },
+      "invalid_ohlcv_rows": 0
+    }
+  ]
+}

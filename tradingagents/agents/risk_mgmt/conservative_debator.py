@@ -1,13 +1,13 @@
 from tradingagents.agents.context import (
     get_instrument_context_from_state,
-    get_price_context_from_state,
     get_language_instruction,
     get_portfolio_context_from_state,
+    get_price_context_from_state,
     opponent_argument_or_opening,
     report_or_absent,
 )
-from tradingagents.agents.prompts import render, resolve
 from tradingagents.agents.prompt_texts import AGENT_PROMPTS
+from tradingagents.agents.prompts import render, resolve
 
 
 def create_conservative_debator(llm):

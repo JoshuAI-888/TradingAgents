@@ -13,6 +13,7 @@ never zeros (spec rule). Definitions:
   rel_vol         last volume ÷ avg_vol3m
   pos_52w         (last − min252) ÷ (max252 − min252) × 100
 """
+
 from __future__ import annotations
 
 import math
@@ -42,7 +43,7 @@ def rsi14(closes: list[float]) -> float | None:
     if len(closes) < 15:
         return None
     gains, losses = [], []
-    for a, b in zip(closes, closes[1:]):
+    for a, b in zip(closes, closes[1:], strict=False):
         gains.append(max(b - a, 0.0))
         losses.append(max(a - b, 0.0))
     ag, al = _wilder_smooth(gains, 14), _wilder_smooth(losses, 14)
@@ -60,10 +61,10 @@ def atr14(bars: list[dict]) -> float | None:
     trs: list[float] = []
     prev_c = None
     for b in bars:
-        h, l, c = b.get("h"), b.get("l"), b.get("c")
-        if h is None or l is None or c is None:
+        h, low, c = b.get("h"), b.get("l"), b.get("c")
+        if h is None or low is None or c is None:
             continue
-        trs.append(h - l if prev_c is None else max(h - l, abs(h - prev_c), abs(l - prev_c)))
+        trs.append(h - low if prev_c is None else max(h - low, abs(h - prev_c), abs(low - prev_c)))
         prev_c = c
     out = _wilder_smooth(trs, 14)
     return round(out, 4) if out is not None else None
@@ -78,7 +79,7 @@ def perf(closes: list[float], n: int) -> float | None:
 def _stdev_pct(closes: list[float], n: int) -> float | None:
     if len(closes) < n + 1:
         return None
-    rets = [b / a - 1 for a, b in zip(closes[-n - 1:], closes[-n:])]
+    rets = [b / a - 1 for a, b in zip(closes[-n - 1 :], closes[-n:], strict=False)]
     mean = sum(rets) / len(rets)
     var = sum((r - mean) ** 2 for r in rets) / (len(rets) - 1) if len(rets) > 1 else 0.0
     return round(math.sqrt(var) * math.sqrt(252) * 100, 4)
@@ -95,8 +96,7 @@ def perf_ytd(bars: list[dict]) -> float | None:
     return round((closes[-1] / first - 1) * 100, 4)
 
 
-def append_snapshot_bar(bars: list[dict], quote: dict,
-                        today: str | None = None) -> list[dict]:
+def append_snapshot_bar(bars: list[dict], quote: dict, today: str | None = None) -> list[dict]:
     """Synthesize the current session's partial bar from the stored snapshot
     quote and append it, so computed technicals are as fresh as the hourly
     quote refresh — zero extra vendor calls. Rules:
@@ -118,13 +118,17 @@ def append_snapshot_bar(bars: list[dict], quote: dict,
     price = float(price)
     o = quote.get("open")
     h = quote.get("high")
-    l = quote.get("low")
-    bars.append({"day": session,
-                 "o": float(o) if o is not None else price,
-                 "h": float(h) if h is not None else price,
-                 "l": float(l) if l is not None else price,
-                 "c": price,
-                 "v": quote.get("volume") or 0.0})
+    low = quote.get("low")
+    bars.append(
+        {
+            "day": session,
+            "o": float(o) if o is not None else price,
+            "h": float(h) if h is not None else price,
+            "l": float(low) if low is not None else price,
+            "c": price,
+            "v": quote.get("volume") or 0.0,
+        }
+    )
     return bars
 
 
@@ -135,8 +139,7 @@ def compute(bars: list[dict]) -> dict:
     if len(closes) < 2:
         return out
     last = closes[-1]
-    for key, n in (("perf_w", 5), ("perf_m", 21), ("perf_q", 63),
-                   ("perf_h", 126), ("perf_y", 252)):
+    for key, n in (("perf_w", 5), ("perf_m", 21), ("perf_q", 63), ("perf_h", 126), ("perf_y", 252)):
         v = perf(closes, n)
         if v is not None:
             out[key] = v

@@ -6,26 +6,38 @@ fails the run):
   * news_items        — recent headlines with URLs → citable news panel
   * company_profiles  — identity/valuation snapshot → masthead KV
 """
+
 from __future__ import annotations
 
+import contextlib
 import hashlib
-import os
 from datetime import datetime, timezone
 
-from .config import SETTINGS
 from .db import Db
 
 
-def _log(db: Db, vendor: str, category: str, symbol: str, status: str,
-         error: str | None = None, latency_ms: int | None = None):
-    try:
-        db.insert("data_fetch_log", {
-            "vendor": vendor, "category": category, "symbol": symbol,
-            "status": status, "error": (error or "")[:300] or None,
-            "latency_ms": latency_ms,
-        }, prefer="return=minimal")
-    except Exception:
-        pass
+def _log(
+    db: Db,
+    vendor: str,
+    category: str,
+    symbol: str,
+    status: str,
+    error: str | None = None,
+    latency_ms: int | None = None,
+):
+    with contextlib.suppress(Exception):
+        db.insert(
+            "data_fetch_log",
+            {
+                "vendor": vendor,
+                "category": category,
+                "symbol": symbol,
+                "status": status,
+                "error": (error or "")[:300] or None,
+                "latency_ms": latency_ms,
+            },
+            prefer="return=minimal",
+        )
 
 
 def _bars(db: Db, ticker_id: str, symbol: str, yf) -> int:
@@ -34,13 +46,19 @@ def _bars(db: Db, ticker_id: str, symbol: str, yf) -> int:
     rows = []
     for idx, r in df.iterrows():
         try:
-            rows.append({
-                "ticker_id": ticker_id, "bar_date": str(idx.date()),
-                "open": round(float(r["Open"]), 8), "high": round(float(r["High"]), 8),
-                "low": round(float(r["Low"]), 8), "close": round(float(r["Close"]), 8),
-                "volume": int(r["Volume"]) if r["Volume"] == r["Volume"] else None,
-                "source": "yfinance", "adjusted": True,
-            })
+            rows.append(
+                {
+                    "ticker_id": ticker_id,
+                    "bar_date": str(idx.date()),
+                    "open": round(float(r["Open"]), 8),
+                    "high": round(float(r["High"]), 8),
+                    "low": round(float(r["Low"]), 8),
+                    "close": round(float(r["Close"]), 8),
+                    "volume": int(r["Volume"]) if r["Volume"] == r["Volume"] else None,
+                    "source": "yfinance",
+                    "adjusted": True,
+                }
+            )
         except Exception:
             continue
     if rows:
@@ -64,26 +82,31 @@ def _news(db: Db, symbol: str, yf) -> int:
             url = c["canonicalUrl"].get("url")
         if not title or not url:
             continue
-        pub = (c.get("providerPublishTime") or c.get("pubDate"))
+        pub = c.get("providerPublishTime") or c.get("pubDate")
         published = datetime.now(timezone.utc)
         if isinstance(pub, (int, float)):
             published = datetime.fromtimestamp(pub, tz=timezone.utc)
         elif isinstance(pub, str):
-            try:
+            with contextlib.suppress(ValueError):
                 published = datetime.fromisoformat(pub.replace("Z", "+00:00"))
-            except ValueError:
-                pass
         provider = c.get("publisher")
         if isinstance(provider, dict):
             provider = provider.get("displayName")
         try:
-            db.insert("news_items", {
-                "source": "yfinance", "url": url,
-                "url_hash": hashlib.sha256(url.encode()).hexdigest(),
-                "published_at": published.isoformat(), "title": title[:300],
-                "publisher": provider, "summary": (c.get("summary") or None),
-                "tickers": [symbol],
-            }, prefer="return=minimal")
+            db.insert(
+                "news_items",
+                {
+                    "source": "yfinance",
+                    "url": url,
+                    "url_hash": hashlib.sha256(url.encode()).hexdigest(),
+                    "published_at": published.isoformat(),
+                    "title": title[:300],
+                    "publisher": provider,
+                    "summary": (c.get("summary") or None),
+                    "tickers": [symbol],
+                },
+                prefer="return=minimal",
+            )
             stored += 1
         except Exception:
             continue  # dedup violation → already known
@@ -92,10 +115,26 @@ def _news(db: Db, symbol: str, yf) -> int:
     return stored
 
 
-_PROFILE_KEYS = ["shortName", "longName", "sector", "industry", "country", "currency",
-                 "website", "marketCap", "trailingPE", "forwardPE", "trailingEps",
-                 "sharesOutstanding", "fiftyTwoWeekHigh", "fiftyTwoWeekLow",
-                 "dividendYield", "beta", "averageVolume", "shortPercentOfFloat"]
+_PROFILE_KEYS = [
+    "shortName",
+    "longName",
+    "sector",
+    "industry",
+    "country",
+    "currency",
+    "website",
+    "marketCap",
+    "trailingPE",
+    "forwardPE",
+    "trailingEps",
+    "sharesOutstanding",
+    "fiftyTwoWeekHigh",
+    "fiftyTwoWeekLow",
+    "dividendYield",
+    "beta",
+    "averageVolume",
+    "shortPercentOfFloat",
+]
 
 
 def _profile(db: Db, ticker_id: str, symbol: str, yf) -> bool:
@@ -104,10 +143,16 @@ def _profile(db: Db, ticker_id: str, symbol: str, yf) -> bool:
     payload = {k: info[k] for k in _PROFILE_KEYS if info.get(k) is not None}
     ok = bool(payload)
     if ok:
-        db.upsert("company_profiles", "ticker_id", {
-            "ticker_id": ticker_id, "payload": payload,
-            "as_of": datetime.now(timezone.utc).isoformat(), "source": "yfinance",
-        })
+        db.upsert(
+            "company_profiles",
+            "ticker_id",
+            {
+                "ticker_id": ticker_id,
+                "payload": payload,
+                "as_of": datetime.now(timezone.utc).isoformat(),
+                "source": "yfinance",
+            },
+        )
     dt = int((datetime.now(timezone.utc) - t0).total_seconds() * 1000)
     _log(db, "yfinance", "fundamentals", symbol, "ok" if ok else "empty", latency_ms=dt)
     return ok

@@ -11,6 +11,7 @@ snapshot (append_snapshot_bar), so they track the hourly quote refresh. Stale kl
 recomputed from old bars, never zero-filled (spec rule).
 Writes one screener_enrichment row per code; state lands in app_settings.
 """
+
 from __future__ import annotations
 
 import os
@@ -18,16 +19,16 @@ from datetime import datetime, timedelta, timezone
 
 from .config import SETTINGS
 from .db import Db
+from .enrich_fields import TECH_FIELDS, YF_FIELD_CONTRACTS, YF_ONLY_FIELDS
 from .kline_backfill import KLINE_TTL_DAYS, KlineBackfill
 from .moomoo import MoomooClient
 from .technicals import append_snapshot_bar, compute
 from .yf_enrich import fetch_yf_enrichment
-from .enrich_fields import TECH_FIELDS, YF_ONLY_FIELDS, YF_FIELD_CONTRACTS
 
 FRESH_CAP_PER_RUN = 4000  # = the kline rotation slice: technicals compute the night klines land
 BAR_CHUNK = 100
 YF_BATCH_PER_RUN = 6000  # bound the cron: full coverage in ~3 nights, then weekly refresh
-YF_TTL_DAYS = 7          # fundamentals are slow; weekly yf refresh per code
+YF_TTL_DAYS = 7  # fundamentals are slow; weekly yf refresh per code
 
 
 def _parse(raw):
@@ -45,7 +46,9 @@ class EnrichNightly:
         self._yf_fetch = yf_fetch or fetch_yf_enrichment
 
     def _universe_codes(self) -> list[str]:
-        rows = self.db.select_all("screener_universe", {"market": f"eq.{self.market}"}, "code,stock_type")
+        rows = self.db.select_all(
+            "screener_universe", {"market": f"eq.{self.market}"}, "code,stock_type"
+        )
         return [r["code"] for r in rows if r.get("code") and r.get("stock_type") in (None, "STOCK")]
 
     def _client(self):
@@ -57,8 +60,12 @@ class EnrichNightly:
 
     def _fresh_codes(self, codes: list[str]) -> list[str]:
         """Fresh-kline codes, most-stale first, capped per run (docstring)."""
-        kstate = {r["code"]: r for r in self.db.select_all(
-            "screener_kline_state", {"market": f"eq.{self.market}"}, "code,last_fetch")}
+        kstate = {
+            r["code"]: r
+            for r in self.db.select_all(
+                "screener_kline_state", {"market": f"eq.{self.market}"}, "code,last_fetch"
+            )
+        }
         cutoff = datetime.now(timezone.utc) - timedelta(days=KLINE_TTL_DAYS)
         fresh = []
         for c in codes:
@@ -74,12 +81,13 @@ class EnrichNightly:
         bars at once OOM-killed the 512MiB cron at ~3.2k codes (2026-10-01);
         a chunk is ~100 codes × ~780 bars ≈ tens of MB. Yields (code, data)."""
         for i in range(0, len(fresh_codes), BAR_CHUNK):
-            chunk = fresh_codes[i:i + BAR_CHUNK]
+            chunk = fresh_codes[i : i + BAR_CHUNK]
             if not chunk:
                 continue
             rows = self.db.select_all(
                 "screener_klines",
-                {"market": f"eq.{self.market}", "code": f"in.({','.join(chunk)})"})
+                {"market": f"eq.{self.market}", "code": f"in.({','.join(chunk)})"},
+            )
             by: dict[str, list] = {}
             for b in rows:
                 by.setdefault(b["code"], []).append(b)
@@ -95,8 +103,7 @@ class EnrichNightly:
                     yield code, data
 
     def run(self, run_klines: bool = True) -> dict:
-        out: dict = {"market": self.market,
-                     "started_at": datetime.now(timezone.utc).isoformat()}
+        out: dict = {"market": self.market, "started_at": datetime.now(timezone.utc).isoformat()}
         codes = self._universe_codes()
         if not codes:
             out["skipped"] = "no stored universe — run the universe loader first"
@@ -108,20 +115,26 @@ class EnrichNightly:
             kb = KlineBackfill(self.db, self._client(), self.market, self.emit)
             out["klines"] = kb.backfill(kb.stale_codes())
 
-        prices = {r["code"]: (r.get("row") or {}).get("price")
-                  for r in self.db.select_all("screener_quotes", {"market": f"eq.{self.market}"},
-                                              "code,row")}
+        prices = {
+            r["code"]: (r.get("row") or {}).get("price")
+            for r in self.db.select_all(
+                "screener_quotes", {"market": f"eq.{self.market}"}, "code,row"
+            )
+        }
         prices = {k: v for k, v in prices.items() if v}
         # Bound the yf sweep: missing codes first, then oldest as_of, capped.
         # A single-run full-universe sweep (13.5k Ticker.info calls) risks the
         # cron's runtime and Yahoo throttling; full coverage lands in ~5 nights
         # and later runs refresh the stalest slice.
         yf_ttl_cut = datetime.now(timezone.utc) - timedelta(days=YF_TTL_DAYS)
-        existing = {r["code"]: r for r in self.db.select_all(
-            "screener_enrichment", {"market": f"eq.{self.market}"}, "*")}
+        existing = {
+            r["code"]: r
+            for r in self.db.select_all("screener_enrichment", {"market": f"eq.{self.market}"}, "*")
+        }
+
         def fundamental_stamp(r):
             data = r.get("data") or {}
-            contracts = (data.get('_meta') or {}).get('field_contracts') or {}
+            contracts = (data.get("_meta") or {}).get("field_contracts") or {}
             if not isinstance(contracts, dict) or any(
                 data.get(k) is not None and contracts.get(k) != version
                 for k, version in YF_FIELD_CONTRACTS.items()
@@ -131,10 +144,13 @@ class EnrichNightly:
             if not any(data.get(k) is not None for k in YF_ONLY_FIELDS):
                 return None
             return _parse((data.get("_meta") or {}).get("fundamentals_at") or r.get("as_of"))
+
         enr_state = {c: fundamental_stamp(r) for c, r in existing.items()}
+
         def _enr_rank(c):
             ts = enr_state.get(c)
             return (0, datetime.min.replace(tzinfo=timezone.utc)) if ts is None else (1, ts)
+
         eligible = [c for c in codes if enr_state.get(c) is None or enr_state[c] < yf_ttl_cut]
         yf_codes = sorted(eligible, key=_enr_rank)[:YF_BATCH_PER_RUN]
         yf_rows = self._yf_fetch(yf_codes, prices, market=self.market) or []
@@ -144,30 +160,46 @@ class EnrichNightly:
         by_code, yf_stamps, yf_contracts, yf_contexts = {}, {}, {}, {}
         requested_codes = set(yf_codes)
         for row in yf_rows:
-            if not isinstance(row, dict) or row.get("code") not in requested_codes or row.get("market") != self.market:
+            if (
+                not isinstance(row, dict)
+                or row.get("code") not in requested_codes
+                or row.get("market") != self.market
+            ):
                 continue
             stamp = _parse(row.get("as_of"))
-            if stamp is None or stamp.tzinfo is None or stamp > datetime.now(timezone.utc) + timedelta(minutes=5):
+            if (
+                stamp is None
+                or stamp.tzinfo is None
+                or stamp > datetime.now(timezone.utc) + timedelta(minutes=5)
+            ):
                 continue
             payload = row.get("data")
             if not isinstance(payload, dict):
                 continue
-            by_code[row["code"]] = {k: v for k, v in payload.items() if k in fundamental_fields and v is not None}
+            by_code[row["code"]] = {
+                k: v for k, v in payload.items() if k in fundamental_fields and v is not None
+            }
             yf_stamps[row["code"]] = stamp.isoformat()
             from .provider_context import validated_context
-            yf_contexts[row['code']]=validated_context(row.get('provider_context'),row['code'])
-            contracts = row.get('field_contracts')
-            yf_contracts[row['code']] = {field: version for field, version in YF_FIELD_CONTRACTS.items()
-                if isinstance(contracts, dict) and contracts.get(field) == version}
+
+            yf_contexts[row["code"]] = validated_context(row.get("provider_context"), row["code"])
+            contracts = row.get("field_contracts")
+            yf_contracts[row["code"]] = {
+                field: version
+                for field, version in YF_FIELD_CONTRACTS.items()
+                if isinstance(contracts, dict) and contracts.get(field) == version
+            }
 
         fresh_codes = self._fresh_codes(codes)
         # Freshness lift: append the current session's partial bar (from the
         # stored snapshot) to each code's history before computing technicals —
         # no extra vendor calls, technicals track the hourly quote refresh.
-        quotes = {r["code"]: (r.get("row") or {}) | {"updated_at": r.get("updated_at")}
-                  for r in self.db.select_all("screener_quotes",
-                                              {"market": f"eq.{self.market}"},
-                                              "code,row,updated_at")}
+        quotes = {
+            r["code"]: (r.get("row") or {}) | {"updated_at": r.get("updated_at")}
+            for r in self.db.select_all(
+                "screener_quotes", {"market": f"eq.{self.market}"}, "code,row,updated_at"
+            )
+        }
         tech: dict[str, dict] = {}
         if fresh_codes:
             for code, tdata in self._technical_data(fresh_codes, quotes):
@@ -187,27 +219,39 @@ class EnrichNightly:
                     data.pop(field, None)
                 data.update(by_code[code])
                 meta["fundamentals_at"] = yf_stamps[code]
-                meta['field_contracts'] = yf_contracts[code]
-                meta.pop('provider_context',None)
-                if yf_contexts[code] is not None:meta['provider_context']=yf_contexts[code]
+                meta["field_contracts"] = yf_contracts[code]
+                meta.pop("provider_context", None)
+                if yf_contexts[code] is not None:
+                    meta["provider_context"] = yf_contexts[code]
             if code in tech:
                 for field in TECH_FIELDS:
                     data.pop(field, None)
                 data.update(tech[code])
                 meta["technicals_at"] = now
             data["_meta"] = meta
-            upserts.append({"market": self.market, "code": code, "data": data,
-                            "source": "yfinance+computed", "as_of": now})
+            upserts.append(
+                {
+                    "market": self.market,
+                    "code": code,
+                    "data": data,
+                    "source": "yfinance+computed",
+                    "as_of": now,
+                }
+            )
         for i in range(0, len(upserts), 400):
-            self.db.upsert_many("screener_enrichment", "market,code",
-                                upserts[i:i + 400])
+            self.db.upsert_many("screener_enrichment", "market,code", upserts[i : i + 400])
             self.emit("enrich", "progress", f"enriched {min(i + 400, len(upserts))}/{len(upserts)}")
 
         out["enriched"] = len(upserts)
         out["finished_at"] = datetime.now(timezone.utc).isoformat()
-        state.update({"last_run": out["finished_at"],
-                      "last_result": {k: v for k, v in out.items()
-                                      if k not in ("started_at", "finished_at")}})
+        state.update(
+            {
+                "last_run": out["finished_at"],
+                "last_result": {
+                    k: v for k, v in out.items() if k not in ("started_at", "finished_at")
+                },
+            }
+        )
         self.db.upsert("app_settings", "key", {"key": "enrich_state", "value": state})
         self.emit("enrich", "done", f"enrichment complete: {out['enriched']} rows")
         return out

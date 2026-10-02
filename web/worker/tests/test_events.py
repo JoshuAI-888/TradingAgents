@@ -1,4 +1,5 @@
 """Event emission: seq continues across re-attempts (no order-by-seq scrambles)."""
+
 from tradingagents_worker.events import Emitter
 
 

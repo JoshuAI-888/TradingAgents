@@ -1,0 +1,23 @@
+{
+  "observed_at": "2026-10-02T20:02:17.095664+00:00",
+  "batch_url": "https://tradingagents-portal.onrender.com/api/stock/quotes?symbols=HK.00700%2CBRK.B%2CUS.AAPL",
+  "batch": {
+    "available": true,
+    "quotes": {
+      "HK.00700": null,
+      "BRK.B": null,
+      "US.AAPL": null
+    }
+  },
+  "single_url": "https://tradingagents-portal.onrender.com/api/stock/HK.00700/quote",
+  "single_quote": {
+    "available": true,
+    "code": "HK.00700",
+    "name": "TENCENT",
+    "last_price": 421.2,
+    "update_time": 1790928485000,
+    "data_date": "2026-10-02",
+    "reason": null
+  },
+  "scope": "Public deployed API observation, before local canonical-identity lookup fix deployment; not independent Moomoo reconciliation."
+}

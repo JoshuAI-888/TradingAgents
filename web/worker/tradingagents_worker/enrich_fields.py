@@ -11,10 +11,11 @@ Transforms (yfinance raw → ours):
   div_mcap_flow  market cap ÷ aggregate cash or free cash flow
   best_effort_lt_de {"lt","eq"} dict → ratio; None leg → None (no fake data)
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import math
+from datetime import datetime, timezone
 
 # Corrections must not reinterpret pre-correction cached values as current units.
 YF_FIELD_CONTRACTS = {
@@ -36,6 +37,7 @@ def finite_number(value):
     except (OverflowError, ValueError):
         return None
 
+
 # yfinance Ticker.info key → (our key, transform, is-best-effort)
 YF_FIELDS: dict[str, tuple[str, str | None]] = {
     "forwardPE": ("forward_pe", None),
@@ -51,14 +53,17 @@ YF_FIELDS: dict[str, tuple[str, str | None]] = {
     "currentRatio": ("current_ratio", None),
     "quickRatio": ("quick_ratio", None),
     "longTermDebt": ("_lt_de", "best_effort_lt_de"),
-    "debtToEquity": ("total_debt_eq", "nonnegative"), # provider percent; not a derived total-debt ratio
+    "debtToEquity": (
+        "total_debt_eq",
+        "nonnegative",
+    ),  # provider percent; not a derived total-debt ratio
     "sharesShort": ("shares_short", None),
     "shortPercentOfFloat": ("short_float", "pct_of_float"),
     "heldPercentInstitutions": ("inst_own", "pct"),
     "heldPercentInsiders": ("insider_own", "pct"),
     "beta": ("beta", None),
     "targetMeanPrice": ("target_price", None),
-    "recommendationMean": ("analyst_recom", None),    # 1=strong buy … 5=sell
+    "recommendationMean": ("analyst_recom", None),  # 1=strong buy … 5=sell
     "country": ("country", None),
     "fullTimeEmployees": ("employees", None),
     "earningsTimestamp": ("earnings_date", "unix_date"),
@@ -77,41 +82,76 @@ YF_FIELDS: dict[str, tuple[str, str | None]] = {
 
 # Computed from stored moomoo daily klines (available in BOTH modes).
 TECH_FIELDS = [
-    "perf_w", "perf_m", "perf_q", "perf_h", "perf_y", "perf_ytd",
-    "vol_w", "vol_m", "sma20_pos", "sma50_pos", "sma200_pos",
-    "rsi14", "atr14", "avg_vol3m", "rel_vol", "pos_52w",
+    "perf_w",
+    "perf_m",
+    "perf_q",
+    "perf_h",
+    "perf_y",
+    "perf_ytd",
+    "vol_w",
+    "vol_m",
+    "sma20_pos",
+    "sma50_pos",
+    "sma200_pos",
+    "rsi14",
+    "atr14",
+    "avg_vol3m",
+    "rel_vol",
+    "pos_52w",
 ]
 
 # Carried by the moomoo snapshot already — present in both modes.
 MOO_FREE_FIELDS = ["pe_ttm", "pb", "div_yield", "pct", "market_cap", "volume"]
 
 FIELD_LABELS = {
-    "forward_pe": "Fwd P/E", "peg": "PEG", "ps": "P/S", "pcf": "P/C",
-    "pfcf": "P/FCF", "ev": "Enterprise Value", "ev_ebitda": "EV/EBITDA",
-    "ev_sales": "EV/Sales", "roa": "ROA %", "current_ratio": "Current Ratio",
-    "quick_ratio": "Quick Ratio", "lt_debt_eq": "LT Debt/Equity %",
-    "total_debt_eq": "Total Debt/Equity %", "shares_short": "Shares Short",
-    "short_float": "Short Float %", "inst_own": "Inst. Own %",
-    "insider_own": "Insider Own %", "beta": "Beta", "target_price": "Target Price",
-    "analyst_recom": "Analyst Recom.", "country": "Country",
-    "employees": "Employees", "earnings_date": "Earnings Date",
-    "ex_div_date": "Div Ex-Date", "payout_ratio": "Payout Ratio",
-    "sector": "Sector", "industry": "Industry", "website": "Website",
-    "roe": "ROE %", "gross_margin": "Gross Margin %",
-    "operating_margin": "Operating Margin %", "net_margin": "Net Margin %",
-    "revenue_growth": "Revenue Growth %", "eps_growth": "EPS Growth %",
+    "forward_pe": "Fwd P/E",
+    "peg": "PEG",
+    "ps": "P/S",
+    "pcf": "P/C",
+    "pfcf": "P/FCF",
+    "ev": "Enterprise Value",
+    "ev_ebitda": "EV/EBITDA",
+    "ev_sales": "EV/Sales",
+    "roa": "ROA %",
+    "current_ratio": "Current Ratio",
+    "quick_ratio": "Quick Ratio",
+    "lt_debt_eq": "LT Debt/Equity %",
+    "total_debt_eq": "Total Debt/Equity %",
+    "shares_short": "Shares Short",
+    "short_float": "Short Float %",
+    "inst_own": "Inst. Own %",
+    "insider_own": "Insider Own %",
+    "beta": "Beta",
+    "target_price": "Target Price",
+    "analyst_recom": "Analyst Recom.",
+    "country": "Country",
+    "employees": "Employees",
+    "earnings_date": "Earnings Date",
+    "ex_div_date": "Div Ex-Date",
+    "payout_ratio": "Payout Ratio",
+    "sector": "Sector",
+    "industry": "Industry",
+    "website": "Website",
+    "roe": "ROE %",
+    "gross_margin": "Gross Margin %",
+    "operating_margin": "Operating Margin %",
+    "net_margin": "Net Margin %",
+    "revenue_growth": "Revenue Growth %",
+    "eps_growth": "EPS Growth %",
     **{k: k.replace("_", " ").title() for k in TECH_FIELDS},
     **{k: k for k in MOO_FREE_FIELDS},
 }
 
 FIELD_SOURCE = {
     **{v[0]: "yf" for v in YF_FIELDS.values() if not v[0].startswith("_")},
-    **{k: "calc" for k in TECH_FIELDS},
-    **{k: "moo" for k in MOO_FREE_FIELDS},
+    **dict.fromkeys(TECH_FIELDS, "calc"),
+    **dict.fromkeys(MOO_FREE_FIELDS, "moo"),
 }
 
 # Everything yfinance-served, hidden in strict moo mode (spec §5b rule 1).
-YF_ONLY_FIELDS = {v[0] for v in YF_FIELDS.values() if not v[0].startswith("_")} - set(MOO_FREE_FIELDS)
+YF_ONLY_FIELDS = {v[0] for v in YF_FIELDS.values() if not v[0].startswith("_")} - set(
+    MOO_FREE_FIELDS
+)
 
 
 def _unix_date(ts) -> str | None:
@@ -121,9 +161,10 @@ def _unix_date(ts) -> str | None:
         return None
 
 
-def apply_transform(raw, transform: str | None, price: float | None = None,
-                    market_cap: float | None = None):
-    if raw is None or isinstance(raw,bool):
+def apply_transform(
+    raw, transform: str | None, price: float | None = None, market_cap: float | None = None
+):
+    if raw is None or isinstance(raw, bool):
         return None
     if transform is None:
         return raw
@@ -144,7 +185,8 @@ def apply_transform(raw, transform: str | None, price: float | None = None,
         result = finite_number(numerator / denominator)
         return round(result, 4) if result is not None else None
     if transform == "best_effort_lt_de":
-        if not isinstance(raw,dict):return None
+        if not isinstance(raw, dict):
+            return None
         eq, lt = finite_number(raw.get("eq")), finite_number(raw.get("lt"))
         if eq is None or eq <= 0 or lt is None or lt < 0:
             return None

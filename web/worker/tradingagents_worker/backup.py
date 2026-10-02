@@ -8,6 +8,7 @@ SUPABASE_URL + SUPABASE_SERVICE_KEY, which the worker already carries.
 user_secrets is deliberately EXCLUDED — secrets never leave the database, not
 even into our own Storage bucket.
 """
+
 from __future__ import annotations
 
 import gzip
@@ -18,11 +19,25 @@ from datetime import datetime, timezone
 from .config import SETTINGS
 
 TABLES = [
-    "tickers", "watchlists", "watchlist_items", "app_settings",
-    "jobs", "job_events", "runs", "agent_reports", "debate_messages",
-    "decisions", "memory_entries", "settlements", "run_digest",
-    "news_items", "price_bars", "company_profiles", "data_fetch_log",
-    "discovery_candidates", "vendor_budget_ledger",
+    "tickers",
+    "watchlists",
+    "watchlist_items",
+    "app_settings",
+    "jobs",
+    "job_events",
+    "runs",
+    "agent_reports",
+    "debate_messages",
+    "decisions",
+    "memory_entries",
+    "settlements",
+    "run_digest",
+    "news_items",
+    "price_bars",
+    "company_profiles",
+    "data_fetch_log",
+    "discovery_candidates",
+    "vendor_budget_ledger",
 ]
 BUCKET = "backups"
 PAGE = 1000
@@ -36,9 +51,12 @@ def _fetch_all(session, table: str) -> list:
     rows: list = []
     offset = 0
     while True:
-        r = session.get(f"{SETTINGS.supabase_url}/rest/v1/{table}",
-                        params={"select": "*", "limit": PAGE, "offset": offset},
-                        headers=_headers(SETTINGS.supabase_service_key), timeout=120)
+        r = session.get(
+            f"{SETTINGS.supabase_url}/rest/v1/{table}",
+            params={"select": "*", "limit": PAGE, "offset": offset},
+            headers=_headers(SETTINGS.supabase_service_key),
+            timeout=120,
+        )
         r.raise_for_status()
         chunk = r.json()
         rows.extend(chunk)
@@ -48,10 +66,12 @@ def _fetch_all(session, table: str) -> list:
 
 
 def _ensure_bucket(session) -> None:
-    r = session.post(f"{SETTINGS.supabase_url}/storage/v1/bucket",
-                     data=json.dumps({"name": BUCKET, "public": False}),
-                     headers={**_headers(SETTINGS.supabase_service_key),
-                              "Content-Type": "application/json"}, timeout=60)
+    r = session.post(
+        f"{SETTINGS.supabase_url}/storage/v1/bucket",
+        data=json.dumps({"name": BUCKET, "public": False}),
+        headers={**_headers(SETTINGS.supabase_service_key), "Content-Type": "application/json"},
+        timeout=60,
+    )
     if r.status_code in (200, 201):
         return
     # Supabase Storage answers bucket-already-exists with HTTP 400 whose body
@@ -63,11 +83,16 @@ def _ensure_bucket(session) -> None:
 
 
 def _upload(session, path: str, data: bytes) -> None:
-    r = session.post(f"{SETTINGS.supabase_url}/storage/v1/object/{BUCKET}/{path}",
-                     data=data,
-                     headers={**_headers(SETTINGS.supabase_service_key),
-                              "Content-Type": "application/octet-stream",
-                              "x-upsert": "true"}, timeout=300)
+    r = session.post(
+        f"{SETTINGS.supabase_url}/storage/v1/object/{BUCKET}/{path}",
+        data=data,
+        headers={
+            **_headers(SETTINGS.supabase_service_key),
+            "Content-Type": "application/octet-stream",
+            "x-upsert": "true",
+        },
+        timeout=300,
+    )
     r.raise_for_status()
 
 
@@ -75,6 +100,7 @@ def main() -> dict:
     if not SETTINGS.supabase_url or not SETTINGS.supabase_service_key:
         raise SystemExit("SUPABASE_URL / SUPABASE_SERVICE_KEY not configured")
     import requests  # local import: tests can stub it
+
     session = requests.Session()
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     _ensure_bucket(session)
@@ -90,6 +116,7 @@ def main() -> dict:
         print(f"{table}: {len(rows)} rows", flush=True)
     _upload(session, f"{stamp}/_manifest.json", json.dumps(manifest, indent=2).encode())
     from .db import Db
+
     Db().upsert("app_settings", "key", {"key": "backup_state", "value": manifest})
     print(f"backup {stamp} complete: {sum(manifest['tables'].values())} rows", flush=True)
     return manifest

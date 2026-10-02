@@ -125,6 +125,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.8"
+      - key: UNIVERSE_MARKET
+        value: US
       - key: TRADINGAGENTS_CACHE_DIR
         value: /tmp/ta-cache   # crons have no disk; /data is not writable
       - key: SUPABASE_URL
@@ -158,6 +160,76 @@ services:
       - key: MOOMOO_APPKEY
         sync: false
       - key: MOOMOO_PRIVATE_KEY
+        sync: false
+
+  # HK uses a separate job so US scheduling cannot leave its cohort stale.
+  - type: cron
+    name: tradingagents-universe-hk
+    runtime: python
+    plan: starter
+    region: virginia
+    buildCommand: pip install -r web/worker/requirements.txt && pip install -e .
+    schedule: "0 1-8 * * 1-5"  # 09:00–16:00 HKT weekdays; source session timestamps stay authoritative
+    startCommand: cd web/worker && python -m tradingagents_worker.universe_refresh
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: UNIVERSE_MARKET
+        value: HK
+      - key: TRADINGAGENTS_CACHE_DIR
+        value: /tmp/ta-cache   # crons have no disk; /data is not writable
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: MOOMOO_APPKEY
+        sync: false
+      - key: MOOMOO_PRIVATE_KEY
+        sync: false
+
+  - type: cron
+    name: tradingagents-enrich-hk
+    runtime: python
+    plan: starter
+    region: virginia
+    buildCommand: pip install -r web/worker/requirements.txt && pip install -e .
+    schedule: "45 8 * * 1-5"  # 16:45 HKT weekdays; after HK close
+    startCommand: cd web/worker && python -m tradingagents_worker.enrich_nightly
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: TRADINGAGENTS_CACHE_DIR
+        value: /tmp/ta-cache   # crons have no disk; /data is not writable
+      - key: ENRICH_MARKET
+        value: HK
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: MOOMOO_APPKEY
+        sync: false
+      - key: MOOMOO_PRIVATE_KEY
+        sync: false
+
+  # Separate classification acquisition; remains inert until release qualification.
+  - type: cron
+    name: tradingagents-instrument-subtypes
+    runtime: python
+    plan: starter
+    region: virginia
+    buildCommand: pip install -r web/worker/requirements.txt && pip install -e .
+    schedule: "20 * * * *"
+    startCommand: cd web/worker && python -m tradingagents_worker.instrument_subtype_job
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: INSTRUMENT_SUBTYPE_COLLECTION_ENABLED
+        value: "0"
+      - key: INSTRUMENT_SUBTYPE_MARKET
+        value: US
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
         sync: false
 
   - type: cron

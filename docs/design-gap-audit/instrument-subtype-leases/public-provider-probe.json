@@ -1,0 +1,53 @@
+{
+  "scope": "three_public_same_response_type_samples_not_full_market_or_moomoo_reconciliation",
+  "samples": [
+    {
+      "code": "US.PLD",
+      "receipt_at": "2026-10-02T13:39:12.854458+00:00",
+      "context": {
+        "version": "yfinance_info_context_v1",
+        "code": "US.PLD",
+        "provider_symbol": "PLD",
+        "source": "yfinance",
+        "fields": {
+          "quoteType": "EQUITY"
+        },
+        "scope": "Same-response provider info calendar and currencies; not per-metric periods or cross-provider currency attribution",
+        "classification_scope": "Same-response Yahoo quoteType; does not reinterpret another provider trust/fund category"
+      },
+      "status": "identity_matched"
+    },
+    {
+      "code": "US.AMT",
+      "receipt_at": "2026-10-02T13:39:14.782623+00:00",
+      "context": {
+        "version": "yfinance_info_context_v1",
+        "code": "US.AMT",
+        "provider_symbol": "AMT",
+        "source": "yfinance",
+        "fields": {
+          "quoteType": "EQUITY"
+        },
+        "scope": "Same-response provider info calendar and currencies; not per-metric periods or cross-provider currency attribution",
+        "classification_scope": "Same-response Yahoo quoteType; does not reinterpret another provider trust/fund category"
+      },
+      "status": "identity_matched"
+    },
+    {
+      "code": "US.SPY",
+      "receipt_at": "2026-10-02T13:39:16.641205+00:00",
+      "context": {
+        "version": "yfinance_info_context_v1",
+        "code": "US.SPY",
+        "provider_symbol": "SPY",
+        "source": "yfinance",
+        "fields": {
+          "quoteType": "ETF"
+        },
+        "scope": "Same-response provider info calendar and currencies; not per-metric periods or cross-provider currency attribution",
+        "classification_scope": "Same-response Yahoo quoteType; does not reinterpret another provider trust/fund category"
+      },
+      "status": "identity_matched"
+    }
+  ]
+}

@@ -2,23 +2,28 @@
 screener API and the universe loader both use. Lives worker-side because the
 API imports worker modules (never the reverse).
 """
+
 from __future__ import annotations
+
 import math
 
-from .quote_observations import cloud_snapshot_time,snapshot_observations
+from .quote_observations import cloud_snapshot_time, snapshot_observations
 
 
 def _number(value):
-    if type(value) not in (int,float):return None
-    try:return value if math.isfinite(value) else None
-    except OverflowError:return None
+    if type(value) not in (int, float):
+        return None
+    try:
+        return value if math.isfinite(value) else None
+    except OverflowError:
+        return None
 
 
 def snapshot_to_row(s: dict) -> dict:
     """A moomoo snapshot item → a screener row with normalized fields."""
     last, prev = _number(s.get("last_price")), _number(s.get("prev_close_price"))
     pct = _number(s.get("pct_change"))
-    high52,low52 = _number(s.get('highest52weeks_price')),_number(s.get('lowest52weeks_price'))
+    high52, low52 = _number(s.get("highest52weeks_price")), _number(s.get("lowest52weeks_price"))
     if pct is None and last is not None and prev:
         pct = (float(last) - float(prev)) / float(prev) * 100
     row = {
@@ -51,9 +56,9 @@ def snapshot_to_row(s: dict) -> dict:
         "new_high": bool(high52 and last and last >= high52 * 0.999),
         "new_low": bool(low52 and last and last <= low52 * 1.001),
     }
-    for field in row.keys()-{'symbol','code','name','new_high','new_low'}:
-        row[field]=_number(row[field])
-    row['quote_observed_at']=cloud_snapshot_time(s.get('update_time'))
-    row['quote_time_semantics']='provider_snapshot_update' if row['quote_observed_at'] else None
-    row['field_observations']=snapshot_observations(s,row)
+    for field in row.keys() - {"symbol", "code", "name", "new_high", "new_low"}:
+        row[field] = _number(row[field])
+    row["quote_observed_at"] = cloud_snapshot_time(s.get("update_time"))
+    row["quote_time_semantics"] = "provider_snapshot_update" if row["quote_observed_at"] else None
+    row["field_observations"] = snapshot_observations(s, row)
     return row

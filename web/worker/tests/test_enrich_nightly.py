@@ -1,4 +1,5 @@
 """Nightly orchestrator: yf batch + technicals from stored klines → one row/code."""
+
 from datetime import datetime, timedelta, timezone
 
 from tradingagents_worker.enrich_nightly import EnrichNightly
@@ -13,40 +14,75 @@ class FakeYf:
 
 
 def _seed(db):
-    db.upsert_many("screener_universe", "market,code",
-                   [{"market": "US", "code": "US.AAPL"}])
+    db.upsert_many("screener_universe", "market,code", [{"market": "US", "code": "US.AAPL"}])
     fresh = datetime.now(timezone.utc).isoformat()
-    db.upsert("screener_kline_state", "market,code",
-              {"market": "US", "code": "US.AAPL", "last_fetch": fresh, "bars": 260})
-    bars = [{"market": "US", "code": "US.AAPL", "day": f"2025-01-{d:02d}",
-             "o": 100, "h": 102, "l": 99, "c": 100 + d, "v": 1_000_000}
-            for d in range(1, 29)]
+    db.upsert(
+        "screener_kline_state",
+        "market,code",
+        {"market": "US", "code": "US.AAPL", "last_fetch": fresh, "bars": 260},
+    )
+    bars = [
+        {
+            "market": "US",
+            "code": "US.AAPL",
+            "day": f"2025-01-{d:02d}",
+            "o": 100,
+            "h": 102,
+            "l": 99,
+            "c": 100 + d,
+            "v": 1_000_000,
+        }
+        for d in range(1, 29)
+    ]
     db.upsert_many("screener_klines", "market,code,day", bars)
-    db.upsert_many("screener_quotes", "code",
-                   [{"code": "US.AAPL", "market": "US", "row": {"price": 128.0},
-                     "updated_at": fresh}])
+    db.upsert_many(
+        "screener_quotes",
+        "code",
+        [{"code": "US.AAPL", "market": "US", "row": {"price": 128.0}, "updated_at": fresh}],
+    )
 
 
 def test_run_writes_merged_enrichment(fake_db):
     _seed(fake_db)
-    yf = FakeYf([{"market": "US", "code": "US.AAPL", "data": {"forward_pe": 30.0},
-                  "source": "yfinance", "as_of": "2025-01-01T00:00:00+00:00"}])
+    yf = FakeYf(
+        [
+            {
+                "market": "US",
+                "code": "US.AAPL",
+                "data": {"forward_pe": 30.0},
+                "source": "yfinance",
+                "as_of": "2025-01-01T00:00:00+00:00",
+            }
+        ]
+    )
     out = EnrichNightly(fake_db, yf_fetch=yf, market="US").run(run_klines=False)
     assert out["enriched"] == 1
     rows = fake_db.select("screener_enrichment", {"market": "eq.US"})
     data = rows[0]["data"]
     assert data["forward_pe"] == 30.0
-    assert "rsi14" in data and "sma20_pos" in data      # klines fresh → technicals present
+    assert "rsi14" in data and "sma20_pos" in data  # klines fresh → technicals present
     assert rows[0]["source"] == "yfinance+computed"
 
 
 def test_stale_klines_yield_no_technicals(fake_db):
     _seed(fake_db)
     old = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
-    fake_db.upsert("screener_kline_state", "market,code",
-                   {"market": "US", "code": "US.AAPL", "last_fetch": old, "bars": 260})
-    yf = FakeYf([{"market": "US", "code": "US.AAPL", "data": {"forward_pe": 30.0},
-                  "source": "yfinance", "as_of": "2025-01-01T00:00:00+00:00"}])
+    fake_db.upsert(
+        "screener_kline_state",
+        "market,code",
+        {"market": "US", "code": "US.AAPL", "last_fetch": old, "bars": 260},
+    )
+    yf = FakeYf(
+        [
+            {
+                "market": "US",
+                "code": "US.AAPL",
+                "data": {"forward_pe": 30.0},
+                "source": "yfinance",
+                "as_of": "2025-01-01T00:00:00+00:00",
+            }
+        ]
+    )
     EnrichNightly(fake_db, yf_fetch=yf, market="US").run(run_klines=False)
     data = fake_db.select("screener_enrichment", {"market": "eq.US"})[0]["data"]
     assert "forward_pe" in data and "rsi14" not in data  # absent, never stale-zero
@@ -68,6 +104,7 @@ def test_kline_rotation_runs_by_default(fake_db, monkeypatch):
             return {"codes": len(codes), "bars": 2, "errors": 0}
 
     import tradingagents_worker.enrich_nightly as en
+
     monkeypatch.setattr(en, "KlineBackfill", SpyKb)
     yf = FakeYf([])
     out = EnrichNightly(fake_db, yf_fetch=yf, market="US").run()
@@ -95,17 +132,45 @@ def test_yf_batch_is_missing_first_and_bounded(fake_db, monkeypatch):
 
     fresh = datetime.now(timezone.utc).isoformat()
     old = (datetime.now(timezone.utc) - timedelta(days=9)).isoformat()
-    fake_db.upsert_many("screener_universe", "market,code",
-                   [{"market": "US", "code": c} for c in ("US.A", "US.B", "US.C")])
-    fake_db.upsert_many("screener_quotes", "code",
-                   [{"code": c, "market": "US", "row": {"price": 10.0}, "updated_at": fresh}
-                    for c in ("US.A", "US.B", "US.C")])
-    fake_db.upsert_many("screener_enrichment", "market,code",
-                   [{"market": "US", "code": "US.B", "data": {"beta": 1.0},
-                     "source": "yfinance", "as_of": fresh}])
-    fake_db.upsert_many("screener_enrichment", "market,code",
-                   [{"market": "US", "code": "US.C", "data": {"beta": 2.0},
-                     "source": "yfinance", "as_of": old}])
+    fake_db.upsert_many(
+        "screener_universe",
+        "market,code",
+        [{"market": "US", "code": c} for c in ("US.A", "US.B", "US.C")],
+    )
+    fake_db.upsert_many(
+        "screener_quotes",
+        "code",
+        [
+            {"code": c, "market": "US", "row": {"price": 10.0}, "updated_at": fresh}
+            for c in ("US.A", "US.B", "US.C")
+        ],
+    )
+    fake_db.upsert_many(
+        "screener_enrichment",
+        "market,code",
+        [
+            {
+                "market": "US",
+                "code": "US.B",
+                "data": {"beta": 1.0},
+                "source": "yfinance",
+                "as_of": fresh,
+            }
+        ],
+    )
+    fake_db.upsert_many(
+        "screener_enrichment",
+        "market,code",
+        [
+            {
+                "market": "US",
+                "code": "US.C",
+                "data": {"beta": 2.0},
+                "source": "yfinance",
+                "as_of": old,
+            }
+        ],
+    )
     seen = []
 
     class SpyYf:
@@ -116,10 +181,10 @@ def test_yf_batch_is_missing_first_and_bounded(fake_db, monkeypatch):
     monkeypatch.setattr(en, "YF_BATCH_PER_RUN", 2)
     EnrichNightly(fake_db, yf_fetch=SpyYf(), market="US").run(run_klines=False)
     got = seen[0]
-    assert "US.B" not in got                       # enriched 2h... fresh → skipped
-    assert set(got) <= {"US.A", "US.C"}            # missing + stale only
-    assert got[0] == "US.A" or got[0] == "US.C"    # missing/stale first
-    assert len(got) == 2                           # cap respected
+    assert "US.B" not in got  # enriched 2h... fresh → skipped
+    assert set(got) <= {"US.A", "US.C"}  # missing + stale only
+    assert got[0] == "US.A" or got[0] == "US.C"  # missing/stale first
+    assert len(got) == 2  # cap respected
 
 
 def test_technicals_stream_per_chunk_not_all_in_memory(fake_db, monkeypatch):
@@ -131,18 +196,36 @@ def test_technicals_stream_per_chunk_not_all_in_memory(fake_db, monkeypatch):
 
     fresh = datetime.now(timezone.utc).isoformat()
     codes = [f"US.S{i}" for i in range(5)]
-    fake_db.upsert_many("screener_universe", "market,code",
-                        [{"market": "US", "code": c} for c in codes])
-    fake_db.upsert_many("screener_kline_state", "market,code",
-                        [{"market": "US", "code": c, "last_fetch": fresh} for c in codes])
-    fake_db.upsert_many("screener_klines", "market,code,day",
-                        [{"market": "US", "code": c, "day": f"2025-01-{d:02d}",
-                          "o": 100, "h": 102, "l": 99, "c": 100 + d, "v": 1e6}
-                         for c in codes for d in range(1, 29)])
+    fake_db.upsert_many(
+        "screener_universe", "market,code", [{"market": "US", "code": c} for c in codes]
+    )
+    fake_db.upsert_many(
+        "screener_kline_state",
+        "market,code",
+        [{"market": "US", "code": c, "last_fetch": fresh} for c in codes],
+    )
+    fake_db.upsert_many(
+        "screener_klines",
+        "market,code,day",
+        [
+            {
+                "market": "US",
+                "code": c,
+                "day": f"2025-01-{d:02d}",
+                "o": 100,
+                "h": 102,
+                "l": 99,
+                "c": 100 + d,
+                "v": 1e6,
+            }
+            for c in codes
+            for d in range(1, 29)
+        ],
+    )
     yf = FakeYf([])
     monkeypatch.setattr(en, "BAR_CHUNK", 2)
 
-    kline_rows_read = [0]   # cumulative bars returned by the time each compute() runs
+    kline_rows_read = [0]  # cumulative bars returned by the time each compute() runs
     orig_select_all = fake_db.select_all
 
     def counting_select_all(table, query=None, columns="*"):
@@ -157,7 +240,7 @@ def test_technicals_stream_per_chunk_not_all_in_memory(fake_db, monkeypatch):
     orig_compute = en.compute
 
     def spy_compute(bars):
-        compute_at.append(kline_rows_read[0])   # memory watermark: bars read so far
+        compute_at.append(kline_rows_read[0])  # memory watermark: bars read so far
         return orig_compute(bars)
 
     monkeypatch.setattr(en, "compute", spy_compute)
@@ -166,22 +249,52 @@ def test_technicals_stream_per_chunk_not_all_in_memory(fake_db, monkeypatch):
     # watermark at first compute = ALL 5*28=140 rows. STREAMING mode: only the
     # current chunk's rows exist → watermark <= 2 codes * 28 days.
     assert max(compute_at[:1]) <= 2 * 28, f"bars accumulated before compute: {compute_at[0]}"
-    assert out["enriched"] == 5                        # every code still enriched
-    rows = {r["code"]: r["data"] for r in fake_db.select("screener_enrichment", {"market": "eq.US"})}
+    assert out["enriched"] == 5  # every code still enriched
+    rows = {
+        r["code"]: r["data"] for r in fake_db.select("screener_enrichment", {"market": "eq.US"})
+    }
     assert all("sma20_pos" in rows[c] for c in codes)  # technicals intact across chunks
 
 
-def test_successful_fundamental_refresh_removes_disappeared_fields_and_keeps_provider_clock(fake_db):
+def test_successful_fundamental_refresh_removes_disappeared_fields_and_keeps_provider_clock(
+    fake_db,
+):
     _seed(fake_db)
     old = (datetime.now(timezone.utc) - timedelta(days=9)).isoformat()
     fetched = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
-    fake_db.upsert("screener_enrichment", "market,code", {"market":"US", "code":"US.AAPL",
-        "as_of":old, "data":{"forward_pe":30, "sector":"Old sector", "lt_debt_eq":25,
-                             "beta":1, "_meta":{"fundamentals_at":old}}})
-    yf=FakeYf([{"market":"US", "code":"US.AAPL", "as_of":fetched,
-                "data":{"beta":0, "forward_pe":None, "rsi14":999, "_meta":{"fundamentals_at":"bad"}}}])
-    EnrichNightly(fake_db,yf_fetch=yf).run(run_klines=False)
-    data=fake_db.select("screener_enrichment", {"market":"eq.US"})[0]["data"]
+    fake_db.upsert(
+        "screener_enrichment",
+        "market,code",
+        {
+            "market": "US",
+            "code": "US.AAPL",
+            "as_of": old,
+            "data": {
+                "forward_pe": 30,
+                "sector": "Old sector",
+                "lt_debt_eq": 25,
+                "beta": 1,
+                "_meta": {"fundamentals_at": old},
+            },
+        },
+    )
+    yf = FakeYf(
+        [
+            {
+                "market": "US",
+                "code": "US.AAPL",
+                "as_of": fetched,
+                "data": {
+                    "beta": 0,
+                    "forward_pe": None,
+                    "rsi14": 999,
+                    "_meta": {"fundamentals_at": "bad"},
+                },
+            }
+        ]
+    )
+    EnrichNightly(fake_db, yf_fetch=yf).run(run_klines=False)
+    data = fake_db.select("screener_enrichment", {"market": "eq.US"})[0]["data"]
     assert data["beta"] == 0
     assert "forward_pe" not in data and "sector" not in data and "lt_debt_eq" not in data
     assert data["rsi14"] != 999
@@ -191,11 +304,19 @@ def test_successful_fundamental_refresh_removes_disappeared_fields_and_keeps_pro
 
 def test_failed_fundamental_fetch_cannot_renew_old_fields_with_a_technical_update(fake_db):
     _seed(fake_db)
-    old=(datetime.now(timezone.utc)-timedelta(days=9)).isoformat()
-    fake_db.upsert("screener_enrichment", "market,code", {"market":"US", "code":"US.AAPL",
-        "as_of":old, "data":{"forward_pe":30, "_meta":{"fundamentals_at":old}}})
-    EnrichNightly(fake_db,yf_fetch=FakeYf([])).run(run_klines=False)
-    row=fake_db.select("screener_enrichment", {"market":"eq.US"})[0]
+    old = (datetime.now(timezone.utc) - timedelta(days=9)).isoformat()
+    fake_db.upsert(
+        "screener_enrichment",
+        "market,code",
+        {
+            "market": "US",
+            "code": "US.AAPL",
+            "as_of": old,
+            "data": {"forward_pe": 30, "_meta": {"fundamentals_at": old}},
+        },
+    )
+    EnrichNightly(fake_db, yf_fetch=FakeYf([])).run(run_klines=False)
+    row = fake_db.select("screener_enrichment", {"market": "eq.US"})[0]
     assert row["data"]["forward_pe"] == 30  # retained cache, still old and ineligible
     assert row["data"]["_meta"]["fundamentals_at"] == old
     assert row["data"]["_meta"]["technicals_at"] == row["as_of"]
@@ -203,158 +324,372 @@ def test_failed_fundamental_fetch_cannot_renew_old_fields_with_a_technical_updat
 
 def test_fundamental_refresh_rejects_other_market_naive_or_future_clocks(fake_db):
     _seed(fake_db)
-    future=(datetime.now(timezone.utc)+timedelta(days=1)).isoformat()
-    for market,stamp in [("HK",datetime.now(timezone.utc).isoformat()),("US","2026-01-01T00:00:00"),("US",future)]:
-        out=EnrichNightly(fake_db,yf_fetch=FakeYf([{"market":market,"code":"US.AAPL","as_of":stamp,"data":{"beta":99}}])).run(run_klines=False)
+    future = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
+    for market, stamp in [
+        ("HK", datetime.now(timezone.utc).isoformat()),
+        ("US", "2026-01-01T00:00:00"),
+        ("US", future),
+    ]:
+        out = EnrichNightly(
+            fake_db,
+            yf_fetch=FakeYf(
+                [{"market": market, "code": "US.AAPL", "as_of": stamp, "data": {"beta": 99}}]
+            ),
+        ).run(run_klines=False)
         assert out["enriched"] == 1  # technical category still progresses
-        data=fake_db.select("screener_enrichment", {"market":"eq.US"})[0]["data"]
+        data = fake_db.select("screener_enrichment", {"market": "eq.US"})[0]["data"]
         assert "beta" not in data
 
 
-def test_worker_refresh_output_cannot_qualify_disappeared_factors_in_actual_api(fake_db,monkeypatch):
+def test_worker_refresh_output_cannot_qualify_disappeared_factors_in_actual_api(
+    fake_db, monkeypatch
+):
     from tradingagents_api import main as api
+
     _seed(fake_db)
-    old=(datetime.now(timezone.utc)-timedelta(days=9)).isoformat()
-    fetched=(datetime.now(timezone.utc)-timedelta(hours=1)).isoformat()
-    fake_db.upsert('screener_enrichment','market,code',{'market':'US','code':'US.AAPL','as_of':old,
-        'data':{'forward_pe':30,'_meta':{'fundamentals_at':old}}})
-    EnrichNightly(fake_db,yf_fetch=FakeYf([{'market':'US','code':'US.AAPL','as_of':fetched,'data':{'beta':0}}])).run(run_klines=False)
-    monkeypatch.setattr(api,'db',fake_db)
-    monkeypatch.setattr(api,'_market_client',lambda:object())
-    monkeypatch.setattr(api,'_merge_universe_meta',lambda rows,market:rows)
-    monkeypatch.setattr(api,'_stored_universe',lambda *args,**kwargs:([{'code':'US.AAPL','symbol':'AAPL','stock_type':'STOCK','price':128}],fetched))
-    result=api.screener(watchlist_only=0,src='yf')
-    row=result['rows'][0]
-    assert row['beta']==0 and 'forward_pe' not in row
-    assert row['display_field_sources']['beta']['cache_at']==fetched
-    assert api.screener(watchlist_only=0,src='yf',filters='[{"field":"forward_pe","max":40}]')['rows']==[]
+    old = (datetime.now(timezone.utc) - timedelta(days=9)).isoformat()
+    fetched = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    fake_db.upsert(
+        "screener_enrichment",
+        "market,code",
+        {
+            "market": "US",
+            "code": "US.AAPL",
+            "as_of": old,
+            "data": {"forward_pe": 30, "_meta": {"fundamentals_at": old}},
+        },
+    )
+    EnrichNightly(
+        fake_db,
+        yf_fetch=FakeYf(
+            [{"market": "US", "code": "US.AAPL", "as_of": fetched, "data": {"beta": 0}}]
+        ),
+    ).run(run_klines=False)
+    monkeypatch.setattr(api, "db", fake_db)
+    monkeypatch.setattr(api, "_market_client", lambda: object())
+    monkeypatch.setattr(api, "_merge_universe_meta", lambda rows, market: rows)
+    monkeypatch.setattr(
+        api,
+        "_stored_universe",
+        lambda *args, **kwargs: (
+            [{"code": "US.AAPL", "symbol": "AAPL", "stock_type": "STOCK", "price": 128}],
+            fetched,
+        ),
+    )
+    result = api.screener(watchlist_only=0, src="yf")
+    row = result["rows"][0]
+    assert row["beta"] == 0 and "forward_pe" not in row
+    assert row["display_field_sources"]["beta"]["cache_at"] == fetched
+    assert (
+        api.screener(watchlist_only=0, src="yf", filters='[{"field":"forward_pe","max":40}]')[
+            "rows"
+        ]
+        == []
+    )
 
 
 def test_empty_success_clears_prior_fundamentals_without_removing_technicals(fake_db):
     _seed(fake_db)
-    old=(datetime.now(timezone.utc)-timedelta(days=9)).isoformat();now=datetime.now(timezone.utc).isoformat()
-    fake_db.upsert('screener_enrichment','market,code',{'market':'US','code':'US.AAPL','as_of':old,
-        'data':{'forward_pe':30,'sector':'Technology','_meta':{'fundamentals_at':old,'provider_context':{'old':'must clear'}}}})
-    EnrichNightly(fake_db,yf_fetch=FakeYf([{'market':'US','code':'US.AAPL','as_of':now,'data':{}}])).run(run_klines=False)
-    data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
-    assert 'forward_pe' not in data and 'sector' not in data and 'rsi14' in data
-    assert 'provider_context' not in data['_meta']
-    assert data['_meta']['fundamentals_at']==now
+    old = (datetime.now(timezone.utc) - timedelta(days=9)).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
+    fake_db.upsert(
+        "screener_enrichment",
+        "market,code",
+        {
+            "market": "US",
+            "code": "US.AAPL",
+            "as_of": old,
+            "data": {
+                "forward_pe": 30,
+                "sector": "Technology",
+                "_meta": {"fundamentals_at": old, "provider_context": {"old": "must clear"}},
+            },
+        },
+    )
+    EnrichNightly(
+        fake_db, yf_fetch=FakeYf([{"market": "US", "code": "US.AAPL", "as_of": now, "data": {}}])
+    ).run(run_klines=False)
+    data = fake_db.select("screener_enrichment", {"market": "eq.US"})[0]["data"]
+    assert "forward_pe" not in data and "sector" not in data and "rsi14" in data
+    assert "provider_context" not in data["_meta"]
+    assert data["_meta"]["fundamentals_at"] == now
 
 
-def test_actual_fetcher_corrects_fresh_legacy_ratios_and_api_uses_corrected_units(fake_db,monkeypatch):
-    from tradingagents_api import main as api
-    from tradingagents_worker.yf_enrich import fetch_yf_enrichment
-    from tradingagents_worker.enrich_fields import YF_FIELD_CONTRACTS
+def test_actual_fetcher_corrects_fresh_legacy_ratios_and_api_uses_corrected_units(
+    fake_db, monkeypatch
+):
     from test_yf_enrich import FakeYfModule
+    from tradingagents_api import main as api
+    from tradingagents_worker.enrich_fields import YF_FIELD_CONTRACTS
+    from tradingagents_worker.yf_enrich import fetch_yf_enrichment
+
     _seed(fake_db)
-    now=datetime.now(timezone.utc).isoformat()
-    fake_db.upsert('screener_enrichment','market,code',{'market':'US','code':'US.AAPL','as_of':now,
-        'data':{'payout_ratio':0.6246,'pcf':0.002,'pfcf':5,'beta':0,'_meta':{'fundamentals_at':now}}})
-    legacy=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
-    assert api._fresh_supplemental(legacy,now)[0]=={'beta':0}
-    seen=[]
-    def fetch(codes,prices,market):
+    now = datetime.now(timezone.utc).isoformat()
+    fake_db.upsert(
+        "screener_enrichment",
+        "market,code",
+        {
+            "market": "US",
+            "code": "US.AAPL",
+            "as_of": now,
+            "data": {
+                "payout_ratio": 0.6246,
+                "pcf": 0.002,
+                "pfcf": 5,
+                "beta": 0,
+                "_meta": {"fundamentals_at": now},
+            },
+        },
+    )
+    legacy = fake_db.select("screener_enrichment", {"market": "eq.US"})[0]["data"]
+    assert api._fresh_supplemental(legacy, now)[0] == {"beta": 0}
+    seen = []
+
+    def fetch(codes, prices, market):
         seen.extend(codes)
-        return fetch_yf_enrichment(codes,prices,market,yf_module=FakeYfModule({'AAPL':{
-            'marketCap':1000,'totalCash':400,'freeCashflow':100,'payoutRatio':0.6246,
-            'currency':'USD','financialCurrency':'USD'}}))
-    EnrichNightly(fake_db,yf_fetch=fetch).run(run_klines=False)
-    assert seen==['US.AAPL']  # fresh legacy values get a bounded priority refresh
-    data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
-    assert data['_meta']['field_contracts']==YF_FIELD_CONTRACTS
-    values,origins=api._fresh_supplemental(data,now)
-    assert values['payout_ratio']==62.46 and values['pcf']==2.5 and values['pfcf']==10
-    assert origins['pcf']['field_contract']==YF_FIELD_CONTRACTS['pcf']
-    monkeypatch.setattr(api,'db',fake_db)
-    monkeypatch.setattr(api,'_market_client',lambda:object())
-    monkeypatch.setattr(api,'_merge_universe_meta',lambda rows,market:rows)
-    monkeypatch.setattr(api,'_stored_universe',lambda *args,**kwargs:([{
-        'code':'US.AAPL','symbol':'AAPL','stock_type':'STOCK','price':128}],now))
-    result=api.screener(watchlist_only=0,src='yf',filters='[{"field":"payout_ratio","min":60},{"field":"pcf","max":3}]')
-    assert len(result['rows'])==1 and result['rows'][0]['payout_ratio']==62.46
-    assert api.screener(watchlist_only=0,src='yf',filters='[{"field":"payout_ratio","max":1}]')['rows']==[]
+        return fetch_yf_enrichment(
+            codes,
+            prices,
+            market,
+            yf_module=FakeYfModule(
+                {
+                    "AAPL": {
+                        "marketCap": 1000,
+                        "totalCash": 400,
+                        "freeCashflow": 100,
+                        "payoutRatio": 0.6246,
+                        "currency": "USD",
+                        "financialCurrency": "USD",
+                    }
+                }
+            ),
+        )
+
+    EnrichNightly(fake_db, yf_fetch=fetch).run(run_klines=False)
+    assert seen == ["US.AAPL"]  # fresh legacy values get a bounded priority refresh
+    data = fake_db.select("screener_enrichment", {"market": "eq.US"})[0]["data"]
+    assert data["_meta"]["field_contracts"] == YF_FIELD_CONTRACTS
+    values, origins = api._fresh_supplemental(data, now)
+    assert values["payout_ratio"] == 62.46 and values["pcf"] == 2.5 and values["pfcf"] == 10
+    assert origins["pcf"]["field_contract"] == YF_FIELD_CONTRACTS["pcf"]
+    monkeypatch.setattr(api, "db", fake_db)
+    monkeypatch.setattr(api, "_market_client", lambda: object())
+    monkeypatch.setattr(api, "_merge_universe_meta", lambda rows, market: rows)
+    monkeypatch.setattr(
+        api,
+        "_stored_universe",
+        lambda *args, **kwargs: (
+            [{"code": "US.AAPL", "symbol": "AAPL", "stock_type": "STOCK", "price": 128}],
+            now,
+        ),
+    )
+    result = api.screener(
+        watchlist_only=0,
+        src="yf",
+        filters='[{"field":"payout_ratio","min":60},{"field":"pcf","max":3}]',
+    )
+    assert len(result["rows"]) == 1 and result["rows"][0]["payout_ratio"] == 62.46
+    assert (
+        api.screener(watchlist_only=0, src="yf", filters='[{"field":"payout_ratio","max":1}]')[
+            "rows"
+        ]
+        == []
+    )
 
 
 def test_failed_correction_retains_cache_but_cannot_qualify_legacy_ratio(fake_db):
     from tradingagents_api import main as api
+
     _seed(fake_db)
-    now=datetime.now(timezone.utc).isoformat()
-    fake_db.upsert('screener_enrichment','market,code',{'market':'US','code':'US.AAPL','as_of':now,
-        'data':{'payout_ratio':0.6246,'_meta':{'fundamentals_at':now}}})
-    EnrichNightly(fake_db,yf_fetch=FakeYf([])).run(run_klines=False)
-    data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
-    assert data['payout_ratio']==0.6246 and data['_meta']['fundamentals_at']==now
-    assert 'payout_ratio' not in api._fresh_supplemental(data,now)[0]
+    now = datetime.now(timezone.utc).isoformat()
+    fake_db.upsert(
+        "screener_enrichment",
+        "market,code",
+        {
+            "market": "US",
+            "code": "US.AAPL",
+            "as_of": now,
+            "data": {"payout_ratio": 0.6246, "_meta": {"fundamentals_at": now}},
+        },
+    )
+    EnrichNightly(fake_db, yf_fetch=FakeYf([])).run(run_klines=False)
+    data = fake_db.select("screener_enrichment", {"market": "eq.US"})[0]["data"]
+    assert data["payout_ratio"] == 0.6246 and data["_meta"]["fundamentals_at"] == now
+    assert "payout_ratio" not in api._fresh_supplemental(data, now)[0]
 
 
 def test_wrong_ticker_identity_cannot_replace_cached_fundamentals_or_their_clock(fake_db):
-    from tradingagents_worker.yf_enrich import fetch_yf_enrichment
     from test_yf_enrich import FakeYfModule
-    _seed(fake_db)
-    old=(datetime.now(timezone.utc)-timedelta(days=9)).isoformat()
-    fake_db.upsert('screener_enrichment','market,code',{'market':'US','code':'US.AAPL','as_of':old,
-        'data':{'beta':1,'_meta':{'fundamentals_at':old}}})
-    def fetch(codes,prices,market):
-        return fetch_yf_enrichment(codes,prices,market,yf_module=FakeYfModule({
-            'AAPL':{'symbol':'MSFT','beta':99}}))
-    EnrichNightly(fake_db,yf_fetch=fetch).run(run_klines=False)
-    data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
-    assert data['beta']==1 and data['_meta']['fundamentals_at']==old
-    assert data['_meta']['technicals_at']!=old
-
-
-def test_actual_debt_correction_and_screener_filter_cannot_treat_negative_equity_as_low_debt(fake_db,monkeypatch):
-    from tradingagents_api import main as api
     from tradingagents_worker.yf_enrich import fetch_yf_enrichment
+
+    _seed(fake_db)
+    old = (datetime.now(timezone.utc) - timedelta(days=9)).isoformat()
+    fake_db.upsert(
+        "screener_enrichment",
+        "market,code",
+        {
+            "market": "US",
+            "code": "US.AAPL",
+            "as_of": old,
+            "data": {"beta": 1, "_meta": {"fundamentals_at": old}},
+        },
+    )
+
+    def fetch(codes, prices, market):
+        return fetch_yf_enrichment(
+            codes, prices, market, yf_module=FakeYfModule({"AAPL": {"symbol": "MSFT", "beta": 99}})
+        )
+
+    EnrichNightly(fake_db, yf_fetch=fetch).run(run_klines=False)
+    data = fake_db.select("screener_enrichment", {"market": "eq.US"})[0]["data"]
+    assert data["beta"] == 1 and data["_meta"]["fundamentals_at"] == old
+    assert data["_meta"]["technicals_at"] != old
+
+
+def test_actual_debt_correction_and_screener_filter_cannot_treat_negative_equity_as_low_debt(
+    fake_db, monkeypatch
+):
+    from test_yf_enrich import FakeYfModule
+    from tradingagents_api import main as api
     from tradingagents_worker.enrich_fields import YF_FIELD_CONTRACTS
-    from test_yf_enrich import FakeYfModule
+    from tradingagents_worker.yf_enrich import fetch_yf_enrichment
+
     _seed(fake_db)
-    now=datetime.now(timezone.utc).isoformat()
-    monkeypatch.setattr(api,'db',fake_db)
-    monkeypatch.setattr(api,'_market_client',lambda:object())
-    monkeypatch.setattr(api,'_merge_universe_meta',lambda rows,market:rows)
-    monkeypatch.setattr(api,'_stored_universe',lambda *args,**kwargs:([{
-        'code':'US.AAPL','symbol':'AAPL','stock_type':'STOCK','price':128}],now))
-    for equity, debt, expected in [(-40,10,None),(0,10,None),(40,-10,None),(40,0,0),(40,10,25)]:
+    now = datetime.now(timezone.utc).isoformat()
+    monkeypatch.setattr(api, "db", fake_db)
+    monkeypatch.setattr(api, "_market_client", lambda: object())
+    monkeypatch.setattr(api, "_merge_universe_meta", lambda rows, market: rows)
+    monkeypatch.setattr(
+        api,
+        "_stored_universe",
+        lambda *args, **kwargs: (
+            [{"code": "US.AAPL", "symbol": "AAPL", "stock_type": "STOCK", "price": 128}],
+            now,
+        ),
+    )
+    for equity, debt, expected in [
+        (-40, 10, None),
+        (0, 10, None),
+        (40, -10, None),
+        (40, 0, 0),
+        (40, 10, 25),
+    ]:
         # Fresh legacy clocks still get priority and cannot establish eligibility.
-        fake_db.upsert('screener_enrichment','market,code',{'market':'US','code':'US.AAPL','as_of':now,
-            'data':{'lt_debt_eq':-25,'total_debt_eq':-25,'_meta':{'fundamentals_at':now}}})
-        seen=[]
-        def fetch(codes,prices,market):
+        fake_db.upsert(
+            "screener_enrichment",
+            "market,code",
+            {
+                "market": "US",
+                "code": "US.AAPL",
+                "as_of": now,
+                "data": {
+                    "lt_debt_eq": -25,
+                    "total_debt_eq": -25,
+                    "_meta": {"fundamentals_at": now},
+                },
+            },
+        )
+        seen = []
+
+        def fetch(codes, prices, market, debt=debt, equity=equity, seen=seen):
             seen.extend(codes)
-            return fetch_yf_enrichment(codes,prices,market,yf_module=FakeYfModule({'AAPL':{
-                'longTermDebt':debt,'totalStockholderEquity':equity,'debtToEquity':-25,'beta':0}}))
-        EnrichNightly(fake_db,yf_fetch=fetch).run(run_klines=False)
-        assert seen==['US.AAPL']
-        data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
-        assert data.get('lt_debt_eq')==expected and 'total_debt_eq' not in data
-        assert data['_meta']['field_contracts']['lt_debt_eq']==YF_FIELD_CONTRACTS['lt_debt_eq']
-        result=api.screener(watchlist_only=0,src='yf',filters='[{"field":"lt_debt_eq","max":30}]')
-        assert len(result['rows'])==(0 if expected is None else 1)
-        if result['rows']:assert result['rows'][0]['lt_debt_eq']==expected
-        assert api.screener(watchlist_only=0,src='yf',filters='[{"field":"total_debt_eq","max":30}]')['rows']==[]
+            return fetch_yf_enrichment(
+                codes,
+                prices,
+                market,
+                yf_module=FakeYfModule(
+                    {
+                        "AAPL": {
+                            "longTermDebt": debt,
+                            "totalStockholderEquity": equity,
+                            "debtToEquity": -25,
+                            "beta": 0,
+                        }
+                    }
+                ),
+            )
+
+        EnrichNightly(fake_db, yf_fetch=fetch).run(run_klines=False)
+        assert seen == ["US.AAPL"]
+        data = fake_db.select("screener_enrichment", {"market": "eq.US"})[0]["data"]
+        assert data.get("lt_debt_eq") == expected and "total_debt_eq" not in data
+        assert data["_meta"]["field_contracts"]["lt_debt_eq"] == YF_FIELD_CONTRACTS["lt_debt_eq"]
+        result = api.screener(
+            watchlist_only=0, src="yf", filters='[{"field":"lt_debt_eq","max":30}]'
+        )
+        assert len(result["rows"]) == (0 if expected is None else 1)
+        if result["rows"]:
+            assert result["rows"][0]["lt_debt_eq"] == expected
+        assert (
+            api.screener(
+                watchlist_only=0, src="yf", filters='[{"field":"total_debt_eq","max":30}]'
+            )["rows"]
+            == []
+        )
 
 
-def test_actual_fetch_context_survives_refresh_api_and_csv_without_assigning_metric_period(fake_db,monkeypatch):
-    import csv,io,json
+def test_actual_fetch_context_survives_refresh_api_and_csv_without_assigning_metric_period(
+    fake_db, monkeypatch
+):
+    import csv
+    import io
+    import json
+
+    from test_yf_enrich import FakeYfModule
     from tradingagents_api import main as api
     from tradingagents_worker.yf_enrich import fetch_yf_enrichment
-    from test_yf_enrich import FakeYfModule
+
     _seed(fake_db)
-    fetch=lambda codes,prices,market:fetch_yf_enrichment(codes,prices,market,yf_module=FakeYfModule({'AAPL':{'currency':'USD','financialCurrency':'USD','lastFiscalYearEnd':1767139200,'forwardPE':22,'sector':'Technology'}}))
-    EnrichNightly(fake_db,yf_fetch=fetch).run(run_klines=False)
-    data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
-    assert data['_meta']['provider_context']['fields']['lastFiscalYearEnd']['date']=='2025-12-31'
-    stamp=data['_meta']['fundamentals_at'];monkeypatch.setattr(api,'db',fake_db)
-    monkeypatch.setattr(api,'_market_client',lambda:object());monkeypatch.setattr(api,'_merge_universe_meta',lambda rows,market:rows)
-    monkeypatch.setattr(api,'_stored_universe',lambda *args,**kwargs:([{'code':'US.AAPL','symbol':'AAPL','stock_type':'STOCK','price':128}],stamp))
-    row=api.screener(watchlist_only=0,src='yf')['rows'][0]
-    assert row['supplemental_provider_context']==data['_meta']['provider_context']
-    assert 'period' not in row['display_field_sources']['forward_pe']
-    assert api.screener_company_context('US.AAPL')['provider_context']==row['supplemental_provider_context']
-    response=api.screener(watchlist_only=0,src='yf',export='csv')
-    downloaded=list(csv.DictReader(io.StringIO(response.body.decode('utf-8-sig'))))[0]
-    assert json.loads(downloaded['supplemental_provider_context'])==row['supplemental_provider_context']
-    data['_meta']['provider_context']['code']='US.OTHER'
-    assert 'supplemental_provider_context' not in api.screener(watchlist_only=0,src='yf')['rows'][0]
+
+    def fetch(codes, prices, market):
+        return fetch_yf_enrichment(
+            codes,
+            prices,
+            market,
+            yf_module=FakeYfModule(
+                {
+                    "AAPL": {
+                        "currency": "USD",
+                        "financialCurrency": "USD",
+                        "lastFiscalYearEnd": 1767139200,
+                        "forwardPE": 22,
+                        "sector": "Technology",
+                        "quoteType": "EQUITY",
+                    }
+                }
+            ),
+        )
+
+    EnrichNightly(fake_db, yf_fetch=fetch).run(run_klines=False)
+    data = fake_db.select("screener_enrichment", {"market": "eq.US"})[0]["data"]
+    assert data["_meta"]["provider_context"]["fields"]["lastFiscalYearEnd"]["date"] == "2025-12-31"
+    assert data["_meta"]["provider_context"]["fields"]["quoteType"] == "EQUITY"
+    stamp = data["_meta"]["fundamentals_at"]
+    monkeypatch.setattr(api, "db", fake_db)
+    monkeypatch.setattr(api, "_market_client", lambda: object())
+    monkeypatch.setattr(api, "_merge_universe_meta", lambda rows, market: rows)
+    monkeypatch.setattr(
+        api,
+        "_stored_universe",
+        lambda *args, **kwargs: (
+            [{"code": "US.AAPL", "symbol": "AAPL", "stock_type": "STOCK", "price": 128}],
+            stamp,
+        ),
+    )
+    row = api.screener(watchlist_only=0, src="yf")["rows"][0]
+    assert row["supplemental_provider_context"] == data["_meta"]["provider_context"]
+    assert "period" not in row["display_field_sources"]["forward_pe"]
+    assert (
+        api.screener_company_context("US.AAPL")["provider_context"]
+        == row["supplemental_provider_context"]
+    )
+    response = api.screener(watchlist_only=0, src="yf", export="csv")
+    downloaded = list(csv.DictReader(io.StringIO(response.body.decode("utf-8-sig"))))[0]
+    assert (
+        json.loads(downloaded["supplemental_provider_context"])
+        == row["supplemental_provider_context"]
+    )
+    data["_meta"]["provider_context"]["code"] = "US.OTHER"
+    assert (
+        "supplemental_provider_context" not in api.screener(watchlist_only=0, src="yf")["rows"][0]
+    )

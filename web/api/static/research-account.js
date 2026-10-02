@@ -2,8 +2,9 @@
    Public screener state/presets remain independent of account state. */
 function researchAuthError(message,status=0){const e=new Error(message);e.status=status;return e;}
 async function researchAuthFetch(path,opts={}) {
- const r=await fetch(path,{...opts,cache:'no-store'});
+ const {responseType,...requestOptions}=opts;const r=await fetch(path,{...requestOptions,cache:'no-store'});
  if(!r.ok)throw researchAuthError(researchErrorMessage({message:await r.text()}),r.status);
+ if(responseType==='blob'){const type=(r.headers?.get('content-type') || '').split(';')[0].toLowerCase();if(!['text/csv','application/vnd.ms-excel'].includes(type))throw researchAuthError('Private download format was not confirmed.',503);return r.blob();}
  return r.json();
 }
 function researchSessionValid(s) {
@@ -36,9 +37,11 @@ function researchPrivateClear(close=true) {
  const previousOwner=window.__researchSession?.user.id;
  if(close || previousOwner){try{sessionStorage.removeItem('researchListNavigationV1');const origin=JSON.parse(sessionStorage.getItem('researchOriginV1'));if(origin?.owner)sessionStorage.removeItem('researchOriginV1');}catch(e){}}
  window.__researchNavigationOwner=null;
- window.__researchChangeSelection=null;window.__researchChangeBulk=null;
- window.__researchPairDrafts={};window.__researchPairDraftKey=null;window.__changeGen=(window.__changeGen || 0)+1;
- if(window.__changePayload?.review_scope==='private_capture_pair'){window.__changePayload=null;researchCloseInspector(false);const changes=document.getElementById('research-change-results');if(changes){changes.innerHTML='Private review cleared. Reloading comparison…';researchChangeState().review_status='all';}}
+ window.__researchScheduleContext=null;window.__researchScheduleDrafts={};
+ window.__researchChangeSelection=null;window.__researchChangeBulk=null;window.__researchCaptureSchedule=null;
+ if(window.__changeState?.source==='private')window.__changeState=null;
+ window.__researchPairDrafts={};window.__researchPairDraftKey=null;window.__researchPairScopeChoices={};window.__changeGen=(window.__changeGen || 0)+1;
+ if(researchPairPrivate(window.__changePayload) || window.__changePayload?.scope==='authenticated_owner'){window.__changePayload=null;researchCloseInspector(false);const changes=document.getElementById('research-change-results');if(changes){changes.innerHTML='Private review cleared. Reloading comparison…';researchChangeState().review_status='all';}}
  for(const url of window.__researchExportURLs || [])URL.revokeObjectURL(url);window.__researchExportURLs=new Set();
  window.__researchAuthGen=(window.__researchAuthGen || 0)+1;window.__researchListGen=(window.__researchListGen || 0)+1;
  window.__researchSession=null;window.__researchLists=[];window.__researchListItems=[];window.__researchCurrentList=null;window.__researchListID=null;
@@ -47,17 +50,17 @@ function researchPrivateClear(close=true) {
  if(window.__researchContext?.kind==='shortlists' || window.__researchContext?.kind==='changes' && window.__researchContext.private)window.__researchContext=null;
  if(window.__researchPrivateInspect){researchCloseInspector(false);document.getElementById('research-inspector')?.replaceChildren();window.__researchPrivateInspect=false;}
  if(typeof state!=='undefined' && state.page==='shortlists'){const page=document.getElementById('page');if(page)page.innerHTML='<section class="panel"><h2>Private research cleared</h2><button class="btn ghost" onclick="researchAccountOpen()">Sign in</button></section>';}
- if(close || window.__researchDialog?.querySelector('form[data-review]') || window.__researchDialog?.hasAttribute?.('data-change-bulk'))researchDialogClose(false);
+ if(close || window.__researchDialog?.hasAttribute?.('data-private-schedule') || window.__researchDialog?.querySelector('form[data-review]') || window.__researchDialog?.hasAttribute?.('data-change-bulk'))researchDialogClose(false);
  try{sessionStorage.removeItem('researchAuthSessionV1');}catch(e){}
  researchAccountButton();
- if(document.getElementById('research-change-results'))researchLoadChanges();
+ if(document.getElementById('research-change-results')){researchRefreshChangeHeader();researchLoadChanges();}
 }
 function researchSessionSet(s) {
  if(!researchSessionValid(s))throw researchAuthError('Authentication returned an unusable session.');
  if(window.__researchSession?.user.id!==s.user.id)researchPrivateClear(false);
  window.__researchSession=s;try{sessionStorage.setItem('researchAuthSessionV1',JSON.stringify(s));}catch(e){}
  researchAccountButton();
- if(document.getElementById('research-change-results'))researchLoadChanges();
+ if(document.getElementById('research-change-results')){researchRefreshChangeHeader();researchLoadChanges();}
 }
 async function researchRefreshSession() {
  if(window.__researchRefresh)return window.__researchRefresh;
@@ -100,7 +103,7 @@ async function researchSignIn(form) {
  const password=form.elements.password.value;form.elements.password.value='';
  try{const s=await researchAuthFetch('/api/research/auth/sign-in',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:form.elements.email.value,password})});
   if(window.__researchDialog!==el || gen!==(window.__researchAuthGen || 0)){researchAuthFetch('/api/research/auth/sign-out',{method:'POST',headers:{Authorization:'Bearer '+s.access_token}}).catch(()=>{});return;}
-  const pending=window.__researchPendingAdd,pairReview=window.__researchPendingPairReview;researchSessionSet(s);window.__researchAccountMessage='';researchDialogClose();window.__researchPendingAdd=null;if(pending)await researchShortlistPicker(pending);else await showPage(pairReview?'home':'shortlists');
+  const pending=window.__researchPendingAdd,pairReview=window.__researchPendingPairReview,page=state.page || 'home';researchSessionSet(s);window.__researchAccountMessage='';researchDialogClose();window.__researchPendingAdd=null;if(pending)await researchShortlistPicker(pending);else await showPage(pairReview?'home':page);
  }catch(e){if(window.__researchDialog===el)status.textContent=e.message;}finally{if(button.isConnected)button.disabled=false;}
 }
 async function researchSignOut() {

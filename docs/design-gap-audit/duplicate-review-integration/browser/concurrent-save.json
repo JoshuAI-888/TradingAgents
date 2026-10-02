@@ -1,0 +1,19 @@
+{
+  "review": {
+    "owner_id": "00000000-0000-4000-8000-000000000001",
+    "previous_id": "observations-before",
+    "current_id": "observations-after",
+    "code": "US.S0001",
+    "updated_at": "2026-10-02T14:01:23.528607+00:00",
+    "previous_history_key": "screen_history:c51a53ee8c5ace46:d23939a17ef9dcb9e48ba2eaaa4620fa7adf5840b82ce1252465361749d4efd1",
+    "current_history_key": "screen_history:c51a53ee8c5ace46:1a0b36c4b86a8330dc832daf905746a502b675b34b3a32b7e1a9d6b87f3a332a",
+    "revision": 6,
+    "note": "Concurrent reviewer: newly saved original scope.",
+    "review_status": "reviewed",
+    "review_anchor": {
+      "previous_history_key": "screen_history:c51a53ee8c5ace46:d23939a17ef9dcb9e48ba2eaaa4620fa7adf5840b82ce1252465361749d4efd1",
+      "current_history_key": "screen_history:c51a53ee8c5ace46:1a0b36c4b86a8330dc832daf905746a502b675b34b3a32b7e1a9d6b87f3a332a"
+    }
+  },
+  "review_scope": "private_capture_pair"
+}
