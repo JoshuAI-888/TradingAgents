@@ -22,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from tradingagents_worker.enrich_fields import TECH_FIELDS
+from tradingagents_worker.enrich_fields import TECH_FIELDS, YF_ONLY_FIELDS
 from tradingagents_worker.config import SETTINGS
 from tradingagents_worker.db import Db
 from tradingagents_worker.screener_generations import read_generation, GenerationError, canonical_generation, aware_time
@@ -824,18 +824,10 @@ def _cache():
     return _screener_cache
 
 
-# Enrichment availability — MUST mirror web/worker/tradingagents_worker/
-# enrich_fields.YF_ONLY_FIELDS (the registry is the source of truth; the API
-# and worker don't import each other in this repo).
+# Shared worker registry controls supplemental availability; derived LT debt
+# is also yfinance-only. Never accept metadata/identity keys as factor fields.
 _groups_cache = None  # lazy /api/groups TTL cache
-
-_YF_ONLY_FIELDS = {
-    "forward_pe", "peg", "ps", "pcf", "pfcf", "ev", "ev_ebitda", "ev_sales",
-    "roa", "current_ratio", "quick_ratio", "lt_debt_eq", "total_debt_eq",
-    "shares_short", "short_float", "inst_own", "insider_own", "beta",
-    "target_price", "analyst_recom", "country", "employees", "earnings_date",
-    "ex_div_date", "payout_ratio", "sector", "industry",
-}
+_YF_ONLY_FIELDS = YF_ONLY_FIELDS | {"lt_debt_eq"}
 
 
 @app.get("/api/screener")
@@ -917,7 +909,7 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
                 emap.get(f"{market}.{r.get('symbol')}") or ({}, None)
             meta = data.get("_meta") or {}
             for k, v in data.items():
-                if k == "_meta":
+                if k not in _YF_ONLY_FIELDS and k not in TECH_FIELDS:
                     continue
                 stamp = meta.get("technicals_at" if k in TECH_FIELDS else "fundamentals_at") or row_stamp
                 try:
@@ -925,7 +917,18 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
                 except (TypeError, ValueError):
                     continue
                 if 0 <= age <= (86400 if k in TECH_FIELDS else 7 * 86400):
-                    r.setdefault(k, v)
+                    if r.get(k) is None or r.get(k) == "":
+                        text_field = k in {"country", "sector", "industry", "earnings_date", "ex_div_date"}
+                        if (text_field and not (isinstance(v, str) and v.strip())) or (not text_field and not numeric(v)):
+                            continue
+                        r[k] = v
+                        origins = dict(r.get("display_field_sources") or {})
+                        origins[k] = {"source": "computed_technicals" if k in TECH_FIELDS else "yfinance",
+                                      "cache_at": stamp, "timestamp_semantics": "retrieval_or_computation_not_reporting_period"}
+                        r["display_field_sources"] = origins
+                        observations = dict(r.get("field_observations") or {})
+                        observations.pop(k, None)  # an absent quote observation is not supplemental evidence
+                        r["field_observations"] = observations
             r["enrichment_dates"] = {"fundamentals": meta.get("fundamentals_at") or row_stamp,
                                      "technicals": meta.get("technicals_at") or row_stamp}
     deferred = []

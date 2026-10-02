@@ -75,3 +75,18 @@ def test_lt_debt_staging_combines_with_equity():
 def test_hk_symbol_mapping():
     assert ye.to_yahoo_symbol("HK.00700", "HK") == "0700.HK"
     assert ye.to_yahoo_symbol("US.AAPL", "US") == "AAPL"
+
+
+def test_fetch_rejects_nonfinite_boolean_blank_and_structured_factor_values():
+    yf=FakeYfModule({"AAPL":{"forwardPE":float('inf'),"beta":True,"returnOnEquity":float('nan'),
+                             "sector":{"name":"Technology"},"industry":"  ","country":" USA ",
+                             "currentRatio":0,"shortPercentOfFloat":0,"grossMargins":True,"earningsTimestamp":float("inf")}})
+    data=ye.fetch_yf_enrichment(["US.AAPL"],prices={},yf_module=yf)[0]['data']
+    assert data=={'country':'USA','current_ratio':0,'short_float':0}
+
+
+def test_empty_success_is_distinct_from_failed_fetch_for_replacement():
+    yf=FakeYfModule({'AAPL':{},'MSFT':RuntimeError('offline')})
+    rows=ye.fetch_yf_enrichment(['US.AAPL','US.MSFT'],prices={},yf_module=yf)
+    assert len(rows)==1 and rows[0]['code']=='US.AAPL' and rows[0]['data']=={}
+    assert rows[0]['as_of']

@@ -169,3 +169,73 @@ def test_technicals_stream_per_chunk_not_all_in_memory(fake_db, monkeypatch):
     assert out["enriched"] == 5                        # every code still enriched
     rows = {r["code"]: r["data"] for r in fake_db.select("screener_enrichment", {"market": "eq.US"})}
     assert all("sma20_pos" in rows[c] for c in codes)  # technicals intact across chunks
+
+
+def test_successful_fundamental_refresh_removes_disappeared_fields_and_keeps_provider_clock(fake_db):
+    _seed(fake_db)
+    old = (datetime.now(timezone.utc) - timedelta(days=9)).isoformat()
+    fetched = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+    fake_db.upsert("screener_enrichment", "market,code", {"market":"US", "code":"US.AAPL",
+        "as_of":old, "data":{"forward_pe":30, "sector":"Old sector", "lt_debt_eq":25,
+                             "beta":1, "_meta":{"fundamentals_at":old}}})
+    yf=FakeYf([{"market":"US", "code":"US.AAPL", "as_of":fetched,
+                "data":{"beta":0, "forward_pe":None, "rsi14":999, "_meta":{"fundamentals_at":"bad"}}}])
+    EnrichNightly(fake_db,yf_fetch=yf).run(run_klines=False)
+    data=fake_db.select("screener_enrichment", {"market":"eq.US"})[0]["data"]
+    assert data["beta"] == 0
+    assert "forward_pe" not in data and "sector" not in data and "lt_debt_eq" not in data
+    assert data["rsi14"] != 999
+    assert data["_meta"]["fundamentals_at"] == fetched
+    assert data["_meta"]["technicals_at"] != fetched
+
+
+def test_failed_fundamental_fetch_cannot_renew_old_fields_with_a_technical_update(fake_db):
+    _seed(fake_db)
+    old=(datetime.now(timezone.utc)-timedelta(days=9)).isoformat()
+    fake_db.upsert("screener_enrichment", "market,code", {"market":"US", "code":"US.AAPL",
+        "as_of":old, "data":{"forward_pe":30, "_meta":{"fundamentals_at":old}}})
+    EnrichNightly(fake_db,yf_fetch=FakeYf([])).run(run_klines=False)
+    row=fake_db.select("screener_enrichment", {"market":"eq.US"})[0]
+    assert row["data"]["forward_pe"] == 30  # retained cache, still old and ineligible
+    assert row["data"]["_meta"]["fundamentals_at"] == old
+    assert row["data"]["_meta"]["technicals_at"] == row["as_of"]
+
+
+def test_fundamental_refresh_rejects_other_market_naive_or_future_clocks(fake_db):
+    _seed(fake_db)
+    future=(datetime.now(timezone.utc)+timedelta(days=1)).isoformat()
+    for market,stamp in [("HK",datetime.now(timezone.utc).isoformat()),("US","2026-01-01T00:00:00"),("US",future)]:
+        out=EnrichNightly(fake_db,yf_fetch=FakeYf([{"market":market,"code":"US.AAPL","as_of":stamp,"data":{"beta":99}}])).run(run_klines=False)
+        assert out["enriched"] == 1  # technical category still progresses
+        data=fake_db.select("screener_enrichment", {"market":"eq.US"})[0]["data"]
+        assert "beta" not in data
+
+
+def test_worker_refresh_output_cannot_qualify_disappeared_factors_in_actual_api(fake_db,monkeypatch):
+    from tradingagents_api import main as api
+    _seed(fake_db)
+    old=(datetime.now(timezone.utc)-timedelta(days=9)).isoformat()
+    fetched=(datetime.now(timezone.utc)-timedelta(hours=1)).isoformat()
+    fake_db.upsert('screener_enrichment','market,code',{'market':'US','code':'US.AAPL','as_of':old,
+        'data':{'forward_pe':30,'_meta':{'fundamentals_at':old}}})
+    EnrichNightly(fake_db,yf_fetch=FakeYf([{'market':'US','code':'US.AAPL','as_of':fetched,'data':{'beta':0}}])).run(run_klines=False)
+    monkeypatch.setattr(api,'db',fake_db)
+    monkeypatch.setattr(api,'_market_client',lambda:object())
+    monkeypatch.setattr(api,'_merge_universe_meta',lambda rows,market:rows)
+    monkeypatch.setattr(api,'_stored_universe',lambda *args,**kwargs:([{'code':'US.AAPL','symbol':'AAPL','stock_type':'STOCK','price':128}],fetched))
+    result=api.screener(watchlist_only=0,src='yf')
+    row=result['rows'][0]
+    assert row['beta']==0 and 'forward_pe' not in row
+    assert row['display_field_sources']['beta']['cache_at']==fetched
+    assert api.screener(watchlist_only=0,src='yf',filters='[{"field":"forward_pe","max":40}]')['rows']==[]
+
+
+def test_empty_success_clears_prior_fundamentals_without_removing_technicals(fake_db):
+    _seed(fake_db)
+    old=(datetime.now(timezone.utc)-timedelta(days=9)).isoformat();now=datetime.now(timezone.utc).isoformat()
+    fake_db.upsert('screener_enrichment','market,code',{'market':'US','code':'US.AAPL','as_of':old,
+        'data':{'forward_pe':30,'sector':'Technology','_meta':{'fundamentals_at':old}}})
+    EnrichNightly(fake_db,yf_fetch=FakeYf([{'market':'US','code':'US.AAPL','as_of':now,'data':{}}])).run(run_klines=False)
+    data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
+    assert 'forward_pe' not in data and 'sector' not in data and 'rsi14' in data
+    assert data['_meta']['fundamentals_at']==now

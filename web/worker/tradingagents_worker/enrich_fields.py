@@ -94,7 +94,7 @@ YF_ONLY_FIELDS = {v[0] for v in YF_FIELDS.values() if not v[0].startswith("_")} 
 def _unix_date(ts) -> str | None:
     try:
         return datetime.fromtimestamp(int(ts), tz=timezone.utc).date().isoformat()
-    except (TypeError, ValueError, OSError):
+    except (TypeError, ValueError, OverflowError, OSError):
         return None
 
 

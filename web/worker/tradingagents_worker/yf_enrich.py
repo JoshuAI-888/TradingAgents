@@ -9,6 +9,7 @@ HK branch is here so the mapping rule lives in exactly one place).
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import math
 
 from .enrich_fields import YF_FIELDS, apply_transform
 
@@ -38,7 +39,6 @@ def fetch_yf_enrichment(codes: list[str], prices: dict[str, float],
             yf = import_fn()
         except ImportError as e:
             raise EnrichUnavailable(f"yfinance not installed: {e}") from e
-    as_of = datetime.now(timezone.utc).isoformat()
     rows: list[dict] = []
     sym_of = {c: to_yahoo_symbol(c, market) for c in codes}
     chunk_size = 200
@@ -64,21 +64,28 @@ def fetch_yf_enrichment(codes: list[str], prices: dict[str, float],
             except (TypeError, ValueError):
                 pass
             for ykey, (okey, transform) in YF_FIELDS.items():
+                if isinstance(info.get(ykey), bool):
+                    continue
                 if okey == "_lt_de":
                     # staged: equity arrives as totalStockholderEquity on the
                     # same info dict; combine before exposing
                     eq = info.get("totalStockholderEquity") or info.get("StockholdersEquity")
-                    if eq is not None:
+                    if eq is not None and not isinstance(eq, bool):
                         got = apply_transform({"lt": info.get(ykey), "eq": eq},
                                               transform)
-                        if got is not None:
+                        if type(got) in (int, float) and math.isfinite(got):
                             data["lt_debt_eq"] = got
                     continue
                 got = apply_transform(info.get(ykey), transform,
                                       price=price, market_cap=mcap)
-                if got is not None:
+                text_field = okey in {"country", "sector", "industry", "earnings_date", "ex_div_date"}
+                if text_field:
+                    if isinstance(got, str) and got.strip():
+                        data[okey] = got.strip()
+                elif type(got) in (int, float) and math.isfinite(got):
                     data[okey] = got
-            if data:
-                rows.append({"market": market, "code": code, "data": data,
-                             "source": "yfinance", "as_of": as_of})
+            # Even an empty successful info response replaces vanished fields.
+            # Transport/ticker failures above remain absent and keep the old clock.
+            rows.append({"market": market, "code": code, "data": data,
+                         "source": "yfinance", "as_of": datetime.now(timezone.utc).isoformat()})
     return rows

@@ -132,7 +132,22 @@ class EnrichNightly:
         eligible = [c for c in codes if enr_state.get(c) is None or enr_state[c] < yf_ttl_cut]
         yf_codes = sorted(eligible, key=_enr_rank)[:YF_BATCH_PER_RUN]
         yf_rows = self._yf_fetch(yf_codes, prices, market=self.market) or []
-        by_code = {r["code"]: dict(r.get("data") or {}) for r in yf_rows}
+        # A successful response replaces its fundamental category. Missing fields
+        # must not inherit a new clock from an unrelated field or technical run.
+        fundamental_fields = YF_ONLY_FIELDS | {"lt_debt_eq"}
+        by_code, yf_stamps = {}, {}
+        requested_codes = set(yf_codes)
+        for row in yf_rows:
+            if not isinstance(row, dict) or row.get("code") not in requested_codes or row.get("market") != self.market:
+                continue
+            stamp = _parse(row.get("as_of"))
+            if stamp is None or stamp.tzinfo is None or stamp > datetime.now(timezone.utc) + timedelta(minutes=5):
+                continue
+            payload = row.get("data")
+            if not isinstance(payload, dict):
+                continue
+            by_code[row["code"]] = {k: v for k, v in payload.items() if k in fundamental_fields and v is not None}
+            yf_stamps[row["code"]] = stamp.isoformat()
 
         fresh_codes = self._fresh_codes(codes)
         # Freshness lift: append the current session's partial bar (from the
@@ -156,9 +171,11 @@ class EnrichNightly:
             meta = dict(data.get("_meta") or {})
             if not meta.get("fundamentals_at") and enr_state.get(code):
                 meta["fundamentals_at"] = enr_state[code].isoformat()
-            if by_code.get(code):
-                data.update({k: v for k, v in by_code[code].items() if v is not None})
-                meta["fundamentals_at"] = now
+            if code in by_code:
+                for field in fundamental_fields:
+                    data.pop(field, None)
+                data.update(by_code[code])
+                meta["fundamentals_at"] = yf_stamps[code]
             if code in tech:
                 for field in TECH_FIELDS:
                     data.pop(field, None)

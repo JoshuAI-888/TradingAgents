@@ -1,5 +1,7 @@
 # Build-to-design review and remaining delivery plan
 
+**Latest data integrity checkpoint:** [supplemental category replacement and source clocks](screener-supplemental-refresh-integrity.md) prevents disappeared fundamentals from inheriting fresh clocks, separates empty success from failed retrieval, preserves valid zero and rejects metadata/nonfinite values. 388 API/worker tests pass, including actual worker-output → screener filtering. Live field/currency/period/cohort qualification remains open; R02 is not closed.
+
 **Latest Explorer checkpoint:** [coordinate collision picker and keyboard inspection](design-gap-audit/explorer-collisions/README.md) adds exact-coordinate company selection, arrow/Home/End/Enter navigation, Escape/focus return, phone targets and presentation-specific counts. 87 JavaScript tests pass; pointer and keyboard pickers exercised in the controlled actual-route preview. R08 remains open for complete selection/export/accessibility/live acceptance.
 
 **Latest build-to-mockup review:** [fresh Desk → Inspector → Explorer → Changes comparison and ordered build checklist](design-gap-audit/latest-plan-review/README.md). Region preview/apply/save/reload is now implemented locally with 85 passing JavaScript tests and an exact 240-row downloaded CSV reconciliation. Collision/keyboard, qualified taxonomy/factors/peers, pair review, monitoring, full continuity and live/platform/release acceptance remain open. This supersedes older “region handoff absent” notes below.

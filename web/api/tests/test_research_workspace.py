@@ -453,3 +453,42 @@ def test_produced_quote_observation_conflicts_reject_capture(monkeypatch,mutatio
     monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'matched':1,'rows':observed_rows([row],now)})
     with pytest.raises(HTTPException) as e:api.capture_screen_snapshot(api.ScreenDefinition(filters=[{'field':'price','min':0}]))
     assert e.value.status_code==409 and not api.db._t('screen_captures')
+
+
+def test_supplemental_merge_fills_absence_preserves_zero_and_rejects_unregistered_metadata(monkeypatch):
+    from test_api import _seed_enrichment_rows, _fresh_caches
+    _fresh_caches(monkeypatch);_seed_enrichment_rows(api.db)
+    for quote in api.db._t('screener_quotes'):quote['row']['stock_type']='STOCK'
+    monkeypatch.setattr(api,'_market_client',lambda:object())
+    q=api.db._t('screener_quotes')[0]['row']
+    q.update(code='US.AAPL',forward_pe=None,beta=0,roe=None,field_observations={'forward_pe':{'value':None}})
+    stamp=api.db._t('screener_enrichment')[0]['as_of']
+    api.db._t('screener_enrichment')[0]['data'].update(roe=12,sector='Technology',code='US.WRONG',
+        generation_id='wrong',field_observations={'price':{'value':999}},quick_ratio=float('inf'),current_ratio=True)
+    out=api.screener(watchlist_only=0,src='yf')
+    row=next(r for r in out['rows'] if r['symbol']=='AAPL')
+    assert row['code']=='US.AAPL' and row['forward_pe']==28 and row['beta']==0
+    assert row['roe']==12 and row['sector']=='Technology'
+    assert row['display_field_sources']['forward_pe']['source']=='yfinance'
+    assert row['display_field_sources']['forward_pe']['cache_at']==stamp
+    assert 'forward_pe' not in row['field_observations']
+    assert 'generation_id' not in row and 'quick_ratio' not in row and 'current_ratio' not in row
+    assert q['forward_pe'] is None and q['field_observations']=={'forward_pe':{'value':None}}
+
+
+def test_supplemental_registry_matches_worker_and_does_not_infer_current_fundamentals_from_technicals(monkeypatch):
+    from tradingagents_worker.enrich_fields import YF_ONLY_FIELDS
+    from test_api import _seed_enrichment_rows, _fresh_caches
+    from datetime import timedelta
+    assert api._YF_ONLY_FIELDS==YF_ONLY_FIELDS | {'lt_debt_eq'}
+    _fresh_caches(monkeypatch);_seed_enrichment_rows(api.db)
+    for quote in api.db._t('screener_quotes'):quote['row']['stock_type']='STOCK'
+    monkeypatch.setattr(api,'_market_client',lambda:object())
+    now=datetime.now(timezone.utc).isoformat();old=(datetime.now(timezone.utc)-timedelta(days=9)).isoformat()
+    for enr in api.db._t('screener_enrichment'):
+        enr['as_of']=now;enr['data'].update(rsi14=20,_meta={'fundamentals_at':old,'technicals_at':now})
+    out=api.screener(watchlist_only=0,src='yf',filters='[{"field":"forward_pe","max":40}]')
+    assert out['rows']==[]
+    technical=api.screener(watchlist_only=0,src='yf',filters='[{"field":"rsi14","max":30}]')
+    assert len(technical['rows'])==2
+    assert all('forward_pe' not in r and r['display_field_sources']['rsi14']['source']=='computed_technicals' for r in technical['rows'])
