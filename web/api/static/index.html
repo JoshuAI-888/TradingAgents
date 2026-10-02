@@ -416,6 +416,7 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 ::-webkit-scrollbar-thumb:hover{background:#33445f}
 *{scrollbar-width:thin;scrollbar-color:#26344a var(--bg)}
 </style>
+<link rel="stylesheet" href="/research-workspace.css">
 </head>
 <body>
 <div class="wrap">
@@ -437,7 +438,7 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
     </div>
   </div>
   <div id="page"><div class="empty">Loading…</div></div>
-  <div class="disc"><b>Disclosures:</b> research/education output of an automated multi-agent pipeline — not investment advice. Every decision is stored with its full reasoning chain, models, token costs and data provenance; settlements are computed from stored price bars against SPY. Charts and fundamentals are sourced via yfinance until moomoo entitlements are connected; figures are delayed and for research context only. Past agent performance (ledger) is not indicative of future results.</div>
+  <div class="disc"><b>Disclosures:</b> research/education output of an automated multi-agent pipeline — not investment advice. Every decision is stored with its full reasoning chain, models, token costs and data provenance; settlements are computed from stored price bars against SPY. Market data combines Moomoo snapshots and supplemental yfinance data; source, coverage and delay vary by view. Past agent performance (ledger) is not indicative of future results.</div>
 </div>
 
 <script>
@@ -659,10 +660,11 @@ function scrPage(delta) { scrSet("page", Math.max(1, (window.__scr.page || 1) + 
 function scrExport(kind, scope) {
   const st = window.__scr;
   const rows = scrClientRows();
+  if (!rows && st.activePreset) { alert("This provider screen is unavailable. No unqualified results can be exported."); return; }
   if (!rows) {
     // We don't hold this view's data (cold watchlist fallback) — server build.
     const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
-      filters: JSON.stringify(scrEffFilters()), sort: st.sort, direction: st.dir, export: kind, scope: scope || "all" });
+      filters: JSON.stringify(scrEffFilters()), sort: st.sort, direction: st.dir, export: kind, src: st.src || "moo", scope: scope || "all" });
     if (scope === "page") { qs.set("limit", String(st.pageSize || 500)); qs.set("offset", String(((st.page || 1) - 1) * (st.pageSize || 500))); }
     window.open("/api/screener?" + qs.toString(), "_blank");
     return;
@@ -769,9 +771,10 @@ function scrRemoveCol(k) {
   showPage("home");
 }
 function scrResetAll() {
+  window.__researchSelected=[];window.__researchInspectCode=null;
   const st = window.__scr;
   Object.assign(st, { filters: [], colFilters: {}, sort: "market_cap", dir: 2,
-    activePreset: null, watchlistOnly: false, etfs: false, page: 1,
+    activePreset: null, savedScreenId: null, presentation: "table", watchlistOnly: false, etfs: false, page: 1,
     src: "moo", view: "overview", cols: [...VIEW_PRESETS.overview] });
   window.__scrFacets = {};
   scrColMenuClose(); scrColPickClose(); scrModalClose();
@@ -855,6 +858,9 @@ function scrPersist() {
     if (st.view && st.view !== "overview") q.set("v", st.view);
     if ((st.cols || []).length) q.set("cols", st.cols.join(","));
     if (st.activePreset) q.set("preset", st.activePreset);
+    if (st.savedScreenId) q.set("saved", st.savedScreenId);
+    if (st.page > 1) q.set("p", st.page);
+    if (st.presentation && st.presentation !== "table") q.set("mode", st.presentation);
     const h = "#/screener?" + q.toString();
     if (location.hash !== h) history.replaceState(null, "", h);
   } catch (e) {}
@@ -882,7 +888,7 @@ function fmtMag(v) {
   if (a >= 1e3) return (v / 1e3).toFixed(0) + "K";
   return String(v);
 }
-window.__scrFiltersCollapsed = window.__scrFiltersCollapsed || false;
+window.__scrFiltersCollapsed = window.__scrFiltersCollapsed ?? true;
 function scrToggleFilters() {
   window.__scrFiltersCollapsed = !window.__scrFiltersCollapsed;
   showPage("home");
@@ -897,6 +903,7 @@ async function scrLoadMyPresets() {
   const rows = window.__savedScreeners || [];
   el.innerHTML = '<option value="">My Presets</option>' + rows.map(x =>
     `<option value="${esc(x.id)}">${esc(x.name)} (${(x.filters || []).length})</option>`).join("");
+  researchSavedMount();
 }
 function scrRestoreFromHash() {
   // Boot-time: #/screener?m=US&src=yf&f=[…]&s=…&d=…&v=…&cols=…&preset=…
@@ -915,7 +922,9 @@ function scrRestoreFromHash() {
     st.view = q.get("v") || "overview";
     if (q.get("cols")) st.cols = q.get("cols").split(",");
     st.activePreset = q.get("preset") || null;
-    st.page = 1;
+    st.savedScreenId = q.get("saved") || null;
+    st.presentation = ["table","explore","changes"].includes(q.get("mode")) ? q.get("mode") : "table";
+    st.page = Math.max(1, Number(q.get("p")) || 1);
     return true;
   } catch (e) { return false; }
 }
@@ -967,6 +976,7 @@ function scrApplyPreset(key) {
   if (!p) return;
   st.filters = JSON.parse(JSON.stringify(p.filters || []));
   st.activePreset = key;
+  st.savedScreenId = null;
   // A screener is GLOBAL: clicking it is a clean slate over the whole market —
   // column-filter refinements and watchlist scoping must not narrow it.
   st.colFilters = {};
@@ -1167,7 +1177,7 @@ function scrModalConfirm() {
 function scrRenderModal() {
   let m = document.getElementById("scr-modal");
   if (!m) {
-    m = document.createElement("div"); m.id = "scr-modal";
+    m = document.createElement("div"); m.id = "scr-modal"; m.setAttribute("role","dialog"); m.setAttribute("aria-modal","true"); m.setAttribute("aria-label","Screen criteria and saved screens");
     m.style.cssText = "position:fixed;inset:0;background:rgba(4,8,14,.72);z-index:60;display:flex;align-items:center;justify-content:center";
     document.body.appendChild(m);
   }
@@ -1214,13 +1224,13 @@ function scrRenderModal() {
 }
 
 // ── saved screeners (CRUD over /api/screeners) ────────────────────────
-const FIELD_LABELS = { ...SCR_FIELDS, revenue_growth: "Operating Revenue Growth %", net_profit_growth: "Net Profit Growth %",
+const FIELD_LABELS = { ...SCR_FIELDS, op_profit_growth: "ROE YOY Growth %", roe_yoy: "ROE YOY Growth %", revenue_growth: "Operating Revenue Growth %", net_profit_growth: "Net Profit Growth %",
   roe: "ROE %", roe_yoy: "ROE YoY Growth %", gross_margin: "Gross Margin %", net_margin: "Net Margin %",
   debt_ratio: "Debt to Asset Ratio %", op_ebt: "OP/EBT %", eps_growth: "EPS YoY Growth %",
   rsi14: "RSI (1D, 14)", sector: "Sector", new_low_10d: "New Low: 10D", float_cap: "Float Market Cap" };
 Object.assign(FIELD_LABELS, TECH_FIELDS, FIN_FIELDS);
 const fldLabel = f => FIELD_LABELS[f.field] || SCR_FIELDS[f.field] || f.field;
-const fldStr = f => fldLabel(f) + (f.min != null ? " ≥" + f.min : "") + (f.min != null && f.max != null ? "~" : "") + (f.max != null ? " ≤" + f.max : "");
+const fldStr = f => fldLabel(f) + (f.days ? " (" + f.days + "-day average)" : "") + (f.values ? " = " + f.values.join(", ") : "") + (f.min != null ? (f.excl_min ? " >" : " ≥") + f.min : "") + (f.min != null && f.max != null ? " · " : "") + (f.max != null ? (f.excl_max ? " <" : " ≤") + f.max : "");
 
 async function scrLoadSaved() {
   const host = document.getElementById("scr-saved-list");
@@ -1239,7 +1249,7 @@ async function scrLoadSaved() {
     <div class="mlabel" style="margin-top:4px">Moomoo recommended screeners — click one to view, tune and save its filters:</div>
     ${presets.map(p => {
       const nf = (p.filters || []).length;
-      const status = `<span class="faint" style="font-size:9.5px;color:#26c68c">${nf}/${nf} filters · server-side</span>`;
+      const status = `<span class="faint" style="font-size:9.5px;color:#26c68c">${nf} criteria · provider screen</span>`;
       return `<div style="border-bottom:1px solid rgba(38,52,74,.4);padding:6px 0;margin-bottom:4px;cursor:pointer" ${sel(p.key)} title="${esc(p.description || "")}">
         <div style="display:flex;gap:8px;align-items:flex-start">
           <div style="flex:1;min-width:0"><b style="font-size:12px">${esc(p.name)}</b> ${status}
@@ -1279,12 +1289,12 @@ function scrCurrentScreenerState() {
   return { name: (document.getElementById("scr-save-name")?.value || "").trim(),
     market: st.market, watchlist_only: st.watchlistOnly,
     filters: src.filter(f => f.min != null || f.max != null || f.values?.length),
-    sort: st.sort, direction: st.dir };
+    sort: st.sort, direction: st.dir, settings: {schemaVersion:3, src:st.src, etfs:st.etfs, cols:st.cols, view:st.view, colFilters:st.colFilters, presentation:st.presentation || "table", preset:st.activePreset || null} };
 }
 async function scrSaveCurrent() {
   const body = scrCurrentScreenerState();
   if (!body.name) { const el = document.getElementById("scr-save-name"); if (el) { el.focus(); el.placeholder = "Name required"; } return; }
-  if (!body.filters.length) return;
+
   try {
     await api("/api/screeners", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body) });
@@ -1296,10 +1306,14 @@ async function scrApplySaved(id) {
   if (!s) return;
   const st = window.__scr;
   st.filters = JSON.parse(JSON.stringify(s.filters || []));
+  if (st.savedScreenId === id) { scrResetAll(); return; }
   st.activePreset = null;
+  st.savedScreenId = s.id;
+  Object.assign(st, {src:"moo", etfs:false, cols:[...VIEW_PRESETS.overview], view:"overview", presentation:"table"}, s.settings || {});
+  st.activePreset = (s.settings || {}).preset || null;
   st.market = s.market || st.market;
   st.watchlistOnly = !!s.watchlist_only;
-  st.colFilters = {};          // clean slate — only this screener's filters apply
+  st.colFilters = (s.settings || {}).colFilters || {};
   st.page = 1;
   if (s.sort) st.sort = s.sort;
   if (s.direction) st.dir = s.direction;
@@ -1363,7 +1377,8 @@ async function scrEditSave() {
                  description: document.getElementById("scr-ed-desc").value || null,
                  market: window.__scr.market || "US", watchlist_only: !!window.__scr.watchlistOnly,
                  filters: d.filters, sort: window.__scr.sort || "market_cap",
-                 direction: window.__scr.dir || 2 };
+                 direction: window.__scr.dir || 2,
+                 ...(d.savedId ? {} : {settings:scrCurrentScreenerState().settings}) };
   try {
     if (d.savedId) await api("/api/screeners/" + d.savedId, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     else await api("/api/screeners", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -1397,6 +1412,7 @@ async function scrDeleteSaved(id) {
   scrTab = "screeners"; scrRenderModal();
 }
 </script>
+<script src="/research-workspace.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -1514,7 +1530,7 @@ function scrFieldPass(rows, filters) {
   if (!Array.isArray(rows) || !rows.length) return rows;
   const present = new Set();
   for (const r of rows) for (const [k, v] of Object.entries(r)) if (v != null) present.add(k);
-  const active = (filters || []).filter(f => f && (present.has(f.field) || SCR_COLS[f.field]));
+  const active = (filters || []).filter(f => f && f.field);
   if (!active.length) return rows;
   return rows.filter(r => active.every(f => {
     const v = r[f.field];
@@ -1526,8 +1542,8 @@ function scrFieldPass(rows, filters) {
     if (v == null) return false;
     const n = Number(v);
     if (isNaN(n)) return false;
-    if (f.min != null && n < Number(f.min)) return false;
-    if (f.max != null && n > Number(f.max)) return false;
+    if (f.min != null && (n < Number(f.min) || (f.excl_min && n === Number(f.min)))) return false;
+    if (f.max != null && (n > Number(f.max) || (f.excl_max && n === Number(f.max)))) return false;
     return true;
   }));
 }
@@ -1702,11 +1718,11 @@ const pages = {
       filters: JSON.stringify(effFilters), sort: st.sort, direction: st.dir, src: st.src || "moo",
       limit: String(st.pageSize || 500), offset: String(((st.page || 1) - 1) * (st.pageSize || 500)) });
     // An applied preset runs SERVER-SIDE (moomoo's own screening backend), so
-    // its results and result counts match moomoo.com/screener 1:1. Manual
+    // its qualified results retain provider semantics. Manual
     // filters keep the client-side path over our stored universe.
     let scr, execd = null;
     if (st.activePreset) {
-      // A screener runs on moomoo's backend for exact parity with their page.
+      // A screener runs on moomoo's backend with explicit source and scope.
       // Results are cached client-side (60s) and WARMED in the background, so
       // a click usually lands on an already-fetched exact result; a cold click
       // shows the overlay while moomoo answers.
@@ -1736,9 +1752,8 @@ const pages = {
                 skipped_filters: execd.pending || [], server_side: true,
                 preset_name: execd.name, universe_loaded: true };
       } else {
-        const fb = await api("/api/screener?" + qs).catch(() => ({ available: false, rows: [] }));
-        if (gen !== __homeGen) return "";
-        scr = { ...fb, server_fallback_reason: (execd && execd.reason) || "execute failed" };
+        scr = {available:true, rows:[], shown:0, matched:0, total:0,
+          server_fallback_reason:(execd && execd.reason) || "Provider screen unavailable. Retry shortly; no unqualified matches are shown."};
       }
       window.__homeCtx = { ...scrPanelSnapshot(), scr, execd };
     } else {
@@ -1886,11 +1901,11 @@ const pages = {
       return `<th class="thc"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="${esc(FIELD_DEFS[k] || "sort by " + label)}">${esc(label)}${arrow}</a><a href="#" class="fic ${st.colFilters[k] ? "on" : ""}" title="filter" onclick="scrRenderColMenu('${k}','${kind}');return false">⚈</a>${filterIcon(k)}</th>`;
     };
     const body = viewRows.map((r, i) => `<tr>
-      <td class="mono dim">${(scr.offset || 0) + i + 1}</td>
+      <td><input type="checkbox" aria-label="Select ${esc(r.symbol)} for comparison" ${(window.__researchSelected || []).includes(r.code || r.symbol) ? "checked" : ""} onchange="researchSelect(${i},this.checked)"><button class="btn ghost inspect-btn" aria-label="Inspect ${esc(r.symbol)}" onclick="researchInspect(${i})">Inspect</button></td><td class="mono dim">${(scr.offset || 0) + i + 1}</td>
       ${st.cols.map(k => `<td>${(cellFmt[SCR_COLS[k][1]] || cellFmt.num)(r, k)}</td>`).join("")}
       <td><button class="starbtn ${stars.includes(r.symbol) ? "on" : ""}" title="watchlist" onclick="toggleWatch('${esc(r.symbol)}')">${stars.includes(r.symbol) ? "★" : "☆"}</button></td></tr>`).join("");
     const colChips = st.filters.map((f, i) => `<span class="chip-f">${esc(f._label || SCR_FIELDS[f.field] || FIELD_LABELS[f.field] || f.field)}
-      ${f.values ? "= " + f.values.join(", ") : ""}${f.min != null ? "≥ " + fmtMag(f.min) : ""}${f.min != null && f.max != null ? " · " : ""}${f.max != null ? "≤ " + fmtMag(f.max) : ""}
+      ${f.days ? " (" + f.days + "-day average)" : ""} ${f.values ? "= " + f.values.join(", ") : ""}${f.min != null ? (f.excl_min ? "> " : "≥ ") + fmtMag(f.min) : ""}${f.min != null && f.max != null ? " · " : ""}${f.max != null ? (f.excl_max ? "< " : "≤ ") + fmtMag(f.max) : ""}
       <a href="#" onclick="scrRemoveFilter(${i});return false" class="chip-x">×</a></span>`).join("");
     const colFilChips = Object.entries(st.colFilters).map(([k, cf]) => {
       const label = SCR_COLS[k] ? SCR_COLS[k][0] : k;
@@ -1906,19 +1921,19 @@ const pages = {
     const allChips = presetChip + colChips + colFilChips;
     const colMenu = `<button class="btn ghost" onclick="scrToggleColPick()">Columns (${st.cols.length})</button>`;
     const table = `<div ondragover="scrDragOverTable(event)" ondrop="scrDropNewCol(event)">
-      <table class="scr-table"><tr><th>No.</th>${st.cols.map(k => {
+      <table class="scr-table"><tr><th>Select / inspect</th><th>No.</th>${st.cols.map(k => {
         const [label, kind] = SCR_COLS[k];
         const arrow = st.sort === k ? (st.dir === 2 ? " ↓" : " ↑") : "";
         return `<th class="thc" draggable="true" ondragstart="scrDragStart(event,'${k}','table')" ondragover="scrDragOverCol(event,'${k}')" ondragleave="scrDragLeaveCol(event)" ondrop="scrDropCol(event,'${k}')"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="sort by ${esc(label)} · drag to move">${esc(label)}${arrow}</a><a href="#" class="fic ${st.colFilters[k] ? "on" : ""}" title="filter" onclick="scrRenderColMenu('${k}','${kind}');return false">⚈</a>${filterIcon(k)}</th>`;
       }).join("")}<th></th></tr>
-      ${body || '<tr><td colspan="' + (st.cols.length + 2) + '" class="empty">No rows match — loosen or reset the filters (Clear in the toolbar).</td></tr>'}</table></div>`;
+      ${body || '<tr><td colspan="' + (st.cols.length + 3) + '" class="empty">No rows match — loosen or reset the filters (Clear in the toolbar).</td></tr>'}</table></div>`;
 
     // ── recommended screeners rail ──
     const railCards = (rail.presets || []).map(p => {
       const top = (p.top || []).map(t => `<div class="pt"><div class="ps mono">${esc(t.symbol)}</div>
         <div class="pp mono ${t.pct >= 0 ? "g" : "r"}">${t.pct != null ? (t.pct >= 0 ? "+" : "") + t.pct.toFixed(2) + "%" : "--"}</div></div>`).join("");
       const all = (p.filters || []).length;
-      const cov = all ? ` <span class="faint" style="font-size:9px;color:#26c68c">${all}/${all} filters · server-side</span>` : "";
+      const cov = all ? ` <span class="faint" style="font-size:9px;color:#26c68c">${all} criteria · provider screen</span>` : "";
       return `<div class="preset ${st.activePreset === p.key ? "on" : ""}" role="button" tabindex="0" aria-pressed="${st.activePreset === p.key}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();scrApplyPreset('${esc(p.key)}')}" title="${esc(p.description || p.name)}" onclick="scrApplyPreset('${esc(p.key)}')" onmouseenter="scrWarmPreset('${esc(p.key)}','${esc(st.market)}')"><div class="pname">${esc(p.name)} ›${cov}</div>
         <div class="prow">${top || '<div class="faint" style="font-size:10px">no matches in universe</div>'}</div></div>`;
     }).join("");
@@ -1927,13 +1942,13 @@ const pages = {
     ${msPanel}
     <div class="scr-grid">
       <div class="panel scr-main">
-        <h3 class="sec">Screener <small>${scr.server_side ? "server-side execution — matches moomoo.com/screener · " + esc(scr.preset_name || st.activePreset || "") + (execd && execd.pending && execd.pending.length ? " · not yet applied server-side: " + esc(execd.pending.join(", ")) : "") : "moomoo data · " + (st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: " + (scr.universe_loaded ? "full " + esc(st.market) + " market" + (scr.universe_as_of ? " · quotes as of " + fmtTs(scr.universe_as_of) : "") : "live slices — run ↻ Load full market")) + (scr.stale_hint ? " · <b>showing data saved " + Math.max(1, Math.round((Date.now() - scr.stale_hint) / 60000)) + " min ago — updating…</b>" : "") + (st.src === "yf" ? " · Data: YFinance" + (scr.enrich_as_of ? " as of " + fmtTs(scr.enrich_as_of) : "") : "")}</small></h3>
+        <h3 class="sec">Screener <small>${scr.server_side ? "server-side execution — provider-qualified membership · " + esc(scr.preset_name || st.activePreset || "") + (execd && execd.pending && execd.pending.length ? " · not yet applied server-side: " + esc(execd.pending.join(", ")) : "") : "moomoo data · " + (st.watchlistOnly ? "universe: your TradingAgents watchlist" : "universe: " + (scr.universe_loaded ? "full " + esc(st.market) + " market" + (scr.universe_as_of ? " · quotes as of " + fmtTs(scr.universe_as_of) : "") : "live slices — run ↻ Load full market")) + (scr.stale_hint ? " · <b>showing data saved " + Math.max(1, Math.round((Date.now() - scr.stale_hint) / 60000)) + " min ago — updating…</b>" : "") + (st.src === "yf" ? " · Data: YFinance" + (scr.enrich_as_of ? " as of " + fmtTs(scr.enrich_as_of) : "") : "")}</small></h3>
         <div class="scr-toolbar">
           <label class="faint">Market</label>
-          <select id="scr-market" onchange="scrSet('market', this.value)">
+          <select id="scr-market" aria-label="Market" onchange="scrSet('market', this.value)">
             <option ${st.market === "US" ? "selected" : ""}>US</option><option ${st.market === "HK" ? "selected" : ""}>HK</option>
           </select>
-          <select title="Data source — Moomoo strict, or YFinance-enriched (adds fundamentals & computed technicals)" onchange="scrSet('src', this.value)">
+          <select aria-label="Data source" title="Data source — Moomoo strict, or YFinance-enriched (adds fundamentals & computed technicals)" onchange="scrSet('src', this.value)">
             <option value="moo" ${st.src !== "yf" ? "selected" : ""}>Data: Moomoo</option>
             <option value="yf" ${st.src === "yf" ? "selected" : ""}>Data: YFinance</option>
           </select>
@@ -1942,7 +1957,7 @@ const pages = {
           <select id="scr-exchange" title="Exchange" onchange="scrTaxonomy('exchange', this.value)"><option value="">Exchange: All</option></select>
           <input id="scr-tickers" placeholder="Tickers: NVDA, AAPL" value="${esc((st.filters.find(f => f.field === "symbol")?.values || []).join(", "))}" title="Comma-separated tickers" style="background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;width:140px" onchange="scrTickers(this.value)">
           <label class="switch"><input type="checkbox" id="scr-wl" ${st.watchlistOnly ? "checked" : ""} onchange="scrSet('watchlistOnly', this.checked)"><i></i> Watchlist only</label>
-          <label class="switch" title="moomoo's screener count includes ETFs — untick for common stocks only"><input type="checkbox" ${st.etfs ? "checked" : ""} onchange="scrSet('etfs', this.checked)"><i></i> Include ETFs</label>
+          <label class="switch" title="Include provider-classified ETFs alongside stocks"><input type="checkbox" ${st.etfs ? "checked" : ""} onchange="scrSet('etfs', this.checked)"><i></i> Include ETFs</label>
           <button class="btn ghost" onclick="openFilterModal()">＋ Add Filter</button>
           <select id="scr-mypresets" title="Your saved screeners" onchange="if(this.value){scrApplySaved(this.value);this.value=''}"><option value="">My Presets</option></select>
           <button class="btn ghost" onclick="scrToggleFilters()">${window.__scrFiltersCollapsed ? "Filters ▸" : "Filters ▾"}</button>
@@ -1971,8 +1986,9 @@ const pages = {
         <span class="faint" style="font-size:10px">quick signals</span></div>
         <div class="scr-toolbar" style="margin-bottom:6px">${Object.keys(VIEW_PRESETS).map(v =>
           `<button class="btn ghost" style="padding:3px 11px;font-size:12px;${(st.view || "overview") === v ? "border-color:#3a76dd;color:#8ab4ff" : ""}" onclick="scrSetView('${v}')">${v[0].toUpperCase() + v.slice(1)}</button>`).join("")}
-        <span class="faint" style="font-size:10px">views · Custom = the column picker</span></div>
-        ${(scr.skipped_filters || []).length ? `<div class="delay-note" style="margin-bottom:8px">${scr.skipped_filters.length} filter(s) skipped until factor data lands: ${scr.skipped_filters.map(f => esc(SCR_FIELDS[f] || f)).join(", ")}</div>` : ""}
+        <span class="faint" style="font-size:10px">column templates · Custom = the column picker</span></div>
+        ${scr.server_fallback_reason ? `<div class="delay-note" role="status">${esc(scr.server_fallback_reason)}</div>` : ""}
+        ${(scr.skipped_filters || []).length ? `<div class="delay-note" style="margin-bottom:8px">${scr.skipped_filters.length} criterion/criteria lack numeric evidence: ${scr.skipped_filters.map(f => esc(SCR_FIELDS[f] || f)).join(", ")}</div>` : ""}
         ${prog ? `<div class="scr-prog"><div class="bar"><i style="width:${(progPct || 5).toFixed(0)}%;background:#3a76dd"></i><i style="width:${100 - (progPct || 5)}%;background:#33415a"></i></div><span class="mono faint">${esc(prog.msg)}${prog.status ? " · " + esc(prog.status) : ""}</span></div>` : ""}
         <div class="scr-scroll">${table}</div>
         ${(scr.matched || 0) > (scr.shown || 0) || (st.page || 1) > 1 ? `<div class="pager">
@@ -1984,7 +2000,7 @@ const pages = {
           <select class="pgsz" onchange="scrSet('pageSize', Number(this.value))">
             ${[100, 250, 500, 1000, 2000].map(n => `<option value="${n}" ${(st.pageSize || 500) === n ? "selected" : ""}>${n} / page</option>`).join("")}
           </select></div>` : ""}
-        <div class="faint" style="font-size:10px;margin-top:6px">Exports above: "page" = the rows on screen; "all" = the full filtered set in the current sort order.</div>
+        <div class="faint" style="font-size:10px;margin-top:6px">Exports: page = visible rows; available matches = all loaded matches, in the current sort order.</div>
         <div class="faint" style="font-size:10px;margin-top:6px">${st.watchlistOnly
           ? "Watchlist universe = tickers saved in TradingAgents (☆). Add with the star, or from the Analyze page."
           : (scr.universe_loaded ? "Full stored universe — every listing moomoo\u2019s plate enumeration returned, refreshed by the loader job. Technical &amp; financial filters: switch <b>Data: YFinance</b> above — fundamentals and computed technicals (RSI, SMA position, performance, volatility) become filterable." : "Live fallback slices (~1,200 stocks). Run \u219b Load full market to enumerate every listing.")} Fundamentals &amp; computed-technical filters (RSI, SMA position, performance, volatility) run on <b>Data: YFinance</b>. moomoo\u2019s app total counts every instrument type (ETFs, warrants, indices); this screener lists common stocks by default — use a Type filter to see the rest.</div>
@@ -2652,14 +2668,31 @@ function klineEnsure(h) {
   try { c.setLocale("en-US"); c.setPriceVolumePrecision(2, 0); } catch (e) {}
   klineTheme(c);
   c.subscribeAction("onCrosshairChange", d => { try { h.crosshair && h.crosshair(d, c); } catch (e) {} });
-  window.addEventListener("resize", () => { try { c.resize(); } catch (e) {} });
+  h.resizeListener = () => { try { c.resize(); } catch (e) {} };
+  window.addEventListener("resize", h.resizeListener);
   h.chart = c;
   __kcHosts.push(h);
   return c;
 }
 
+function klineDrawingScope(h) {
+  const st = h.state();
+  return [h.elId, stkState().sym || "", st.sym || "", st.src || "", st.range || "", st.kind || ""].join("|");
+}
+function klineSaveDrawings(h) {
+  if (!h.chart || !h.drawingScope) return;
+  const drawings = (h.drawingIds || []).map(id => h.chart.getOverlayById(id)).filter(o=>o && o.points?.length)
+    .map(o=>({name:o.name, points:JSON.parse(JSON.stringify(o.points))}));
+  window.__chartDrawings = window.__chartDrawings || {};
+  window.__chartDrawings[h.drawingScope] = drawings;
+  try { localStorage.setItem("researchDrawings", JSON.stringify(window.__chartDrawings)); } catch(e) {}
+}
 function klineTeardown(h) {
-  if (h.chart) { try { h.chart.destroy(); } catch (e) {} }
+  klineSaveDrawings(h);
+  if (h.resizeListener) window.removeEventListener("resize", h.resizeListener);
+  h.resizeListener = null;
+  if (h.chart) { try { window.klinecharts.dispose(h.elId); } catch (e) {} }
+  h.drawingIds = []; h.drawingScope = null;
   const i = __kcHosts.indexOf(h);
   if (i >= 0) __kcHosts.splice(i, 1);
   h.chart = null; h.subsCur = null; h.maCur = null; h.emaCur = null; h.builtType = null; h.staticOverlays = [];
@@ -2747,10 +2780,22 @@ function klineRebuild(h) {
 }
 
 function klineSetData(h, data) {
-  const c = klineEnsure(h);
+  const scope = klineDrawingScope(h);
+  if (h.drawingScope !== scope) klineSaveDrawings(h);
+  let c = klineEnsure(h);
   if (!c) return;
   c.applyNewData(data);
   klineApply(h);
+  c = h.chart;
+  if (!c) return;
+  if (h.drawingScope !== scope) {
+    (h.drawingIds || []).forEach(id=>c.removeOverlay(id));
+    h.drawingIds = []; h.drawingScope = scope;
+    if (!window.__chartDrawings) { try { window.__chartDrawings=JSON.parse(localStorage.getItem("researchDrawings") || "{}"); } catch(e) { window.__chartDrawings={}; } }
+    for (const ov of (window.__chartDrawings || {})[scope] || []) {
+      const id = c.createOverlay(ov); if(id)h.drawingIds.push(id);
+    }
+  }
 }
 
 function klineTool(h, t) {
@@ -2758,8 +2803,11 @@ function klineTool(h, t) {
   if (!c) return;
   // Clear is the only action that wipes — picking a drawing tool arms another
   // overlay so previous drawings persist while you keep drawing.
-  if (!STK_OVERLAYS[t]) { c.removeOverlay(); klineDrawOverlays(h); return; }
-  c.createOverlay({ name: STK_OVERLAYS[t] });
+  if (t === "cursor") return;
+  if (t === "clear") { c.removeOverlay(); h.drawingIds = []; klineSaveDrawings(h); klineDrawOverlays(h); return; }
+  if (!STK_OVERLAYS[t]) return;
+  const id = c.createOverlay({ name: STK_OVERLAYS[t] });
+  if(id)(h.drawingIds = h.drawingIds || []).push(id);
   klineDrawOverlays(h);
 }
 
@@ -3443,8 +3491,8 @@ async function cmpQuotePoll() {
     st.cells.forEach((c, i) => {
       const q = d.quotes[c.sym], el = document.getElementById("cmp-q-" + i);
       if (!el || !q) return;
-      const pct = Number(q.pct_change);
-      el.innerHTML = `<b>${fmtAuto(q.last_price)}</b> <span class="${pct >= 0 ? "g" : "r"}">${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%</span> <span class="faint">Vol ${stkMoney(q.volume)}</span>`;
+      const pct = q.pct_change == null ? null : Number(q.pct_change);
+      el.innerHTML = `<b>${fmtAuto(q.last_price)}</b> <span class="${pct >= 0 ? "g" : "r"}">${pct != null && Number.isFinite(pct) ? ((pct >= 0 ? "+" : "") + pct.toFixed(2) + "%") : "—"}</span> <span class="faint">Vol ${stkMoney(q.volume)}</span>`;
     });
   } catch (e) {}
 }
@@ -4116,19 +4164,21 @@ function stkState() {
   return window.__stk;
 }
 const stkQ = () => stkState().quote || {};
-const stkSymCode = () => stkState().quote?.code || ("US." + (stkState().sym || ""));
+const stkSymCode = () => stkState().quote?.code || (/^(US|HK|SH|SZ|AU)\./.test(stkState().sym || "") ? stkState().sym : "US." + (stkState().sym || ""));
 const stkSpot = () => Number(stkQ().last_price) || null;
 
 function openStock(sym, tab) {
   const st = stkState();
-  st.sym = String(sym || "").toUpperCase().replace(/-US$/, "");
+  const nextSym = String(sym || "").toUpperCase().replace(/-US$/, "").replace(/^US\./, "");
+  if (st.sym !== nextSym) { st.quote = null; st.__research = null; anaChartState.bars = []; anaChartState.pts = []; stkChartState.bars = []; stkChartState.pts = []; }
+  st.sym = String(sym || "").toUpperCase().replace(/-US$/, "").replace(/^US\./, "");
   if (tab) st.tab = tab;
   if (state.poll) { clearInterval(state.poll); state.poll = null; }
   state.page = "stock";
   document.querySelectorAll(".nav button").forEach(b =>
     b.classList.toggle("on", b.dataset.page === "quotes"));
-  if (!location.hash.includes("#/stock/" + st.sym + "-US"))
-    history.replaceState(null, "", "#/stock/" + st.sym + "-US");
+  const route = "#/stock/" + encodeURIComponent(st.sym);
+  if (location.hash !== route) history.pushState(null, "", route);
   $("#page").innerHTML = '<div class="empty">Loading ' + esc(st.sym) + '…</div>';
   renderStock().catch(e => { $("#page").innerHTML =
     `<div class="panel"><div class="empty">Stock page failed: ${esc(e.message || e)}</div></div>`; });
@@ -4204,9 +4254,12 @@ function stkStmtVal(name, it) {
   return stkMoney(raw);
 }
 
+let __stockRenderGen = 0;
 async function renderStock() {
-  const st = stkState();
+  const gen = ++__stockRenderGen;
+  const st = stkState(), requestedSym = st.sym;
   const quoteR = await api("/api/stock/" + st.sym + "/quote").catch(() => null);
+  if (gen !== __stockRenderGen || state.page !== "stock" || st.sym !== requestedSym) return;
   st.quote = (quoteR && quoteR.available !== false && quoteR.code) ? quoteR : (st.quote || null);
   const q = stkQ();
   const last = q.last_price, prev = q.prev_close_price;
@@ -4238,6 +4291,7 @@ async function renderStock() {
   ];
   const stars = window.__scr?.watchlistSyms || [];
   const head = `
+  ${researchBreadcrumb()}
   <div class="panel">
     <div class="stk-head">
       <div>
@@ -4269,6 +4323,7 @@ async function renderStock() {
       `<button class="${st.tab === id ? "on" : ""}" onclick="stkSet('tab','${id}')">${label}</button>`).join("")}</div>
     <div id="stk-tab">${await stkTabPage()}</div>
   </div>`;
+  if (gen !== __stockRenderGen || state.page !== "stock" || st.sym !== requestedSym) return;
   $("#page").innerHTML = head;
   if (st.tab !== "overview") klineTeardown(stkHost);
   if (st.tab === "overview") { stkMountControls(); stkLoadChart(); }
@@ -4482,17 +4537,17 @@ anaHost.update = patch => anaChartSet(patch);
 
 async function anaLoadChart() {
   const st = stkState();
-  await klineLoadLive(anaChartState, st.sym, st.ana);
+  await klineLoadLive(anaChartState, st.sym, anaHost.state());
   klineSetData(anaHost, anaHost.data());
 }
 
 function anaMountControls() {
   const c = document.getElementById("ana-ctl");
-  if (c) { c.innerHTML = klineControlsHTML("ana", stkState().ana); klineBindControls("ana", anaHost); }
+  if (c) { c.innerHTML = klineControlsHTML("ana", anaHost.state()); klineBindControls("ana", anaHost); }
 }
 
 function anaChartSet(patch) {
-  Object.assign(stkState().ana, patch);
+  Object.assign(anaHost.state(), patch);
   if (patch.ma && Array.isArray(patch.ma)) stkState().ana._maLast = patch.ma;
   if (patch.ema && Array.isArray(patch.ema)) stkState().ana._emaLast = patch.ema;
   if (!document.getElementById("ana-kc")) { renderStock(); return; }
@@ -5035,8 +5090,8 @@ async function showPage(p) {
     $("#page").innerHTML = html;
     window.scrollTo(0, __sy);
     if (__ss != null) { const __el = document.querySelector(".scr-scroll"); if (__el) __el.scrollTop = __ss; }
-    if (p === "home") { scrHideLoading(); scrLoadTaxonomy(); scrLoadMyPresets(); scrWarmPresets(); }
-    if (p === "compare") cmpMount();
+    if (p === "home") { scrWorkspaceMount(); scrHideLoading(); scrLoadTaxonomy(); scrLoadMyPresets(); }
+    if (p === "compare") { if(window.__researchContext){const back=document.createElement('div');back.className='research-breadcrumb';back.innerHTML='<button class="btn ghost" onclick="researchReturn()">← Back to screen</button>';$("#page").prepend(back);}cmpMount(); }
     if (p === "settings") {
       loadPromptsPanel();
       api("/api/screener/schedule").then(s => {
@@ -5080,7 +5135,7 @@ async function showPage(p) {
 document.querySelectorAll(".nav button").forEach(b => b.onclick = () => showPage(b.dataset.page));
 loadHealth();
 api("/api/meta").then(m => {
-  $("#spend").textContent = `$${Number(m.spend?.cost_usd || 0).toFixed(3)} · ${m.spend?.runs || 0} runs`;
+  $("#spend").textContent = m.spend?.available === false ? 'Spend unavailable' : `$${Number(m.spend?.cost_usd || 0).toFixed(3)} · ${m.spend?.runs || 0} runs`;
 }).catch(() => {});
 // stock-page routing: #/stock/{SYM}-US or the pretty /stock/{SYM}-US path; #/info; #/stocks
 function stkRoute() {
@@ -5096,6 +5151,7 @@ window.addEventListener("hashchange", () => {
   if (r?.stock) openStock(r.stock);
   else if (r?.info) showPage("info");
   else if (r?.picker) openStockPicker();
+  else if (/^#\/screener/.test(location.hash)) { scrRestoreFromHash(); showPage("home"); }
 });
 { scrRestoreFromHash();
   const r0 = stkRoute();

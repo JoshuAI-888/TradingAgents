@@ -1,5 +1,6 @@
 """API contract tests (offline): health, meta, submit dedup against fake Db."""
 import os
+from datetime import datetime, timezone
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_KEY", "test")
 os.environ.setdefault("CRON_SECRET", "cron-test")
@@ -216,7 +217,7 @@ def test_screener_filters_and_sort():
     assert [r["symbol"] for r in got] == ["BBB"]
     # a field absent from the universe SKIPS its filter instead of failing all rows
     got, skipped = api._apply_filters(rows, [{"field": "rsi14", "max": 30}])
-    assert len(got) == 3 and skipped == ["rsi14"]
+    assert got == [] and skipped == ["rsi14"]
     # Buffett-style triple filter: none of the sample rows pass all three
     buffett, skipped = api._apply_filters(rows, [{"field": "market_cap", "min": 1e10},
                                                  {"field": "pe_ttm", "min": 0.01, "max": 15},
@@ -237,7 +238,7 @@ def test_values_multiselect_and_facets(monkeypatch):
     got2, _ = api._apply_filters(rows, [{"field": "stock_type", "values": ["WARRANT"]}])
     assert got2 == []
     got3, sk3 = api._apply_filters(rows, [{"field": "absent_field", "values": ["X"]}])
-    assert len(got3) == 3 and sk3 == ["absent_field"]  # absent field skips, not fails
+    assert got3 == [] and sk3 == ["absent_field"]  # absent criteria cannot match
 
 
 def test_snapshot_to_row_normalizes():
@@ -531,10 +532,10 @@ def _seed_enrichment_rows(fdb):
         {"code": "US.MSFT", "market": "US", "updated_at": "2025-01-01T00:00:00+00:00",
          "row": {"symbol": "MSFT", "name": "Microsoft", "price": 400.0, "pe_ttm": 33.0}})
     fdb._t("screener_enrichment").append(
-        {"code": "US.AAPL", "market": "US", "as_of": "2025-01-02T00:00:00+00:00",
+        {"code": "US.AAPL", "market": "US", "as_of": datetime.now(timezone.utc).isoformat(),
          "data": {"forward_pe": 28.0, "beta": 1.2}})
     fdb._t("screener_enrichment").append(
-        {"code": "US.MSFT", "market": "US", "as_of": "2025-01-02T00:00:00+00:00",
+        {"code": "US.MSFT", "market": "US", "as_of": datetime.now(timezone.utc).isoformat(),
          "data": {"forward_pe": 31.0}})
 
 
@@ -556,7 +557,7 @@ def test_screener_yf_mode_merges_and_stamps(monkeypatch):
     _seed_enrichment_rows(fdb)
     api.db = fdb
     r = client.get("/api/screener?watchlist_only=0&src=yf").json()
-    assert r["enrich_as_of"] == "2025-01-02T00:00:00+00:00"
+    assert r["enrich_as_of"] is not None
     by = {row["symbol"]: row for row in r["rows"]}
     assert by["AAPL"]["forward_pe"] == 28.0 and by["AAPL"]["beta"] == 1.2
     assert by["MSFT"]["forward_pe"] == 31.0 and "beta" not in by["MSFT"]  # absent, not zero
@@ -723,7 +724,7 @@ def test_execute_uses_the_preset_sort_and_reports_server_limit(monkeypatch):
 
     monkeypatch.setattr(api, "_market_client", lambda: Screen())
     r = client.get("/api/screener/execute?key=penny&limit=3").json()
-    assert calls[0]["sort"] == {"direction": 2, "simple_property": {"name": 2210}}
+    assert calls[0]["sort"] == {"direction": 2, "cumulative_property": {"name": 3102, "days": 1}}
     assert r["sort"] == "pct" and r["direction"] == 2
     assert r["result_limit"] == 3 and r["possibly_truncated"] is True
     assert r["filters"] == next(p["filters"] for p in api.PRESET_SCREENERS if p["key"] == "penny")

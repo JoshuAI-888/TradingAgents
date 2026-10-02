@@ -302,12 +302,9 @@ def test_server_filter_matches_moomoo_payloads():
     assert f == {"financial_property_query": {"property": {"name": 4106, "term": 100},
                                               "lower": {"value": 10000, "includes": True}}}
     f = api._server_filter("rsi14", {"max": 30})
-    assert f == {"indicator_positional_query": {"position": 2, "period": 11,
-                                                "firstIndicator": 52,
-                                                "firstIndicatorParams": [14],
-                                                "secondValue": 30000}}
+    assert f is None  # Unverified provider criteria fail closed.
     f = api._server_filter("new_low_10d", {"min": 1})
-    assert f == {"cumulative_property_query": {"property": {"name": 3108}, "days": 10,
+    assert f == {"cumulative_property_query": {"property": {"name": 3108, "days": 10}, "days": 10,
                                                "upper": {"value": 0, "includes": False}}}
     f = api._server_filter("sector", {"plate_ids": [10002481, 10002456]})
     assert f == {"plate_query": {"plateList": [{"plateIdList": [10002481, 10002456]}]}}
@@ -322,7 +319,7 @@ def test_apply_filters_skips_absent_fields():
     out, skipped = api._apply_filters(rows, [
         {"field": "price", "max": 5}, {"field": "pb", "max": 1},
         {"field": "roe", "min": 15, "needs": 1}, {"field": "debt_ratio", "max": 40}])
-    assert [r["price"] for r in out] == [4]
+    assert out == []
     assert sorted(skipped) == ["debt_ratio", "roe"]
 
 

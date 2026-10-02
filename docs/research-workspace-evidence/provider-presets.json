@@ -1,0 +1,260 @@
+[
+  {
+    "key": "penny",
+    "name": "Penny Stocks",
+    "pending": [],
+    "first_page_count": 55,
+    "sample_symbols": [
+      "US.CSDX",
+      "US.ZHUD",
+      "US.HLP"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "high-div",
+    "name": "High Dividend Stocks",
+    "pending": [],
+    "first_page_count": 0,
+    "sample_symbols": [],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "blue-chip",
+    "name": "Blue Chip Stocks",
+    "pending": [],
+    "first_page_count": 40,
+    "sample_symbols": [
+      "US.SNDK",
+      "US.MU",
+      "US.WDC"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "buffett",
+    "name": "Warren Buffett Strategy",
+    "pending": [],
+    "first_page_count": 68,
+    "sample_symbols": [
+      "US.KNCRY",
+      "US.MRX",
+      "US.DLKGF"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "undervalued",
+    "name": "Undervalued Stocks",
+    "pending": [],
+    "first_page_count": 5,
+    "sample_symbols": [
+      "US.RSRV",
+      "US.ECTM",
+      "US.UNTC"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "growth",
+    "name": "Best Growth Stocks",
+    "pending": [],
+    "first_page_count": 24,
+    "sample_symbols": [
+      "US.MRX",
+      "US.TIGO",
+      "US.MWTCY"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "pb-lt-1",
+    "name": "P/B Ratio Less Than 1",
+    "pending": [],
+    "first_page_count": 300,
+    "sample_symbols": [
+      "US.AUVIP",
+      "US.VICP",
+      "US.VRPX"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "best-lt-high-div",
+    "name": "Best Long Term High Dividend Stocks",
+    "pending": [],
+    "first_page_count": 41,
+    "sample_symbols": [
+      "US.ROYTL",
+      "US.NXDT",
+      "US.LKHLY"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "high-pe",
+    "name": "High P/E Ratio Stocks",
+    "pending": [],
+    "first_page_count": 300,
+    "sample_symbols": [
+      "US.AURFF",
+      "US.FDCT",
+      "US.SYRA"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "good-pe",
+    "name": "Good P/E Ratio Stocks",
+    "pending": [],
+    "first_page_count": 116,
+    "sample_symbols": [
+      "US.ICTEY",
+      "US.JPPTY",
+      "US.TIGO"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "low-pe",
+    "name": "Low P/E Ratio Stocks",
+    "pending": [],
+    "first_page_count": 300,
+    "sample_symbols": [
+      "US.CFOR",
+      "US.WBBA",
+      "US.SCDA"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "rsi-30",
+    "name": "Below 30 RSI Stocks",
+    "pending": [],
+    "first_page_count": 300,
+    "sample_symbols": [
+      "US.NUVOQ",
+      "US.MOCI",
+      "US.SONG"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "junk",
+    "name": "Junk Stocks",
+    "pending": [],
+    "first_page_count": 300,
+    "sample_symbols": [
+      "US.CFOR",
+      "US.SNRY",
+      "US.AMIH"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "small-growth",
+    "name": "Small Cap Stocks with Huge Growth Potential",
+    "pending": [],
+    "first_page_count": 86,
+    "sample_symbols": [
+      "US.AONC",
+      "US.RNLXY",
+      "US.FDCT"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "blue-chip-div",
+    "name": "Blue Chip Dividend Stocks",
+    "pending": [],
+    "first_page_count": 1,
+    "sample_symbols": [
+      "US.RIO"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "speculative",
+    "name": "Speculative Stocks",
+    "pending": [],
+    "first_page_count": 300,
+    "sample_symbols": [
+      "US.SNDK",
+      "US.MU",
+      "US.ATEX"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "high-roe",
+    "name": "High Return On Equity Stocks",
+    "pending": [],
+    "first_page_count": 187,
+    "sample_symbols": [
+      "US.MOHCY",
+      "US.FSRCY",
+      "US.KNCRY"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "lt-high-div",
+    "name": "Low P/E High Dividend Stocks",
+    "pending": [],
+    "first_page_count": 98,
+    "sample_symbols": [
+      "US.ROYTL",
+      "US.LPG",
+      "US.NXDT"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "undervalued-semi",
+    "name": "Undervalued Semiconductor Stocks",
+    "pending": [],
+    "first_page_count": 3,
+    "sample_symbols": [
+      "US.PLAB",
+      "US.NA",
+      "US.CRUS"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "undervalued-tech",
+    "name": "Undervalued Tech Stocks",
+    "pending": [],
+    "first_page_count": 67,
+    "sample_symbols": [
+      "US.JTAI",
+      "US.FATN",
+      "US.FIEE"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "undervalued-banks",
+    "name": "Undervalued Bank Stocks",
+    "pending": [],
+    "first_page_count": 6,
+    "sample_symbols": [
+      "US.OPHC",
+      "US.FRST",
+      "US.NEWT"
+    ],
+    "observed_before_mapping_corrections": true
+  },
+  {
+    "key": "high-eps",
+    "name": "High EPS Stocks",
+    "pending": [],
+    "first_page_count": 90,
+    "sample_symbols": [
+      "US.SNDK",
+      "US.MU",
+      "US.WDC"
+    ],
+    "observed_before_mapping_corrections": true
+  }
+]
