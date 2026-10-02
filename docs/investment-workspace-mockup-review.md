@@ -1,5 +1,7 @@
 # Current build against the approved design
 
+**Latest R01 API checkpoint:** [generation-consistent API readers](screener-generation-api-readers.md) pin stored screener rows/server pages/downloads and derive facets, previews, groups and coverage from validated generations. 360 API/worker and 68 JavaScript tests pass, plus actual API/native worker-generation round-trip. Remaining direct readers, capture provenance, frontend handoff, PostgREST, retention and production cutover remain open; R01 is not closed.
+
 **Latest R01 worker checkpoint:** [actual worker/native database evidence](screener-generation-worker-integration.md) verifies staged atomic publication, exact replay after a lost commit response and successor fencing. 347 API/worker and 68 JavaScript tests pass. API readers still use legacy mirrors; pinned paging/capture/export, PostgREST, retention and production cutover remain open. R01 is not closed.
 
 **Current authoritative review and build sequence:** [build-to-design gap register](investment-workspace-current-gap-plan.md), reviewed against `bab57b2` and fresh desktop captures of all three views. It distinguishes built foundations from missing workflow/data elements and defines R01–R15, six dependent build packets and preservation gates. Older status/build-order paragraphs below are dated evidence; this review supersedes them. No new merge/deployment or production qualification is claimed.

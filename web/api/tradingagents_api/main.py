@@ -25,6 +25,8 @@ from pydantic import BaseModel, Field
 from tradingagents_worker.enrich_fields import TECH_FIELDS
 from tradingagents_worker.config import SETTINGS
 from tradingagents_worker.db import Db
+from tradingagents_worker.screener_generations import read_generation, GenerationError, canonical_generation, aware_time
+import copy
 from tradingagents_worker.runner import demangle_debate
 from tradingagents_worker.screener_rows import snapshot_to_row as _snapshot_to_row
 from .screen_observations import capture_observation, paired_evidence, criterion_slots, numeric, validate_observation_capture
@@ -624,20 +626,73 @@ def _watchlist_symbols() -> list[str]:
 _universe_meta_cache = None
 
 
-_stored_universe_cache: dict[str, tuple[float, list, str | None]] = {}
+_stored_universe_cache: dict[str, tuple[float, list, object]] = {}
 _presets_cache: dict[str, tuple[float, dict]] = {}
 _execute_cache: dict[str, tuple[float, dict]] = {}
 
 
-def _stored_universe(market: str, max_age: float = 60.0):
-    """screener_quotes rows + newest updated_at for a market, cached in-process
-    for 60s. The loader refreshes hourly, but every screener/presets request
-    re-read ~15k rows across 16 PostgREST pages (~3s) because the response
-    cache only covered the live-fallback branch. (rows, as_of)."""
+def _generation_pointer(market: str):
+    states = db.select('app_settings', {'key': f'eq.universe_state_{market}'}, 'value')
+    state = states[0].get('value') if states else {}
+    if not isinstance(state, dict):
+        raise HTTPException(503, 'Stored universe state is invalid')
+    if 'generation_id' not in state:
+        return None, state
+    try:
+        return canonical_generation(state['generation_id']), state
+    except GenerationError as error:
+        raise HTTPException(503, str(error)) from error
+
+
+def _stored_universe(market: str, max_age: float = 60.0, generation_id: str | None = None):
+    """Return one validated immutable cohort, or legacy rows before migration.
+
+    Resolve the pointer on every request. Cache immutable contents by identity,
+    never market alone, and return copies so consumers cannot change the cache.
+    Explicit generations let a caller keep paging/exporting the original cohort.
+    """
+    pointer, state = _generation_pointer(market)
+    target = generation_id if generation_id is not None else pointer
     now = time.time()
+    if target is not None:
+        try:
+            canonical_generation(target)
+            key = f'{market}|{target}'
+            hit = _stored_universe_cache.get(key)
+            if hit and now - hit[0] < max_age:
+                rows, header = hit[1], hit[2]
+            else:
+                header, records = read_generation(db, market, target)
+                rows = []
+                for record in records:
+                    row = dict(record['row'])
+                    meta = record['metadata']
+                    row.update({k: meta.get(k) for k in ('stock_type', 'exchange', 'plate')})
+                    row.update({'symbol': record['code'].split('.', 1)[1],
+                                'concepts': [v for v in meta['plates'] if v != meta.get('plate')],
+                                'quote_cache_at': record['quote_cache_at'],
+                                'quote_identity_status': 'verified', 'generation_id': target})
+                    if not row.get('name'):
+                        row['name'] = meta.get('name')
+                    rows.append(row)
+                _stored_universe_cache[key] = (now, rows, header)
+                # Bound process memory; generations remain addressable in SQL.
+                while len(_stored_universe_cache) > 4:
+                    _stored_universe_cache.pop(next(iter(_stored_universe_cache)), None)
+            if target == pointer:
+                if aware_time(state.get('last_quotes')) != aware_time(header['published_at']):
+                    raise GenerationError('Generation success clock does not match its receipt')
+                result = state.get('last_result')
+                receipt = header.get('result')
+                if not isinstance(result, dict) or not isinstance(receipt, dict) or not isinstance(receipt.get('quotes'), dict) \
+                        or json.dumps(result.get('quotes'), sort_keys=True) != json.dumps(receipt['quotes'], sort_keys=True):
+                    raise GenerationError('Generation success counts do not match its receipt')
+            return copy.deepcopy(rows), header['published_at']
+        except GenerationError as error:
+            raise HTTPException(503, str(error)) from error
     hit = _stored_universe_cache.get(market)
     if hit and now - hit[0] < max_age:
-        return hit[1], hit[2]
+        return copy.deepcopy(hit[1]), hit[2]
     stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "code,row,updated_at")
     rows = [{**r['row'], 'quote_cache_at':r.get('updated_at'),
              'quote_identity_status':'verified' if r.get('code') == r['row'].get('code') and r.get('code') else 'unverified'}
@@ -649,11 +704,13 @@ def _stored_universe(market: str, max_age: float = 60.0):
     stamps = [r.get("updated_at") for r in stored if r.get("updated_at")]
     as_of = max(stamps) if stamps else None
     _stored_universe_cache[market] = (now, rows, as_of)
-    return rows, as_of
+    return copy.deepcopy(rows), as_of
 
 
 def _merge_universe_meta(rows: list[dict], market: str) -> list[dict]:
     """Attach plate / stock_type / exchange from the stored universe (cached 5 min)."""
+    if rows and all(r.get('generation_id') for r in rows):
+        return rows
     global _universe_meta_cache
     if _universe_meta_cache is None:
         from tradingagents_worker.ttl_cache import TtlCache  # noqa: E402
@@ -685,15 +742,14 @@ def screener_facets(field: str, market: str = "US", watchlist_only: int = 0):
     drives the multi-select filter checkboxes."""
     cache = _cache()
     uk = cache.key("quotes", "screener-universe", market, watchlist_only, "market_cap", 2)
-    rows = cache.get("quotes", uk)
+    rows = cache.get("quotes", uk) if watchlist_only else None
     if rows is None:
         if watchlist_only:
             symbols = _watchlist_symbols()
             snap = (client_snapshot(market, symbols) or {}) if symbols else {}
             rows = [_snapshot_to_row(s) for s in (snap.get("snapshot_list") or [])]
         else:
-            stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "row")
-            rows = [r["row"] for r in stored if isinstance(r.get("row"), dict)]
+            rows, _as_of = _stored_universe(market)
         if not rows and not watchlist_only:
             client = _market_client()
             if client:
@@ -786,11 +842,13 @@ _YF_ONLY_FIELDS = {
 def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
              sort: str = "market_cap", direction: int = 2, limit: int = 500,
              offset: int = 0, export: str = "", scope: str = "all",
-             src: str = "moo"):
+             src: str = "moo", generation_id: str | None = None):
     """Screener rows. watchlist universe = our saved watchlist (snapshot, all filters);
     market universe = moomoo stock-screen page sorted server-side, snapshot-enriched."""
     client = _market_client()
-    if client is None:
+    if generation_id is not None and watchlist_only:
+        raise HTTPException(400, "generation_id applies to the stored market universe")
+    if client is None and watchlist_only:
         return {"available": False, "reason": "moomoo keys not configured", "rows": []}
     try:
         flt = json.loads(filters) if filters else []
@@ -798,15 +856,17 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
         raise HTTPException(400, "filters must be JSON")
     cache = _cache()
     universe_key = cache.key("quotes", "screener-universe", market, watchlist_only, sort, direction)
-    rows = cache.get("quotes", universe_key)
+    rows = cache.get("quotes", universe_key) if watchlist_only else None
     universe_loaded = False
     universe_as_of = None
+    pinned_generation = None
     if rows is None and not watchlist_only:
         # Preferred whole-market source: the stored universe (loaded by the
         # universe_refresh job) — zero moomoo calls at view time, cached 60s.
-        rows, universe_as_of = _stored_universe(market)
+        rows, universe_as_of = _stored_universe(market, generation_id=generation_id)
         if rows:
             universe_loaded = True
+            pinned_generation = rows[0].get("generation_id")
     if rows is None:
         if watchlist_only:
             symbols = _watchlist_symbols()
@@ -906,7 +966,8 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
             lines = [",".join(cell(c) for c in cols)]
             lines += [",".join(cell(r.get(c)) for c in cols) for r in rows]
             return Response("\ufeff" + "\n".join(lines), media_type="text/csv; charset=utf-8",
-                            headers={"Content-Disposition": f'attachment; filename="{fname}.csv"'})
+                            headers={"Content-Disposition": f'attachment; filename="{fname}.csv"',
+                                     **({"X-Screener-Generation": pinned_generation} if pinned_generation else {})})
         xml = ['<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>',
                '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" '
                'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'
@@ -925,7 +986,8 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
             xml.append("<Row>" + "".join(cells) + "</Row>")
         xml.append("</Table></Worksheet></Workbook>")
         return Response("".join(xml), media_type="application/vnd.ms-excel",
-                        headers={"Content-Disposition": f'attachment; filename="{fname}.xls"'})
+                        headers={"Content-Disposition": f'attachment; filename="{fname}.xls"',
+                                 **({"X-Screener-Generation": pinned_generation} if pinned_generation else {})})
     # limit up to 20000: the portal fetches the WHOLE matched set once per
     # minute and filters/sorts/pager client-side for instant interactivity.
     page = rows[max(0, offset):max(0, offset) + max(1, min(limit, 20000))]
@@ -935,6 +997,7 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
             "skipped_filters": skipped,
             "enrich_as_of": enrich_as_of,
             "universe_loaded": universe_loaded, "universe_as_of": universe_as_of,
+            "generation_id": pinned_generation,
             "unclassified_count": unknown_classifications,
             "presets": PRESET_SCREENERS,
             "watchlist": _watchlist_symbols()}
@@ -949,7 +1012,11 @@ def screener_presets(market: str = "US", universe: str = "auto", definitions_onl
         return {"available": True, "presets": [{**p, "top": []} for p in PRESET_SCREENERS]}
     client = _market_client()
     cache = _cache()
-    hit = _presets_cache.get(f"{market}|{universe}")
+    pointer, _state = _generation_pointer(market) if universe != "watchlist" else (None, {})
+    if pointer:
+        _stored_universe(market, generation_id=pointer)  # Validate current state even on preview cache hits.
+    preview_key = f"{market}|{universe}|{pointer or 'legacy'}"
+    hit = _presets_cache.get(preview_key)
     if hit and time.time() - hit[0] < 60.0:
         return hit[1]
     if universe == "watchlist":
@@ -966,7 +1033,9 @@ def screener_presets(market: str = "US", universe: str = "auto", definitions_onl
             cache.put("quotes", uk, rows)
     else:
         try:
-            rows, _as_of = _stored_universe(market)
+            rows, _as_of = _stored_universe(market, generation_id=pointer)
+        except HTTPException:
+            raise
         except Exception:
             rows = []
         if not rows:
@@ -1005,8 +1074,8 @@ def screener_presets(market: str = "US", universe: str = "auto", definitions_onl
                     "top": [{"symbol": r["symbol"],
                              "name": str(r.get("name") or "")[:22],
                              "pct": r.get("pct")} for r in picked]})
-    out_payload = {"available": True, "presets": out, "universe_rows": len(rows)}
-    _presets_cache[f"{market}|{universe}"] = (time.time(), out_payload)
+    out_payload = {"available": True, "presets": out, "universe_rows": len(rows), "generation_id": pointer}
+    _presets_cache[preview_key] = (time.time(), out_payload)
     return out_payload
 
 class ScheduleIn(BaseModel):
@@ -1023,13 +1092,18 @@ def screener_schedule_get(market: str = 'US'):
     config = _universe_state()
     states = db.select('app_settings', {'key': f'eq.universe_state_{market}'}, 'value')
     state = (states[0].get('value') or {}) if states else {}
-    rows = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "code")
-    urows = db.select_all("screener_universe", {"market": f"eq.{market}"}, "code,stock_type")
+    if 'generation_id' in state:
+        rows, _published_at = _stored_universe(market, generation_id=state['generation_id'])
+        urows = rows
+    else:
+        rows = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "code")
+        urows = db.select_all("screener_universe", {"market": f"eq.{market}"}, "code,stock_type")
     stock_rows = sum(1 for r in urows if r.get("stock_type") == "STOCK")
     return {"market": market, "interval_h": float(config.get("interval_h") or 1),
             "last_quotes": state.get("last_quotes"), "last_enum": state.get("last_enum"),
             "last_result": state.get("last_result") or {},
             "last_attempt": state.get('last_attempt'),
+            "generation_id": state.get("generation_id"),
             "quote_rows": len(rows), "universe_rows": len(urows),
             "stock_rows": stock_rows, "other_rows": len(urows) - stock_rows}
 
@@ -2515,16 +2589,17 @@ def groups(market: str = "US", group_by: str = "plate", order_by: str = "stocks"
     if _groups_cache is None:
         from tradingagents_worker.ttl_cache import TtlCache  # noqa: E402
         _groups_cache = TtlCache(root=os.path.join(tempfile.gettempdir(), "ta-ttl-groups"))
-    key = _groups_cache.key("other", "groups", market, group_by, order_by, direction, stock_type)
+    cohort, _published_at = _stored_universe(market)
+    generation = cohort[0].get('generation_id') if cohort else None
+    key = _groups_cache.key("other", "groups", market, group_by, order_by, direction, stock_type, generation)
     cached = _groups_cache.get("other", key)
     if cached is not None:
         return cached
-    # NOTE: code must be selected explicitly — PostgREST returns only the
-    # requested columns, and the meta/enrichment lookups key on it.
-    stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "code,row,updated_at")
-    if not stored:
+    if not cohort:
         return {"available": False, "reason": "no stored universe — run the loader", "rows": []}
-    meta = {r["code"]: r for r in db.select_all(
+    stored = [{'code': r['code'], 'row': r, 'updated_at': r.get('quote_cache_at')} for r in cohort] if generation else db.select_all(
+        'screener_quotes', {'market': f'eq.{market}'}, 'code,row,updated_at')
+    meta = {r['code']: r for r in cohort} if generation else {r["code"]: r for r in db.select_all(
         "screener_universe", {"market": f"eq.{market}"}, "code,plate,stock_type,exchange")}
     enr = {r["code"]: (r.get("data") or {}) for r in
            db.select_all("screener_enrichment", {"market": f"eq.{market}"}, "code,data")}
@@ -2581,7 +2656,7 @@ def groups(market: str = "US", group_by: str = "plate", order_by: str = "stocks"
         return r["stocks"]
 
     rows.sort(key=sort_key, reverse=direction == 2)
-    out = {"available": True, "group_by": group_by,
+    out = {"available": True, "group_by": group_by, "generation_id": generation,
            "as_of": max(stamps) if stamps else None, "rows": rows}
     _groups_cache.put("other", key, out)
     return out

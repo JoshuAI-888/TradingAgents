@@ -139,4 +139,8 @@ Actual worker/native PostgreSQL verification passes a second-batch failure witho
 
 Three fresh 2249 × 1168 screenshots were saved/opened against the original mockups. [Audit and implementation mapping](docs/design-gap-audit/worker-plan-review/README.md) confirms Desk company/provenance hierarchy, Explorer region-save/collision/peer context and Changes pair-review/bulk/Next workflow gaps. The fixture does not reconcile quote/chart identity or qualify financial data; keyboard, device, accessibility and speed acceptance remain open. No UI implementation, production migration, merge or deployment occurred in this checkpoint.
 
+## API generation reader checkpoint
+
+Core stored-universe APIs now resolve and validate generation identity before cache hits; immutable row copies and generation metadata prevent stale legacy classification or caller mutations. Explicit server paging/downloads retain the original generation through a later publication; zero-result responses retain identity. Facets, preview caches, groups and Settings counts follow the published cohort. Actual API/native SQL read of the worker-published 401-row fixture passes, alongside 360 API/worker and 68 JavaScript tests. [Evidence and remaining gates](docs/screener-generation-api-readers.md). Remaining direct readers, capture provenance, frontend handoff, live PostgREST/retention/cutover, field coverage and all broader R02–R15 gates remain open. No browser/UI or production acceptance is claimed.
+
 Final result: blocked
