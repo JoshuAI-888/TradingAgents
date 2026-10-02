@@ -91,3 +91,5 @@
 @media(max-width:760px){.changes-mode .change-pair label{display:grid;min-width:100%}}
 
 .change-observation{width:100%;table-layout:fixed;font-size:13px;border-collapse:collapse}.change-observation th,.change-observation td{text-align:left;padding:8px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}.change-observation thead{color:#b4c8e1;background:var(--panel2)}
+
+.change-history-pager{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}.change-history-pager button{min-height:44px}

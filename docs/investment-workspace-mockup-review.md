@@ -1,6 +1,6 @@
 # Current build against the approved design
 
-Reviewed 2 October 2026. This is the latest design review of the local working tree on `codex/investment-team-release-evidence`, based on HEAD `92c7cd2` plus uncommitted login/shortlist integration and workflow fixes. It does not describe a newly deployed release. The private-research migration is still unapplied to production.
+Reviewed 2 October 2026. This is the latest design review of the local working tree on `codex/investment-team-release-evidence`, initially based on HEAD `92c7cd2`; follow-through checkpoints below cover committed `b7ffd7a` and the newer local retained-history build. Initial screenshots/findings are dated comparison evidence, not the current status of fixes documented below. It does not describe a newly deployed release. The private-research migration is still unapplied to production.
 
 ## Verdict and scope
 
@@ -122,3 +122,13 @@ At 390 × 844 the evidence dialog contains a 342 px matrix, the document remains
 ![Phone historical evidence](design-gap-audit/changes-checkpoint/03-phone-evidence.jpg)
 
 Fresh regressions: **233 API/worker tests and 57 JavaScript tests pass**. Durable retained history, paired nonmember observations, capture scheduling, pair-scoped review ownership, bulk selection/shortlisting and production financial reconciliation remain open. This closes the measured top-page layout defect and advances criterion review; it does not close the entire Changes package or investment-team release gate.
+
+## Follow-through checkpoint: retained history and provenance
+
+The approved dated-history interaction now has immutable append storage, legacy-ID preservation, retry identities, metadata-only pages and explicit older-pair lookup. A two-connection PostgreSQL test retains both concurrent new captures and the legacy record. The browser's 105-capture fixture keeps its original comparison and cohort through Older → Newer paging; the source disclosure and keyboard focus survive rerender. Seconds and short IDs distinguish nearby captures. Source copy separately labels capture time and provider retrieval/cache update, and does not claim either is quote source time. The definition disclosure now lists rules rather than a misleading empty before/after matrix.
+
+At 1487 × 1058, scrollY 0, provenance collapsed, the first review row remains **491.4 CSS px**. Four retained-history screenshots were saved/opened; no browser warnings/errors were captured in the final check. Fresh suites: **239 API/worker and 62 JavaScript tests pass**. [Storage, test evidence and migration/recovery gates](durable-screen-history.md) describe the scope.
+
+![Retained capture selection and compact review](design-gap-audit/history-checkpoint/04-compact-retained-history.jpg)
+
+Package 4 remains open: storage is implemented locally, but capture ownership is still deployment-shared, version-2 snapshots still lack full nonmember observations, and pair review/schedules are unfinished. Production PostgreSQL/PostgREST, legacy cutover/rollback, large-cohort performance and real financial reconciliation remain required. Packages 1–7 retain the acceptance gates in the mapping above. No deployment or investment-readiness claim is made.

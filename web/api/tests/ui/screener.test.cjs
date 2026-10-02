@@ -370,3 +370,28 @@ test('Changes uses contextual capture controls while preserving current-screen e
 test('historical columns and sort options use capture evidence rather than current quote metrics',()=>{
  const c=harness(),el={innerHTML:'',querySelector:()=>null};c.document.activeElement=null;const d={comparable:true,previous_id:'a',current_id:'b',previous_at:'2026-10-01T00:00:00Z',current_at:'2026-10-02T00:00:00Z',counts:{new:0,exited:0,all:1,unchanged:1},matched:1,definition:{filters:[{field:'pe_ttm',max:12}]},rows:[{code:'US.A',symbol:'A',status:'unchanged',previous:{evidence:{pe_ttm:0},metrics:{pe_ttm:999}},current:{evidence:{pe_ttm:8},metrics:{pe_ttm:999}}}]};c.researchChangesRender(el,d);assert.match(el.innerHTML,/criterion:before:pe_ttm/);assert.match(el.innerHTML,/criterion:after:pe_ttm/);assert.match(el.innerHTML,/<td>0<\/td><td>8<\/td>/);assert.doesNotMatch(el.innerHTML,/>999</);
 });
+
+test('capture retry preserves its request identity and disables the capture control',async()=>{
+ const c=harness(),el={innerHTML:'',textContent:''},button={disabled:false,isConnected:true};let generated=0;const calls=[];
+ c.crypto={randomUUID:()=>`request-${++generated}`};c.document.getElementById=id=>id==='research-change-results'?el:null;c.document.querySelector=selector=>{assert.equal(selector,'[data-capture]');return button;};c.researchLoadChanges=async()=>{};
+ c.api=async(url,options)=>{assert.equal(button.disabled,true);calls.push(options.headers['Idempotency-Key']);if(calls.length===1)throw new Error('response unavailable');return {captured:true};};
+ await c.researchSnapshot();assert.match(el.innerHTML,/Retry capture/);assert.equal(button.disabled,false);assert.equal(c.__captureRequest.id,'request-1');
+ await c.researchSnapshot();assert.equal(c.__captureRequest,null);await c.researchSnapshot();assert.deepEqual(calls,['request-1','request-1','request-2']);assert.equal(c.__snapshotBusy,false);
+});
+test('paging retained history preserves the selected comparison and row page',()=>{
+ const c=harness(),st=c.researchChangeState();Object.assign(st,{previous_id:'old-before',current_id:'old-after',offset:200});let loaded=0;c.researchLoadChanges=()=>{loaded++;};c.researchChangeSet('history_offset',100);
+ assert.equal(loaded,1);assert.equal(st.history_offset,100);assert.equal(st.offset,200);assert.equal(st.previous_id,'old-before');assert.equal(st.current_id,'old-after');
+});
+
+test('an uncertain capture request survives reload without persisting market rows or notes',()=>{
+ const c=harness(),store=new Map();c.sessionStorage={getItem:k=>store.get(k) || null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};c.crypto={randomUUID:()=> '00000000-0000-4000-8000-000000000001'};
+ const first=c.researchCaptureRequest({market:'US',filters:[]});c.__captureRequest=null;c.crypto.randomUUID=()=>assert.fail('Reload generated a different request');const restored=c.researchCaptureRequest({filters:[],market:'US'});assert.equal(restored.id,first.id);assert.deepEqual(Object.keys(JSON.parse(store.get('researchCaptureRequestV1'))).sort(),['id','key']);c.researchCaptureConfirmed(restored);assert.equal(store.size,0);
+});
+test('definition disclosure does not fabricate missing before-and-after observations',()=>{
+ const c=harness();const html=c.researchCriteriaDefinition([{field:'volume',min:100000,days:30}]);assert.match(html,/Screen definition/);assert.match(html,/30d/);assert.doesNotMatch(html,/Before|After|Unavailable|Paired/);assert.equal(c.researchCaptureClockLabel('stored_universe'),'Stored cache update');assert.equal(c.researchCaptureClockLabel('provider_retrieval'),'Provider retrieval');assert.equal(c.researchCaptureClockLabel(undefined),'Time type unverified');
+});
+
+test('history paging keeps its disclosure open and moves focus to the usable page control',()=>{
+ const c=harness(),disclosure={open:true};let focused=false;const el={innerHTML:'',querySelector:s=>s==='.change-provenance'?disclosure:s==='[data-history-page="older"]'?{disabled:true}:s==='[data-history-page]:not([disabled])'?{focus(){focused=true;}}:null};
+ c.document.activeElement={getAttribute:n=>n==='data-history-page'?'older':null};c.researchChangesRender(el,{comparable:true,history:[],history_offset:100,history_has_more:false,scope:'deployment_owner',counts:{new:0,exited:0,all:0,unchanged:0},matched:0,rows:[],definition:{filters:[]}});assert.equal(disclosure.open,true);assert.equal(focused,true);assert.match(el.innerHTML,/Retained capture page 2/);assert.match(el.innerHTML,/deployment-shared history/);
+});

@@ -14,6 +14,7 @@ import re
 import tempfile
 import time
 import uuid
+from typing import Annotated
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -1458,14 +1459,60 @@ def _snapshot_key(definition: ScreenDefinition) -> str:
     return "screen_history:" + owner + ":" + digest
 
 
+def _legacy_snapshot_history(key: str) -> list[dict]:
+    try:
+        rows = db.select("app_settings", {"key": f"eq.{key}"}, "value")
+    except (RuntimeError, OSError):
+        raise HTTPException(503, "Legacy capture storage is temporarily unavailable.") from None
+    history = (rows[0].get("value") or {}).get("snapshots", []) if rows else []
+    if not isinstance(history, list) or any(not isinstance(record, dict) for record in history):
+        raise HTTPException(409, "Legacy capture history is invalid; no evidence replaced")
+    return history
+
+
+def _capture_select(query: dict, columns: str = "*") -> list[dict]:
+    try:
+        return db.select("screen_captures", query, columns)
+    except (RuntimeError, OSError):
+        raise HTTPException(503, "Capture storage is unavailable. Existing history has not been replaced.") from None
+
+
 def _snapshot_history(key: str) -> list[dict]:
-    rows = db.select("app_settings", {"key": f"eq.{key}"}, "value")
-    return (rows[0].get("value") or {}).get("snapshots", []) if rows else []
+    records = _capture_select({"history_key": f"eq.{key}", "order": "at.desc,id.desc", "limit": "2"}, "snapshot")
+    return [r['snapshot'] for r in reversed(records)] if records else _legacy_snapshot_history(key)
+
+
+def _snapshot_get(key: str, sid: str) -> dict | None:
+    if not re.fullmatch(r'[A-Za-z0-9_-]{1,100}', sid):
+        raise HTTPException(400, "Invalid capture identity")
+    records = _capture_select({"history_key": f"eq.{key}", "id": f"eq.{sid}", "limit": "1"}, "snapshot")
+    if records:
+        return records[0]['snapshot']
+    return next((r for r in _legacy_snapshot_history(key) if _snapshot_id(r) == sid), None)
+
+
+def _snapshot_metadata_page(key: str, limit: int = 100, offset: int = 0) -> tuple[list[dict], bool]:
+    if not 1 <= limit <= 100 or not 0 <= offset <= 40000:
+        raise HTTPException(400, "Invalid capture history pagination")
+    columns = "id,at,source_at,source_clock,complete,members,version"
+    records = _capture_select({"history_key": f"eq.{key}", "order": "at.desc,id.desc",
+                               "limit": str(limit + 1), "offset": str(offset)}, columns)
+    if not records:
+        # Legacy fallback is only appropriate before the first successful import.
+        exists = _capture_select({"history_key": f"eq.{key}", "limit": "1"}, "id")
+        if not exists:
+            records = list(reversed([_snapshot_meta(r) for r in _legacy_snapshot_history(key)]))[offset:offset+limit+1]
+    return [{column: r.get(column) for column in columns.split(",")} for r in reversed(records[:limit])], len(records) > limit
 
 
 @app.post("/api/screener/snapshots")
-def capture_screen_snapshot(inp: ScreenDefinition):
+def capture_screen_snapshot(inp: ScreenDefinition,
+                            request_id: Annotated[uuid.UUID | None, Header(alias="Idempotency-Key")] = None):
     key = _snapshot_key(inp)
+    if request_id:
+        existing = _snapshot_get(key, str(request_id))
+        if existing:
+            return _capture_reply(key, existing, True)
     if inp.preset:
         result = screener_execute(inp.preset, inp.market, 300)
         combined = list(result.get("rows") or [])
@@ -1517,7 +1564,7 @@ def capture_screen_snapshot(inp: ScreenDefinition):
         raise HTTPException(409, "Source timestamp is invalid or lacks a timezone; no snapshot captured")
     if source_age > 86400 or source_age < -300:
         raise HTTPException(409, "Source time is older than 24 hours or in the future; refresh before capturing changes")
-    snapshot = {"id": str(uuid.uuid4()), "version": 2,
+    snapshot = {"id": str(request_id or uuid.uuid4()), "version": 2,
                 "at": datetime.now(timezone.utc).isoformat(), "source_at": source_at,
                 "source_clock": "provider_retrieval" if inp.preset else "stored_universe",
                 "definition": inp.model_dump(),
@@ -1527,10 +1574,24 @@ def capture_screen_snapshot(inp: ScreenDefinition):
                                           if inp.preset else r.get(f.get("field"))
                                           for f in inp.filters}}
                             for r in rows], "complete": True}
+    legacy = _legacy_snapshot_history(key)
+    records = [{"id": _snapshot_id(s), "snapshot": s} for s in legacy] + [{"id": snapshot["id"], "snapshot": snapshot}]
+    try:
+        inserted = db._call("POST", "rpc/screen_capture_append", body={"p_key": key, "p_records": records})
+        if type(inserted) is not int or not 0 <= inserted <= len(records):
+            raise RuntimeError("Unconfirmed capture append")
+    except (RuntimeError, OSError):
+        existing = _snapshot_get(key, snapshot["id"])
+        if existing:
+            return _capture_reply(key, existing, True)
+        raise HTTPException(503, "Capture was not confirmed. Retry with the same capture request.") from None
+    return _capture_reply(key, snapshot)
+
+
+def _capture_reply(key: str, snapshot: dict, idempotent: bool = False) -> dict:
     history = _snapshot_history(key)
-    history = (history + [snapshot])[-2:]
-    db.upsert("app_settings", "key", {"key": key, "value": {"snapshots": history}})
-    return {"captured": True, "id": snapshot["id"], "members": len(rows), "at": snapshot["at"], "baseline": len(history) == 1}
+    return {"captured": True, "id": _snapshot_id(snapshot), "members": len(snapshot['members']),
+            "at": snapshot["at"], "baseline": len(history) == 1, "idempotent": idempotent}
 
 
 def _snapshot_id(snapshot: dict) -> str:
@@ -1546,13 +1607,14 @@ def _snapshot_meta(snapshot: dict) -> dict:
 
 
 @app.get("/api/screener/snapshot-history")
-def screen_snapshot_history(definition: str):
+def screen_snapshot_history(definition: str, limit: int = 100, offset: int = 0):
     try:
         inp = ScreenDefinition.model_validate_json(definition)
     except ValueError:
         raise HTTPException(400, "Invalid screen definition")
-    return {"snapshots": [_snapshot_meta(s) for s in _snapshot_history(_snapshot_key(inp))],
-            "retained_limit": 2, "scope": "deployment_owner"}
+    metadata, more = _snapshot_metadata_page(_snapshot_key(inp), limit, offset)
+    return {"snapshots": metadata, "has_more": more, "offset": offset, "limit": limit,
+            "retained_limit": None, "scope": "deployment_owner"}
 
 
 def _change_evidence(before: dict | None, after: dict | None, inp: ScreenDefinition) -> list[dict]:
@@ -1574,7 +1636,7 @@ def _change_evidence(before: dict | None, after: dict | None, inp: ScreenDefinit
 @app.get("/api/screener/changes")
 def screen_changes(definition: str, previous_id: str | None = None, current_id: str | None = None,
                    status: str = "all", q: str = "", sort: str = "symbol", direction: int = 1,
-                   limit: int = 100, offset: int = 0):
+                   limit: int = 100, offset: int = 0, history_offset: int = 0):
     if status not in ("new", "exited", "all"):
         raise HTTPException(400, "Invalid review filter or sort")
     if direction not in (1, 2) or not 1 <= limit <= 500 or not 0 <= offset <= 40000 or len(q) > 100:
@@ -1589,15 +1651,25 @@ def screen_changes(definition: str, previous_id: str | None = None, current_id: 
     if sort not in ("symbol", "name", "status", "market_cap") and (
             not criterion_sort or criterion_sort.group(2) not in numeric_criteria):
         raise HTTPException(400, "Choose a captured numeric criterion to sort")
-    history = _snapshot_history(_snapshot_key(inp))
-    metadata = [_snapshot_meta(s) for s in history]
+    key = _snapshot_key(inp)
+    history = _snapshot_history(key)
+    metadata, history_more = _snapshot_metadata_page(key, 100, history_offset)
+    # Preserve injected/offline and unimported legacy history metadata.
+    if not metadata and history_offset == 0:
+        metadata = [_snapshot_meta(s) for s in history]
+    history_meta = {"history": metadata, "history_has_more": history_more, "history_offset": history_offset,
+                    "history_limit": 100, "retained_limit": None, "scope": "deployment_owner"}
     if len(history) < 2:
-        return {"comparable": False, "history": metadata, "reason":
+        return {"comparable": False, **history_meta, "reason":
                 "Baseline captured. Capture another complete snapshot to compare." if history else
                 "No baseline yet. Capture a complete snapshot to start."}
     by_id = {_snapshot_id(s): s for s in history}
-    previous = by_id.get(previous_id) if previous_id else history[-2]
-    current = by_id.get(current_id) if current_id else history[-1]
+    previous = (by_id.get(previous_id) or _snapshot_get(key, previous_id)) if previous_id else history[-2]
+    current = (by_id.get(current_id) or _snapshot_get(key, current_id)) if current_id else history[-1]
+    if previous and current:
+        known = {m['id'] for m in metadata}
+        metadata.extend(_snapshot_meta(s) for s in (previous, current) if _snapshot_id(s) not in known)
+        metadata.sort(key=lambda s: (s.get('at') or '', s['id']))
     if not previous or not current:
         raise HTTPException(404, "Snapshot pair not retained for this screen")
     try:
@@ -1605,19 +1677,19 @@ def screen_changes(definition: str, previous_id: str | None = None, current_id: 
         if any(t.tzinfo is None for t in times):
             raise ValueError("timezone missing")
     except (KeyError, TypeError, ValueError):
-        return {"comparable": False, "history": metadata, "reason": "Snapshot capture times are invalid; no changes inferred."}
+        return {"comparable": False, **history_meta, "reason": "Snapshot capture times are invalid; no changes inferred."}
     if _snapshot_id(previous) == _snapshot_id(current) or times[0] >= times[1]:
         raise HTTPException(400, "Choose distinct snapshots in chronological order")
     if not previous.get("complete") or not current.get("complete"):
-        return {"comparable": False, "history": metadata, "reason": "Incomplete snapshots cannot establish entries or exits."}
+        return {"comparable": False, **history_meta, "reason": "Incomplete snapshots cannot establish entries or exits."}
     if previous.get("version", 1) != current.get("version", 1):
-        return {"comparable": False, "history": metadata, "reason": "Snapshot evidence contract changed. Capture another matching baseline."}
+        return {"comparable": False, **history_meta, "reason": "Snapshot evidence contract changed. Capture another matching baseline."}
     for snapshot in (previous, current):
         members = snapshot.get("members")
         if not isinstance(members, list) or any(not isinstance(r, dict) or not isinstance(r.get("code"), str) or not r.get("code") for r in members):
-            return {"comparable": False, "history": metadata, "reason": "Snapshot identities are incomplete; no changes inferred."}
+            return {"comparable": False, **history_meta, "reason": "Snapshot identities are incomplete; no changes inferred."}
         if len({r["code"] for r in members}) != len(members):
-            return {"comparable": False, "history": metadata, "reason": "Snapshot identities are duplicated; no changes inferred."}
+            return {"comparable": False, **history_meta, "reason": "Snapshot identities are duplicated; no changes inferred."}
     a = {r["code"]: r for r in previous["members"]}
     b = {r["code"]: r for r in current["members"]}
     changes = []
@@ -1649,10 +1721,11 @@ def screen_changes(definition: str, previous_id: str | None = None, current_id: 
     selected = (known + missing)[offset:offset + limit]
     for row in selected:
         row["evidence"] = _change_evidence(row["previous"], row["current"], inp)
-    return {"comparable": True, "history": metadata,
+    return {"comparable": True, **history_meta,
             "previous_id": _snapshot_id(previous), "current_id": _snapshot_id(current),
             "previous_at": previous["at"], "current_at": current["at"],
             "previous_source_at": previous.get("source_at"), "current_source_at": current.get("source_at"),
+            "previous_source_clock": previous.get("source_clock", "unverified"), "current_source_clock": current.get("source_clock", "unverified"),
             "rows": selected, "counts": counts, "matched": len(filtered), "offset": offset, "limit": limit,
             "definition": inp.model_dump(), "added": [b[k] for k in sorted(b.keys() - a.keys())],
             "exited": [a[k] for k in sorted(a.keys() - b.keys())], "unchanged": len(a.keys() & b.keys())}

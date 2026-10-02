@@ -27,7 +27,24 @@ class FakeDb:
             elif v.startswith("in.("):
                 col, vals = k, set(v[4:-1].split(","))
                 rows = [r for r in rows if str(r.get(col)) in vals]
-        return rows
+        for part in reversed((query or {}).get('order', '').split(',')):
+            if not part:continue
+            field, _, direction = part.partition('.')
+            rows.sort(key=lambda r:str(r.get(field) or ''),reverse=direction=='desc')
+        offset=int((query or {}).get('offset',0));limit=int((query or {}).get('limit',len(rows)))
+        return rows[offset:offset+limit]
+    def _call(self,method,path,body=None,query=None,prefer=None):
+        if method!='POST' or path!='rpc/screen_capture_append':raise AssertionError('Unexpected fake RPC')
+        import copy
+        rows=copy.deepcopy(self._t('screen_captures'));inserted=0
+        for record in body['p_records']:
+            existing=next((r for r in rows if r['history_key']==body['p_key'] and r['id']==record['id']),None)
+            if existing:
+                if existing['snapshot']!=record['snapshot']:raise RuntimeError('conflicting capture identity')
+                continue
+            snapshot=record['snapshot'];rows.append({'history_key':body['p_key'],'id':record['id'],'at':snapshot['at'],'source_at':snapshot.get('source_at'),'source_clock':snapshot.get('source_clock','unverified'),'complete':bool(snapshot.get('complete')),'members':len(snapshot['members']),'version':snapshot.get('version',1),'snapshot':copy.deepcopy(snapshot)});inserted+=1
+        self.tables['screen_captures']=rows
+        return inserted
     def insert(self, table, row, prefer="return=representation"):
         row = {**row, "id": f"{table}-{len(self._t(table))+1}"}
         self._t(table).append(row)

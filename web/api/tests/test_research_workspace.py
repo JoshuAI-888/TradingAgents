@@ -148,7 +148,7 @@ def test_provider_snapshot_does_not_substitute_snapshot_volume_for_average_evide
     now=datetime.now(timezone.utc).isoformat()
     monkeypatch.setattr(api,'screener_execute',lambda *args:{'available':True,'retrieved_at':now,'filters':api.PRESET_SCREENERS[0]['filters'],'rows':[{'code':'US.A','symbol':'A','stock_type':'STOCK','volume':123,'revenue_growth':99}]})
     api.capture_screen_snapshot(api.ScreenDefinition(preset='penny',filters=api.PRESET_SCREENERS[0]['filters']))
-    member=api.db._t('app_settings')[0]['value']['snapshots'][0]['members'][0]
+    member=api.db._t('screen_captures')[0]['snapshot']['members'][0]
     assert member['evidence']['volume'] is None and member['evidence']['revenue_growth'] is None
 
 @pytest.mark.parametrize('stamp',['not-a-date','2026-10-02T01:00:00','2099-01-01T00:00:00Z'])
@@ -218,3 +218,93 @@ def test_review_criterion_sort_uses_exact_capture_side_before_pagination(monkeyp
             assert {r['code'] for r in rows[-2:]}==({'US.C','US.D'} if side=='before' else {'US.B','US.D'})
     for sort in ['criterion:after:roe','criterion:latest:pe_ttm','criterion:after:pe_ttm;drop','arbitrary']:
         with pytest.raises(HTTPException):api.screen_changes(spec.model_dump_json(),sort=sort)
+
+
+def test_immutable_history_retains_legacy_and_every_new_capture(monkeypatch):
+    import copy
+    now=datetime.now(timezone.utc).isoformat();spec=api.ScreenDefinition()
+    legacy={'id':'legacy-record','version':1,'at':'2026-09-30T00:00:00Z','complete':True,'members':[{'code':'US.LEGACY'}]}
+    key=api._snapshot_key(spec);api.db._t('app_settings').append({'key':key,'value':{'snapshots':[legacy]}})
+    old=copy.deepcopy(api.db._t('app_settings'))
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':[{'code':'US.A','symbol':'A','stock_type':'STOCK','price':1}],'matched':1})
+    ids=[api.capture_screen_snapshot(spec)['id'] for _ in range(5)]
+    assert api.db._t('app_settings')==old
+    timeline=api.screen_snapshot_history(spec.model_dump_json(),limit=2)
+    assert timeline['retained_limit'] is None and timeline['has_more'] and len(timeline['snapshots'])==2
+    assert all('snapshot' not in row for row in timeline['snapshots'])
+    pages=[api.screen_snapshot_history(spec.model_dump_json(),limit=2,offset=offset)['snapshots'] for offset in (0,2,4)]
+    assert {row['id'] for page in pages for row in page}==set(ids+['legacy-record'])
+    pair=api.screen_changes(spec.model_dump_json(),previous_id=ids[0],current_id=ids[-1])
+    assert pair['comparable'] and pair['previous_id']==ids[0]
+    # Unverified/changed legacy evidence contracts stay unavailable.
+    assert not api.screen_changes(spec.model_dump_json(),previous_id='legacy-record',current_id=ids[-1])['comparable']
+    monkeypatch.setenv('DEFAULT_USER_ID','other-history-owner')
+    assert api._snapshot_get(api._snapshot_key(spec),ids[0]) is None
+    api.capture_screen_snapshot(spec);api.capture_screen_snapshot(spec)
+    with pytest.raises(HTTPException) as err:api.screen_changes(spec.model_dump_json(),previous_id=ids[0],current_id=ids[-1])
+    assert err.value.status_code==404
+
+
+@pytest.mark.parametrize("failure", [RuntimeError("lost response"), OSError("network timeout")])
+def test_capture_request_is_idempotent_after_a_lost_response(monkeypatch, failure):
+    import uuid
+    now=datetime.now(timezone.utc).isoformat();spec=api.ScreenDefinition();request=uuid.uuid4()
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':[{'code':'US.A','stock_type':'STOCK'}],'matched':1})
+    rpc=api.db._call
+    def lost(*args,**kwargs):
+        rpc(*args,**kwargs);raise failure
+    monkeypatch.setattr(api.db,'_call',lost)
+    first=api.capture_screen_snapshot(spec,request)
+    assert first['captured'] and first['idempotent'] and first['id']==str(request)
+    monkeypatch.setattr(api,'screener',lambda **kw:pytest.fail('Retry refetched the provider'))
+    second=api.capture_screen_snapshot(spec,request)
+    assert second==first and len(api.db._t('screen_captures'))==1
+
+
+def test_capture_storage_failure_never_replaces_the_legacy_history(monkeypatch):
+    import copy
+    now=datetime.now(timezone.utc).isoformat();spec=api.ScreenDefinition();key=api._snapshot_key(spec)
+    api.db._t('app_settings').append({'key':key,'value':{'snapshots':[]}});old=copy.deepcopy(api.db.tables)
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':[],'matched':0})
+    monkeypatch.setattr(api.db,'_call',lambda *args,**kwargs:(_ for _ in ()).throw(RuntimeError('secret database detail')))
+    with pytest.raises(HTTPException) as e:api.capture_screen_snapshot(spec)
+    assert e.value.status_code==503 and 'secret' not in e.value.detail
+    assert api.db._t('app_settings')==old['app_settings'] and not api.db._t('screen_captures')
+
+
+def test_capture_history_pages_are_metadata_only_and_keep_selected_old_pair(monkeypatch):
+    spec=api.ScreenDefinition();key=api._snapshot_key(spec)
+    from datetime import timedelta
+    base=datetime(2026,1,1,tzinfo=timezone.utc)
+    for i in range(105):
+        s={'id':f'capture-{i:03}','at':(base+timedelta(days=i)).isoformat(),'complete':True,'version':2,'members':[{'code':'US.A','evidence':{'price':i}}]}
+        api.db._call('POST','rpc/screen_capture_append',body={'p_key':key,'p_records':[{'id':s['id'],'snapshot':s}]})
+    latest=api.screen_snapshot_history(spec.model_dump_json())
+    assert latest['has_more'] and len(latest['snapshots'])==100
+    assert not any('snapshot' in row for row in latest['snapshots'])
+    older=api.screen_changes(spec.model_dump_json(),previous_id='capture-000',current_id='capture-104',history_offset=100)
+    assert older['comparable'] and older['history_offset']==100 and not older['history_has_more']
+    assert {m['id'] for m in older['history']}=={f'capture-{i:03}' for i in range(5)}|{'capture-104'}
+    for limit,offset in ((0,0),(101,0),(1,-1),(1,40001)):
+        with pytest.raises(HTTPException):api.screen_snapshot_history(spec.model_dump_json(),limit,offset)
+
+
+def test_capture_http_idempotency_header_and_metadata_contract(monkeypatch):
+    from fastapi.testclient import TestClient
+    import uuid
+    now=datetime.now(timezone.utc).isoformat();calls=[];spec=api.ScreenDefinition()
+    def provider(**kwargs):
+        calls.append(kwargs)
+        return {'available':True,'universe_loaded':True,'universe_as_of':now,'rows':[{'code':'US.A','stock_type':'STOCK'}],'matched':1}
+    monkeypatch.setattr(api,'screener',provider)
+    client=TestClient(api.app);request=str(uuid.uuid4())
+    first=client.post('/api/screener/snapshots',json=spec.model_dump(),headers={'Idempotency-Key':request,'X-User-ID':'untrusted-owner'})
+    assert first.status_code==200 and first.json()['id']==request
+    second=client.post('/api/screener/snapshots',json=spec.model_dump(),headers={'Idempotency-Key':request})
+    assert second.status_code==200 and second.json()['idempotent'] and len(calls)==1
+    assert api.db._t('screen_captures')[0]['history_key']==api._snapshot_key(spec)
+    history=client.get('/api/screener/snapshot-history',params={'definition':spec.model_dump_json()}).json()
+    assert history['scope']=='deployment_owner' and history['retained_limit'] is None and history['snapshots'][0]['id']==request
+    assert 'snapshot' not in history['snapshots'][0]
+    assert client.post('/api/screener/snapshots',json=spec.model_dump(),headers={'Idempotency-Key':'bad'}).status_code==422
+    assert len(calls)==1

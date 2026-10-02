@@ -83,6 +83,21 @@ after_time=(datetime.now(timezone.utc)-timedelta(hours=1)).isoformat()
 api.db._t('app_settings').append({'key':api._snapshot_key(change_definition),'value':{'snapshots':[
     {'id':'fixture-before','version':2,'at':before_time,'source_at':before_time,'source_clock':'stored_universe','definition':change_definition.model_dump(),'members':before_members,'complete':True},
     {'id':'fixture-after','version':2,'at':after_time,'source_at':after_time,'source_clock':'stored_universe','definition':change_definition.model_dump(),'members':after_members,'complete':True}]}})
+# Optional large timeline for retained-history browser pagination only.
+# These dated copies are synthetic observations, not market-history evidence.
+if os.getenv('RESEARCH_HISTORY_PAGING') == '1':
+    import copy
+    capture_key=api._snapshot_key(change_definition)
+    legacy=api.db._t('app_settings')[-1]['value']['snapshots']
+    api.db._call('POST','rpc/screen_capture_append',body={'p_key':capture_key,'p_records':[{'id':s['id'],'snapshot':s} for s in legacy]})
+    paging_records=[]
+    for i in range(103):
+        snapshot=copy.deepcopy(legacy[0]);snapshot['id']=f'paging-{i:03}'
+        snapshot['at']=(datetime.now(timezone.utc)-timedelta(days=i+2)).isoformat();snapshot['source_at']=snapshot['at']
+        paging_records.append({'id':snapshot['id'],'snapshot':snapshot})
+    for offset in range(0,len(paging_records),100):
+        api.db._call('POST','rpc/screen_capture_append',body={'p_key':capture_key,'p_records':paging_records[offset:offset+100]})
+
 api.db._t('saved_screeners').append({'id':'saved','user_id':'offline-review','name':'Saved Price Ascending','filters':[{'field':'price','max':10}],'sort':'price','direction':1,'market':'US','settings':{}})
 class MemoryCache:
     def key(self,*args):return str(args)

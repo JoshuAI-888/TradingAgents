@@ -167,3 +167,16 @@ D1/D2 are not complete: criterion-specific table fields/sorting, selection, Next
 ### Local private-research backend checkpoint
 
 Owner-verified shortlist APIs and an additive migration are implemented, with soft archive/removal, canonical instrument membership, private notes/review status, optimistic revisions and atomic parent locks. **226 API/worker tests pass**; an isolated PostgreSQL 16.14 contract and an observed two-connection archive/add race pass. Details and limitations are in [private research ownership](private-research-ownership.md). No browser login/list UI is wired yet; the migration is unapplied to production. Existing 22 presets and shared Phase 0 saved/watchlist/snapshot records are untouched. Owner-private storage does not close shared-team workflow acceptance. Next: authentication UI and shortlist/review integration, legacy ownership migration, live schema/Auth qualification and the remaining D/E/F gates.
+
+## Latest retained-history checkpoint
+
+This supersedes historical statements above that storage currently retains only two captures. The new local build retains immutable captures and reads two payloads only for the default comparison; its date history is metadata-paginated. Legacy blobs/IDs remain intact. [Retained-history contract and rollout gates](durable-screen-history.md) include the nontransparent old-binary rollback limitation.
+
+- [x] 239 API/worker and 62 JavaScript regressions pass.
+- [x] Isolated PostgreSQL immutable/grant/idempotency/atomicity contracts and actual two-connection append race pass; the local test server is stopped.
+- [x] Synthetic 105-capture browser paging retains selected pair/counts/disclosure/focus; first review row remains 491.4 CSS px with provenance collapsed.
+- [ ] Verified capture ownership/team roles and legacy mapping; real Auth/PostgREST/production migration qualification.
+- [ ] Complete paired observations with compatible periods/currency/source clocks, pair-scoped review and opt-in schedules.
+- [ ] Large-history/device/accessibility/performance, completed downloads, fresh Moomoo/data reconciliation and qualified cutover/rollback.
+
+The shortlist UI is wired locally; older backend-only statements above are historical. This checkpoint is unmerged/undeployed and does not close full-design acceptance.

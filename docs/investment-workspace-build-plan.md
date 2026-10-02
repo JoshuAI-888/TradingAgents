@@ -1,18 +1,18 @@
 # TradingAgents: combined screener and research workflow
 
-**Latest execution plan:** [current build against the mockups](investment-workspace-mockup-review.md), reviewed against the working tree on 2 October. Its gap-to-build table supersedes earlier local status paragraphs below. Research account/list UI is now wired locally; it remains unmerged, undeployed and unqualified against real Auth. All original preservation and data gates remain required.
+**Latest execution plan:** [current build against the mockups](investment-workspace-mockup-review.md), reviewed against the working tree on 2 October. Its gap-to-build table supersedes earlier local status paragraphs below. Research account/list UI and compact criterion review are committed locally; immutable retained history is now implemented and tested locally. These changes remain unmerged, undeployed and unqualified against real Auth/production storage. All original preservation and data gates remain required.
 
 Current build order and completion checklist:
 
 - [ ] Finish shortlist workflow acceptance: dialogs, bounded inspector, phone cards/chooser, ticker/status/Next unreviewed and conflict recovery are implemented locally. Complete company search, phone first-fold density, tablet/zoom/keyboard coverage, real Auth and browser export qualification.
 - [ ] Qualify authentication/private storage; implement team roles and explicit legacy ownership migration without losing saved definitions.
 - [ ] Complete Changes acceptance: contextual/compact layout and criterion matrix/capture-side sorting are implemented locally. Add selected review actions and pair-scoped review status; qualify real observations and expanded device/zoom cases.
-- [ ] Implement immutable retained history, complete paired observations and opt-in capture schedules.
+- [ ] Qualify immutable retained history in production: append-only storage, retries and paged date selection are implemented locally. Complete verified capture ownership, paired observations, opt-in schedules, large-history performance and recovery qualification. See [retained-history contract](durable-screen-history.md).
 - [ ] Qualify provider coverage; add sector/cap/peer context and supported advanced axes with explicit eligibility.
 - [ ] Finish desk typography/icons and research toolbar grouping; verify every original preset, chart/tab/Compare feature and export scope.
 - [ ] Complete dated Moomoo reconciliation, real-device performance/accessibility and analyst tasks; merge/deploy and verify production with rollback.
 
-Fresh regression checks: 233 API/worker tests and 57 JavaScript tests pass; isolated updated PostgreSQL revision/locking contracts pass. Browser evidence is synthetic; passing tests do not close the checklist above.
+Fresh regression checks: 239 API/worker tests and 62 JavaScript tests pass; isolated PostgreSQL revision/locking and immutable capture/concurrent append contracts pass. Browser evidence is synthetic; passing tests do not close the checklist above.
 
 Prepared 2 October 2026. This records the approved design, implementation sequence and release checks. Implementation and verification status is recorded in [the release checklist](investment-workspace-release-checklist.md). Based on the current repository, live browser inspection, read-only API probes and read-only database aggregates. The approved Research Desk, Factor Explorer and Change Monitor become views of one workflow, rather than separate products.
 
