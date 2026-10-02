@@ -7,6 +7,32 @@ from datetime import datetime,timezone
 import math
 import re
 
+CURRENCY_FIELDS = frozenset({'price','chg','open','high','low','high52','low52',
+    'market_cap','float_cap','turnover','eps','div_ttm','target_price','op_ebt'})
+
+
+def field_currency(row,field):
+    """Supplied field currency with identity/value/unit checks; never infer it.
+
+    This validates attribution for display/export, not fiscal/session or peer
+    comparability. Trading currency on a company record cannot qualify EPS,
+    capitalization or another provider's financial value.
+    """
+    if field not in CURRENCY_FIELDS:return None
+    code,value=row.get('code'),row.get(field)
+    observations=row.get('field_observations')
+    observation=observations.get(field) if isinstance(observations,dict) else None
+    if not isinstance(code,str) or not re.fullmatch(r'(US|HK)\.[A-Z0-9][A-Z0-9._-]{0,30}',code):return None
+    def finite(number):
+        try:return type(number) in (int,float) and math.isfinite(number)
+        except OverflowError:return False
+    if not finite(value) or not isinstance(observation,dict):return None
+    observed=observation.get('value');currency=observation.get('currency')
+    if (observation.get('code')!=code or observation.get('field')!=field or observation.get('unit')!='currency'
+            or not finite(observed) or observed!=value
+            or not isinstance(currency,str) or not re.fullmatch(r'[A-Z]{3}',currency)):return None
+    return currency
+
 
 def cloud_snapshot_time(value):
     if isinstance(value,bool) or not isinstance(value,(str,int,float)):

@@ -23,6 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from tradingagents_worker.enrich_fields import TECH_FIELDS, YF_ONLY_FIELDS
+from tradingagents_worker.quote_observations import CURRENCY_FIELDS, field_currency
 from tradingagents_worker.config import SETTINGS
 from tradingagents_worker.db import Db
 from tradingagents_worker.screener_generations import read_generation, GenerationError, canonical_generation, aware_time
@@ -974,14 +975,18 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
                 "turnover_rate", "volume_ratio", "pe", "pe_ttm", "pb",
                 "div_yield", "div_ttm", "eps", "amplitude", "bid_ask_ratio",
                 "high52", "low52", "new_high", "new_low"]
-        cols += [k for k in (rows[0] if rows else {}) if k not in cols]
+        cols += list(dict.fromkeys(k for row in rows for k in row if k not in cols))
+        money_cols=[field for field in cols if field in CURRENCY_FIELDS]
+        cols += [field+'_currency' for field in money_cols if field+'_currency' not in cols]
+        rows=[{**row,**{field+'_currency':field_currency(row,field) or 'Unavailable' for field in money_cols}} for row in rows]
         from xml.sax.saxutils import escape as _x
         from fastapi.responses import Response
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
         fname = f"screener_{market}_{matched}rows_{stamp}"
         if export == "csv":
             def cell(v):
-                s = "" if v is None else str(v)
+                s = "" if v is None else json.dumps(v,ensure_ascii=False,allow_nan=False) if isinstance(v,(dict,list)) else str(v)
+                if isinstance(v,str) and re.match(r'^[=+@\-\t\r]',s):s="'"+s
                 return '"' + s.replace('"', '""') + '"' if any(ch in s for ch in ',"\n') else s
             lines = [",".join(cell(c) for c in cols)]
             lines += [",".join(cell(r.get(c)) for c in cols) for r in rows]
@@ -1002,7 +1007,8 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
                 elif isinstance(v, (int, float)) and not isinstance(v, bool):
                     cells.append(f'<Cell><Data ss:Type="Number">{v}</Data></Cell>')
                 else:
-                    cells.append(f'<Cell><Data ss:Type="String">{_x(str(v))}</Data></Cell>')
+                    s=json.dumps(v,ensure_ascii=False,allow_nan=False) if isinstance(v,(dict,list)) else str(v)
+                    cells.append(f'<Cell><Data ss:Type="String">{_x(s)}</Data></Cell>')
             xml.append("<Row>" + "".join(cells) + "</Row>")
         xml.append("</Table></Worksheet></Workbook>")
         return Response("".join(xml), media_type="application/vnd.ms-excel",
@@ -2681,18 +2687,7 @@ def _cap_bucket(cap):
 
 def _group_cap_currency(row):
     value = row.get('market_cap')
-    observations = row.get('field_observations')
-    observation = observations.get('market_cap') if isinstance(observations,dict) else None
-    if not numeric(value) or value <= 0 or not isinstance(observation,dict):
-        return None
-    currency = observation.get('currency')
-    code = row.get('code')
-    if (not isinstance(code,str) or not re.fullmatch(r'(US|HK)\.[A-Z0-9][A-Z0-9.\-]*',code)
-            or observation.get('code') != code or observation.get('field') != 'market_cap'
-            or not numeric(observation.get('value')) or observation.get('value') != value or observation.get('unit') != 'currency'
-            or not isinstance(currency,str) or not re.fullmatch(r'[A-Z]{3}',currency)):
-        return None
-    return currency
+    return field_currency(row,'market_cap') if numeric(value) and value>0 else None
 
 
 def _group_sum(values):

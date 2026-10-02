@@ -582,3 +582,27 @@ def test_malformed_supplemental_and_observations_fail_closed(monkeypatch):
     result=api.screener(watchlist_only=0,src='yf',filters='[{"field":"forward_pe","max":40}]')
     assert result['rows']==[]
     groups=api.groups();assert all(r['cap_sum'] is None for r in groups['rows'])
+
+
+def test_field_currency_and_server_exports_preserve_attribution_without_inference(monkeypatch):
+    import csv,io,json
+    from tradingagents_worker.quote_observations import field_currency
+    rows=[{'code':'US.BRK.B','symbol':'BRK.B','stock_type':'STOCK','name':'=1+1','price':0,'market_cap':1000,'currency':'USD'},
+          {'code':'HK.0005','symbol':'0005','stock_type':'STOCK','price':2,'market_cap':900,
+           'field_observations':{'price':{'code':'HK.0005','field':'price','value':2,'unit':'currency','currency':'HKD'}}}]
+    assert field_currency(rows[0],'market_cap') is None
+    assert field_currency(rows[1],'price')=='HKD'
+    for mutation in [{'value':True},{'value':3},{'code':'US.0005'},{'unit':'multiple'},{'currency':'usd'}]:
+        bad={**rows[1],'field_observations':{'price':{**rows[1]['field_observations']['price'],**mutation}}}
+        assert field_currency(bad,'price') is None
+    assert field_currency({'code':'US.A','market_cap':10**400},'market_cap') is None
+    monkeypatch.setattr(api,'_stored_universe',lambda *a,**k:(rows,None))
+    monkeypatch.setattr(api,'_market_client',lambda:object())
+    result=api.screener(watchlist_only=0,export='csv')
+    data=list(csv.DictReader(io.StringIO(result.body.decode('utf-8-sig'))))
+    assert data[0]['price']=='0' and data[0]['name']=="'=1+1"
+    assert data[0]['price_currency']==data[0]['market_cap_currency']=='Unavailable'
+    assert data[1]['price_currency']=='HKD' and data[1]['market_cap_currency']=='Unavailable'
+    assert json.loads(data[1]['field_observations'])['price']['currency']=='HKD'
+    xml=api.screener(watchlist_only=0,export='xls').body.decode()
+    assert 'price_currency' in xml and '>HKD<' in xml and '"currency": "HKD"' in xml

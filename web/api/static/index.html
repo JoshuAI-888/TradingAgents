@@ -416,7 +416,7 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 ::-webkit-scrollbar-thumb:hover{background:#33445f}
 *{scrollbar-width:thin;scrollbar-color:#26344a var(--bg)}
 </style>
-<link rel="stylesheet" href="/research-workspace.css?v=20261002-refresh-integrity">
+<link rel="stylesheet" href="/research-workspace.css?v=20261002-field-currency">
 </head>
 <body>
 <div class="wrap">
@@ -687,23 +687,28 @@ function scrExport(kind, scope) {
   if (scope === "explore" && !list.length) { alert("No stocks qualify in the current Explorer region."); return; }
   const rowNumber = (r, i) => ["selected","explore"].includes(scope) ? rows.indexOf(r) + 1 : (scope === "page" ? ((st.page || 1) - 1) * (st.pageSize || 500) : 0) + i + 1;
   const cols = [...new Set(["symbol", ...st.cols.filter(k => k !== "symbol"), "code", ...(list.some(r=>r.generation_id)?["generation_id","quote_cache_at"]:[]), ...(scope === "explore" ? [researchExploreState().x,researchExploreState().y] : [])])];
+  const moneyCols=cols.filter(k=>RESEARCH_CURRENCY_FIELDS.has(k));
+  cols.push(...moneyCols.map(k=>k+'_currency'));
+  if(list.some(r=>r.field_observations))cols.push('field_observations');
+  if(list.some(r=>r.display_field_sources))cols.push('display_field_sources');
+  const exportValue=(r,k)=>moneyCols.some(f=>k===f+'_currency')?researchFieldCurrency(r,k.slice(0,-9)) || 'Unavailable':r[k];
   const headers = ["No.", ...cols.map(k => (SCR_COLS[k] || [k])[0])];
-  const ccell = v => { let s = v == null ? "" : String(v); if(typeof v === "string" && /^[=+@\-\t\r]/.test(s)) s="'"+s; return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const ccell = v => { let s = v == null ? "" : typeof v==='object'?JSON.stringify(v):String(v); if(typeof v === "string" && /^[=+@\-\t\r]/.test(s)) s="'"+s; return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const stamp = new Date().toISOString().slice(0, 10);
   const fname = "screener_" + st.market + "_" + list.length + "rows_" + stamp + (scope === "selected" ? "_selected" : scope === "explore" ? "_region" : "");
   let blob, ext;
   if (kind === "csv") {
     const lines = [headers.map(ccell).join(",")];
-    list.forEach((r, i) => lines.push([String(rowNumber(r, i)), ...cols.map(k => ccell(r[k]))].join(",")));
+    list.forEach((r, i) => lines.push([String(rowNumber(r, i)), ...cols.map(k => ccell(exportValue(r,k)))].join(",")));
     blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
     ext = "csv";
   } else {
-    const x = v => String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const x = v => String(v == null ? "" : typeof v==='object'?JSON.stringify(v):v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const xml = ['<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>',
       '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" '
       + 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Screener"><Table>',
       "<Row>" + headers.map(h => '<Cell><Data ss:Type="String">' + x(h) + "</Data></Cell>").join("") + "</Row>"];
-    list.forEach((r, i) => xml.push("<Row>" + [String(rowNumber(r, i)), ...cols.map(k => x(r[k]))]
+    list.forEach((r, i) => xml.push("<Row>" + [String(rowNumber(r, i)), ...cols.map(k => x(exportValue(r,k)))]
       .map(v => '<Cell><Data ss:Type="String">' + v + "</Data></Cell>").join("") + "</Row>"));
     xml.push("</Table></Worksheet></Workbook>");
     blob = new Blob([xml.join("")], { type: "application/vnd.ms-excel" });
@@ -1891,12 +1896,11 @@ const pages = {
     const viewRows = rows;
     const stars = st.watchlistSyms || [];
     const num = (v, dp) => v == null ? "—" : Number(v).toLocaleString(undefined, { maximumFractionDigits: dp });
-    const cap = v => v == null ? "—" : "$" + fmtBig(v);
     const cellFmt = {
       text: (r, k) => k === "symbol"
         ? `<a href="#" onclick="event.preventDefault();researchOpen('${esc(r.code || r.symbol)}')" class="mono sym" title="open stock page">${esc(r.symbol)}</a>`
         : `<span class="dim" title="${esc(r[k])}">${esc(String(r[k] || "").slice(0, 26))}</span>`,
-      num: (r, k) => k === "market_cap" || k === "float_cap" ? `<span class="mono">${cap(r[k])}</span>`
+      num: (r, k) => RESEARCH_CURRENCY_FIELDS.has(k) ? `<span class="mono ${['price','chg'].includes(k)?(r.chg>0?'g':r.chg<0?'r':''):''}">${researchMoneyHTML(r,k)}</span>`
         : k === "volume" || k === "turnover" || k === "shares" || k === "avg_vol3m" ? `<span class="mono">${r[k] != null ? (r[k] / 1e6).toFixed(2) + "M" : "—"}</span>`
         : k === "pct" || k === "chg" ? `<span class="mono ${r[k] > 0 ? "g" : r[k] < 0 ? "r" : ""}">${r[k] != null ? (r[k] > 0 ? "+" : "") + fmtAuto(r[k]) + (k === "pct" ? "%" : "") : "—"}</span>`
         : k === "price" ? `<span class="mono ${(r.chg ?? 0) > 0 ? "g" : (r.chg ?? 0) < 0 ? "r" : ""}">${fmtAuto(r[k])}</span>`

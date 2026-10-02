@@ -210,7 +210,7 @@ test('selected CSV and Excel export exactly the sorted selection and reject a pa
  c.document.createElement=()=>({click(){clicked++;filename=this.download;},remove(){}});c.alert=m=>alert=m;
  c.scrExport('csv','selected');const csv=Buffer.from(await blob.arrayBuffer());
  assert.equal(csv.subarray(0,3).toString('hex'),'efbbbf');
- assert.equal(csv.toString('utf8').replace(/^\ufeff/,'').split('\n').slice(1).join('\n'),'1,BRK.A,10,US.BRK.A\n2,BRK.B,9,US.BRK.B');assert.match(filename,/_selected\.csv$/);
+ assert.equal(csv.toString('utf8').replace(/^\ufeff/,'').split('\n').slice(1).join('\n'),'1,BRK.A,10,US.BRK.A,Unavailable\n2,BRK.B,9,US.BRK.B,Unavailable');assert.match(filename,/_selected\.csv$/);
  c.scrExport('xls','selected');const xml=await blob.text();assert.match(xml,/BRK.A[\s\S]*BRK.B/);assert.equal((xml.match(/<Row>/g)||[]).length,3);assert.match(filename,/_selected\.xls$/);
  c.__researchSelected.push('US.MISSING');c.scrExport('csv','selected');assert.equal(clicked,2);assert.match(alert,/outside the current loaded cohort/);
 });
@@ -428,7 +428,7 @@ test('repeated criterion windows retain independent columns, sorts and evidence 
 test('quote inspector separates provider update and cache clocks without inferring currency',()=>{
  const c=harness(),row={code:'HK.80000',quote_observed_at:'2026-10-02T00:00:00Z',quote_time_semantics:'provider_snapshot_update',quote_cache_at:'2026-10-02T01:00:00Z',data_date:'2026-10-02',update_time:1790919256};
  assert.equal(c.researchQuoteCurrency(row),'');assert.equal(c.researchQuoteCurrency({...row,currency:'CNY'}),'CNY');assert.equal(c.researchQuoteCurrency({...row,currency:'<script>'}),'');
- const html=c.researchQuoteProvenance(row);assert.match(html,/Provider snapshot updated:/);assert.match(html,/Cache updated:/);assert.match(html,/Currency: Not supplied/);assert.match(html,/not last-trade time/);assert.doesNotMatch(html,/HKD/);
+ const html=c.researchQuoteProvenance(row);assert.match(html,/Provider snapshot updated:/);assert.match(html,/Cache updated:/);assert.match(html,/Price currency: Not supplied/);assert.match(html,/not last-trade time/);assert.doesNotMatch(html,/HKD/);
  const missing=c.researchQuoteProvenance({...row,quote_time_semantics:null,quote_observed_at:null,quote_cache_at:'2026-10-02 01:00:00'});assert.match(missing,/Provider snapshot updated: Unavailable/);assert.match(missing,/Cache updated: Unavailable/);
 });
 
@@ -563,4 +563,26 @@ test('group drill opens its exact source cohort instead of retaining hidden pres
  const c=harness();Object.assign(c.__scr,{activePreset:'p',savedScreenId:'saved',filters:[{field:'price',min:100}],colFilters:{pb:{max:1}},watchlistOnly:true,etfs:true,page:5,presentation:'changes'});c.__researchSelected=['US.OLD'];
  c.scrDrillTo('sector','Technology');assert.equal(c.__scr.src,'yf');assert.equal(c.__scr.activePreset,null);assert.equal(c.__scr.savedScreenId,null);assert.equal(c.__scr.page,1);assert.equal(c.__scr.presentation,'table');assert.equal(c.__scr.etfs,false);assert.equal(c.__scr.watchlistOnly,false);assert.equal(c.__researchSelected.length,0);assert.equal(JSON.stringify(c.__scr.filters),'[{"field":"sector","values":["Technology"]}]');
  const before=JSON.stringify(c.__scr);c.scrDrillTo('cap_bucket','Unknown');assert.equal(JSON.stringify(c.__scr),before);
+});
+
+test('monetary display requires matching field observations and never borrows trading currency',()=>{
+ const c=harness();const r={code:'US.BRK.B',currency:'USD',price:0,eps:2,market_cap:1000,field_observations:{}};
+ const obs=(field,currency)=>({code:r.code,field,value:r[field],unit:'currency',currency});
+ assert.equal(c.researchMoneyValue(r,'market_cap'),'1K · currency unavailable');
+ assert.match(c.researchMoneyHTML(r,'price'),/^0 [\s\S]*Currency not supplied/);
+ r.field_observations.price=obs('price','USD');r.field_observations.eps=obs('eps','HKD');
+ assert.equal(c.researchMoneyValue(r,'eps'),'HKD 2');assert.match(c.researchMoneyHTML(r,'price'),/^USD /);
+ r.field_observations.market_cap=obs('market_cap','EUR');assert.equal(c.researchMoneyValue(r,'market_cap'),'EUR 1K');
+ for(const mutation of [{code:'US.BRK.A'},{value:999},{unit:'ratio'},{currency:'<USD>'},{value:true}]){
+  r.field_observations.market_cap={...obs('market_cap','USD'),...mutation};assert.equal(c.researchFieldCurrency(r,'market_cap'),'');
+ }
+ assert.equal(c.researchValue('market_cap',false),'Unavailable');assert.equal(c.researchValue('market_cap',[]),'Unavailable');
+});
+
+test('currency and typed provenance survive CSV and Excel selected exports',async()=>{
+ const c=harness(),r=stock('A',10,0,{code:'US.A',price:2,field_observations:{market_cap:{code:'US.A',field:'market_cap',value:10,unit:'currency',currency:'HKD'}}});
+ c.scrClientRows=()=>[r];c.__scr.cols=['market_cap','price'];c.__researchSelected=['US.A'];
+ let blob;c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){},remove(){}});
+ c.scrExport('csv','selected');const csv=await blob.text();assert.match(csv,/market_cap_currency,price_currency,field_observations/);assert.match(csv,/,HKD,Unavailable,/);assert.match(csv,/""currency"":""HKD""/);
+ c.scrExport('xls','selected');const xml=await blob.text();assert.match(xml,/market_cap_currency/);assert.match(xml,/>HKD</);assert.match(xml,/"currency":"HKD"/);assert.doesNotMatch(xml,/\[object Object\]/);
 });
