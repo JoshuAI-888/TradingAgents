@@ -114,3 +114,22 @@ def test_stale_technical_data_cannot_qualify_a_screen(monkeypatch):
     unfiltered=api.screener(watchlist_only=0,src='yf')
     apple=next(r for r in unfiltered['rows'] if r['symbol']=='AAPL')
     assert apple['forward_pe']==28 and 'rsi14' not in apple
+
+
+def test_library_definitions_do_not_depend_on_market_or_database(monkeypatch):
+    def unavailable(*args, **kwargs):
+        raise AssertionError('definition library must not fetch quote data')
+    monkeypatch.setattr(api, '_market_client', unavailable)
+    monkeypatch.setattr(api, '_stored_universe', unavailable)
+    payload = api.screener_presets(definitions_only=True)
+    assert len(payload['presets']) == 22
+    assert [{k:v for k,v in p.items() if k != 'top'} for p in payload['presets']] == api.PRESET_SCREENERS
+
+
+def test_legacy_stored_rows_recover_share_class_symbols(monkeypatch):
+    monkeypatch.setattr(api, '_stored_universe_cache', {})
+    original = {'code':'US.BRK.B','symbol':'B','market_cap':100}
+    monkeypatch.setattr(api.db, 'select_all', lambda *a, **k:[{'row':original,'updated_at':'2026-10-02T01:00:00Z'}])
+    rows, _ = api._stored_universe('US')
+    assert rows[0]['symbol'] == 'BRK.B'
+    assert original['symbol'] == 'B'
