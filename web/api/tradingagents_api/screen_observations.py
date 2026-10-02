@@ -101,6 +101,8 @@ def validate_observation_capture(snapshot, definition):
             if not isinstance(observation,dict) or observation.get('criterion') != criterion or observation.get('cache_at') != record['quote_cache_at']:
                 raise ValueError('Criterion identity or cache timestamp is inconsistent')
             value = observation.get('value')
+            if criterion.get('currency') is not None and (not isinstance(criterion['currency'],str) or not re.fullmatch(r'[A-Z]{3}',criterion['currency']) or observation.get('unit')!='currency' or not isinstance(observation.get('currency'),str) or not re.fullmatch(r'[A-Z]{3}',observation['currency'])):
+                raise ValueError('Criterion currency observation is incomplete or invalid')
             if criterion.get('values') is not None:
                 valid = isinstance(value,(str,list)) and (not isinstance(value,list) or all(isinstance(v,str) for v in value))
             else:

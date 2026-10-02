@@ -575,6 +575,9 @@ def _apply_filters(rows: list[dict], filters: list[dict], strict: bool = True) -
         return [], [f.get("field") for f in skipped]
     def keep(r: dict) -> bool:
         for f in active:
+            currency=f.get('currency')
+            if currency is not None and (not isinstance(currency,str) or not re.fullmatch(r'[A-Z]{3}',currency) or field_currency(r,f.get('field'))!=currency):
+                return False
             vals = f.get("values")
             if vals is not None:  # multi-select: keep on case-insensitive overlap
                 v = r.get(f.get("field"))
@@ -598,6 +601,12 @@ def _apply_filters(rows: list[dict], filters: list[dict], strict: bool = True) -
                 return False
         return True
     return [r for r in rows if keep(r)], [f.get("field") for f in skipped]
+
+
+def _criterion_filter_row(code, criterion, observation):
+    field=criterion['field']
+    return {'code':code,field:observation.get('value'),'field_observations':{
+        field:{**observation,'code':code,'field':field}}}
 
 
 def _sort_rows(rows: list[dict], sort: str, direction: int) -> list[dict]:
@@ -1845,11 +1854,14 @@ def capture_screen_snapshot(inp: ScreenDefinition,
         for raw, observation in zip(eligible,observations):
             qualifies = True
             for slot, criterion in criterion_slots(inp.filters):
-                value = observation['criterion_observations'][slot]['value']
+                actual=observation['criterion_observations'][slot]
+                if criterion.get('currency') is not None and (actual.get('unit')!='currency' or not isinstance(actual.get('currency'),str) or not re.fullmatch(r'[A-Z]{3}',actual['currency'])):
+                    raise HTTPException(409,'Eligible-universe currency observations are incomplete; no snapshot captured')
+                value = actual['value']
                 if value is None or (criterion.get('values') is None and not numeric(value) and not (
                     type(value) is bool and all(bound in (None,0,1) for bound in (criterion.get('min'),criterion.get('max'))))):
                     raise HTTPException(409, 'Eligible-universe criterion observations are incomplete or ambiguous; no snapshot captured')
-                matches, missing = _apply_filters([{criterion.get('field'):value}],[criterion])
+                matches, missing = _apply_filters([_criterion_filter_row(raw['code'],criterion,observation['criterion_observations'][slot])],[criterion])
                 qualifies = qualifies and bool(matches) and not missing
             if qualifies:
                 rows.append(raw)
@@ -2033,7 +2045,7 @@ def _screen_changes(definition: str, previous_id: str | None = None, current_id:
                 return {'comparable':False, **history_meta, 'reason':'Member evidence differs from captured universe observations; no changes inferred.'}
             qualifying = set()
             for code,record in lookup.items():
-                if all(_apply_filters([{c['field']:record['criterion_observations'][slot]['value']}],[c])[0]
+                if all(_apply_filters([_criterion_filter_row(code,c,record['criterion_observations'][slot])],[c])[0]
                        for slot,c in criterion_slots(inp.filters)):
                     qualifying.add(code)
             if qualifying != {r['code'] for r in snapshot['members']}:

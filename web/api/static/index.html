@@ -416,7 +416,7 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 ::-webkit-scrollbar-thumb:hover{background:#33445f}
 *{scrollbar-width:thin;scrollbar-color:#26344a var(--bg)}
 </style>
-<link rel="stylesheet" href="/research-workspace.css?v=20261002-explorer-encoding">
+<link rel="stylesheet" href="/research-workspace.css?v=20261002-explorer-currency">
 </head>
 <body>
 <div class="wrap">
@@ -692,9 +692,11 @@ function scrExport(kind, scope) {
   if(list.some(r=>r.field_observations))cols.push('field_observations');
   if(list.some(r=>r.display_field_sources))cols.push('display_field_sources');
   for(const key of ['criterion_values','criterion_evidence','criterion_retrieved_at'])if(list.some(r=>r[key]!=null))cols.push(key);
+  const explorer=scope==='explore'?researchExploreState():null,explorerContext=explorer && [explorer.x,explorer.y].includes('market_cap')?{scope:'eligible_loaded_region',x:explorer.x,y:explorer.y,bounds:explorer.bounds,cap_currency:explorer.capCurrency,sort:st.sort,direction:st.dir}:null;
+  if(explorerContext)cols.push('explore_context');
   const prepared=list.map(r=>researchExportRow(r,cols));
   if(prepared.some(r=>r.export_value_issues.length))cols.push('export_value_issues');
-  const exportValue=(r,k)=>moneyCols.some(f=>k===f+'_currency')?researchFieldCurrency(r,k.slice(0,-9)) || 'Unavailable':r[k];
+  const exportValue=(r,k)=>k==='explore_context'?explorerContext:moneyCols.some(f=>k===f+'_currency')?researchFieldCurrency(r,k.slice(0,-9)) || 'Unavailable':r[k];
   const headers = ["No.", ...cols.map(k => (SCR_COLS[k] || [k])[0])];
   const ccell = researchCSVCell;
   const stamp = new Date().toISOString().slice(0, 10);
@@ -1215,7 +1217,7 @@ function scrRenderModal() {
         ? "These filters run on YFinance-enriched + computed technicals (updated nightly)."
         : "Technical &amp; financial filters run on YFinance-enriched data — switch <b>Data: YFinance</b> in the toolbar to enable them."}</div>`
     : "";
-  const sel = scrDraft.map((f, i) => `<div class="msel"><b>${esc(f._label || SCR_FIELDS[f.field] || FIELD_LABELS[f.field] || f.field)}</b>
+  const sel = scrDraft.map((f, i) => `<div class="msel"><b>${esc(f._label || SCR_FIELDS[f.field] || FIELD_LABELS[f.field] || f.field)}${f.currency?" · "+esc(f.currency):""}</b>
       <input type="number" placeholder="min" value="${f.min ?? ""}" oninput="scrDraftVal(${i},'min',this.value)">
       <input type="number" placeholder="max" value="${f.max ?? ""}" oninput="scrDraftVal(${i},'max',this.value)">
       <a href="#" onclick="scrDraftRemove(${i});return false" class="chip-x">×</a></div>`).join("")
@@ -1248,7 +1250,7 @@ const FIELD_LABELS = { ...SCR_FIELDS, op_profit_growth: "ROE YOY Growth %", roe_
   rsi14: "RSI (1D, 14)", sector: "Sector", new_low_10d: "New Low: 10D", float_cap: "Float Market Cap" };
 Object.assign(FIELD_LABELS, TECH_FIELDS, FIN_FIELDS);
 const fldLabel = f => FIELD_LABELS[f.field] || SCR_FIELDS[f.field] || f.field;
-const fldStr = f => fldLabel(f) + (f.days ? " (" + f.days + "-day average)" : "") + (f.values ? " = " + f.values.join(", ") : "") + (f.min != null ? (f.excl_min ? " >" : " ≥") + f.min : "") + (f.min != null && f.max != null ? " · " : "") + (f.max != null ? (f.excl_max ? " <" : " ≤") + f.max : "");
+const fldStr = f => fldLabel(f) + (f.currency ? " · " + f.currency : "") + (f.days ? " (" + f.days + "-day average)" : "") + (f.values ? " = " + f.values.join(", ") : "") + (f.min != null ? (f.excl_min ? " >" : " ≥") + f.min : "") + (f.min != null && f.max != null ? " · " : "") + (f.max != null ? (f.excl_max ? " <" : " ≤") + f.max : "");
 
 async function scrLoadSaved() {
   const host = document.getElementById("scr-saved-list");
@@ -1431,8 +1433,8 @@ async function scrDeleteSaved(id) {
   scrTab = "screeners"; scrRenderModal();
 }
 </script>
-<script src="/research-workspace.js?v=20261002-explorer-encoding"></script>
-<script src="/research-account.js?v=20261002-explorer-encoding"></script>
+<script src="/research-workspace.js?v=20261002-explorer-currency"></script>
+<script src="/research-account.js?v=20261002-explorer-currency"></script>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -1554,6 +1556,7 @@ function scrFieldPass(rows, filters) {
   if (!active.length) return rows;
   return rows.filter(r => active.every(f => {
     const v = r[f.field];
+    if(f.currency!=null && (typeof f.currency!=='string' || !/^[A-Z]{3}$/.test(f.currency) || researchFieldCurrency(r,f.field)!==f.currency))return false;
     if (f.values) {
       const have = Array.isArray(v) ? v.map(x => String(x).toLowerCase())
         : v == null ? [] : [String(v).toLowerCase()];
@@ -1928,7 +1931,7 @@ const pages = {
       ${st.cols.map(k => `<td data-field="${k}">${(cellFmt[SCR_COLS[k][1]] || cellFmt.num)(r, k)}${researchScreenValuesHTML(r,k,st)}${k==='symbol'?`<button class="btn ghost row-inspect-icon" aria-label="Inspect ${esc(r.symbol)}" title="Inspect ${esc(r.symbol)} without leaving the screen" onclick="researchInspect(${i},this)"><img src="/vendor/bootstrap-icons/eye.svg" alt="" width="16" height="16"></button>`:''}</td>`).join("")}
       <td class="row-actions">${!st.cols.includes('symbol')?`<button class="btn ghost inspect-btn" aria-label="Inspect ${esc(r.symbol)}" onclick="researchInspect(${i},this)">Inspect</button>`:''}<button class="starbtn ${stars.includes(r.symbol) ? "on" : ""}" title="watchlist" onclick="toggleWatch('${esc(r.symbol)}')">${stars.includes(r.symbol) ? "★" : "☆"}</button></td></tr>`).join("");
     const colChips = st.filters.map((f, i) => `<span class="chip-f">${esc(f._label || SCR_FIELDS[f.field] || FIELD_LABELS[f.field] || f.field)}
-      ${f.days ? " (" + f.days + "-day average)" : ""} ${f.values ? "= " + f.values.join(", ") : ""}${f.min != null ? (f.excl_min ? "> " : "≥ ") + fmtMag(f.min) : ""}${f.min != null && f.max != null ? " · " : ""}${f.max != null ? (f.excl_max ? "< " : "≤ ") + fmtMag(f.max) : ""}
+      ${f.currency ? " · " + esc(f.currency) : ""}${f.days ? " (" + f.days + "-day average)" : ""} ${f.values ? "= " + f.values.join(", ") : ""}${f.min != null ? (f.excl_min ? "> " : "≥ ") + fmtMag(f.min) : ""}${f.min != null && f.max != null ? " · " : ""}${f.max != null ? (f.excl_max ? "< " : "≤ ") + fmtMag(f.max) : ""}
       <a href="#" onclick="scrRemoveFilter(${i});return false" class="chip-x">×</a></span>`).join("");
     const colFilChips = Object.entries(st.colFilters).map(([k, cf]) => {
       const label = SCR_COLS[k] ? SCR_COLS[k][0] : k;

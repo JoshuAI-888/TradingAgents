@@ -797,7 +797,7 @@ test('normalizing an existing screener deep link does not push another browser h
 });
 
 test('navigation helpers are loaded through versioned browser assets',()=>{
- assert.match(html,/research-workspace\.js\?v=20261002-explorer-encoding/);assert.match(html,/research-account\.js\?v=20261002-explorer-encoding/);
+ assert.match(html,/research-workspace\.js\?v=20261002-explorer-currency/);assert.match(html,/research-account\.js\?v=20261002-explorer-currency/);
 });
 
 
@@ -988,4 +988,19 @@ test('Explorer cap encoding requires complete identity-attributed single-currenc
  const encoding=rows=>c.researchExploreEncoding(rows,{plotted:rows});assert.equal(encoding([a,b]).capReady,true);assert.equal(encoding([a,b]).currency,'USD');assert.equal(encoding([a,b]).maxCap,20);
  for(const invalid of [row('HK.B',20,'HKD'),{...b,field_observations:{}},row('US.B',0,'USD'),row('US.B',-1,'USD'),row('US.B',true,'USD'),{...b,field_observations:{market_cap:{...b.field_observations.market_cap,code:'US.OTHER'}}}])assert.equal(encoding([a,invalid]).capReady,false);
  assert.equal(encoding([]).capReady,false);assert.match(c.researchExploreEncodingHTML([a,{...b,field_observations:{}}],{plotted:[a,{...b,field_observations:{}}]},{}),/value="cap"[^>]*disabled/);
+});
+
+test('market-cap Explorer axis, region filters and saved definition retain explicit currency membership',async()=>{
+ const c=harness(),row=(code,currency)=>({code,symbol:code.slice(3),market_cap:10,pct:0,field_observations:{market_cap:{code,field:'market_cap',unit:'currency',value:10,currency}}}),rows=[row('US.A','USD'),row('US.B','HKD'),row('US.C',null)];
+ const st={x:'market_cap',y:'pct',xs:'linear',ys:'linear',capCurrency:'USD',bounds:{x:{min:1,max:20},y:{min:0,max:0}}};
+ const model=c.researchExploreModel(rows,st);assert.deepEqual(Array.from(model.plotted,r=>r.code),['US.A']);assert.equal(model.currencyExcluded,2);
+ const rules=c.researchExploreCriteria(st);assert.equal(rules[0].currency,'USD');assert.deepEqual(Array.from(c.scrFieldPass(rows,rules),r=>r.code),['US.A']);assert.throws(()=>c.researchExploreCriteria({...st,capCurrency:''}),/Choose an attributed/);
+ assert.equal(c.researchExploreModel(rows,{...st,capCurrency:''}).plotted.length,0);
+ c.__scr.filters=JSON.parse(JSON.stringify(rules));const saved={...JSON.parse(JSON.stringify(c.scrCurrentScreenerState())),id:'currency',name:'Currency'};c.scrResetAll();c.__savedScreeners=[saved];await c.scrApplySaved('currency');assert.equal(c.__scr.filters[0].currency,'USD');assert.deepEqual(Array.from(c.scrFieldPass(rows,c.__scr.filters),r=>r.code),['US.A']);
+});
+
+test('market-cap region CSV records chosen currency scope and excludes other or unknown currencies',async()=>{
+ const c=harness(),rows=['USD','HKD',null].map((currency,i)=>({code:'US.A'+i,symbol:'A'+i,market_cap:10,pct:0,field_observations:{market_cap:{code:'US.A'+i,field:'market_cap',unit:'currency',value:10,currency}}}));
+ Object.assign(c.researchExploreState(),{x:'market_cap',y:'pct',capCurrency:'USD',bounds:{x:{min:1,max:20},y:{min:0,max:0}}});c.scrClientRows=()=>rows;let blob;c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){},remove(){}});c.scrExport('csv','explore');
+ const csv=await blob.text();assert.match(csv,/explore_context/);assert.match(csv,/cap_currency/);assert.match(csv,/USD/);assert.match(csv,/US.A0/);assert.doesNotMatch(csv,/US.A1|US.A2|HKD/);
 });

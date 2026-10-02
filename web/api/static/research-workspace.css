@@ -137,3 +137,5 @@
 .change-row-select{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer}.change-row-select input{margin:0}
 
 .explore-encoding{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:12px 0}.explore-encoding label{display:grid;gap:5px}.explore-encoding select{min-height:44px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:8px}.explore-encoding p{font-size:12px;color:#b4c8e1}.explore-sector-legend{flex-basis:100%}.explore-sector-legend summary{min-height:44px;display:flex;align-items:center;cursor:pointer}.explore-sector-legend ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;padding:0;list-style:none}.explore-sector-legend li{display:flex;align-items:center;gap:8px;font-size:12px}.explore-sector-legend li span:last-child{margin-left:auto}.sector-swatch{display:inline-block;width:12px;height:12px;border:1px solid #c8d2df;border-radius:50%;flex-shrink:0}
+
+.explore-currency-note{flex-basis:100%;color:#b4c8e1;font-size:12px}

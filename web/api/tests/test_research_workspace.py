@@ -753,3 +753,29 @@ def test_server_downloads_reconcile_invalid_values_without_excel_numeric_coercio
     assert data(2,'price').text=='0' and data(2,'price').attrib['{'+ns['s']+'}Type']=='Number'
     assert data(1,'note').text=='a\\u0001<&'
     assert rows[0]['price'] is True
+
+
+def test_currency_scoped_filters_and_capture_replay_require_actual_attribution(monkeypatch):
+    import copy
+    now=datetime.now(timezone.utc).isoformat()
+    criterion={'field':'market_cap','min':1,'currency':'USD'}
+    def row(code,currency):
+        return {'code':code,'stock_type':'STOCK','market_cap':10,'field_observations':{'market_cap':{'code':code,'field':'market_cap','value':10,'unit':'currency','currency':currency}}}
+    rows=observed_rows([row('US.A','USD'),row('US.B','HKD')],now)
+    assert [r['code'] for r in api._apply_filters(rows,[criterion])[0]]==['US.A']
+    assert not api._apply_filters([{**rows[0],'field_observations':{}}],[criterion])[0]
+    assert not api._apply_filters(rows,[{**criterion,'currency':'usd'}])[0]
+    import csv,io
+    monkeypatch.setattr(api,'_stored_universe',lambda *args,**kwargs:(rows,now))
+    downloaded=api.screener(watchlist_only=0,filters=json.dumps([criterion]),export='csv')
+    exported=list(csv.DictReader(io.StringIO(downloaded.body.decode('utf-8-sig'))))
+    assert [r['code'] for r in exported]==['US.A'] and exported[0]['market_cap_currency']=='USD'
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'matched':2,'rows':rows})
+    spec=api.ScreenDefinition(filters=[criterion]);api.capture_screen_snapshot(spec);api.capture_screen_snapshot(spec)
+    d=api.screen_changes(spec.model_dump_json(),status='all');assert d['comparable'] and [r['code'] for r in d['rows']]==['US.A']
+    saved=copy.deepcopy(api.db._t('screen_captures')[-1]['snapshot']);saved['observations'][1]['criterion_observations']['c0']['currency']=None
+    api.db._t('screen_captures')[-1]['snapshot']=saved
+    assert api.screen_changes(spec.model_dump_json(),status='all')['comparable'] is False
+    rows[1]['field_observations']['market_cap']['currency']=None
+    with pytest.raises(HTTPException) as error:api.capture_screen_snapshot(spec)
+    assert error.value.status_code==409 and len(api.db._t('screen_captures'))==2
