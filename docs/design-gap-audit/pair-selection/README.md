@@ -19,3 +19,9 @@ Selected export fetches and validates the complete filtered pair, then emits sel
 ## Remaining acceptance
 
 The fixture has synthetic membership and recorded mismatched financial/chart responses. It does not qualify prices, provider coverage or financial accuracy. This checkpoint does not close R04, R05, R06, R11 or R13: real Auth/PostgREST/two-owner concurrency, team roles, complete scopes/device/accessibility/performance, live provider/Moomoo and production cutover remain open. Latest focus/account-dialog refinements pass automated tests; fresh phone/keyboard browser qualification remains to be completed. No merge/deploy occurred.
+
+## Phone and interruption follow-up
+
+Current-route browser qualification at 390 × 844 found a 22 px checkbox hit area; the clickable label now measures 57.3 × 44 px while retaining the 22 px control. Document width is 379 px, with no horizontal overflow. Selection buttons retain focus after keyboard Enter/remount. The bulk dialog measures 346 px wide; all three buttons measure 44 px high. Escape removes the dialog and restores focus to Add selected to shortlist. See 02-phone-bulk.png. Singular selection heading is corrected.
+
+Repeated selection lookups in row rendering, selected export, restored-origin validation and retry preparation now use sets to avoid quadratic membership scans at the 40,000-row bound. This is an algorithmic correction, not measured p95 acceptance. A new interruption test proves closure stops later batches, wrong canonical confirmations remain unconfirmed, and reopening retries only failed/not-started codes. 133 JavaScript tests pass; backend code is unchanged from the verified 457-test checkpoint. The phone/keyboard checks above supersede the pending qualification for these specific controls; broad R13 remains open.

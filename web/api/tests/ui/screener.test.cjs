@@ -797,7 +797,7 @@ test('normalizing an existing screener deep link does not push another browser h
 });
 
 test('navigation helpers are loaded through versioned browser assets',()=>{
- assert.match(html,/research-workspace\.js\?v=20261002-pair-selection/);assert.match(html,/research-account\.js\?v=20261002-pair-selection/);
+ assert.match(html,/research-workspace\.js\?v=20261002-pair-selection-touch/);assert.match(html,/research-account\.js\?v=20261002-pair-selection-touch/);
 });
 
 
@@ -961,4 +961,15 @@ test('Changes origin rejects malformed private selection and restores only the m
  let context=valid;c.sessionStorage.getItem=()=>JSON.stringify({version:1,owner:'owner',context});await c.researchOriginRestore();assert.equal(c.__researchContext.changeState.offset,500);
  for(const bad of [{...valid,state:null},{...valid,private:'true'},{...valid,changeSelection:{key:'selection',rows:[{code:'US.A'},{code:'US.A'}]}},{...valid,changeState:{...valid.changeState,offset:-1}}]){context=bad;c.__researchContext=null;await c.researchOriginRestore();assert.equal(c.__researchContext,null);}
  context=valid;c.__researchSession.user.id='other';await c.researchOriginRestore();assert.equal(c.__researchContext,null);
+});
+
+test('closing Changes bulk dialog stops later batches and mismatched confirmations remain retryable',async()=>{
+ const c=harness(),codes=['US.A','US.B','US.C','US.D','US.E'];c.__researchSession={user:{id:'owner'}};c.__changePayload={comparable:true,definition:{market:'US'},previous_id:'1',current_id:'2',rows:codes.map(code=>({code}))};c.researchChangeSelectPage(true);
+ const bulk={owner:'owner',key:c.researchChangeSelection().key,codes,done:[],failures:[]};c.__researchChangeBulk=bulk;
+ const status={},button={isConnected:false},list={value:'00000000-0000-4000-8000-000000000003'},dialog={querySelector:s=>s==='select'?list:s==='button.primary'?button:s==='[role=status]'?status:{}};c.__researchDialog=dialog;
+ const pending=[],calls=[];c.researchPrivateAPI=(path,opts)=>new Promise(resolve=>{calls.push(JSON.parse(opts.body).code);pending.push(resolve);});
+ const operation=c.researchChangeBulkAdd();assert.deepEqual(calls,codes.slice(0,4));c.__researchDialog=null;
+ pending.forEach((resolve,i)=>resolve({item:{code:i===1?'US.WRONG':codes[i]}}));await operation;
+ assert.deepEqual(calls,codes.slice(0,4));assert.deepEqual(Array.from(bulk.done),['US.A','US.C','US.D']);assert.equal(bulk.failures[0].code,'US.B');assert.equal(bulk.running,false);
+ c.__researchDialog=dialog;c.researchPrivateAPI=async(path,opts)=>{const code=JSON.parse(opts.body).code;calls.push(code);return {item:{code}};};await c.researchChangeBulkAdd();assert.deepEqual(calls.slice(4),['US.B','US.E']);assert.equal(bulk.done.length,5);
 });
