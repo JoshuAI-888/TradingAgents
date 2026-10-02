@@ -13,7 +13,7 @@
 
 Normalized classification uses existing enrichment contexts when the separate subtype cache is disabled. That does not establish sufficient coverage: current nightly stock-only enrichment does not acquire every ambiguous trust/fund instrument. Do not omit subtype dependencies merely to avoid resolving ETF/REIT coverage. Choose the classification acquisition route only after fresh evidence shows it meets the US/HK contract. Unknown trust/fund categories must remain disclosed, rather than becoming inferred stocks or ETFs.
 
-The private-list/history/review/capture/schedule/alias migrations are excluded from the enabled MVP sequence. Preserve their local source and historical records; neither hiding their navigation nor omitting activation authorizes deleting them. Reconcile the local `20261002002718` versus recorded production `20261002002748` historical migration identity before any automated migration push. Do not push the entire directory indiscriminately.
+The private-list/history/review/capture/schedule/alias migrations are excluded from the enabled MVP sequence. Preserve their local source and historical records; neither hiding their navigation nor omitting activation authorizes deleting them. Read-only production inspection on 3 October verified that the recorded `20261002002748` investment-workspace SQL exactly matches the local SQL after comment/whitespace normalization. The local filename is aligned to that deployed timestamp; production history is unchanged. Do not push the entire directory indiscriminately.
 
 ## Local combination evidence
 
