@@ -1,0 +1,82 @@
+{
+  "captured_at": "2026-10-02T10:13:36.966717+00:00",
+  "yfinance_version": "1.7.0",
+  "records": [
+    {
+      "code": "US.AAPL",
+      "requested_symbol": "AAPL",
+      "identity_matches": true,
+      "raw_selected": {
+        "symbol": "AAPL",
+        "currency": "USD",
+        "financialCurrency": "USD",
+        "marketCap": 4820749516800,
+        "regularMarketTime": 1790884801,
+        "mostRecentQuarter": 1782518400,
+        "lastFiscalYearEnd": 1758931200,
+        "nextFiscalYearEnd": 1790467200,
+        "forwardPE": 34.46991,
+        "revenueGrowth": 0.164,
+        "earningsGrowth": 0.287,
+        "returnOnEquity": 1.4875101,
+        "sector": "Technology",
+        "industry": "Consumer Electronics",
+        "longTermDebt": null,
+        "totalStockholderEquity": null,
+        "StockholdersEquity": null,
+        "debtToEquity": 78.445
+      }
+    },
+    {
+      "code": "US.KO",
+      "requested_symbol": "KO",
+      "identity_matches": true,
+      "raw_selected": {
+        "symbol": "KO",
+        "currency": "USD",
+        "financialCurrency": "USD",
+        "marketCap": 370449448960,
+        "regularMarketTime": 1790884802,
+        "mostRecentQuarter": 1783036800,
+        "lastFiscalYearEnd": 1767139200,
+        "nextFiscalYearEnd": 1798675200,
+        "forwardPE": 24.415972,
+        "revenueGrowth": 0.067,
+        "earningsGrowth": 0.169,
+        "returnOnEquity": 0.42054,
+        "sector": "Consumer Defensive",
+        "industry": "Beverages - Non-Alcoholic",
+        "longTermDebt": null,
+        "totalStockholderEquity": null,
+        "StockholdersEquity": null,
+        "debtToEquity": 115.519
+      }
+    },
+    {
+      "code": "HK.00700",
+      "requested_symbol": "0700.HK",
+      "identity_matches": true,
+      "raw_selected": {
+        "symbol": "0700.HK",
+        "currency": "HKD",
+        "financialCurrency": "CNY",
+        "marketCap": 3793725947904,
+        "regularMarketTime": 1790928487,
+        "mostRecentQuarter": 1782777600,
+        "lastFiscalYearEnd": 1767139200,
+        "nextFiscalYearEnd": 1798675200,
+        "forwardPE": 11.668249,
+        "revenueGrowth": 0.11,
+        "earningsGrowth": 0.018,
+        "returnOnEquity": 0.19906001,
+        "sector": "Communication Services",
+        "industry": "Internet Content & Information",
+        "longTermDebt": null,
+        "totalStockholderEquity": null,
+        "StockholdersEquity": null,
+        "debtToEquity": 38.595
+      }
+    }
+  ],
+  "limits": "Three public same-response info samples. General fiscal dates do not qualify individual metric periods; quote currency does not qualify another provider cap. Not full-market or Moomoo reconciliation."
+}

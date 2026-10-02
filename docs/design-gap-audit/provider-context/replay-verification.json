@@ -1,0 +1,102 @@
+{
+  "source": "public-probe.json",
+  "outputs": [
+    {
+      "code": "US.AAPL",
+      "provider_context": {
+        "version": "yfinance_info_context_v1",
+        "code": "US.AAPL",
+        "provider_symbol": "AAPL",
+        "source": "yfinance",
+        "fields": {
+          "currency": "USD",
+          "financialCurrency": "USD",
+          "lastFiscalYearEnd": {
+            "provider_unix_seconds": 1758931200,
+            "date": "2025-09-27"
+          },
+          "mostRecentQuarter": {
+            "provider_unix_seconds": 1782518400,
+            "date": "2026-06-27"
+          }
+        },
+        "scope": "Same-response provider info calendar and currencies; not per-metric periods or cross-provider currency attribution"
+      },
+      "available_selected_factors": {
+        "forward_pe": 34.46991,
+        "revenue_growth": 16.4,
+        "eps_growth": 28.7,
+        "roe": 148.751,
+        "total_debt_eq": 78.445,
+        "sector": "Technology",
+        "industry": "Consumer Electronics"
+      },
+      "lt_debt_eq": "Unavailable: same-response debt/equity inputs missing"
+    },
+    {
+      "code": "US.KO",
+      "provider_context": {
+        "version": "yfinance_info_context_v1",
+        "code": "US.KO",
+        "provider_symbol": "KO",
+        "source": "yfinance",
+        "fields": {
+          "currency": "USD",
+          "financialCurrency": "USD",
+          "lastFiscalYearEnd": {
+            "provider_unix_seconds": 1767139200,
+            "date": "2025-12-31"
+          },
+          "mostRecentQuarter": {
+            "provider_unix_seconds": 1783036800,
+            "date": "2026-07-03"
+          }
+        },
+        "scope": "Same-response provider info calendar and currencies; not per-metric periods or cross-provider currency attribution"
+      },
+      "available_selected_factors": {
+        "forward_pe": 24.415972,
+        "revenue_growth": 6.7,
+        "eps_growth": 16.9,
+        "roe": 42.054,
+        "total_debt_eq": 115.519,
+        "sector": "Consumer Defensive",
+        "industry": "Beverages - Non-Alcoholic"
+      },
+      "lt_debt_eq": "Unavailable: same-response debt/equity inputs missing"
+    },
+    {
+      "code": "HK.00700",
+      "provider_context": {
+        "version": "yfinance_info_context_v1",
+        "code": "HK.00700",
+        "provider_symbol": "0700.HK",
+        "source": "yfinance",
+        "fields": {
+          "currency": "HKD",
+          "financialCurrency": "CNY",
+          "lastFiscalYearEnd": {
+            "provider_unix_seconds": 1767139200,
+            "date": "2025-12-31"
+          },
+          "mostRecentQuarter": {
+            "provider_unix_seconds": 1782777600,
+            "date": "2026-06-30"
+          }
+        },
+        "scope": "Same-response provider info calendar and currencies; not per-metric periods or cross-provider currency attribution"
+      },
+      "available_selected_factors": {
+        "forward_pe": 11.668249,
+        "revenue_growth": 11.0,
+        "eps_growth": 1.8,
+        "roe": 19.906,
+        "total_debt_eq": 38.595,
+        "sector": "Communication Services",
+        "industry": "Internet Content & Information"
+      },
+      "lt_debt_eq": "Unavailable: same-response debt/equity inputs missing"
+    }
+  ],
+  "limits": "Same-response selected info replay only; no individual factor periods or full-market coverage established."
+}

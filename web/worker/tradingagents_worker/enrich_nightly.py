@@ -141,7 +141,7 @@ class EnrichNightly:
         # A successful response replaces its fundamental category. Missing fields
         # must not inherit a new clock from an unrelated field or technical run.
         fundamental_fields = YF_ONLY_FIELDS | {"lt_debt_eq"}
-        by_code, yf_stamps, yf_contracts = {}, {}, {}
+        by_code, yf_stamps, yf_contracts, yf_contexts = {}, {}, {}, {}
         requested_codes = set(yf_codes)
         for row in yf_rows:
             if not isinstance(row, dict) or row.get("code") not in requested_codes or row.get("market") != self.market:
@@ -154,6 +154,8 @@ class EnrichNightly:
                 continue
             by_code[row["code"]] = {k: v for k, v in payload.items() if k in fundamental_fields and v is not None}
             yf_stamps[row["code"]] = stamp.isoformat()
+            from .provider_context import validated_context
+            yf_contexts[row['code']]=validated_context(row.get('provider_context'),row['code'])
             contracts = row.get('field_contracts')
             yf_contracts[row['code']] = {field: version for field, version in YF_FIELD_CONTRACTS.items()
                 if isinstance(contracts, dict) and contracts.get(field) == version}
@@ -186,6 +188,8 @@ class EnrichNightly:
                 data.update(by_code[code])
                 meta["fundamentals_at"] = yf_stamps[code]
                 meta['field_contracts'] = yf_contracts[code]
+                meta.pop('provider_context',None)
+                if yf_contexts[code] is not None:meta['provider_context']=yf_contexts[code]
             if code in tech:
                 for field in TECH_FIELDS:
                     data.pop(field, None)

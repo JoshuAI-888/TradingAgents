@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 
 from tradingagents_worker.enrich_fields import TECH_FIELDS, YF_ONLY_FIELDS, YF_FIELD_CONTRACTS
 from tradingagents_worker.quote_observations import CURRENCY_FIELDS, field_currency
+from tradingagents_worker.provider_context import validated_context
 from tradingagents_worker.config import SETTINGS
 from tradingagents_worker.db import Db
 from tradingagents_worker.screener_generations import read_generation, GenerationError, canonical_generation, aware_time
@@ -897,7 +898,11 @@ def screener_company_context(code: str):
     entry=entries[0] if len(entries)==1 and entries[0].get('code')==code else {}
     values,origins=_fresh_supplemental(entry.get('data'),entry.get('as_of'))
     fields={field:values[field] for field in ('sector','industry','country','website') if field in values}
-    return {'code':code,'fields':fields,'origins':{field:origins[field] for field in fields},
+    data=entry.get('data') if isinstance(entry.get('data'),dict) else {}
+    meta=data.get('_meta') if isinstance(data.get('_meta'),dict) else {}
+    stamp=meta.get('fundamentals_at') or entry.get('as_of')
+    context=validated_context(meta.get('provider_context'),code,stamp) if stamp else None
+    return {'code':code,'fields':fields,'provider_context':context,'provider_context_retrieved_at':stamp if context else None,'origins':{field:origins[field] for field in fields},
             'scope':'Current cached yfinance company classifications; not pinned to the quote generation. Missing/stale values remain unavailable.'}
 
 
@@ -990,6 +995,8 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
                     observations = dict(r.get("field_observations") or {})
                     observations.pop(k, None)
                     r["field_observations"] = observations
+            context=validated_context(meta.get('provider_context'),r.get('code'),meta.get('fundamentals_at') or row_stamp) if meta.get('fundamentals_at') or row_stamp else None
+            if context is not None:r['supplemental_provider_context']=context
             r["enrichment_dates"] = {"fundamentals": meta.get("fundamentals_at") or row_stamp,
                                      "technicals": meta.get("technicals_at") or row_stamp}
     deferred = []

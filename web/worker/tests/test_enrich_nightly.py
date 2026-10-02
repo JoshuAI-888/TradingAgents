@@ -234,10 +234,11 @@ def test_empty_success_clears_prior_fundamentals_without_removing_technicals(fak
     _seed(fake_db)
     old=(datetime.now(timezone.utc)-timedelta(days=9)).isoformat();now=datetime.now(timezone.utc).isoformat()
     fake_db.upsert('screener_enrichment','market,code',{'market':'US','code':'US.AAPL','as_of':old,
-        'data':{'forward_pe':30,'sector':'Technology','_meta':{'fundamentals_at':old}}})
+        'data':{'forward_pe':30,'sector':'Technology','_meta':{'fundamentals_at':old,'provider_context':{'old':'must clear'}}}})
     EnrichNightly(fake_db,yf_fetch=FakeYf([{'market':'US','code':'US.AAPL','as_of':now,'data':{}}])).run(run_klines=False)
     data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
     assert 'forward_pe' not in data and 'sector' not in data and 'rsi14' in data
+    assert 'provider_context' not in data['_meta']
     assert data['_meta']['fundamentals_at']==now
 
 
@@ -333,3 +334,27 @@ def test_actual_debt_correction_and_screener_filter_cannot_treat_negative_equity
         assert len(result['rows'])==(0 if expected is None else 1)
         if result['rows']:assert result['rows'][0]['lt_debt_eq']==expected
         assert api.screener(watchlist_only=0,src='yf',filters='[{"field":"total_debt_eq","max":30}]')['rows']==[]
+
+
+def test_actual_fetch_context_survives_refresh_api_and_csv_without_assigning_metric_period(fake_db,monkeypatch):
+    import csv,io,json
+    from tradingagents_api import main as api
+    from tradingagents_worker.yf_enrich import fetch_yf_enrichment
+    from test_yf_enrich import FakeYfModule
+    _seed(fake_db)
+    fetch=lambda codes,prices,market:fetch_yf_enrichment(codes,prices,market,yf_module=FakeYfModule({'AAPL':{'currency':'USD','financialCurrency':'USD','lastFiscalYearEnd':1767139200,'forwardPE':22,'sector':'Technology'}}))
+    EnrichNightly(fake_db,yf_fetch=fetch).run(run_klines=False)
+    data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
+    assert data['_meta']['provider_context']['fields']['lastFiscalYearEnd']['date']=='2025-12-31'
+    stamp=data['_meta']['fundamentals_at'];monkeypatch.setattr(api,'db',fake_db)
+    monkeypatch.setattr(api,'_market_client',lambda:object());monkeypatch.setattr(api,'_merge_universe_meta',lambda rows,market:rows)
+    monkeypatch.setattr(api,'_stored_universe',lambda *args,**kwargs:([{'code':'US.AAPL','symbol':'AAPL','stock_type':'STOCK','price':128}],stamp))
+    row=api.screener(watchlist_only=0,src='yf')['rows'][0]
+    assert row['supplemental_provider_context']==data['_meta']['provider_context']
+    assert 'period' not in row['display_field_sources']['forward_pe']
+    assert api.screener_company_context('US.AAPL')['provider_context']==row['supplemental_provider_context']
+    response=api.screener(watchlist_only=0,src='yf',export='csv')
+    downloaded=list(csv.DictReader(io.StringIO(response.body.decode('utf-8-sig'))))[0]
+    assert json.loads(downloaded['supplemental_provider_context'])==row['supplemental_provider_context']
+    data['_meta']['provider_context']['code']='US.OTHER'
+    assert 'supplemental_provider_context' not in api.screener(watchlist_only=0,src='yf')['rows'][0]

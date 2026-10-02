@@ -1004,3 +1004,9 @@ test('market-cap region CSV records chosen currency scope and excludes other or 
  Object.assign(c.researchExploreState(),{x:'market_cap',y:'pct',capCurrency:'USD',bounds:{x:{min:1,max:20},y:{min:0,max:0}}});c.scrClientRows=()=>rows;let blob;c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){},remove(){}});c.scrExport('csv','explore');
  const csv=await blob.text();assert.match(csv,/explore_context/);assert.match(csv,/cap_currency/);assert.match(csv,/USD/);assert.match(csv,/US.A0/);assert.doesNotMatch(csv,/US.A1|US.A2|HKD/);
 });
+
+test('client CSV preserves same-response provider context without inventing factor periods',async()=>{
+ const c=harness(),context={code:'HK.00700',fields:{currency:'HKD',financialCurrency:'CNY'},scope:'calendar not metric period'},rows=[{code:'HK.00700',symbol:'00700',forward_pe:12,supplemental_provider_context:context}];
+ c.scrClientRows=()=>rows;c.__scr.cols=['symbol','forward_pe'];let blob;c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){},remove(){}});c.scrExport('csv','loaded');const csv=await blob.text();
+ assert.match(csv,/supplemental_provider_context/);assert.match(csv,/HKD/);assert.match(csv,/CNY/);assert.match(csv,/calendar not metric period/);assert.equal(rows[0].forward_pe,12);assert.equal(rows[0].period,undefined);
+});

@@ -100,7 +100,8 @@ def fetch_yf_enrichment(codes: list[str], prices: dict[str, float],
                     data[okey] = got
             # Even an empty successful info response replaces vanished fields.
             # Transport/ticker failures above remain absent and keep the old clock.
-            rows.append({"market": market, "code": code, "data": data,
+            from .provider_context import info_context
+            rows.append({"provider_context":info_context(info,code),"market": market, "code": code, "data": data,
                          "source": "yfinance", "field_contracts": dict(YF_FIELD_CONTRACTS),
                          "as_of": datetime.now(timezone.utc).isoformat()})
     return rows

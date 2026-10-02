@@ -691,6 +691,7 @@ function scrExport(kind, scope) {
   cols.push(...moneyCols.map(k=>k+'_currency'));
   if(list.some(r=>r.field_observations))cols.push('field_observations');
   if(list.some(r=>r.display_field_sources))cols.push('display_field_sources');
+  if(list.some(r=>r.supplemental_provider_context))cols.push('supplemental_provider_context');
   for(const key of ['criterion_values','criterion_evidence','criterion_retrieved_at'])if(list.some(r=>r[key]!=null))cols.push(key);
   const explorer=scope==='explore'?researchExploreState():null,explorerContext=explorer && [explorer.x,explorer.y].includes('market_cap')?{scope:'eligible_loaded_region',x:explorer.x,y:explorer.y,bounds:explorer.bounds,cap_currency:explorer.capCurrency,sort:st.sort,direction:st.dir}:null;
   if(explorerContext)cols.push('explore_context');
