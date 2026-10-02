@@ -1038,8 +1038,6 @@ def screener_probe(body: dict):
     client = _market_client()
     if client is None:
         return {"available": False, "reason": "moomoo keys not configured"}
-    if next_key:
-        body["next_key"] = next_key
     try:
         data = client.call("POST", "/quote/stock-screen", body=body)
         return {"available": True, "data": data}
@@ -1055,10 +1053,10 @@ def screener_probe(body: dict):
 #   financial (term=100=annual, filter values x1000, percents as 10%->10000):
 #     4102 net_profit_growth · 4106 revenue_growth · 4107 net_margin
 #     4108 gross_margin · 4109 debt_to_asset · 4110 roe
-#     4606 eps_yoy_growth · 4625 roe_yoy_growth · 4903 float_market_cap (raw $)
+#     4606 eps_yoy_growth · 4607 roe_yoy_growth · 4903 float_market_cap (raw $)
 #     4801 basic_eps (x1000)
-# NOT available server-side: OP/EBT, RSI (premium-locked on moomoo too),
-#     "new low in 10 days" — those stay pending in the UI.
+# RSI's documented query is rejected by the configured provider; fail closed.
+# Ten-day lows use property 3108 with days inside the property query.
 _FIELD_SERVER = {
     # scales verified against moomoo's own screener payloads (SSR 2026-09-28):
     # simple money x1000 · PE/PB x100000 · financial percents (10% -> 10000)
@@ -1225,6 +1223,11 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_ke
             "criterion_values": {f: vals[spec[1]] / spec[2] for f, spec in _FIELD_SERVER.items()
                                  if vals.get(spec[1]) is not None},
         })
+        # Expose verified annual financial evidence in the existing columns.
+        # Period-averaged volume stays separate from the snapshot volume column.
+        for field, value in rows[-1]["criterion_values"].items():
+            if _FIELD_SERVER[field][0] == "financial":
+                rows[-1][field] = value
     # moomoo's stock-screen retrieves can come back all-null for every item
     # (2026-09-29), which left preset tables blank — display fields are filled
     # from the stored snapshot the universe loader keeps fresh; screen values

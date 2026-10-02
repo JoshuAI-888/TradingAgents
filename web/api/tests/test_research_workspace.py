@@ -57,6 +57,7 @@ def test_nested_provider_results_are_scaled_and_unclassified_rows_hydrated(monke
     row=api.screener_execute('penny', 'US',300)['rows'][0]
     assert row['symbol']=='BRK.B' and row['price']==1.5 and row['stock_type']=='STOCK'
     assert row['criterion_values']['revenue_growth']==43.96
+    assert row['revenue_growth']==43.96
 
 def test_changes_require_complete_compatible_snapshots(monkeypatch):
     now=datetime.now(timezone.utc).isoformat()
@@ -133,3 +134,12 @@ def test_legacy_stored_rows_recover_share_class_symbols(monkeypatch):
     rows, _ = api._stored_universe('US')
     assert rows[0]['symbol'] == 'BRK.B'
     assert original['symbol'] == 'B'
+
+
+def test_read_only_provider_probe_preserves_explicit_cursor(monkeypatch):
+    class Provider:
+        def call(self, method, path, body):
+            assert body == {'next_key':'cursor', 'limit':1}
+            return {'items':[]}
+    monkeypatch.setattr(api, '_market_client', lambda:Provider())
+    assert api.screener_probe({'next_key':'cursor', 'limit':1})['data']=={'items':[]}
