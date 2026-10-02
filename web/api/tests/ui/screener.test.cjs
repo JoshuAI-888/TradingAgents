@@ -1486,3 +1486,15 @@ test('failed background market refresh retains the previous successful cohort an
  finish({available:false,rows:[],reason:'Provider unavailable'});await Promise.resolve();await Promise.resolve();
  assert.equal(c.__scrDataset,original);assert.equal(c.__scrDataset.rows[0].code,'US.A');assert.equal(c.__scrDataset.asOf,saved.asOf);assert.equal(c.__scrDataset.refreshError,'Provider unavailable');
 });
+
+ test('failed initial provider screen is unavailable rather than zero and retries without changing screen state',async()=>{
+ const c=harness();c.__researchExtendedWorkspace=false;Object.assign(c.__scr,{activePreset:'p',market:'HK',filters:[{field:'pb',max:1}],sort:'pct',dir:2});
+ c.__scrPresets=[{key:'p',name:'Screen',filters:[{field:'pb',max:1}]}];c.__panelCache={market:'HK',rail:{presets:c.__scrPresets}};c.scrStreamPanels=()=>{};
+ let calls=0;c.api=async()=>++calls===1?{available:false,reason:'Provider failed <source>'}:{available:true,rows:[stock('00700',10,1,{code:'HK.00700',pb:0.5})],filters:[{field:'pb',max:1}],name:'Screen'};
+ const before=JSON.stringify(c.__scr);const failed=await vm.runInContext('pages.home()',c);
+ assert.equal(c.__homeCtx.scr.available,false);assert.match(failed,/Data unavailable/);assert.doesNotMatch(failed,/0 stocks/);assert.match(failed,/Retry screen/);assert.match(failed,/Provider failed &lt;source&gt;/);assert.match(failed,/onclick="scrExport\('csv','all'\)"/);
+ const buttons=[...failed.matchAll(/<button[^>]+onclick="scrExport[^>]+>/g)];assert.equal(buttons.length,4);buttons.forEach(([button])=>assert.match(button,/disabled/));
+ let message;c.alert=text=>{message=text;};c.scrExport('csv','all');assert.match(message,/unavailable/);
+ c.showPage=async()=>vm.runInContext('pages.home()',c);const button={disabled:false,isConnected:true};await c.researchRetryPreset(button);
+ assert.equal(c.__homeCtx.scr.available,true);assert.equal(c.__homeCtx.scr.matched,1);assert.equal(JSON.stringify(c.__scr),before);assert.equal(button.disabled,false);assert.equal(calls,2);
+ });

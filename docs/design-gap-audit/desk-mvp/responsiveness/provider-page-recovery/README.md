@@ -18,6 +18,12 @@ Screenshots: rate-limit.png, overlap.png, recovered.png, default-reset.png. Fixt
 
 ## Validation and limits
 
-189 Desk/screener UI contracts pass, including retained-row identity/value checks, cursor retry, escaping and failure variants. Preview fixture Ruff and formatting checks pass. Backend/root regressions were previously passed; no backend behavior changed in this patch.
+190 Desk/screener UI contracts pass, including retained-row identity/value checks, cursor retry, escaping and failure variants. Preview fixture Ruff and formatting checks pass. Backend/root regressions were previously passed; no backend behavior changed in this patch.
 
 Synthetic recovery and CSV checks do not qualify provider freshness, financial reporting periods, HK publication, real stock classifications or production downloads. The live-data and hosted-release gates in review-candidate.md remain open.
+
+## Initial request failure follow-up
+
+A failed first preset request previously reported 0 stocks and offered only generic recovery advice. The Desk now marks this response unavailable, disables all four CSV/Excel export scopes and shows Retry screen for supported presets. Retry uses the same selected screen, market, criteria and sort; unsupported RSI screens remain disabled. The offline US P/B browser check confirms recovery to 300 loaded matches. initial-unavailable.png and initial-recovered.png record the states. A route-level UI contract also exercises HK identity/state retention and verifies unavailable data cannot export. This does not qualify the synthetic fixture as live HK data.
+
+The browser initially reused older cached assets. The workspace script version is advanced for this change; a fresh document load verifies the new controls. Production asset verification remains required.

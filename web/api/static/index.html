@@ -1478,7 +1478,7 @@ async function scrDeleteSaved(id) {
   scrTab = "screeners"; scrRenderModal();
 }
 </script>
-<script src="/research-workspace.js?v=20261003-desk-mvp1"></script>
+<script src="/research-workspace.js?v=20261003-desk-recovery2"></script>
 <script src="/research-account.js?v=20261003-desk-mvp1"></script>
 <script>
 const $ = s => document.querySelector(s);
@@ -1827,7 +1827,7 @@ const pages = {
                 skipped_filters: execd.pending || [], server_side: true,
                 preset_name: execd.name, universe_loaded: true };
       } else {
-        scr = {available:true, rows:[], shown:0, matched:0, total:0,
+        scr = {available:false, rows:[], shown:0, matched:0, total:0,
           server_fallback_reason:(execd && execd.reason) || "Provider screen unavailable. Retry shortly; no unqualified matches are shown."};
       }
       window.__homeCtx = { ...scrPanelSnapshot(), scr, execd };
@@ -2000,7 +2000,7 @@ const pages = {
         const arrow = st.sort === k ? (st.dir === 2 ? " ↓" : " ↑") : "";
         return `<th class="thc" data-field="${k}" aria-sort="${st.sort===k?(st.dir===2?'descending':'ascending'):'none'}" draggable="true" ondragstart="scrDragStart(event,'${k}','table')" ondragover="scrDragOverCol(event,'${k}')" ondragleave="scrDragLeaveCol(event)" ondrop="scrDropCol(event,'${k}')"><a href="#" class="thsort ${st.sort === k ? "on" : ""}" onclick="scrSort('${k}');return false" title="sort by ${esc(label)} · drag to move">${esc(label)}${arrow}</a><button type="button" class="fic ${st.colFilters[k] ? "on" : ""}" aria-label="Filter ${esc(label)}${st.colFilters[k] ? ' · active' : ''}" aria-haspopup="dialog" title="Filter ${esc(label)}" onclick="scrRenderColMenu('${k}','${kind}')">Filter</button></th>`;
       }).join("")}<th></th></tr>
-      ${body || '<tr><td colspan="' + (st.cols.length + 3) + '" class="empty">'+(scr.available===false?'Market data unavailable — load the market or retry.':'No rows match — loosen or reset the filters (Clear in the toolbar).')+'</td></tr>'}</table></div>`;
+      ${body || '<tr><td colspan="' + (st.cols.length + 3) + '" class="empty">'+(scr.available===false?(st.activePreset?'Provider screen unavailable — retry this screen.':'Market data unavailable — load the market or retry.'):'No rows match — loosen or reset the filters (Clear in the toolbar).')+'</td></tr>'}</table></div>`;
 
     return `
     ${researchDeskHTML({st,scr,execd,ms,msPanel,table,allChips,prog,progPct})}

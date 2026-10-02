@@ -828,9 +828,15 @@ api._market_client = lambda: Provider()
 
 
 provider_page_attempts = {}
+provider_initial_attempts = {}
 
 
 def execute(key="", market="US", limit=300, next_key="", **_kwargs):
+    if os.getenv("RESEARCH_PROVIDER_INITIAL_FAULT_FIXTURE"):
+        identity = (key, market)
+        provider_initial_attempts[identity] = provider_initial_attempts.get(identity, 0) + 1
+        if provider_initial_attempts[identity] == 1:
+            return {"available": False, "reason": "Synthetic provider request failed"}
     p = next(p for p in api.PRESET_SCREENERS if p["key"] == key)
     rows, _ = api._apply_filters([r.copy() for r in fixture.ROWS], p["filters"])
     rows = api._sort_rows(rows, p.get("sort", "pct"), p.get("direction", 2))

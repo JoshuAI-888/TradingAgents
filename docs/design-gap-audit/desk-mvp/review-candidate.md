@@ -15,7 +15,7 @@ Strict lint cleanup is broad because the committed portal/worker baseline also f
 
 ## Current acceptance
 
-Local checks pass: strict Ruff, clean Python 3.12 engine/CLI imports, 787 API/worker tests, 1,008 root tests plus 91 subtests (two documented skips), 189 UI contracts, preset definition equality and diff whitespace. Native combined migration rehearsal passes against synthetic PostgreSQL 16 tables.
+Local checks pass: strict Ruff, clean Python 3.12 engine/CLI imports, 787 API/worker tests, 1,008 root tests plus 91 subtests (two documented skips), 190 UI contracts, preset definition equality and diff whitespace. Native combined migration rehearsal passes against synthetic PostgreSQL 16 tables.
 
 The required remaining gates are live US/HK raw/normalized classification and source coverage; all 20 supported preset membership/sorts; bounded like-for-like Moomoo sanity checks; target-platform migration/advisor/history reconciliation; exact candidate deployment, actual production downloads, analyst-journey timing and rollback smoke checks. The latest public HK full-market response still has zero rows and no clock. These gaps prevent a ready-for-investment-team or safe-to-merge claim.
 
@@ -24,3 +24,5 @@ Newer [live Moomoo source evidence](moomoo-browser/README.md) verifies complete 
 No production database mutation, writer/collector flag activation, merge or deployment is authorized by this artifact itself. Existing human authorization to merge/deploy remains subject to completing these release checks.
 
 [Provider page recovery](responsiveness/provider-page-recovery/README.md) now rejects overlapping or inconsistent continuation pages and retains rows/cursors on failure. Synthetic browser retries, both default-reset paths and actual retained-match CSV downloads pass. This is an enabled Desk correction, not an optional feature activation or a live-data gate closure.
+
+Initial preset request failures now show Data unavailable rather than a false zero count, offer Retry screen and disable exports. The local browser recovery and preserved-state contract pass; see the same recovery evidence folder.
