@@ -12,7 +12,10 @@ def criterion_slots(filters):
 
 
 def numeric(value):
-    return type(value) in (int, float) and math.isfinite(value)
+    try:
+        return type(value) in (int, float) and math.isfinite(value)
+    except OverflowError:
+        return False
 
 
 def capture_observation(row, filters):

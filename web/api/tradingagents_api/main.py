@@ -585,14 +585,12 @@ def _apply_filters(rows: list[dict], filters: list[dict], strict: bool = True) -
                 continue
             v = r.get(f.get("field"))
             lo, hi = f.get("min"), f.get("max")
-            if v is None:
+            flag = f.get('field') in {'new_high','new_low','new_low_10d'} and (type(v) is bool or numeric(v) and v in (0,1) or type(v) is str and v in ('0','1'))
+            if not flag and not numeric(v):
                 return False
-            try:
-                v = float(v)
-            except (TypeError, ValueError):
+            if any(bound is not None and not numeric(bound) for bound in (lo,hi)):
                 return False
-            if not math.isfinite(v):
-                return False
+            if flag:v=int(v)
             if lo is not None and (v < float(lo) or (f.get("excl_min") and v == float(lo))):
                 return False
             if hi is not None and (v > float(hi) or (f.get("excl_max") and v == float(hi))):
@@ -603,9 +601,24 @@ def _apply_filters(rows: list[dict], filters: list[dict], strict: bool = True) -
 
 def _sort_rows(rows: list[dict], sort: str, direction: int) -> list[dict]:
     reverse = direction == 2
-    keyed = [r for r in rows if r.get(sort) is not None]
-    rest = [r for r in rows if r.get(sort) is None]
-    keyed.sort(key=lambda r: float(r[sort]), reverse=reverse)
+    textual = sort in {'symbol','name','stock_type','plate','concepts','country','sector','industry','website','exchange','earnings_date','ex_div_date'}
+    multi = sort in {'stock_type','plate','concepts'}
+    flag = sort in {'new_high','new_low','new_low_10d'}
+    def key(row):
+        value=row.get(sort)
+        if textual:
+            if isinstance(value,str) and value.strip():return value.lower()
+            if multi and isinstance(value,list) and value and all(isinstance(v,str) and v.strip() for v in value):return ','.join(value).lower()
+            return None
+        if flag and (type(value) is bool or numeric(value) and value in (0,1) or type(value) is str and value in ('0','1')):return int(value)
+        return value if numeric(value) else None
+    keyed,rest=[],[]
+    for row in rows:
+        value=key(row)
+        if value is None:rest.append(row)
+        else:keyed.append((value,row))
+    keyed.sort(key=lambda pair:pair[0],reverse=reverse)
+    keyed=[row for _,row in keyed]
     return keyed + rest
 
 

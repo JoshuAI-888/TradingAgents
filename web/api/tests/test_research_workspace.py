@@ -686,3 +686,45 @@ def test_debt_cache_requires_new_contract_and_rejects_negative_even_with_current
         '_meta':{'fundamentals_at':now,'field_contracts':YF_FIELD_CONTRACTS}},now)
     assert values=={'lt_debt_eq':0,'total_debt_eq':25}
     assert origins['lt_debt_eq']['field_contract']==YF_FIELD_CONTRACTS['lt_debt_eq']
+
+
+@pytest.mark.parametrize('invalid',[True,False,[],[8],{},'8','',float('inf'),float('nan'),10**400])
+def test_invalid_typed_factors_cannot_qualify_numeric_filters(invalid):
+    assert api._apply_filters([{'pe_ttm':invalid},{'pe_ttm':8}],[{'field':'pe_ttm','min':0,'max':10}])[0]==[{'pe_ttm':8}]
+
+@pytest.mark.parametrize('bound',[True,'8',{},[],float('inf'),float('nan'),10**400])
+def test_invalid_numeric_bounds_fail_closed(bound):
+    assert api._apply_filters([{'pe_ttm':8}],[{'field':'pe_ttm','max':bound}])[0]==[]
+
+def test_server_sorts_support_text_flags_and_invalid_numeric_values_last():
+    rows=[{'id':'bool','pe_ttm':True},{'id':'string','pe_ttm':'8'},{'id':'inf','pe_ttm':float('inf')},{'id':'A','pe_ttm':-1},{'id':'B','pe_ttm':0}]
+    for direction in (1,2):
+        result=api._sort_rows(rows,'pe_ttm',direction)
+        assert result[0]['id']==('A' if direction==1 else 'B')
+        assert [r['id'] for r in result[2:]]==['bool','string','inf']
+    assert api._sort_rows([{'symbol':'Z'},{'symbol':{}},{'symbol':'a'}],'symbol',1)==[{'symbol':'a'},{'symbol':'Z'},{'symbol':{}}]
+    assert api._sort_rows([{'new_high':True},{'new_high':False},{'new_high':2}],'new_high',1)==[{'new_high':False},{'new_high':True},{'new_high':2}]
+    assert api._apply_filters([{'new_low':True},{'new_low':False}],[{'field':'new_low','min':1}])[0]==[{'new_low':True}]
+
+
+def test_actual_screener_filter_and_download_exclude_coerced_factor_rows(monkeypatch):
+    from datetime import datetime,timezone
+    import csv,io
+    import xml.etree.ElementTree as ET
+    now=datetime.now(timezone.utc).isoformat()
+    rows=[{'code':'US.BAD'+str(i),'symbol':'BAD'+str(i),'stock_type':'STOCK','pe_ttm':value}
+          for i,value in enumerate([True,False,[],[8],{},'8',float('inf')])]
+    rows.append({'code':'US.ZERO','symbol':'ZERO','stock_type':'STOCK','pe_ttm':0})
+    monkeypatch.setattr(api,'_stored_universe',lambda *args,**kwargs:(rows,now))
+    monkeypatch.setattr(api,'_merge_universe_meta',lambda rows,market:rows)
+    monkeypatch.setattr(api,'_market_client',lambda:object())
+    kwargs={'watchlist_only':0,'filters':'[{"field":"pe_ttm","min":0,"max":10}]','sort':'symbol','direction':1}
+    result=api.screener(**kwargs)
+    assert [r['code'] for r in result['rows']]==['US.ZERO']
+    response=api.screener(**kwargs,export='csv')
+    exported=list(csv.DictReader(io.StringIO(response.body.decode('utf-8-sig'))))
+    assert [r['code'] for r in exported]==['US.ZERO'] and exported[0]['pe_ttm']=='0'
+    response=api.screener(**kwargs,export='xls')
+    root=ET.fromstring(response.body)
+    cells=root.findall('.//{urn:schemas-microsoft-com:office:spreadsheet}Data')
+    assert any(c.text=='US.ZERO' for c in cells) and not any(c.text and c.text.startswith('US.BAD') for c in cells)

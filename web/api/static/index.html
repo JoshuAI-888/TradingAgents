@@ -1431,7 +1431,7 @@ async function scrDeleteSaved(id) {
   scrTab = "screeners"; scrRenderModal();
 }
 </script>
-<script src="/research-workspace.js?v=20261002-screen-values"></script>
+<script src="/research-workspace.js?v=20261002-typed-values"></script>
 <script src="/research-account.js?v=20261002-navigation"></script>
 <script>
 const $ = s => document.querySelector(s);
@@ -1531,21 +1531,21 @@ function scrSortRows(rows) {
   const dir = st.dir === 2 ? -1 : 1;
   return [...rows].sort((a, b) => {
     let va = a[st.sort], vb = b[st.sort];
-    const missing = v => v == null || v === "" || (kind !== "text" && kind !== "multi" && isNaN(Number(v)));
+    const textual=['text','multi','symbol','date'].includes(kind);
+    const missing = v => textual ? !(typeof v==='string' && v.trim() || kind==='multi' && Array.isArray(v) && v.length && v.every(x=>typeof x==='string' && x.trim())) : kind==='bool' ? ![true,false,0,1,'0','1'].includes(v) : typeof v!=='number' || !Number.isFinite(v);
     if (missing(va) || missing(vb)) return Number(missing(va)) - Number(missing(vb));
-    if (kind !== "text" && kind !== "multi") {
-      va = va == null || isNaN(Number(va)) ? -Infinity : Number(va);
-      vb = vb == null || isNaN(Number(vb)) ? -Infinity : Number(vb);
-      return (va - vb) * dir;
+    if (!textual) {
+      va=Number(va);vb=Number(vb);
+      return (va<vb?-1:va>vb?1:0)*dir;
     }
     va = va == null ? "" : String(va).toLowerCase();
     vb = vb == null ? "" : String(vb).toLowerCase();
-    return va.localeCompare(vb) * dir;
+    return (va<vb?-1:va>vb?1:0)*dir;
   });
 }
 // Client-side filter engine — mirrors the backend _apply_filters semantics:
-// a field absent from the dataset SKIPS its filter instead of failing every
-// row; values are case-insensitive overlaps; min/max inclusive numerics.
+// Missing or invalid numeric data fails closed. Values use case-insensitive
+// overlaps; numeric min/max bounds include their endpoints unless exclusive.
 function scrFieldPass(rows, filters) {
   if (!Array.isArray(rows) || !rows.length) return rows;
   const present = new Set();
@@ -1559,9 +1559,11 @@ function scrFieldPass(rows, filters) {
         : v == null ? [] : [String(v).toLowerCase()];
       return have.length > 0 && f.values.some(w => have.includes(String(w).toLowerCase()));
     }
-    if (v == null || (typeof v === "string" && !v.trim())) return false;
-    const n = Number(v);
+    const flag=['new_high','new_low','new_low_10d'].includes(f.field) && [true,false,0,1,'0','1'].includes(v);
+    if (!flag && typeof v!=='number') return false;
+    const n = flag?Number(v):v;
     if (!Number.isFinite(n)) return false;
+    if ([f.min,f.max].some(b=>b!=null && (typeof b!=='number' || !Number.isFinite(b)))) return false;
     if (f.min != null && (n < Number(f.min) || (f.excl_min && n === Number(f.min)))) return false;
     if (f.max != null && (n > Number(f.max) || (f.excl_max && n === Number(f.max)))) return false;
     return true;
@@ -1901,7 +1903,7 @@ const pages = {
       text: (r, k) => k === "symbol"
         ? `<a href="#" onclick="event.preventDefault();researchOpen('${esc(r.code || r.symbol)}')" class="mono sym" title="open stock page">${esc(r.symbol)}</a>`
         : `<span class="dim" title="${esc(r[k])}">${esc(String(r[k] || "").slice(0, 26))}</span>`,
-      num: (r, k) => RESEARCH_CURRENCY_FIELDS.has(k) ? `<span class="mono ${['price','chg'].includes(k)?(r.chg>0?'g':r.chg<0?'r':''):''}">${researchMoneyHTML(r,k)}</span>`
+      num: (r, k) => typeof r[k]!=='number' || !Number.isFinite(r[k]) ? '<span class="mono faint">Unavailable</span>' : RESEARCH_CURRENCY_FIELDS.has(k) ? `<span class="mono ${['price','chg'].includes(k)?(r.chg>0?'g':r.chg<0?'r':''):''}">${researchMoneyHTML(r,k)}</span>`
         : k === "volume" || k === "turnover" || k === "shares" || k === "avg_vol3m" ? `<span class="mono">${r[k] != null ? (r[k] / 1e6).toFixed(2) + "M" : "—"}</span>`
         : k === "pct" || k === "chg" ? `<span class="mono ${r[k] > 0 ? "g" : r[k] < 0 ? "r" : ""}">${r[k] != null ? (r[k] > 0 ? "+" : "") + fmtAuto(r[k]) + (k === "pct" ? "%" : "") : "—"}</span>`
         : k === "price" ? `<span class="mono ${(r.chg ?? 0) > 0 ? "g" : (r.chg ?? 0) < 0 ? "r" : ""}">${fmtAuto(r[k])}</span>`
@@ -1909,7 +1911,7 @@ const pages = {
         : RESEARCH_PERCENT_FIELDS.has(k) ? `<span class="mono ${k.startsWith('perf_')?(r[k]>0?'g':r[k]<0?'r':''):''}">${esc(researchValue(k,r[k]))}</span>`
         : `<span class="mono">${num(r[k], 2)}</span>`,
       multi: (r, k) => `<span class="faint" style="font-size:11px">${esc(String(r[k] || "—").slice(0, 22))}</span>`,
-      bool: (r, k) => r[k] ? '<span class="g">✓</span>' : '<span class="faint">—</span>',
+      bool: (r, k) => `<span class="${[true,1,'1'].includes(r[k])?'g':'faint'}">${esc(researchDisplayField(k,r[k]))}</span>`,
     };
     const filterIcon = k => {
       const cf = st.colFilters[k];

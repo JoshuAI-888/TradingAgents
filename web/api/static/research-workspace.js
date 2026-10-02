@@ -243,7 +243,7 @@ function researchExploreSet(key,value) {
  else if(key==='trim')st.trim=!!value;else return;
  st.pointCodes=null;st.plotCode=null;st.preview=false;st.limit=100;researchExploreMount();document.querySelector('[aria-label="'+({x:'X axis',y:'Y axis',xs:'X scale',ys:'Y scale'}[key] || 'Central 96% on each axis')+'"]')?.focus();
 }
-function researchPlottable(r,x,y) {return [x,y].every(k=>r[k]!=null && String(r[k]).trim()!=='' && Number.isFinite(Number(r[k])) && (!['pe_ttm','pb','market_cap'].includes(k) || Number(r[k])>0));}
+function researchPlottable(r,x,y) {return [x,y].every(k=>typeof r[k]==='number' && Number.isFinite(r[k]) && (!['pe_ttm','pb','market_cap'].includes(k) || r[k]>0));}
 function researchExploreSelected(rows,st=researchExploreState()) {
  return rows.filter(r=>researchPlottable(r,st.x,st.y) && (!st.bounds || ['x','y'].every(axis=>{const v=Number(r[st[axis]]),b=st.bounds[axis];return (b.min==null || v>=b.min) && (b.max==null || v<=b.max);})));
 }

@@ -526,7 +526,7 @@ test('saved metadata arrival restores the title after reload without changing sc
 });
 
 test('Explorer coordinate groups preserve collisions and screen sort without jitter or merging nearby values',()=>{
- const c=harness();const rows=[stock('BRK.B',100,0,{code:'US.BRK.B',pe_ttm:8}),stock('BRK.A',90,0,{code:'US.BRK.A',pe_ttm:'8'}),stock('C',80,0,{code:'US.C',pe_ttm:8.000001}),stock('D',70,0,{code:'US.D',pe_ttm:null})];
+ const c=harness();const rows=[stock('BRK.B',100,0,{code:'US.BRK.B',pe_ttm:8}),stock('BRK.A',90,0,{code:'US.BRK.A',pe_ttm:8}),stock('C',80,0,{code:'US.C',pe_ttm:8.000001}),stock('D',70,0,{code:'US.D',pe_ttm:null})];
  const st={x:'pe_ttm',y:'pct',xs:'linear',ys:'linear',trim:false,bounds:null,zoom:false};
  const groups=c.researchExplorePointGroups(rows,st);
  assert.deepEqual(Array.from(groups,g=>Array.from(g.rows,r=>r.code)),[['US.BRK.B','US.BRK.A'],['US.C']]);
@@ -797,7 +797,7 @@ test('normalizing an existing screener deep link does not push another browser h
 });
 
 test('navigation helpers are loaded through versioned browser assets',()=>{
- assert.match(html,/research-workspace\.js\?v=20261002-screen-values/);assert.match(html,/research-account\.js\?v=20261002-navigation/);
+ assert.match(html,/research-workspace\.js\?v=20261002-typed-values/);assert.match(html,/research-account\.js\?v=20261002-navigation/);
 });
 
 
@@ -818,4 +818,34 @@ test('screen-value labels fail closed for ambiguous observations and preserve re
  row.criterion_evidence.push({...row.criterion_evidence[0]});assert.match(c.researchScreenValuesHTML(row,'volume'),/Screen · 10-day: Unavailable/);
  assert.match(c.researchProviderScopeHTML({rows:[]},[],c.__scr),/Sort and added filters use display values/);
  assert.match(html,/researchScreenValuesHTML\(r,k,st\)/);assert.match(helper,/researchScreenValuesHTML\(r,'pe_ttm',st\)/);
+});
+
+
+test('typed factors agree across plots, region handoff and filters without coercing invalid values',()=>{
+ const c=harness(),invalid=[true,false,[],[8],{},'8','',Infinity,NaN];
+ const rows=invalid.map((pe_ttm,i)=>({symbol:'bad'+i,code:'US.BAD'+i,pe_ttm,pct:0})).concat([{symbol:'valid',code:'US.VALID',pe_ttm:8,pct:0}]);
+ const st={x:'pe_ttm',y:'pct',bounds:{x:{min:0,max:10},y:{min:0,max:0}},xs:'linear',ys:'linear'};
+ assert.deepEqual(Array.from(c.researchExploreSelected(rows,st),r=>r.code),['US.VALID']);
+ assert.deepEqual(Array.from(c.scrFieldPass(rows,c.researchExploreCriteria(st)),r=>r.code),['US.VALID']);
+ for(const bound of [true,'8',{},[],Infinity,NaN])assert.equal(c.scrFieldPass([{pe_ttm:8}],[{field:'pe_ttm',max:bound}]).length,0);
+ assert.equal(c.scrFieldPass([{new_low:true},{new_low:false}],[{field:'new_low',min:1}]).length,1);
+});
+
+test('typed sorts keep invalid observations last and retain textual and Boolean ordering',()=>{
+ const c=harness(),rows=[{symbol:'badBool',pe_ttm:true},{symbol:'badString',pe_ttm:'8'},{symbol:'badInfinite',pe_ttm:Infinity},{symbol:'A',pe_ttm:-1},{symbol:'B',pe_ttm:0}];
+ c.__scr.sort='pe_ttm';for(const dir of [1,2]){c.__scr.dir=dir;const result=c.scrSortRows(rows);assert.equal(result[0].symbol,dir===1?'A':'B');assert.deepEqual(Array.from(result.slice(2),r=>r.symbol),['badBool','badString','badInfinite']);}
+ c.__scr.dir=1;c.__scr.sort='symbol';assert.deepEqual(Array.from(c.scrSortRows([{symbol:'Z'},{symbol:{}},{symbol:'a'}]),r=>r.symbol),['a','Z',{}]);
+ c.__scr.sort='new_high';assert.deepEqual(Array.from(c.scrSortRows([{new_high:true},{new_high:false},{new_high:2}]),r=>r.new_high),[false,true,2]);
+});
+
+
+test('actual preset table rendering does not invent numeric values or Boolean flags',async()=>{
+ const c=harness(),rows=[stock('BAD',10,0,{code:'US.BAD',pe_ttm:true,volume:[8],pct:'2',new_high:2}),stock('ZERO',9,0,{code:'US.ZERO',pe_ttm:0,volume:0,pct:0,new_high:false})];
+ Object.assign(c.__scr,{activePreset:'p',market:'US',cols:['symbol','pe_ttm','volume','pct','new_high']});
+ c.__presetCache={'p|US':{ts:Date.now(),retained:true,payload:{available:true,rows,filters:[],name:'Typed',retrieved_at:'2026-10-02T00:00:00Z'}}};
+ c.__panelCache={market:'US',rail:{presets:[{key:'p',name:'Typed',filters:[]}]}};c.scrStreamPanels=()=>{};c.api=()=>assert.fail('unexpected provider fetch');
+ const result=await vm.runInContext('pages.home()',c);
+ for(const field of ['pe_ttm','volume','pct','new_high'])assert.match(result,new RegExp('data-field="'+field+'"><span[^>]*>Unavailable</span>'));
+ assert.match(result,/data-field="new_high"><span[^>]*>No<\/span>/);
+ assert.match(result,/data-field="volume"><span[^>]*>0\.00M<\/span>/);
 });
