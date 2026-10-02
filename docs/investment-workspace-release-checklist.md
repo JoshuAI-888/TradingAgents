@@ -162,3 +162,8 @@ D1/D2 are not complete: criterion-specific table fields/sorting, selection, Next
 - [ ] Criterion row selection/sorts and Next unreviewed checked end to end.
 - [ ] Numeric causes supported by compatible before/after observations; no missing-member inference.
 - [ ] Downloaded comparison files reconciled with actual review scope and production data.
+
+
+### Local private-research backend checkpoint
+
+Owner-verified shortlist APIs and an additive migration are implemented, with soft archive/removal, canonical instrument membership, private notes/review status, optimistic revisions and atomic parent locks. **226 API/worker tests pass**; an isolated PostgreSQL 16.14 contract and an observed two-connection archive/add race pass. Details and limitations are in [private research ownership](private-research-ownership.md). No browser login/list UI is wired yet; the migration is unapplied to production. Existing 22 presets and shared Phase 0 saved/watchlist/snapshot records are untouched. Owner-private storage does not close shared-team workflow acceptance. Next: authentication UI and shortlist/review integration, legacy ownership migration, live schema/Auth qualification and the remaining D/E/F gates.

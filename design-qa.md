@@ -80,4 +80,9 @@ Preliminary offline desktop timing: 12 warm in-memory sorts, nearest-rank p50 10
 
 This is a local, unmerged, undeployed checkpoint. QA remains blocked by concrete implementation and qualification gaps; no user approval is missing for continuing authorized work.
 
+
+## Newer checkpoint — owner-scoped persistence foundation
+
+The backend now has verified identity/session and owner-scoped list/note/status contracts, soft recovery, revision conflicts and atomic archive/item locks. The **226-test API/worker suite** passes; isolated PostgreSQL SQL contracts and the actual archive/add lock race pass. See `docs/private-research-ownership.md`. This advances G07/D2's storage dependency but does not close finding 2: login/list/review UI, sharing model, legacy ownership migration and production qualification remain open. The additive migration is not applied to Supabase; no mockup UI or frontend changed in this checkpoint. All visual/data/research/performance requirements above remain in scope.
+
 Final result: blocked

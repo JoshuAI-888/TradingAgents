@@ -2426,6 +2426,9 @@ def stock_spa(rest: str):
     raise HTTPException(404, "portal static not configured")
 
 
+from .research_lists import router as research_lists_router
+app.include_router(research_lists_router)
+
 # Static portal (built SPA) — mounted last so /api wins.
 _static = os.getenv("PORTAL_STATIC_DIR", "")
 if _static and os.path.isdir(_static):

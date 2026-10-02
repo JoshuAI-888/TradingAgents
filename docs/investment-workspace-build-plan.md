@@ -219,3 +219,8 @@ D1/D2 are not complete: criterion-specific table fields/sorting, selection, Next
 | 5 — preservation/release | Real-data screener → inspect → all seven research tabs/six financial subtabs → KLine studies/drawings/ranges/session/fullscreen → Compare → Back; all export scopes and accessibility/performance. | Complete end-to-end/download reconciliation, real device/network timings, contrast/keyboard/screen-reader checks; close every P1/P2, merge/deploy, production smoke and rollback evidence. |
 
 Dependencies: owner authentication precedes private team notes/lists; full paired observations precede numeric change causes; verified coverage precedes advanced-factor presentation. Density and existing research preservation can proceed alongside those contracts. Current passing fixtures are development evidence, not investment-team presentation sign-off.
+
+
+### Local private-research backend checkpoint
+
+Owner-verified shortlist APIs and an additive migration are implemented, with soft archive/removal, canonical instrument membership, private notes/review status, optimistic revisions and atomic parent locks. **226 API/worker tests pass**; an isolated PostgreSQL 16.14 contract and an observed two-connection archive/add race pass. Details and limitations are in [private research ownership](private-research-ownership.md). No browser login/list UI is wired yet; the migration is unapplied to production. Existing 22 presets and shared Phase 0 saved/watchlist/snapshot records are untouched. Owner-private storage does not close shared-team workflow acceptance. Next: authentication UI and shortlist/review integration, legacy ownership migration, live schema/Auth qualification and the remaining D/E/F gates.
