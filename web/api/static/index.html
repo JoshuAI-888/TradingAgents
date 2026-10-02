@@ -1254,6 +1254,7 @@ async function scrLoadSaved() {
     const r = await api("/api/screeners");
     savedRows = r.screeners || [];
     window.__savedScreeners = savedRows;
+    if (typeof researchSavedMount === "function") researchSavedMount();
   } catch (e) { dbDown = true; }
   const presets = window.__scrPresets || [];
   const sel = id => `onclick="scrPresetEdit('${esc(id)}')"`;
@@ -1300,7 +1301,7 @@ function scrCurrentScreenerState() {
   const src = scrDraft.length ? scrDraft : st.filters;
   return { name: (document.getElementById("scr-save-name")?.value || "").trim(),
     market: st.market, watchlist_only: st.watchlistOnly,
-    filters: src.filter(f => f.min != null || f.max != null || f.values?.length),
+    filters: src.filter(f => f.field && (f.min != null || f.max != null || f.values?.length || ["pe_ttm","pb","market_cap","pct"].includes(f.field))),
     sort: st.sort, direction: st.dir, settings: {schemaVersion:3, src:st.src, etfs:st.etfs, cols:st.cols, view:st.view, colFilters:st.colFilters, presentation:st.presentation || "table", preset:st.activePreset || null} };
 }
 async function scrSaveCurrent() {
@@ -1552,9 +1553,9 @@ function scrFieldPass(rows, filters) {
         : v == null ? [] : [String(v).toLowerCase()];
       return have.length > 0 && f.values.some(w => have.includes(String(w).toLowerCase()));
     }
-    if (v == null) return false;
+    if (v == null || (typeof v === "string" && !v.trim())) return false;
     const n = Number(v);
-    if (isNaN(n)) return false;
+    if (!Number.isFinite(n)) return false;
     if (f.min != null && (n < Number(f.min) || (f.excl_min && n === Number(f.min)))) return false;
     if (f.max != null && (n > Number(f.max) || (f.excl_max && n === Number(f.max)))) return false;
     return true;

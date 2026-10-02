@@ -74,17 +74,24 @@ function researchSavedModified(saved,st) {
  const defaults={src:'moo',etfs:false,cols:[...VIEW_PRESETS.overview],view:'overview',presentation:'table',preset:null,colFilters:{}};
  const settings={...defaults,...saved.settings};
  const expected={market:saved.market || st.market,watchlistOnly:!!saved.watchlist_only,filters:saved.filters || [],sort:saved.sort || 'market_cap',dir:saved.direction || 2,src:settings.src,etfs:settings.etfs,cols:settings.cols,view:settings.view,presentation:settings.presentation,activePreset:settings.preset || null,colFilters:settings.colFilters || {}};
- const actual=Object.fromEntries(Object.keys(expected).map(k=>[k,st[k] ?? (k==='presentation'?'table':k==='colFilters'?{}:null)]));
+ const actual=Object.fromEntries(Object.keys(expected).map(k=>[k,st[k] ?? (k==='presentation'?'table':k==='view'?'overview':k==='colFilters'?{}:null)]));
  return JSON.stringify(researchStable(expected))!==JSON.stringify(researchStable(actual));
 }
 function researchViewLabel(view,st) {
  const name=view[0].toUpperCase()+view.slice(1);
  return view===st.view && VIEW_PRESETS[view] && JSON.stringify(st.cols)!==JSON.stringify(VIEW_PRESETS[view])?name+' · retained columns':name;
 }
+function researchScreenTitle(st=window.__scr) {
+ const saved=(window.__savedScreeners || []).find(s=>s.id===st.savedScreenId),preset=(window.__scrPresets || []).find(p=>p.key===st.activePreset);
+ if(st.savedScreenId)return (saved?.name || 'Saved screen')+(saved && researchSavedModified(saved,st)?' · Modified':'');
+ if(preset){const modified=st.filters.some(f=>!(preset.filters || []).some(p=>JSON.stringify(p)===JSON.stringify(f))) || Object.keys(st.colFilters || {}).length>0;return preset.name+(modified?' · Modified':'');}
+ return st.activePreset?'Screen results':st.filters.length || Object.keys(st.colFilters).length?'Custom screen':'All stocks';
+}
 function researchSavedMount() {
  const el=document.getElementById('research-saved');if(!el)return;
  el.innerHTML=(window.__savedScreeners || []).map(s=>`<button class="btn ghost saved-screen ${window.__scr.savedScreenId===s.id?'on':''}" onclick="researchLibraryClose(false);scrApplySaved('${esc(s.id)}')">${esc(s.name)}${window.__scr.savedScreenId===s.id && researchSavedModified(s,window.__scr)?' <span class="saved-modified">Modified</span>':''}<small>${esc(s.sort)} ${s.direction===1?'↑':'↓'}</small></button>`).join('') || '<p class="faint saved-empty">Save your criteria to revisit them.</p>';
  researchLibrarySearch(window.__researchLibraryQuery || '');
+ const heading=document.querySelector('.desk-title h2') || document.querySelector('.change-context h2');if(heading)heading.textContent=(window.__scr.presentation==='changes'?'Changes in ':'')+researchScreenTitle();
 }
 function researchSortSet(field, direction) {
  if(!SCR_COLS[field] || ![1,2].includes(Number(direction)))return;
@@ -148,8 +155,7 @@ function researchMarketHTML(ms,full) {
 }
 function researchDeskHTML({st,scr,execd,ms,msPanel,table,allChips,prog,progPct}) {
  const presets=window.__scrPresets || [],mode=st.presentation || 'table';
- const saved=(window.__savedScreeners || []).find(s=>s.id===st.savedScreenId),modified=researchSavedModified(saved,st);
- const title=st.savedScreenId?(saved?.name || 'Saved screen')+(modified?' · Modified':''):st.activePreset?presets.find(p=>p.key===st.activePreset)?.name || 'Screen results':st.filters.length || Object.keys(st.colFilters).length?'Custom screen':'All stocks';
+ const title=researchScreenTitle(st);
  const source=scr.server_side?'Provider screen · financial basis requested: annual; reported period unverified':scr.universe_loaded?'Stored '+st.market+' universe'+(scr.universe_as_of?(scr.generation_id?' · generation published ':' · cache updated ')+fmtTs(scr.universe_as_of):' · source time unavailable'):'Live fallback slices · universe incomplete';
  const matched=scr.matched ?? (scr.rows || []).length;
  const exportMenu=`<details class="research-export"><summary class="btn ghost">Export</summary><div class="export-options">${[['csv','CSV'],['xls','Excel']].map(([kind,label])=>['page','all'].map(scope=>`<button class="btn ghost" onclick="scrExport('${kind}','${scope}')">${label} · ${scope==='page'?'this page':'available matches'}<small>${Number(scope==='page'?(scr.shown ?? (scr.rows || []).length):matched).toLocaleString()} ${st.etfs?'instruments':'stocks'} · current columns and sort</small></button>`).join('')).join('')}<small>Current columns and sort · Excel-compatible .xls · available matches means loaded qualified results</small></div></details>`;
@@ -175,7 +181,7 @@ function scrWorkspaceMount() {
  grid.classList.toggle('identity-first',window.__scr.cols[0]==='symbol' && window.__scr.cols[1]==='name');
  researchSavedMount();researchLibrarySearch(window.__researchLibraryQuery || '');researchMobileMount();researchSelectionMount();
  researchFrozenColumns();if(typeof ResizeObserver!=='undefined'){window.__deskResize=new ResizeObserver(researchFrozenColumns);window.__deskResize.observe(grid.querySelector('.scr-table'));}
- const st=window.__scr,rows=researchRows(),mode=st.presentation || 'table';grid.classList.toggle('table-mode',mode==='table');
+ const st=window.__scr,rows=researchRows(),mode=st.presentation || 'table';grid.classList.toggle('table-mode',mode==='table');grid.classList.toggle('explore-mode',mode==='explore');
  const presentation=document.getElementById('research-presentation'),scroll=grid.querySelector('.scr-scroll');
  if(mode==='explore'){presentation.className='research-explore';researchExploreMount();scroll.hidden=true;document.getElementById('research-mobile-results').hidden=true;grid.querySelector('.pager')?.setAttribute('hidden','');}
  if(mode==='changes'){presentation.className='research-changes';presentation.innerHTML=researchChangesHTML();scroll.hidden=true;document.getElementById('research-mobile-results').hidden=true;grid.querySelector('.pager')?.setAttribute('hidden','');researchLoadChanges();}
@@ -211,7 +217,7 @@ function researchExploreSet(key,value) {
  const st=researchExploreState();if(['x','y'].includes(key)){if(!['pe_ttm','pb','market_cap','pct'].includes(value))return;st[key]=value;st.bounds=null;st.zoom=false;}
  else if(['xs','ys'].includes(key)){if(!['linear','log'].includes(value))return;st[key]=value;}
  else if(key==='trim')st.trim=!!value;else return;
- st.limit=100;researchExploreMount();document.querySelector('[aria-label="'+({x:'X axis',y:'Y axis',xs:'X scale',ys:'Y scale'}[key] || 'Central 96% on each axis')+'"]')?.focus();
+ st.preview=false;st.limit=100;researchExploreMount();document.querySelector('[aria-label="'+({x:'X axis',y:'Y axis',xs:'X scale',ys:'Y scale'}[key] || 'Central 96% on each axis')+'"]')?.focus();
 }
 function researchPlottable(r,x,y) {return [x,y].every(k=>r[k]!=null && String(r[k]).trim()!=='' && Number.isFinite(Number(r[k])) && (!['pe_ttm','pb','market_cap'].includes(k) || Number(r[k])>0));}
 function researchExploreSelected(rows,st=researchExploreState()) {
@@ -235,7 +241,7 @@ function researchExploreHTML(rows) {
  const st=researchExploreState(),model=researchExploreModel(rows,st),axes=['pe_ttm','pb','market_cap','pct'];
  const field=(a)=>`<label>${a.toUpperCase()} axis<select aria-label="${a.toUpperCase()} axis" onchange="researchExploreSet('${a}',this.value)">${axes.map(k=>`<option value="${k}" ${k===st[a]?'selected':''}>${esc(SCR_COLS[k][0])}</option>`).join('')}<option disabled>Forward P/E · coverage pending</option><option disabled>Revenue growth · coverage pending</option></select></label><label>Scale<select aria-label="${a.toUpperCase()} scale" onchange="researchExploreSet('${a}s',this.value)">${['linear','log'].map(k=>`<option value="${k}" ${st[a+'s']===k?'selected':''}>${k==='log'?'Log (positive only)':'Linear'}</option>`).join('')}</select></label>`;
  const bound=(a,edge)=>`<label>${a.toUpperCase()} ${edge==='min'?'minimum':'maximum'}<input type="number" step="any" id="explore-${a}-${edge}" aria-label="${a.toUpperCase()} ${edge==='min'?'minimum':'maximum'}" value="${st.bounds?.[a]?.[edge] ?? ''}" placeholder="Unbounded"></label>`;
- return `<div class="explore-controls">${field('x')}${field('y')}<label><input type="checkbox" aria-label="Central 96% on each axis" ${st.trim?'checked':''} onchange="researchExploreSet('trim',this.checked)">Central 96% on each axis</label></div><p class="faint">${model.plotted.length.toLocaleString()} plotted of ${rows.length.toLocaleString()} loaded matches · ${model.missing} missing/nonmeaningful · ${model.scaleExcluded} excluded by log scale · ${model.outside} outside view. Screen exports retain rows outside this view.</p><canvas id="research-scatter" height="300" role="img" tabindex="0" aria-label="${esc(SCR_COLS[st.x][0])} versus ${esc(SCR_COLS[st.y][0])}. Drag a region or use the numeric range inputs below."></canvas><div id="research-plot-selection" role="status">Drag to select a region. Click a point to inspect its stock.</div><details class="explore-range-panel" ${st.formOpen?'open':''} ontoggle="researchExploreState().formOpen=this.open"><summary>Set region bounds with numbers${st.bounds?' · region applied':''}</summary><form class="explore-range" onsubmit="event.preventDefault();researchExploreApply()"><span>Region bounds · X: ${esc(SCR_COLS[st.x][0])} (${st.x==='market_cap'?'whole provider currency units, not billions':st.x==='pct'?'percentage points':'times'}) · Y: ${esc(SCR_COLS[st.y][0])} (${st.y==='market_cap'?'whole provider currency units, not billions':st.y==='pct'?'percentage points':'times'})</span>${bound('x','min')}${bound('x','max')}${bound('y','min')}${bound('y','max')}<button class="btn primary" type="submit">Apply region</button><p id="explore-range-error" role="alert"></p></form></details><div class="explore-subset-head"><h3>${st.bounds?'Region':'Plottable'} results (${model.selected.length.toLocaleString()})</h3><button class="btn ghost" onclick="researchExploreClear()" ${!st.bounds?'disabled':''}>Clear region</button><button class="btn ghost explore-zoom" onclick="researchExploreZoom()" ${!st.bounds || !model.selected.length?'disabled':''}>${st.zoom?'Reset zoom':'Zoom to region'}</button><button class="btn ghost" onclick="scrExport('csv','explore')" ${!model.selected.length?'disabled':''}>Export region CSV</button><button class="btn ghost" onclick="scrExport('xls','explore')" ${!model.selected.length?'disabled':''}>Export region Excel</button></div><p class="faint">Current screen sort. Region is a temporary research selection; screen criteria and saved definitions are unchanged. ${Math.min(st.limit,model.selected.length)} rows shown below.</p><div class="explore-linked"><table><thead><tr><th>Select</th><th>Symbol</th><th>Company</th><th>${esc(SCR_COLS[st.x][0])}</th><th>${esc(SCR_COLS[st.y][0])}</th><th>Inspect</th></tr></thead><tbody>${model.selected.slice(0,st.limit).map(r=>`<tr><td><label class="stock-select"><input type="checkbox" data-research-code="${esc(researchKey(r))}" aria-label="Select ${esc(r.symbol)} in region" ${(window.__researchSelected || []).includes(researchKey(r))?'checked':''} onchange="researchExploreSelect(${esc(JSON.stringify(researchKey(r)))},this.checked)"></label></td><td><a href="#" onclick="event.preventDefault();researchOpen(${esc(JSON.stringify(researchKey(r)))})">${esc(r.symbol)}</a></td><td>${esc(r.name || 'Unavailable')}</td><td>${esc(researchValue(st.x,r[st.x]))}</td><td>${esc(researchValue(st.y,r[st.y]))}</td><td><button class="btn ghost" aria-label="Inspect ${esc(r.symbol)} in region" onclick="researchExploreInspect(${esc(JSON.stringify(researchKey(r)))},this)">Inspect</button></td></tr>`).join('') || '<tr><td colspan="6">No stocks in this region. Clear the region or revise its bounds.</td></tr>'}</tbody></table></div>${model.selected.length>st.limit?'<button class="btn ghost" onclick="researchExploreMore()">Show next 100 region rows</button>':''}`;
+ return `<div class="explore-controls">${field('x')}${field('y')}<label><input type="checkbox" aria-label="Central 96% on each axis" ${st.trim?'checked':''} onchange="researchExploreSet('trim',this.checked)">Central 96% on each axis</label></div><p class="faint">${model.plotted.length.toLocaleString()} plotted of ${rows.length.toLocaleString()} loaded matches · ${model.missing} missing/nonmeaningful · ${model.scaleExcluded} excluded by log scale · ${model.outside} outside view. Screen exports retain rows outside this view.</p><canvas id="research-scatter" height="300" role="img" tabindex="0" aria-label="${esc(SCR_COLS[st.x][0])} versus ${esc(SCR_COLS[st.y][0])}. Drag a region or use the numeric range inputs below."></canvas><div id="research-plot-selection" role="status">Drag to select a region. Click a point to inspect its stock.</div><details class="explore-range-panel" ${st.formOpen?'open':''} ontoggle="researchExploreState().formOpen=this.open"><summary>Set region bounds with numbers${st.bounds?' · region applied':''}</summary><form class="explore-range" onsubmit="event.preventDefault();researchExploreApply()"><span>Region bounds · X: ${esc(SCR_COLS[st.x][0])} (${st.x==='market_cap'?'whole provider currency units, not billions':st.x==='pct'?'percentage points':'times'}) · Y: ${esc(SCR_COLS[st.y][0])} (${st.y==='market_cap'?'whole provider currency units, not billions':st.y==='pct'?'percentage points':'times'})</span>${bound('x','min')}${bound('x','max')}${bound('y','min')}${bound('y','max')}<button class="btn primary" type="submit">Apply region</button><p id="explore-range-error" role="alert"></p></form></details><div class="explore-subset-head"><h3>${st.bounds?'Region':'Plottable'} results (${model.selected.length.toLocaleString()})</h3><button class="btn primary" onclick="researchExplorePreview()" ${!st.bounds?'disabled':''}>Preview region filters</button><button class="btn ghost" onclick="researchExploreClear()" ${!st.bounds?'disabled':''}>Clear region</button><button class="btn ghost explore-zoom" onclick="researchExploreZoom()" ${!st.bounds || !model.selected.length?'disabled':''}>${st.zoom?'Reset zoom':'Zoom to region'}</button><button class="btn ghost" onclick="scrExport('csv','explore')" ${!model.selected.length?'disabled':''}>Export region CSV</button><button class="btn ghost" onclick="scrExport('xls','explore')" ${!model.selected.length?'disabled':''}>Export region Excel</button></div><p class="faint">Current screen sort. Region is a temporary research selection; screen criteria and saved definitions are unchanged. ${Math.min(st.limit,model.selected.length)} rows shown below.</p>${st.preview?researchExplorePreviewHTML(rows,st):''}<div class="explore-linked"><table><thead><tr><th>Select</th><th>Symbol</th><th>Company</th><th>${esc(SCR_COLS[st.x][0])}</th><th>${esc(SCR_COLS[st.y][0])}</th><th>Inspect</th></tr></thead><tbody>${model.selected.slice(0,st.limit).map(r=>`<tr><td><label class="stock-select"><input type="checkbox" data-research-code="${esc(researchKey(r))}" aria-label="Select ${esc(r.symbol)} in region" ${(window.__researchSelected || []).includes(researchKey(r))?'checked':''} onchange="researchExploreSelect(${esc(JSON.stringify(researchKey(r)))},this.checked)"></label></td><td><a href="#" onclick="event.preventDefault();researchOpen(${esc(JSON.stringify(researchKey(r)))})">${esc(r.symbol)}</a></td><td>${esc(r.name || 'Unavailable')}</td><td>${esc(researchValue(st.x,r[st.x]))}</td><td>${esc(researchValue(st.y,r[st.y]))}</td><td><button class="btn ghost" aria-label="Inspect ${esc(r.symbol)} in region" onclick="researchExploreInspect(${esc(JSON.stringify(researchKey(r)))},this)">Inspect</button></td></tr>`).join('') || '<tr><td colspan="6">No stocks in this region. Clear the region or revise its bounds.</td></tr>'}</tbody></table></div>${model.selected.length>st.limit?'<button class="btn ghost" onclick="researchExploreMore()">Show next 100 region rows</button>':''}`;
 }
 function researchExploreMount() {
  const target=document.getElementById('research-presentation');if(!target)return;target.innerHTML=researchExploreHTML(researchRows());researchPlot(researchRows());researchSelectionMount();
@@ -247,10 +253,47 @@ function researchExploreParseBounds(values) {
  return result;
 }
 function researchExploreApply() {
- try{const values=Object.fromEntries(['x','y'].map(a=>[a,Object.fromEntries(['min','max'].map(edge=>[edge,document.getElementById('explore-'+a+'-'+edge).value]))]));const bounds=researchExploreParseBounds(values);const st=researchExploreState();st.bounds=Object.values(bounds).some(b=>b.min!=null || b.max!=null)?bounds:null;st.zoom=false;st.limit=100;st.formOpen=false;researchExploreMount();document.querySelector('.explore-range-panel summary')?.focus();}
+ try{const values=Object.fromEntries(['x','y'].map(a=>[a,Object.fromEntries(['min','max'].map(edge=>[edge,document.getElementById('explore-'+a+'-'+edge).value]))]));const bounds=researchExploreParseBounds(values);const st=researchExploreState();st.bounds=Object.values(bounds).some(b=>b.min!=null || b.max!=null)?bounds:null;st.zoom=false;st.limit=100;st.formOpen=false;st.preview=false;researchExploreMount();document.querySelector('.explore-range-panel summary')?.focus();}
  catch(e){document.getElementById('explore-range-error').textContent=e.message;}
 }
-function researchExploreClear(){const st=researchExploreState();st.bounds=null;st.zoom=false;st.limit=100;researchExploreMount();document.querySelector('.explore-range-panel summary')?.focus();}
+function researchExploreCriteria(st) {
+ if(!st.bounds)throw new Error('Select a region first.');
+ const bounds=researchExploreParseBounds(st.bounds),rules=new Map();
+ for(const axis of ['x','y']){
+  const field=st[axis];if(!['pe_ttm','pb','market_cap','pct'].includes(field))throw new Error('This axis is not qualified for screen filters.');
+  const b=bounds[axis],positive=field!=='pct',rule=rules.get(field) || {field};
+  let min=b.min,max=b.max;
+  if(positive && (min==null || min<=0)){min=0;rule.excl_min=true;}
+  if(min!=null)rule.min=rule.min==null?min:Math.max(rule.min,min);
+  if(max!=null)rule.max=rule.max==null?max:Math.min(rule.max,max);
+  if(rule.min>0)delete rule.excl_min;
+  if(rule.min!=null && rule.max!=null && (rule.min>rule.max || (rule.min===rule.max && rule.excl_min)))throw new Error('The region has no meaningful intersection for '+SCR_COLS[field][0]+'.');
+  // Unbounded numeric criteria still exclude absent/nonfinite axis data.
+  rules.set(field,rule);
+ }
+ return [...rules.values()];
+}
+function researchExplorePreviewHTML(rows,st) {
+ try{
+  const rules=researchExploreCriteria(st),selected=researchExploreSelected(rows,st);
+  return `<section class="explore-filter-preview" aria-label="Region filter preview"><h3>Apply region as screen filters</h3><ul>${rules.map(f=>`<li>${esc(SCR_COLS[f.field][0])}: ${f.min!=null?(f.excl_min?'&gt; ':'≥ ')+esc(researchValue(f.field,f.min)):'no lower bound'} · ${f.max!=null?'≤ '+esc(researchValue(f.field,f.max)):'no upper bound'} · missing/nonfinite values excluded</li>`).join('')}</ul><p>${selected.length.toLocaleString()} of ${rows.length.toLocaleString()} loaded matches qualify. Existing criteria, provider preset membership and declared/current sort stay applied. Counts may change when new data is retrieved; this does not freeze membership. Market-cap bounds use the existing provider currency units; currency is not inferred.</p><p>Apply adds these constraints to the current screen. Saved definitions and the original recommendations are unchanged until you save a new screen.</p><button class="btn primary" onclick="researchExploreCommit()">Apply filters to screen</button><button class="btn ghost" onclick="researchExploreCancelPreview()">Cancel preview</button><p id="explore-commit-error" role="alert"></p></section>`;
+ }catch(e){return `<p role="alert">${esc(e.message)}</p>`;}
+}
+function researchExplorePreview(){const st=researchExploreState();if(!st.bounds)return;st.preview=true;researchExploreMount();document.querySelector('.explore-filter-preview button')?.focus();}
+function researchExploreCancelPreview(){researchExploreState().preview=false;researchExploreMount();document.querySelector('.explore-subset-head .primary')?.focus();}
+function researchExploreCommit(){
+ const region=researchExploreState();if(!region.preview)return;
+ try{
+  const rules=researchExploreCriteria(region),st=window.__scr,eligible=new Set(researchExploreSelected(researchRows(),region).map(researchKey));
+  const filters=JSON.parse(JSON.stringify(st.filters || []));
+  for(const rule of rules)if(!filters.some(f=>JSON.stringify(researchStable(f))===JSON.stringify(researchStable(rule))))filters.push(rule);
+  if(filters.length>40)throw new Error('This screen would exceed 40 criteria. Remove a criterion before applying the region.');
+  st.filters=filters;st.page=1;st.presentation='table';
+  window.__researchSelected=(window.__researchSelected || []).filter(code=>eligible.has(code));
+  scrPersist();showPage('home');
+ }catch(e){const el=document.getElementById('explore-commit-error');if(el)el.textContent=e.message;}
+}
+function researchExploreClear(){const st=researchExploreState();st.bounds=null;st.zoom=false;st.preview=false;st.limit=100;researchExploreMount();document.querySelector('.explore-range-panel summary')?.focus();}
 function researchExploreZoom(){const st=researchExploreState();st.zoom=!st.zoom;researchExploreMount();document.querySelector('.explore-zoom')?.focus();}
 function researchExploreMore(){researchExploreState().limit+=100;researchExploreMount();}
 function researchExploreSelect(code,on){const set=new Set(window.__researchSelected || []);on?set.add(code):set.delete(code);window.__researchSelected=[...set];researchSelectionMount();}
@@ -273,7 +316,7 @@ function researchPlot(rows) {
  const nearest=q=>{let best=null,dist=144;for(const pt of points){const d=(pt.px-q.x)**2+(pt.py-q.y)**2;if(d<dist){best=pt;dist=d;}}return best;};let start=null,lastHover=null;
  canvas.onpointerdown=e=>{if(e.button!==0)return;start=at(e);canvas.setPointerCapture(e.pointerId);};
  canvas.onpointermove=e=>{const q=at(e);if(start){draw();ctx.strokeStyle='#72b9ff';ctx.strokeRect(start.x,start.y,q.x-start.x,q.y-start.y);}else{const pt=nearest(q),code=pt && researchKey(pt.r);if(code!==lastHover){lastHover=code;document.getElementById('research-plot-selection').textContent=pt?pt.r.symbol+' · '+SCR_COLS[st.x][0]+': '+researchValue(st.x,pt.r[st.x])+' · '+SCR_COLS[st.y][0]+': '+researchValue(st.y,pt.r[st.y]):'Drag a region or use range inputs.';}}};
- canvas.onpointerup=e=>{if(!start)return;const q=at(e),origin=start;start=null;canvas.releasePointerCapture(e.pointerId);if(Math.hypot(q.x-origin.x,q.y-origin.y)>8){st.bounds={x:{min:value(Math.min(q.x,origin.x),'x'),max:value(Math.max(q.x,origin.x),'x')},y:{min:value(Math.max(q.y,origin.y),'y'),max:value(Math.min(q.y,origin.y),'y')}};st.zoom=false;st.limit=100;st.formOpen=false;researchExploreMount();}else{const pt=nearest(q);if(pt){window.__inspectOrigin=canvas;researchInspectRow(pt.r,{focus:true});}}};
+ canvas.onpointerup=e=>{if(!start)return;const q=at(e),origin=start;start=null;canvas.releasePointerCapture(e.pointerId);if(Math.hypot(q.x-origin.x,q.y-origin.y)>8){st.bounds={x:{min:value(Math.min(q.x,origin.x),'x'),max:value(Math.max(q.x,origin.x),'x')},y:{min:value(Math.max(q.y,origin.y),'y'),max:value(Math.min(q.y,origin.y),'y')}};st.zoom=false;st.limit=100;st.formOpen=false;st.preview=false;researchExploreMount();}else{const pt=nearest(q);if(pt){window.__inspectOrigin=canvas;researchInspectRow(pt.r,{focus:true});}}};
  canvas.onpointercancel=()=>{start=null;draw();};
 }
 const RESEARCH_RANGES = {

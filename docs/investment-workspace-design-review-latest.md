@@ -1,5 +1,7 @@
 # Design review: implementation, original mockups and delivery plan
 
+**Latest build-to-mockup review:** [fresh Desk → Inspector → Explorer → Changes comparison and ordered build checklist](design-gap-audit/latest-plan-review/README.md). Region preview/apply/save/reload is now implemented locally with 85 passing JavaScript tests and an exact 240-row downloaded CSV reconciliation. Collision/keyboard, qualified taxonomy/factors/peers, pair review, monitoring, full continuity and live/platform/release acceptance remain open. This supersedes older “region handoff absent” notes below.
+
 **Latest presentation checkpoint:** [compact provider coverage and inspector hierarchy](design-gap-audit/compact-provider-desk/README.md). Default table top 357.625 px at the original 1487 × 1058 viewport; warning-bearing laptop state is about 45 px shorter. Coverage counts/quality remain visible, phone controls measure 44 px with no document overflow, and preview metrics precede the simplified chart. 82 JavaScript tests pass; broader D02–D04/data/release gates remain open.
 
 Reviewed 2 October 2026 against local baseline `062bb60` plus the tested preset-retention/explicit-refresh changes. This is the current design review; the [R01–R15 checklist](investment-workspace-current-gap-plan.md) remains the release closure register. No merge/deployment is implied.

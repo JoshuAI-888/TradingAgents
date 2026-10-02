@@ -504,3 +504,23 @@ test('provider coverage keeps partial scope and warnings visible with expandable
  assert.match(html,/aria-label="Provider result coverage"/);assert.match(html,/0 stock matches loaded/);assert.match(html,/10 provider matches before exclusions/);assert.match(html,/<summary>1 instrument has unknown classification · 1 hydration warning<\/summary>/);assert.match(html,/&lt;cohort&gt;/);assert.match(html,/&lt;warning&gt;/);assert.equal((html.match(/id="research-load-more"/g)||[]).length,1);assert.equal((html.match(/id="research-refresh-preset"/g)||[]).length,1);
  c.__presetRefresh={'p|US':true};const busy=c.researchProviderScopeHTML(payload,[],{market:'US',activePreset:'p'});assert.match(busy,/Previous results retained while refreshing/);assert.match(busy,/research-load-more[^>]*disabled/);assert.match(busy,/research-refresh-preset[^>]*disabled/);
 });
+
+test('region criteria reproduce numeric membership, intersect repeated axes and preserve inclusive zero',()=>{
+ const c=harness(),st={x:'pe_ttm',y:'pct',bounds:{x:{min:null,max:20},y:{min:-2,max:0}}};
+ const rows=[stock('A',10,0,{pe_ttm:10}),stock('B',9,-2,{pe_ttm:20}),stock('C',8,-1,{pe_ttm:0}),stock('D',7,'',{pe_ttm:5}),stock('E',6,Infinity,{pe_ttm:5})];
+ const rules=c.researchExploreCriteria(st);assert.equal(rules[0].min,0);assert.equal(rules[0].excl_min,true);assert.equal(c.scrFieldPass(rows,rules).map(r=>r.symbol).join(','),c.researchExploreSelected(rows,st).map(r=>r.symbol).join(','));
+ const repeated=c.researchExploreCriteria({x:'pb',y:'pb',bounds:{x:{min:1,max:5},y:{min:2,max:4}}});assert.equal(repeated.length,1);assert.equal(repeated[0].min,2);assert.equal(repeated[0].max,4);
+ assert.throws(()=>c.researchExploreCriteria({x:'pb',y:'pb',bounds:{x:{min:1,max:2},y:{min:3,max:4}}}),/intersection/);
+});
+test('apply region preserves preset rules and sort, marks Modified and round-trips a saved definition',async()=>{
+ const c=harness(),original=[{field:'volume',min:100000,days:30}];c.__scrPresets=[{key:'p',name:'Original',filters:original,sort:'pct',direction:2}];c.scrApplyPreset('p');
+ const rows=[stock('A',10,0,{code:'US.A',pe_ttm:10,volume:10}),stock('B',9,2,{code:'US.B',pe_ttm:20,volume:10})];c.__presetCache={'p|US':{payload:{available:true,rows,filters:original}}};c.__researchSelected=['US.A','US.B'];
+ const st=c.researchExploreState();Object.assign(st,{x:'pe_ttm',y:'pct',bounds:{x:{min:5,max:15},y:{min:0,max:0}},preview:true});c.researchExploreCommit();
+ assert.equal(c.__scr.activePreset,'p');assert.equal(c.__scr.sort,'pct');assert.equal(c.__scr.dir,2);assert.equal(c.__scr.presentation,'table');assert.equal(c.__researchSelected.join(','),'US.A');assert.deepEqual(original,[{field:'volume',min:100000,days:30}]);assert.equal(c.scrPresetRows(c.__presetCache['p|US'].payload).map(r=>r.code).join(','),'US.A');
+ const saved=JSON.parse(JSON.stringify({...c.scrCurrentScreenerState(),id:'region',name:'Region'}));c.scrResetAll();c.__savedScreeners=[saved];await c.scrApplySaved('region');assert.equal(c.__scr.activePreset,'p');assert.equal(c.researchSavedModified(saved,c.__scr),false,JSON.stringify({saved,state:c.__scr}));assert.equal(c.scrPresetRows(c.__presetCache['p|US'].payload).map(r=>r.code).join(','),'US.A');
+});
+
+test('saved metadata arrival restores the title after reload without changing screen criteria',()=>{
+ const c=harness({filters:[{field:'pct',min:-1,max:1}],savedScreenId:'region'}),heading={textContent:'Saved screen'},library={innerHTML:''};c.document.getElementById=id=>id==='research-saved'?library:null;c.document.querySelector=q=>q==='.desk-title h2'?heading:null;c.researchLibrarySearch=()=>{};
+ c.__savedScreeners=[{id:'region',name:'<Region>',market:'US',filters:[{field:'pct',min:-1,max:1}],sort:'market_cap',direction:2,settings:{}}];c.researchSavedMount();assert.equal(heading.textContent,'<Region>');assert.equal(c.__scr.filters.length,1);
+});
