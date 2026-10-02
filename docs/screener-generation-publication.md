@@ -1,6 +1,6 @@
 # Immutable screener generation storage contract
 
-Local progress, 2 October 2026. This completes the additive **database storage/fencing contract** for R01. The existing worker still publishes batches and the API still reads legacy rows: **runtime atomic publication is not implemented or qualified yet**. The migration is unapplied to production; no merge/deployment or production mutation occurred.
+Local progress, 2 October 2026. This completes the additive **database storage/fencing contract** for R01. The storage-only checkpoint below is historical. The [new worker integration](screener-generation-worker-integration.md) stages complete cohorts and calls the fenced atomic RPCs; the API still reads legacy rows. **Complete runtime generation consistency is not qualified yet**. The migration is unapplied to production; no merge/deployment or production mutation occurred.
 
 ## Implemented contract
 

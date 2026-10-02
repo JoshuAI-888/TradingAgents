@@ -1,16 +1,17 @@
 """Stored-universe loader for the screener.
 
 Collects observed listings via moomoo's plate endpoints (plate-list → plate-stock
-per industry plate, ≤1000/page with next_key), upserts screener_universe, then
-snapshot-enriches every code in 400-code batches into screener_quotes — the
-normalized rows /api/screener serves stored-universe mode from. The union does
+per industry plate, ≤1000/page with next_key), stages classification and
+snapshot quotes in memory, then publishes one immutable generation under a
+fenced market lease. Compatibility mirrors change in the same transaction. The union does
 not prove complete exchange coverage; failed traversals are not successes. Progress goes to
 job_events when run as a queued job (manual refresh button), or to stdout when
 run as the hourly/daily cron.
 
 Rate limits: every call goes through the client's MinuteBudget (30/min per path
 template); template-level RateLimited raises are retried with the server's
-Retry-After, and HTTP-200 rate_limited responses are retried inside call().
+Retry-After. Internal HTTP-200 retries are disabled here so all retry waits
+remain bounded and keep the refresh lease alive.
 """
 from __future__ import annotations
 
@@ -18,14 +19,19 @@ import os
 import re
 import hashlib
 import time
+import math
+import uuid
 from datetime import datetime, timezone
 
 from .config import SETTINGS
 from .db import Db
 from .moomoo import MoomooClient, RateLimited
+from .screener_generations import read_generation, aware_time, GenerationError
 
 ENUM_TTL_H = 24  # re-enumerate plates once a day; quotes refresh every run
 UNIVERSE_CAP = 20000
+MAX_RATE_LIMIT_WAIT_SECONDS = 900
+MAX_RUN_SECONDS = 7200
 
 
 class UniverseRefreshError(ValueError):
@@ -34,16 +40,6 @@ class UniverseRefreshError(ValueError):
 
 def cohort_fingerprint(codes: list[str]) -> str:
     return hashlib.sha256('\n'.join(sorted(codes)).encode()).hexdigest()
-
-
-def _budgeted(fn, *args, **kwargs):
-    """Run a client call, sleeping through template-level rate-limit refusals."""
-    while True:
-        try:
-            return fn(*args, **kwargs)
-        except RateLimited as e:
-            print(f"[universe] rate-limited on {e}; sleeping {e.retry_after:.0f}s", flush=True)
-            time.sleep(max(e.retry_after, 1.0))
 
 
 class UniverseRefresher:
@@ -55,10 +51,47 @@ class UniverseRefresher:
             raise UniverseRefreshError('Unsupported universe market')
         self.market = market
         self.emit = emit or (lambda *a, **k: None)
+        self._run_id = None
+        self._run_started = None
+
+    def _renew(self):
+        if self._run_id:
+            if self._run_started is not None and time.monotonic() - self._run_started > MAX_RUN_SECONDS:
+                raise UniverseRefreshError('Refresh exceeded the bounded run duration')
+            expires = self.db.generation_rpc('screener_refresh_renew',
+                {'p_market': self.market, 'p_run': self._run_id})
+            if aware_time(expires) <= datetime.now(timezone.utc):
+                raise UniverseRefreshError('Refresh lease acknowledgement is expired')
+
+    def _provider(self, fn, *args, **kwargs):
+        waited = 0.0
+        # Otherwise the client sleeps internally without renewing our lease.
+        kwargs['retries'] = 0
+        while True:
+            self._renew()
+            try:
+                result = fn(*args, **kwargs)
+            except RateLimited as error:
+                delay = error.retry_after
+                if isinstance(delay, bool) or not isinstance(delay, (int, float)) or not math.isfinite(delay) or delay < 0:
+                    raise UniverseRefreshError('Invalid provider retry interval') from error
+                # Heartbeat while waiting rather than sleeping beyond lease expiry.
+                remaining = max(delay, 1.0)
+                waited += remaining
+                if waited > MAX_RATE_LIMIT_WAIT_SECONDS:
+                    raise UniverseRefreshError('Provider retry wait exceeded the qualified bound') from error
+                while remaining > 0:
+                    self._renew()
+                    step = min(remaining, 30.0)
+                    time.sleep(step)
+                    remaining -= step
+                continue
+            self._renew()  # refuse to stage a response after ownership expired
+            return result
 
     # ── enumeration ───────────────────────────────────────────────────────
     def _plates_for(self, cls: str) -> list[dict]:
-        out = _budgeted(self.client.call, "GET", "/quote/plate-list",
+        out = self._provider(self.client.call, "GET", "/quote/plate-list",
                         query={"market": self.market, "plate_class": cls})
         items = out.get('plate_list') if isinstance(out, dict) else None
         if not isinstance(items, list) or any(not isinstance(p, dict) or
@@ -74,7 +107,7 @@ class UniverseRefresher:
             q = {"market": self.market, "plate_code": plate_code, "limit": 1000}
             if next_key:
                 q["next_key"] = next_key
-            out = _budgeted(self.client.call, "GET", "/quote/plate-stock", query=q)
+            out = self._provider(self.client.call, "GET", "/quote/plate-stock", query=q)
             items = out.get('stock_list') if isinstance(out, dict) else None
             if not isinstance(items, list) or len(items) > 1000 or any(not isinstance(it, dict) or
                     not isinstance(it.get('code'), str) or not re.fullmatch(
@@ -101,11 +134,11 @@ class UniverseRefresher:
     # 2301=market_cap, 2201=price, 2210=pct_change (values x1000)
     SLICES = [(2301, 2), (2301, 1), (2201, 2), (2201, 1), (2210, 2), (2210, 1)]
 
-    def enumerate_universe(self) -> dict:
+    def enumerate_universe(self) -> tuple[dict, list[dict]]:
         seen: dict[str, list[str]] = {}
         plate_total = 0
         for cls in ("INDUSTRY", "CONCEPT", "OTHER"):
-            plates = _budgeted(self._plates_for, cls)
+            plates = self._plates_for(cls)
             plate_total += len(plates)
             self.emit("universe", "progress",
                       f"plates {cls.lower()} {len(plates)} · {len(seen)} stocks so far")
@@ -114,7 +147,7 @@ class UniverseRefresher:
                 pname = p.get("plate_name") or p.get("name") or ""
                 if not pcode:
                     continue
-                codes = _budgeted(self._plate_codes, pcode)
+                codes = self._plate_codes(pcode)
                 for c in codes:
                     seen.setdefault(c, [])
                     if pname not in seen[c]:
@@ -127,7 +160,7 @@ class UniverseRefresher:
         for sort_id, direction in self.SLICES:
             sl += 1
             try:
-                out = _budgeted(self.client.call, "POST", "/quote/stock-screen", body={
+                out = self._provider(self.client.call, "POST", "/quote/stock-screen", body={
                     "limit": 300,
                     "screen_queries": [{"simple_field_query": {"simple_field": 1,
                         "screen_value_list": [{"US": 2, "HK": 1}.get(self.market, 2)]}}],
@@ -159,7 +192,7 @@ class UniverseRefresher:
         for i in range(0, len(codes), 400):
             batch = codes[i:i + 400]
             try:
-                out = _budgeted(self.client.call, "POST", "/quote/stock-basicinfo",
+                out = self._provider(self.client.call, "POST", "/quote/stock-basicinfo",
                                 body={"code_list": batch})
             except Exception as e:
                 raise UniverseRefreshError(f'Universe classification batch {i // 400 + 1} failed') from e
@@ -175,33 +208,43 @@ class UniverseRefresher:
             if (i // 400) % 5 == 0:
                 self.emit("universe", "progress",
                           f"classification {min(i + 400, len(codes))}/{len(codes)}")
-        count = self.db.upsert_many("screener_universe", "market,code", rows)
-        if count != len(rows):
-            raise UniverseRefreshError('Incomplete universe storage acknowledgement')
-        return {"plates": plate_total, "slices": len(self.SLICES), "codes": len(rows),
-                'scope': 'observed_plate_and_screen_slice_union'}
+        return ({"plates": plate_total, "slices": len(self.SLICES), "codes": len(rows),
+                 'scope': 'observed_plate_and_screen_slice_union'}, rows)
 
     # ── quotes ────────────────────────────────────────────────────────────
-    def _stored_codes(self) -> list[str]:
+    def _stored_metadata(self, state=None) -> list[dict]:
+        state = self._universe_state() if state is None else state
+        if 'generation_id' in state:
+            header, records = read_generation(self.db, self.market, state['generation_id'])
+            if aware_time(state.get('last_quotes')) != aware_time(header['published_at']) \
+                    or (state.get('last_result') or {}).get('quotes') != header.get('result',{}).get('quotes'):
+                raise GenerationError('Generation pointer does not match its successful receipt')
+            return [dict(r['metadata']) for r in records]
         rows = self.db.select_all("screener_universe", {"market": f"eq.{self.market}",
-                                  "order": "code.asc"}, "code", cap=UNIVERSE_CAP + 1)
+                                  "order": "code.asc"}, "*", cap=UNIVERSE_CAP + 1)
         if len(rows) > UNIVERSE_CAP:
             raise UniverseRefreshError('Stored universe exceeds qualified refresh limit')
         codes = [r.get('code') for r in rows]
         if any(not isinstance(c, str) or not re.fullmatch(self.market + r'\.[A-Z0-9][A-Z0-9._-]{0,30}', c)
                for c in codes) or len(set(codes)) != len(codes):
             raise UniverseRefreshError('Stored universe has invalid or duplicate identities')
-        return codes
+        return [{**r, 'market':self.market, 'plates':r.get('plates') or []} for r in rows]
 
-    def refresh_quotes(self) -> dict:
-        from .screener_rows import snapshot_to_row  # shared normalizer
-        codes = self._stored_codes()
-        if not codes:
-            raise UniverseRefreshError('Stored universe is empty; refresh completeness is unknown')
+    def _stored_codes(self) -> list[str]:
+        return [r['code'] for r in self._stored_metadata()]
+
+    def refresh_quotes(self, metadata=None) -> tuple[dict, list[dict]]:
+        """Prepare a complete quote payload; never publish a successful batch alone."""
+        from .screener_rows import snapshot_to_row
+        metadata = self._stored_metadata() if metadata is None else metadata
+        codes = [r['code'] for r in metadata]
+        if not codes or len(codes) > UNIVERSE_CAP:
+            raise UniverseRefreshError('Stored universe is empty or exceeds qualified refresh limit')
+        by_code = {r['code']:r for r in metadata}
         batches = [codes[i:i + 400] for i in range(0, len(codes), 400)]
-        written = 0
+        prepared = []
         for i, batch in enumerate(batches, 1):
-            snap = _budgeted(self.client.snapshot, batch)
+            snap = self._provider(self.client.snapshot, batch)
             items = snap.get('snapshot_list') if isinstance(snap, dict) else None
             if not isinstance(items, list) or any(not isinstance(s, dict) for s in items):
                 raise UniverseRefreshError(f'Quote batch {i}: invalid response shape')
@@ -214,73 +257,109 @@ class UniverseRefresher:
             if missing:
                 raise UniverseRefreshError(f'Quote batch {i}: {missing} requested identities missing')
             now = datetime.now(timezone.utc).isoformat()
-            qrows = [{"code": s.get("code"), "market": self.market,
-                      "row": snapshot_to_row(s), "updated_at": now}
-                     for s in items]
-            count = self.db.upsert_many("screener_quotes", "code", qrows)
-            if count != len(batch):
-                raise UniverseRefreshError(f'Quote batch {i}: incomplete storage acknowledgement')
-            written += count
-            self.emit("universe", "progress", f"quotes batch {i}/{len(batches)} · {written} rows")
-        return {"quotes": written, "batches": len(batches), 'requested': len(codes),
-                'cohort_fingerprint': cohort_fingerprint(codes),
-                'scope': 'requested_stored_universe'}
+            for snapshot in items:
+                row = snapshot_to_row(snapshot)
+                meta = {k:by_code[row['code']].get(k) for k in
+                        ('code','market','name','plate','plates','stock_type','exchange')}
+                meta['name'] = row.get('name') or meta['name']
+                row.update({k:meta[k] for k in ('stock_type','exchange','plate')})
+                row['concepts'] = [p for p in meta['plates'] if p != meta['plate']]
+                prepared.append({'code':row['code'],'row':row,'metadata':meta,'quote_cache_at':now})
+            self.emit("universe", "progress", f"quotes batch {i}/{len(batches)} · {len(prepared)} rows staged")
+        return ({"quotes":len(prepared), "batches":len(batches), 'requested':len(codes),
+                 'cohort_fingerprint':cohort_fingerprint(codes), 'scope':'requested_stored_universe'}, prepared)
 
     def run(self, force_enum: bool = False) -> dict:
-        out: dict = {"market": self.market, "started_at": datetime.now(timezone.utc).isoformat()}
         state = self._universe_state()
-        stage = 'cohort_validation'
+        # A coherent immutable cohort may be reused without obtaining a write lease.
+        # Legacy success clocks do not permit skipping the first generation.
+        validation_error = None
         try:
-            stored_codes = self._stored_codes()
-            need_enum = force_enum or not stored_codes or self._enum_age_h(state) >= ENUM_TTL_H
-            interval_h = float(state.get("interval_h") or 1)
-            fresh = self._quotes_age_h(state) < interval_h
-            prior_quotes = (state.get('last_result') or {}).get('quotes') or {}
-            same_cohort = prior_quotes.get('cohort_fingerprint') == cohort_fingerprint(stored_codes)
-            if fresh and same_cohort and not need_enum and not force_enum and (state.get('last_attempt') or {}).get('status') != 'failed':
-                out["skipped"] = (f"quotes fresh ({self._quotes_age_h(state):.1f}h < "
-                                  f"{interval_h:g}h interval) — nothing to do")
-                self.emit("universe", "done", out["skipped"])
-                return out
-            stage = 'enumeration' if need_enum else 'quotes'
+            metadata = self._stored_metadata(state)
+        except (UniverseRefreshError, GenerationError) as error:
+            metadata, validation_error = [], error
+        codes = [r['code'] for r in metadata]
+        interval_h = float(state.get('interval_h') or 1)
+        prior_quotes = (state.get('last_result') or {}).get('quotes') or {}
+        if not force_enum and not validation_error and state.get('generation_id') and codes \
+                and self._enum_age_h(state) < ENUM_TTL_H and self._quotes_age_h(state) < interval_h \
+                and prior_quotes.get('cohort_fingerprint') == cohort_fingerprint(codes) \
+                and (state.get('last_attempt') or {}).get('status') == 'succeeded':
+            skipped = f"quotes fresh ({self._quotes_age_h(state):.1f}h < {interval_h:g}h interval) — nothing to do"
+            self.emit('universe','done',skipped)
+            return {'market':self.market,'skipped':skipped,'generation_id':state['generation_id']}
+        token = str(uuid.uuid4())
+        stage = 'cohort_validation'
+        self._run_id = token
+        self._run_started = time.monotonic()
+        try:
+            lease = self.db.generation_rpc('screener_refresh_begin', {'p_market':self.market,'p_run':token})
+            if not isinstance(lease,dict) or lease.get('run_id') != token or lease.get('market') != self.market:
+                raise UniverseRefreshError('Invalid refresh lease acknowledgement')
+            if aware_time(lease.get('expires_at')) <= aware_time(lease.get('started_at')):
+                raise UniverseRefreshError('Refresh lease expires before its start')
+            out = {'market':self.market,'started_at':lease['started_at']}
+            if lease.get('base_generation_id') != state.get('generation_id'):
+                state = self._universe_state()
+                metadata = self._stored_metadata(state)
+                validation_error = None
+                if state.get('generation_id') != lease.get('base_generation_id'):
+                    raise UniverseRefreshError('Refresh base generation changed before collection')
+            if validation_error:
+                raise validation_error
+            need_enum = force_enum or not metadata or self._enum_age_h(state) >= ENUM_TTL_H \
+                or any(not isinstance(r.get('stock_type'),str) or not r['stock_type'] for r in metadata)
             if need_enum:
-                out["enum"] = self.enumerate_universe()
-                state = {**state, "last_enum": datetime.now(timezone.utc).isoformat()}
+                stage = 'enumeration'
+                out['enum'], metadata = self.enumerate_universe()
             stage = 'quotes'
-            out["quotes"] = self.refresh_quotes()
+            expected, prepared = self.refresh_quotes(metadata)
+            stage = 'publication'
+            self._renew()
+            receipt = self.db.generation_rpc('screener_refresh_publish',
+                {'p_market':self.market,'p_run':token,'p_codes':[r['code'] for r in metadata],
+                 'p_rows':prepared,'p_result':{k:v for k,v in out.items() if k != 'started_at'},
+                 'p_enumerated':need_enum})
+            actual_quotes = receipt.get('result',{}).get('quotes') if isinstance(receipt,dict) \
+                and isinstance(receipt.get('result'),dict) else None
+            if not isinstance(receipt,dict) or receipt.get('generation_id') != token \
+                    or receipt.get('market') != self.market or type(receipt.get('row_count')) is not int \
+                    or receipt.get('row_count') != len(prepared) \
+                    or receipt.get('cohort_fingerprint') != expected['cohort_fingerprint'] \
+                    or actual_quotes != expected or any(type(actual_quotes[k]) is not type(v) for k,v in expected.items()):
+                raise UniverseRefreshError('Invalid generation publication acknowledgement')
+            aware_time(receipt.get('published_at'))
+            out.update({'quotes':expected,'generation_id':token,'finished_at':receipt['published_at']})
+            self.emit('universe','done',f"universe refresh complete: {len(prepared)} quotes")
+            return out
         except Exception as error:
-            # A prior batch may have landed. Its cache clock is still accurate,
-            # but this run must not advance whole-market last-success freshness.
-            state['last_attempt'] = {'started_at': out['started_at'],
-                'finished_at': datetime.now(timezone.utc).isoformat(), 'status': 'failed',
-                'stage': stage, 'reason': str(error) if isinstance(error, UniverseRefreshError)
-                else f'{stage} failed ({type(error).__name__})'}
-            self._save_state(state)
-            self.emit('universe', 'failed', state['last_attempt']['reason'])
+            reason = str(error)[:500] if isinstance(error,(UniverseRefreshError,GenerationError)) \
+                else f'{stage} failed ({type(error).__name__})'
+            try:
+                self.db.generation_rpc('screener_refresh_abort',
+                    {'p_market':self.market,'p_run':token,'p_stage':stage,'p_reason':reason})
+            except Exception:
+                # Ownership/transport may be gone; never use an unfenced state upsert.
+                self.emit('universe','progress','Failure receipt unavailable; lease expiry or next attempt will reconcile state')
+            self.emit('universe','failed',reason)
             raise
-        state["last_quotes"] = datetime.now(timezone.utc).isoformat()
-        state["last_result"] = {k: v for k, v in out.items() if k != "started_at"}
-        state['last_attempt'] = {'started_at': out['started_at'],
-            'finished_at': state['last_quotes'], 'status': 'succeeded', 'stage': 'quotes'}
-        self._save_state(state)
-        out["finished_at"] = datetime.now(timezone.utc).isoformat()
-        self.emit("universe", "done", f"universe refresh complete: {out['quotes'].get('quotes')} quotes")
-        return out
+        finally:
+            self._run_id = None
+            self._run_started = None
 
     # ── state helpers ─────────────────────────────────────────────────────
     def _universe_state(self) -> dict:
         rows = self.db.select("app_settings", {"key": f"eq.universe_state_{self.market}"}, "value")
-        state = dict((rows[0].get("value") or {}) if rows else {})
+        raw = rows[0].get('value') if rows else {}
+        if not isinstance(raw,dict):
+            raise UniverseRefreshError('Invalid stored market refresh state')
+        state = dict(raw)
         settings = self.db.select("app_settings", {"key": "eq.universe_state"}, "value")
-        # Legacy shared clocks cannot prove either market's freshness. Preserve
-        # its configured cadence only; each market earns a new success clock.
         config = (settings[0].get('value') or {}) if settings else {}
+        if not isinstance(config,dict):
+            raise UniverseRefreshError('Invalid refresh cadence configuration')
         state['interval_h'] = config.get('interval_h') or 1
         return state
-
-    def _save_state(self, state: dict):
-        self.db.upsert('app_settings', 'key', {'key': f'universe_state_{self.market}',
-                                              'value': state})
 
     def _quotes_age_h(self, state: dict) -> float:
         raw = state.get("last_quotes")

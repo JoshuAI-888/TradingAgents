@@ -57,9 +57,9 @@ class FakeSupa(Db):
                 col, _, direction = v.partition(".")
                 rows.sort(key=lambda r: str(r.get(col, "")), reverse=direction == "desc")
             elif k == "limit":
-                rows = rows[: int(v)]
+                continue
             elif k == "offset":
-                rows = rows[int(v):]
+                continue
             elif v.startswith("eq."):
                 rows = [r for r in rows if str(r.get(k)) == v[3:]]
             elif v.startswith("in.("):
@@ -69,7 +69,9 @@ class FakeSupa(Db):
                 rows = [r for r in rows if str(r.get(k)) <= v[4:]]
             elif v.startswith("neq."):
                 rows = [r for r in rows if str(r.get(k)) != v[4:]]
-        return rows
+        offset = int((query or {}).get('offset', 0))
+        limit = int((query or {}).get('limit', len(rows)))
+        return rows[offset:offset + limit]
 
     def claim_job(self, worker_id, types=None):
         for j in self._t("jobs"):

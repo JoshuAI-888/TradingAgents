@@ -133,4 +133,10 @@ Strict identity/paging/classification validation and per-market/cohort success c
 
 The additive immutable generation/lease RPC migration passes twelve actual PostgreSQL contract groups, including observed two-session acquisition/publication races, post-insert rollback, expiry fencing and the 20,000-row bound. Official isolated Supabase security/performance advisors report no issues; 331 API/worker and 68 JavaScript regressions pass. [Storage evidence and runtime gates](docs/screener-generation-publication.md). No new UI/production evidence: worker/API generation wiring, retention/platform qualification and R01 runtime acceptance remain open alongside the full R02–R15 requirements.
 
+## Worker integration and fresh three-view plan review
+
+Actual worker/native PostgreSQL verification passes a second-batch failure without partial publication, a 401-row classified generation, exact replay after a committed response is lost, successor fencing and quote-only pinned metadata. Provider waits now renew leases every 30 seconds with bounded wait/run duration. Full regressions: 347 API/worker and 68 JavaScript tests pass. [Worker evidence and remaining runtime gates](docs/screener-generation-worker-integration.md). API generation readers, PostgREST/platform limits, retention and production cutover remain open.
+
+Three fresh 2249 × 1168 screenshots were saved/opened against the original mockups. [Audit and implementation mapping](docs/design-gap-audit/worker-plan-review/README.md) confirms Desk company/provenance hierarchy, Explorer region-save/collision/peer context and Changes pair-review/bulk/Next workflow gaps. The fixture does not reconcile quote/chart identity or qualify financial data; keyboard, device, accessibility and speed acceptance remain open. No UI implementation, production migration, merge or deployment occurred in this checkpoint.
+
 Final result: blocked

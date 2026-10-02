@@ -2,6 +2,13 @@
 import pytest
 from datetime import datetime, timezone, timedelta
 from tradingagents_worker.universe_refresh import UniverseRefresher, UniverseRefreshError
+from tradingagents_worker.screener_generations import GenerationError
+from generation_fakes import GenerationDb
+
+
+@pytest.fixture
+def fake_db():
+    return GenerationDb()
 
 
 class FakeMoomoo:
@@ -18,7 +25,7 @@ class FakeMoomoo:
                                    for c in body['code_list']]}
         return {}
 
-    def snapshot(self, codes):
+    def snapshot(self, codes, retries=2):
         return {"snapshot_list": [{"code": c, "name": c.split(".")[1], "last_price": 10.0,
                                    "prev_close_price": 9.5} for c in codes]}
 
@@ -80,7 +87,7 @@ def test_quote_refresh_persists_source_time_separately_from_cache_write(fake_db)
     from datetime import datetime,timezone,timedelta
     stamp=int((datetime.now(timezone.utc)-timedelta(hours=2)).timestamp()*1000)
     class Provider(FakeMoomoo):
-        def snapshot(self,codes):
+        def snapshot(self,codes,retries=2):
             out=super().snapshot(codes)
             for row in out['snapshot_list']:row['update_time']=stamp
             return out
@@ -108,7 +115,7 @@ def seed_cohort(db, count=2, market='US'):
 def test_invalid_quote_batch_preserves_prior_rows_and_success(fake_db,response):
     seed_cohort(fake_db)
     class Provider(FakeMoomoo):
-        def snapshot(self,codes):return response
+        def snapshot(self,codes,retries=2):return response
     events=[]
     ref=UniverseRefresher(fake_db,Provider(),emit=lambda *a:events.append(a))
     with pytest.raises(UniverseRefreshError):ref.run()
@@ -124,7 +131,7 @@ def test_partial_later_batch_failure_does_not_advance_success_and_retry_is_not_s
     stamp=(datetime.now(timezone.utc)-timedelta(minutes=1)).isoformat()
     fake_db._t('app_settings')[0]['value']['last_quotes']=stamp
     class Provider(FakeMoomoo):
-        def snapshot(self,codes):
+        def snapshot(self,codes,retries=2):
             return {'snapshot_list':[]} if len(codes)==1 else super().snapshot(codes)
     ref=UniverseRefresher(fake_db,Provider())
     with pytest.raises(UniverseRefreshError):ref.refresh_quotes()
@@ -134,7 +141,8 @@ def test_partial_later_batch_failure_does_not_advance_success_and_retry_is_not_s
     with pytest.raises(UniverseRefreshError):ref.run()
     assert ref._universe_state()['last_quotes']==stamp
     quotes=fake_db._t('screener_quotes')
-    assert sum(r['row']['price']==10 for r in quotes)==400 and quotes[-1]['row']['price']==99
+    assert all(r['row']['price']==99 for r in quotes)
+    assert not fake_db._t('screener_generations')
     result=UniverseRefresher(fake_db,FakeMoomoo()).run()
     assert result['quotes']['quotes']==401 and result['quotes']['batches']==2
     assert result['quotes']['requested']==401 and result['quotes']['scope']=='requested_stored_universe'
@@ -212,23 +220,150 @@ def test_stored_cohort_identity_and_cap_validation(fake_db,monkeypatch):
 
 def test_storage_ack_failure_preserves_last_success(fake_db,monkeypatch):
     seed_cohort(fake_db)
-    original=fake_db.upsert_many
-    monkeypatch.setattr(fake_db,'upsert_many',lambda table,*a,**kw:0 if table=='screener_quotes' else original(table,*a,**kw))
+    original=fake_db.generation_rpc
+    monkeypatch.setattr(fake_db,'generation_rpc',lambda name,body:{} if name=='screener_refresh_publish' else original(name,body))
     ref=UniverseRefresher(fake_db,FakeMoomoo())
     with pytest.raises(UniverseRefreshError,match='acknowledgement'):ref.run()
     assert ref._universe_state()['last_quotes']=='2020-01-01T00:00:00Z'
 
 
-def test_fresh_clock_cannot_skip_changed_stored_cohort(fake_db):
+def test_published_cohort_does_not_adopt_legacy_mirror_additions(fake_db):
     seed_cohort(fake_db)
     ref=UniverseRefresher(fake_db,FakeMoomoo())
     first=ref.run()
     assert 'skipped' in ref.run()
     fake_db._t('screener_universe').append({'market':'US','code':'US.NEW','stock_type':'STOCK'})
     second=ref.run()
-    assert second['quotes']['requested']==3
-    assert first['quotes']['cohort_fingerprint']!=second['quotes']['cohort_fingerprint']
-    assert any(r['code']=='US.NEW' for r in fake_db._t('screener_quotes'))
+    assert 'skipped' in second and second['generation_id']==first['generation_id']
+    assert ref._stored_codes()==['US.S0000','US.S0001']
+    assert not any(r['code']=='US.NEW' for r in fake_db._t('screener_quotes'))
+
+
+def test_enumeration_and_first_quote_batch_do_not_publish_on_later_failure(fake_db):
+    seed_cohort(fake_db,1)
+    before=dict(fake_db._t('app_settings')[0]['value'])
+    class Provider(FakeMoomoo):
+        def call(self,method,path,**kw):
+            if path=='/quote/plate-stock':return {'stock_list':[{'code':f'US.NEW{i:04}'} for i in range(401)]}
+            return super().call(method,path,**kw)
+        def snapshot(self,codes,retries=2):
+            assert [r['code'] for r in fake_db._t('screener_universe')]==['US.S0000']
+            assert fake_db._t('screener_quotes')[0]['row']['price']==99
+            return {'snapshot_list':[]} if len(codes)==1 else super().snapshot(codes)
+    with pytest.raises(UniverseRefreshError):UniverseRefresher(fake_db,Provider()).run(force_enum=True)
+    state=UniverseRefresher(fake_db,Provider())._universe_state()
+    assert state['last_enum']==before['last_enum'] and state['last_quotes']==before['last_quotes']
+    assert not fake_db._t('screener_generation_rows')
+
+
+def test_busy_market_does_not_call_provider_or_overwrite_running_owner(fake_db):
+    seed_cohort(fake_db)
+    fake_db.generation_rpc('screener_refresh_begin',{'p_market':'US','p_run':'owner'})
+    class Provider(FakeMoomoo):
+        def snapshot(self,codes,retries=2):raise AssertionError('busy owner must not collect')
+    with pytest.raises(RuntimeError,match='owned'):UniverseRefresher(fake_db,Provider()).run()
+    state=UniverseRefresher(fake_db,Provider())._universe_state()
+    assert state['last_attempt']['run_id']=='owner' and state['last_attempt']['status']=='running'
+
+
+def test_generation_corruption_never_falls_back_to_legacy_mirror(fake_db):
+    first=UniverseRefresher(fake_db,FakeMoomoo()).run()
+    fake_db._t('screener_generation_rows').pop()
+    with pytest.raises(GenerationError,match='incomplete'):UniverseRefresher(fake_db,FakeMoomoo()).run()
+    assert len(fake_db._t('screener_quotes'))==2
+    assert fake_db._t('app_settings')[0]['value']['generation_id']==first['generation_id']
+
+
+def test_quote_only_refresh_uses_exact_pinned_cohort_and_metadata(fake_db):
+    first=UniverseRefresher(fake_db,FakeMoomoo()).run()
+    fake_db._t('app_settings')[0]['value']['last_attempt']={'status':'failed'}
+    fake_db._t('screener_universe').append({'market':'US','code':'US.UNRELATED','stock_type':'STOCK'})
+    second=UniverseRefresher(fake_db,FakeMoomoo()).run()
+    assert 'enum' not in second and second['quotes']['requested']==2
+    assert second['generation_id']!=first['generation_id']
+    assert all(r['row']['stock_type']=='STOCK' and r['metadata']['plates']==['Software','Semis']
+        for r in fake_db._t('screener_generation_rows'))
+
+
+def test_rate_limit_wait_renews_lease_in_bounded_segments(fake_db,monkeypatch):
+    import tradingagents_worker.universe_refresh as module
+    from tradingagents_worker.moomoo import RateLimited
+    seed_cohort(fake_db)
+    waits=[]
+    monkeypatch.setattr(module.time,'sleep',waits.append)
+    class Provider(FakeMoomoo):
+        calls=0
+        def snapshot(self,codes,retries=2):
+            assert retries==0  # loader owns HTTP-200 retry waits too
+            self.calls+=1
+            if self.calls==1:raise RateLimited(65,'snapshot')
+            return super().snapshot(codes)
+    provider=Provider()
+    result=UniverseRefresher(fake_db,provider).run()
+    assert waits==[30,30,5] and provider.calls==2 and result['quotes']['quotes']==2
+    assert sum(name=='screener_refresh_renew' for name,_ in fake_db.rpc_calls)>=6
+
+
+def test_lost_ownership_after_provider_response_cannot_publish(fake_db):
+    seed_cohort(fake_db)
+    class Provider(FakeMoomoo):
+        def snapshot(self,codes,retries=2):
+            fake_db.leases['US']['run_id']='successor'
+            fake_db._t('app_settings')[0]['value']['last_attempt']={'run_id':'successor','status':'running'}
+            return super().snapshot(codes)
+    with pytest.raises(RuntimeError,match='superseded'):UniverseRefresher(fake_db,Provider()).run()
+    assert not fake_db._t('screener_generations')
+    assert all(r['row']['price']==99 for r in fake_db._t('screener_quotes'))
+    assert fake_db._t('app_settings')[0]['value']['last_attempt']['run_id']=='successor'
+
+
+def test_1201_row_pinned_worker_read_is_not_truncated(fake_db):
+    seed_cohort(fake_db,1201)
+    first=UniverseRefresher(fake_db,FakeMoomoo()).run()
+    assert first['quotes']['quotes']==1201 and first['quotes']['batches']==4
+    assert len(UniverseRefresher(fake_db,FakeMoomoo())._stored_codes())==1201
+
+
+def test_success_clock_must_match_immutable_publication_receipt(fake_db):
+    UniverseRefresher(fake_db,FakeMoomoo()).run()
+    fake_db._t('app_settings')[0]['value']['last_quotes']='2020-01-01T00:00:00Z'
+    with pytest.raises(GenerationError,match='successful receipt'):UniverseRefresher(fake_db,FakeMoomoo()).run()
+
+
+def test_provider_retry_wait_cannot_hold_market_lease_forever(fake_db,monkeypatch):
+    import tradingagents_worker.universe_refresh as module
+    from tradingagents_worker.moomoo import RateLimited
+    seed_cohort(fake_db)
+    monkeypatch.setattr(module.time,'sleep',lambda _:pytest.fail('overbound wait must not sleep'))
+    class Provider(FakeMoomoo):
+        def snapshot(self,codes,retries=2):raise RateLimited(901,'snapshot')
+    with pytest.raises(UniverseRefreshError,match='retry wait'):UniverseRefresher(fake_db,Provider()).run()
+    assert fake_db._t('app_settings')[0]['value']['last_attempt']['status']=='failed'
+    assert not fake_db._t('screener_generations')
+
+
+def test_run_duration_bound_releases_failure_without_collecting(fake_db,monkeypatch):
+    import tradingagents_worker.universe_refresh as module
+    seed_cohort(fake_db)
+    monkeypatch.setattr(module,'MAX_RUN_SECONDS',-1)
+    with pytest.raises(UniverseRefreshError,match='run duration'):UniverseRefresher(fake_db,FakeMoomoo()).run()
+    assert not fake_db._t('screener_generations')
+    assert not fake_db.leases['US']['active']
+
+
+def test_actual_cloud_client_http_200_retry_does_not_sleep_inside_lease(fake_db,monkeypatch):
+    import tradingagents_worker.moomoo as cloud
+    import json
+    client=cloud.MoomooClient.__new__(cloud.MoomooClient)
+    client.appkey='test-only';client.offset=0;client.budget=cloud.Budget();client._sign=lambda *a:'test'
+    class Response:
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def read(self):return json.dumps({'ret_code':-11,'error':{'code':'rate_limited','retry_after':901}}).encode()
+    monkeypatch.setattr(cloud,'urlopen',lambda *a,**kw:Response())
+    monkeypatch.setattr(cloud.time,'sleep',lambda _:pytest.fail('cloud client must let loader manage the retry'))
+    with pytest.raises(UniverseRefreshError,match='retry wait'):
+        UniverseRefresher(fake_db,client)._provider(client.snapshot,['US.A'])
 
 
 def test_valid_plate_pages_exhaust_explicitly_and_keep_all_members(fake_db):

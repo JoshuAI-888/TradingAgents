@@ -138,9 +138,9 @@ class MoomooClient:
         raise MoomooError("unreachable")
 
     # ── read-only quote operations ────────────────────────────────────────
-    def snapshot(self, symbols: list[str]) -> dict:
+    def snapshot(self, symbols: list[str], retries: int = 2) -> dict:
         """Batch market snapshot: up to 400 codes/call. Denied codes → data.skipped."""
-        return self.call("POST", "/quote/snapshot", body={"code_list": symbols[:400]})
+        return self.call("POST", "/quote/snapshot", body={"code_list": symbols[:400]}, retries=retries)
 
     def screen(self, screen_queries: list, retrieve_queries: list | None = None,
                sort: dict | None = None, limit: int = 50) -> list:

@@ -5,6 +5,8 @@ Uses the service-role key which bypasses RLS. Only this process holds it.
 from __future__ import annotations
 
 import json
+import socket
+from http.client import IncompleteRead
 from urllib import request as _rq, error as _err
 from urllib.parse import urlencode
 
@@ -59,6 +61,25 @@ class Db:
     def requeue_job(self, job_id: str, error: str):
         """Attempts < max_attempts -> back to pending; else failed."""
         self._call("POST", "rpc/requeue_job", body={"p_job": job_id, "p_error": error})
+
+    def generation_rpc(self, name: str, body: dict):
+        """Exact-replay refresh RPCs; retry an uncertain transport response once.
+
+        The same UUID and JSON payload are retained. HTTP/SQL errors are not
+        retried here; the job retry path may start a new fenced attempt.
+        """
+        if name not in {'screener_refresh_begin', 'screener_refresh_renew',
+                        'screener_refresh_publish', 'screener_refresh_abort'}:
+            raise ValueError('Unsupported generation RPC')
+        # Reject non-JSON numbers before sending a publication request.
+        json.dumps(body, allow_nan=False)
+        for attempt in range(2):
+            try:
+                return self._call('POST', 'rpc/' + name, body=body)
+            except (_err.URLError, TimeoutError, socket.timeout, ConnectionError,
+                    IncompleteRead, json.JSONDecodeError):
+                if attempt:
+                    raise
 
     # ── runs / events / decisions ─────────────────────────────────────────
     def insert(self, table: str, row: dict, prefer: str = "return=representation") -> list | dict | None:
