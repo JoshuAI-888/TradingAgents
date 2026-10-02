@@ -1,0 +1,207 @@
+{
+  "observed_at": "2026-10-02T20:56:35.307Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/pb-ratio-less-than-1-6",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/HWGG-US",
+      "text": "2151\nHWGG\nHWGG ENTMT LTD\n1.500\n0.00%\n0.000\n36.99M\n0.00\n-3.11"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HUTCY-US",
+      "text": "2152\nHUTCY\nHUTCHISON TELECOMMUNICATIONS HK HOL SPON ADS EACH REP 15 ORD SHS\n2.000\n0.00%\n0.000\n642.55M\n45.00\n0.57"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HUPHY-US",
+      "text": "2153\nHUPHY\nHUTCHISON PORT HOLDINGS TRUST UNSPON ADR EACH REPR 20 ORD\n4.250\n0.00%\n0.000\n1.85B\n0.00\n0.58"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DRNG-US",
+      "text": "2154\nDRNG\nDRONE GUARDER INC\n0.000001\n0.00%\n0.000000\n2.61K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HPIFY-US",
+      "text": "2155\nHPIFY\nHUADIAN POWER INTERNATIONAL CORP UNSP ADR EACH REPR 30 SHS\n15.350\n0.00%\n0.000\n5.94B\n0.00\n0.56"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HMLN-US",
+      "text": "2156\nHMLN\nHAMLIN BANK & TRUST CO (PA)\n255.000\n0.00%\n0.000\n91.12M\n0.00\n0.94"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HMLA-US",
+      "text": "2157\nHMLA\nHIMALAYA TECHNOLOGIES INC\n0.000100\n0.00%\n0.000000\n38.93K\n0.00\n-0.05"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HLOC-US",
+      "text": "2158\nHLOC\nHELO CORP\n0.0267\n0.00%\n0.0000\n2.32M\n0.00\n-0.58"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HERB-US",
+      "text": "2159\nHERB\nYASHENG GROUP\n0.0163\n0.00%\n0.0000\n2.56M\n0.00\n0.01"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HAWPY-US",
+      "text": "2160\nHAWPY\nHAW PAR CORP LTD UNSP ADR EA REPR 4 ORD SHS\n53.500\n0.00%\n0.000\n2.96B\n1.00\n0.88"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GVLMY-US",
+      "text": "2161\nGVLMY\nGREENVALE ENERGY LTD UNSPON ADR EACH REP 1 ORD SHS\n0.0100\n0.00%\n0.0000\n6.88M\n0.00\n0.59"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GVFF-US",
+      "text": "2162\nGVFF\nGREENVILLE FED FIN\n7.500\n0.00%\n0.000\n15.14M\n0.00\n0.72"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CWQXY-US",
+      "text": "2163\nCWQXY\nCASTELLUM AB UNSP ADR EACH REPR 2 SHS\n28.020\n0.00%\n0.000\n6.03B\n0.00\n0.79"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GTPS-US",
+      "text": "2164\nGTPS\nGREAT AMERICAN BANCORP INC\n75.000\n0.00%\n0.000\n26.73M\n0.00\n0.99"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GSTC-US",
+      "text": "2165\nGSTC\nGLOBESTAR THERAPEUTICS CORP\n0.000001\n0.00%\n0.000000\n1.24K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GSPE-US",
+      "text": "2166\nGSPE\nGULFSLOPE ENERGY INC\n0.000001\n0.00%\n0.000000\n1.36K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GSFD-US",
+      "text": "2167\nGSFD\nGLOBAL SEAFOOD TECHNOLOGIES INC\n0.0621\n0.00%\n0.0000\n1.17M\n0.00\n0.38"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GRVE-US",
+      "text": "2168\nGRVE\nGROOVE BOTANICALS INC\n0.0045\n0.00%\n0.0000\n268.39K\n0.00\n-0.17"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GRST-US",
+      "text": "2169\nGRST\nETHEMA HEALTH CORPORATION\n0.000001\n0.00%\n0.000000\n7.73K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GRNL-US",
+      "text": "2170\nGRNL\nGREENLITE VENTURES INC\n1.990\n0.00%\n0.000\n18.52M\n20.00\n-22.36"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GRNCY-US",
+      "text": "2171\nGRNCY\nGRAINCORP UNSP ADR EACH REPR 2 ORD SHS\n7.240\n0.00%\n0.000\n804.81M\n0.00\n0.85"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GRMC-US",
+      "text": "2172\nGRMC\nGOLDRICH MINING COMPANY\n0.000100\n0.00%\n0.000000\n19.66K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GRDDY-US",
+      "text": "2173\nGRDDY\nGRAND CITY PROPERTIES S.A. SPON ADR EACH REP 1 ORD SHS\n11.100\n0.00%\n0.000\n1.95B\n0.00\n0.33"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GPLB-US",
+      "text": "2174\nGPLB\nGREEN PLANET BIOENGINEERING CO LTD\n0.0088\n0.00%\n0.0000\n176.06K\n0.00\n-0.34"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GOGR-US",
+      "text": "2175\nGOGR\nGO GREEN GLOBAL TECHNOLOGIES CORP\n0.0211\n0.00%\n0.0000\n2.66M\n0.00\n-0.70"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GMNI-US",
+      "text": "2176\nGMNI\nGEMINI GROUP GLOBAL CORP\n0.0011\n0.00%\n0.0000\n809.34K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GIFX-US",
+      "text": "2177\nGIFX\nGIFA INC\n0.0180\n0.00%\n0.0000\n2.11M\n0.00\n-9.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GHST-US",
+      "text": "2178\nGHST\nGHST WORLD INC\n0.0358\n0.00%\n0.0000\n4.66M\n0.00\n-8.95"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GGSM-US",
+      "text": "2179\nGGSM\nGOLD & GEMSTONE MINING INC\n0.0002\n0.00%\n0.0000\n513.74K\n153.10M\n-0.20"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GFMH-US",
+      "text": "2180\nGFMH\nGOLIATH FILM & MEDIA HLDGS\n0.0040\n0.00%\n0.0000\n555.86K\n0.00\n-4.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CSGYY-US",
+      "text": "2181\nCSGYY\nCOSMO ENERGY HLDGS CO LTD UNSP ADR EACH REP 0.5 ORD\n9.150\n0.00%\n0.000\n2.91B\n0.00\n0.85"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GEGP-US",
+      "text": "2182\nGEGP\nGOLD ENTERTAINMENT GROUP INC\n0.000001\n0.00%\n0.000000\n16.81K\n0.00\n-0.13"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GASE-US",
+      "text": "2183\nGASE\nGASE ENERGY INC\n0.000100\n0.00%\n0.000000\n86.61K\n0.00\n0.10"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FXTGY-US",
+      "text": "2184\nFXTGY\nFOXTONS GROUP PLC UNSPON ADR EACH REP 2 ORD GBP0.00\n0.9924\n0.00%\n0.0000\n146.76M\n0.00\n0.76"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FWFW-US",
+      "text": "2185\nFWFW\nFLYWHEEL ADVANCED TECHNOLOGY INC\n0.2000\n0.00%\n0.0000\n5.92M\n0.00\n-5.41"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CRDV-US",
+      "text": "2186\nCRDV\nCOMMUNITY REDEVELOPMENT INC\n0.000100\n0.00%\n0.000000\n53.27K\n0.00\n-0.10"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CNNN-US",
+      "text": "2187\nCNNN\nCONNEXIONONE CORP\n0.000100\n0.00%\n0.000000\n7.66K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FHNGY-US",
+      "text": "2188\nFHNGY\nFOSCHINI GROUP (THE) LVL I ADS EACH REPR 1 ORD ZAR0.0125\n3.040\n0.00%\n0.000\n958.51M\n0.00\n0.63"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FGFI-US",
+      "text": "2189\nFGFI\nFIRST GREENWICH FINANCIAL INC\n20.000\n0.00%\n0.000\n53.83M\n0.00\n0.94"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FCRM-US",
+      "text": "2190\nFCRM\nFRANKLIN CREDIT MANAGEMENT CORP\n0.1890\n0.00%\n0.0000\n1.89M\n0.00\n0.38"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/EYUBY-US",
+      "text": "2191\nEYUBY\nELECTRICITY GENERATING PUBLIC CO UNSP ADR EACH REP 4 ORD SHS\n22.110\n0.00%\n0.000\n2.91B\n0.00\n0.86"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CLEV-US",
+      "text": "2192\nCLEV\nCONCRETE LEVELING SYSTEMS INC\n0.9100\n0.00%\n0.0000\n12.77M\n0.00\n-19.78"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/EXCH-US",
+      "text": "2193\nEXCH\nEXCHANGE BANKSHARES INC\n67.420\n0.00%\n0.000\n39.69M\n0.00\n0.83"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/EVSV-US",
+      "text": "2194\nEVSV\nENVIRO SERV INC\n0.0004\n0.00%\n0.0000\n182.97K\n0.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ESYL-US",
+      "text": "2195\nESYL\nEASYLINK SOLUTIONS CORPORATION\n0.0033\n0.00%\n0.0000\n18.47M\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ERKH-US",
+      "text": "2196\nERKH\nEUREKA HOMESTEAD BANCORP INC\n14.250\n0.00%\n0.000\n14.62M\n300.00\n0.76"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ERELY-US",
+      "text": "2197\nERELY\nEREGLI DEMIR CELIK UNSP ADR EACH REP 10 ORD SH\n8.020\n0.00%\n0.000\n5.39B\n0.00\n0.83"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CHJI-US",
+      "text": "2198\nCHJI\nCHINA CHANG JIANG MINING & NEW ENGY\n0.0003\n0.00%\n0.0000\n19.39K\n0.00\n-0.01"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ENGT-US",
+      "text": "2199\nENGT\nENERGY & TECHNOLOGY CORP\n0.0909\n0.00%\n0.0000\n15.04M\n20.00\n-2.93"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ENEAY-US",
+      "text": "2200\nENEAY\nENEA SA UNSP ADR EACH REPR ORD SHS\n22.480\n0.00%\n0.000\n2.98B\n0.00\n0.63"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\n\nDeposit, Share & Win NVDA 0.1\n\nGet started\nScreener\nRecommended Screeners\nP/B Ratio Less Than 1\nP/B Ratio Less Than 1\n\nSpot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.\n\nSelected:\n\nSave Screener\nMarket: USP/B: ≤1.00\nResult: 4534 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nP/B\nWatchlist\nPaper Trade\n2151\nHWGG\nHWGG ENTMT LTD\n1.500\n0.00%\n0.000\n36.99M\n0.00\n-3.11\n2152\nHUTCY\nHUTCHISON TELECOMMUNICATIONS HK HOL SPON ADS EACH REP 15 ORD SHS\n2.000\n0.00%\n0.000\n642.55M\n45.00\n0.57\n2153\nHUPHY\nHUTCHISON PORT HOLDINGS TRUST UNSPON ADR EACH REPR 20 ORD\n4.250\n0.00%\n0.000\n1.85B\n0.00\n0.58\n2154\nDRNG\nDRONE GUARDER INC\n0.000001\n0.00%\n0.000000\n2.61K\n0.00\n-0.00\n2155\nHPIFY\nHUADIAN POWER INTERNATIONAL CORP UNSP ADR EACH REPR 30 SHS\n15.350\n0.00%\n0.000\n5.94B\n0.00\n0.56\n2156\nHMLN\nHAMLIN BANK & TRUST CO (PA)\n255.000\n0.00%\n0.000\n91.12M\n0.00\n0.94\n2157\nHMLA\nHIMALAYA TECHNOLOGIES INC\n0.000100\n0.00%\n0.000000\n38.93K\n0.00\n-0.05\n2158\nHLOC\nHELO CORP\n0.0267\n0.00%\n0.0000\n2.32M\n0.00\n-0.58\n2159\nHERB\nYASHENG GROUP\n0.0163\n0.00%\n0.0000\n2.56M\n0.00\n0.01\n2160\nHAWPY\nHAW PAR CORP LTD UNSP ADR EA REPR 4 ORD SHS\n53.500\n0.00%\n0.000\n2.96B\n1.00\n0.88\n2161\nGVLMY\nGREENVALE ENERGY LTD UNSPON ADR EACH REP 1 ORD SHS\n0.0100\n0.00%\n0.0000\n6.88M\n0.00\n0.59\n2162\nGVFF\nGREENVILLE FED FIN\n7.500\n0.00%\n0.000\n15.14M\n0.00\n0.72\n2163\nCWQXY\nCASTELLUM AB UNSP ADR EACH REPR 2 SHS\n28.020\n0.00%\n0.000\n6.03B\n0.00\n0.79\n2164\nGTPS\nGREAT AMERICAN BANCORP INC\n75.000\n0.00%\n0.000\n26.73M\n0.00\n0.99\n2165\nGSTC\nGLOBESTAR THERAPEUTICS CORP\n0.000001\n0.00%\n0.000000\n1.24K\n0.00\n-0.00\n2166\nGSPE\nGULFSLOPE ENERGY INC\n0.000001\n0.00%\n0.000000\n1.36K\n0.00\n-0.00\n2167\nGSFD\nGLOBAL SEAFOOD TECHNOLOGIES INC\n0.0621\n0.00%\n0.0000\n1.17M\n0.00\n0.38\n2168\nGRVE\nGROOVE BOTANICALS INC\n0.0045\n0.00%\n0.0000\n268.39K\n0.00\n-0.17\n2169\nGRST\nETHEMA HEALTH CORPORATION\n0.000001\n0.00%\n0.000000\n7.73K\n0.00\n-0.00\n2170\nGRNL\nGREENLITE VENTURES INC\n1.990\n0.00%\n0.000\n18.52M\n20.00\n-22.36\n2171\nGRNCY\nGRAINCORP UNSP ADR EACH REPR 2 ORD SHS\n7.240\n0.00%\n0.000\n804.81M\n0.00\n0.85\n2172\nGRMC\nGOLDRICH MINING COMPANY\n0.000100\n0.00%\n0.000000\n19.66K\n0.00\n-0.00\n2173\nGRDDY\nGRAND CITY PROPERTIES S.A. SPON ADR EACH REP 1 ORD SHS\n11.100\n0.00%\n0.000\n1.95B\n0.00\n0.33\n2174\nGPLB\nGREEN PLANET BIOENGINEERING CO LTD\n0.0088\n0.00%\n0.0000\n176.06K\n0.00\n-0.34\n2175\nGOGR\nGO GREEN GLOBAL TECHNOLOGIES CORP\n0.0211\n0.00%\n0.0000\n2.66M\n0.00\n-0.70\n2176\nGMNI\nGEMINI GROUP GLOBAL CORP\n0.0011\n0.00%\n0.0000\n809.34K\n0.00\n-0.00\n2177\nGIFX\nGIFA INC\n0.0180\n0.00%\n0.0000\n2.11M\n0.00\n-9.00\n2178\nGHST\nGHST WORLD INC\n0.0358\n0.00%\n0.0000\n4.66M\n0.00\n-8.95\n2179\nGGSM\nGOLD & GEMSTONE MINING INC\n0.0002\n0.00%\n0.0000\n513.74K\n153.10M\n-0.20\n2180\nGFMH\nGOLIATH FILM & MEDIA HLDGS\n0.0040\n0.00%\n0.0000\n555.86K\n0.00\n-4.00\n2181\nCSGYY\nCOSMO ENERGY HLDGS CO LTD UNSP ADR EACH REP 0.5 ORD\n9.150\n0.00%\n0.000\n2.91B\n0.00\n0.85\n2182\nGEGP\nGOLD ENTERTAINMENT GROUP INC\n0.000001\n0.00%\n0.000000\n16.81K\n0.00\n-0.13\n2183\nGASE\nGASE ENERGY INC\n0.000100\n0.00%\n0.000000\n86.61K\n0.00\n0.10\n2184\nFXTGY\nFOXTONS GROUP PLC UNSPON ADR EACH REP 2 ORD GBP0.00\n0.9924\n0.00%\n0.0000\n146.76M\n0.00\n0.76\n2185\nFWFW\nFLYWHEEL ADVANCED TECHNOLOGY INC\n0.2000\n0.00%\n0.0000\n5.92M\n0.00\n-5.41\n2186\nCRDV\nCOMMUNITY REDEVELOPMENT INC\n0.000100\n0.00%\n0.000000\n53.27K\n0.00\n-0.10\n2187\nCNNN\nCONNEXIONONE CORP\n0.000100\n0.00%\n0.000000\n7.66K\n0.00\n-0.00\n2188\nFHNGY\nFOSCHINI GROUP (THE) LVL I ADS EACH REPR 1 ORD ZAR0.0125\n3.040\n0.00%\n0.000\n958.51M\n0.00\n0.63\n2189\nFGFI\nFIRST GREENWICH FINANCIAL INC\n20.000\n0.00%\n0.000\n53.83M\n0.00\n0.94\n2190\nFCRM\nFRANKLIN CREDIT MANAGEMENT CORP\n0.1890\n0.00%\n0.0000\n1.89M\n0.00\n0.38\n2191\nEYUBY\nELECTRICITY GENERATING PUBLIC CO UNSP ADR EACH REP 4 ORD SHS\n22.110\n0.00%\n0.000\n2.91B\n0.00\n0.86\n2192\nCLEV\nCONCRETE LEVELING SYSTEMS INC\n0.9100\n0.00%\n0.0000\n12.77M\n0.00\n-19.78\n2193\nEXCH\nEXCHANGE BANKSHARES INC\n67.420\n0.00%\n0.000\n39.69M\n0.00\n0.83\n2194\nEVSV\nENVIRO SERV INC\n0.0004\n0.00%\n0.0000\n182.97K\n0.00\n0.00\n2195\nESYL\nEASYLINK SOLUTIONS CORPORATION\n0.0033\n0.00%\n0.0000\n18.47M\n0.00\n-0.00\n2196\nERKH\nEUREKA HOMESTEAD BANCORP INC\n14.250\n0.00%\n0.000\n14.62M\n300.00\n0.76\n2197\nERELY\nEREGLI DEMIR CELIK UNSP ADR EACH REP 10 ORD SH\n8.020\n0.00%\n0.000\n5.39B\n0.00\n0.83\n2198\nCHJI\nCHINA CHANG JIANG MINING & NEW ENGY\n0.0003\n0.00%\n0.0000\n19.39K\n0.00\n-0.01\n2199\nENGT\nENERGY & TECHNOLOGY CORP\n0.0909\n0.00%\n0.0000\n15.04M\n20.00\n-2.93\n2200\nENEAY\nENEA SA UNSP ADR EACH REPR ORD SHS\n22.480\n0.00%\n0.000\n2.98B\n0.00\n0.63\n1\n43\n44\n45\n46\n91\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\nSTRW\n\n+4.90%\n\nABX\n\n+4.82%\n\nSNLAY\n\n+3.77%\n\nLow P/E Ratio Stocks\n\nZENVF\n\n+2900.00%\n\nBHATF\n\n+500.00%\n\nNXUR\n\n+266.67%\n\nBelow 30 RSI Stocks\n\nBPTH\n\n+200.00%\n\nNCLX\n\n+36.36%\n\nNIVF\n\n+27.72%\n\nJunk Stocks\n\nAILEQ\n\n+9900.00%\n\nPCTL\n\n+9900.00%\n\nZENVF\n\n+2900.00%\n\nSmall Cap Stocks with Huge Growth Potential\n\nFCEL\n\n+11.47%\n\nAZ\n\n+9.75%\n\nHYLN\n\n+7.60%\n\nBlue Chip Dividend Stocks\n\nRIO\n\n+1.44%\n\n--\n\n--\n\n--\n\n--\n\n1\n2\nCustomer Service\n0800 886 800\n\n(toll free)\n\n+64 9 872 6000\n\n(from overseas)\n\nTrading days: 24 hours\n\nNon-trading days: 9:30 - 21:30 NZT\n\nsupport@nz.moomoo.com\n\nOfficial WhatsApp\n\nAbout moomoo\nAbout moomoo\nContact Us\nInvestor Relations\nTerms & Conditions\nPrivacy Policy\nTerms of Use\nFinancial Services Guide\nLicensed Entities*\nCareers / Contact:\nApply Now\ncareer@au.moomoo.com\nFollow us on\n\nThe moomoo app is an online trading platform offered by Moomoo Technologies Inc. In New Zealand, financial services are offered by Moomoo Securities Australia Ltd, NZBN: 942 905 240 2296, a financial services provider registered in New Zealand (FSP1008656). Moomoo Securities Australia Limited is not licensed by a New Zealand regulator to provide financial services. Its registration on the New Zealand FSP Register does not mean that it is subject to active regulation or oversight by a New Zealand regulator.\n\nInvestments carry risks and may result in losses. Market data or information on this website is for reference only and should not be seen as an endorsement or recommendation to buy or sell financial products. Past performance is not indicative of future results. The information is general and doesn't consider your personal investment objectives, financial situation, or needs. Consider your personal circumstances before making investment decisions.\n\nOptions trading involves substantial risks and may not be suitable for all investors. Losses could potentially exceed your initial investment. Please carefully review and consider our US Options Product Disclosure Statement and OCC's Characteristics and Risks of Standardized Options before trading options with us.\n\nPlease read, consider and understand our Financial Services Disclosure Statement, Privacy Policy, Website Terms and Conditions, Information Collection Notice and Risk Disclosure Statement before deciding to use our services.\n\nCompany Address: Moomoo Securities Australia Ltd. Suite 5.01, 570 George Street, Sydney NSW 2000\n\nCopyright © 2026 Moomoo Technologies Inc. All Rights Reserved."
+}

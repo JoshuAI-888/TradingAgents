@@ -39,7 +39,10 @@ def compare(item):
         api = json.load(response)
     (ROOT / f"preset-{index}-api.json").write_text(json.dumps(api, indent=2))
     source_rows = list(source["rows"])
-    for page_file in sorted(ROOT.glob(f"preset-{index}-us-page*.json")):
+    for page_file in sorted(
+        ROOT.glob(f"preset-{index}-us-page*.json"),
+        key=lambda p: int(re.search(r"page(\d+)", p.name)[1]),
+    ):
         source_rows.extend(json.loads(page_file.read_text())["rows"])
     source_codes = [
         "US." + row["href"].split("/stock/")[1].rsplit("-", 1)[0] for row in source_rows

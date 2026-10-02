@@ -44,4 +44,23 @@ The source catalog exposes all 22 original strategy links. All 20 working US pre
 
 Price-path inspection: current `main.screener_execute` decodes screen property 2201 at a fixed 1/1000 scale; `fmtAuto` retains extra decimals for small prices and is not the cause of the 0.0058 → 0.006 source/API discrepancy. The provider screening response has limited precision at that scale. Whether this observed difference also reflects separate clocks needs fresh qualified raw quote evidence. Keep provider criterion evidence separate from a potentially higher-precision display quote; do not invent missing digits or silently overwrite evidence.
 
+## Full large-screen traversal — newer checkpoint
+
+This supersedes the four partial-screen positions above. Every source result page was traversed for all four large screens, with fresh per-page observation timestamps. API continuation chains were read to explicit completion. This is not evidence that a changing website exposes an immutable snapshot.
+
+| Screen | Source totals observed | Source rows / unique | Complete API rows / unique | Outcome |
+| --- | --- | --- | --- | --- |
+| High P/E | 479 on all 10 pages | 479 / 479 | 479 / 479 | Full membership and order match |
+| P/B <1 | 4,532 or 4,534 across 91 pages | 4,534 / 4,519 | 4,534 / 4,534 | Source drift and 15 duplicate boundaries; full snapshot match unproven |
+| Low P/E | 1,694 or 1,695 across 34 pages | 1,694 / 1,692 | 1,695 / 1,695 | Source drift and two duplicate boundaries; full snapshot match unproven |
+| Junk | 531 or 532 across 11 pages | 532 / 530 | 532 / 532 | Source drift and two duplicate boundaries; full snapshot match unproven |
+
+**17/20 working US presets now have complete source membership/order evidence.** All source-captured identities in the other three occur in their complete API chains. P/B's source traversal lacks 15 API identities; Low P/E lacks INMB/LGCL/NNE; Junk lacks CTKYY/MGN. These are capture differences, not proven provider omissions. The exact lists and duplicate codes are in `large-preset-comparison.json`. Do not deduplicate and silently call the source traversal complete.
+
+The P/B API chain hit `rate_limited ... retry after 5.0s` on the final continuation after 4,500 rows. The same cursor was resumed after the cooldown, returning the remaining 34 with explicit completion. The failed attempt and retry remain in `preset-6-api-chain.json`. No collection restart, forced refresh or fabricated rows was used. Other API chains have stable declared totals, no duplicate identities and explicit termination. A stable API chain alone cannot establish identical website generation or independently qualified ETF/REIT classification.
+
+`compare-large-presets.py --offline` reproduces the comparison from saved source and API receipts without making network requests. Numerical page ordering is explicit, so page 10 does not precede page 2. `compare-presets.py` uses the same numeric ordering; its earlier report is timestamped historical evidence rather than this newer full-chain checkpoint. Verification scripts pass Ruff and formatting checks. No product code changed, so this evidence pass does not claim a new application regression or production smoke test.
+
+Next source work should resolve clock/replica drift for these three screens and verify quote/session accuracy, rather than repeatedly collecting an unstable unpinned website as if it were a single cohort. Qualified HK publication and final hosted journey/export/performance gates remain open.
+
 ![Penny source](penny-us.png)

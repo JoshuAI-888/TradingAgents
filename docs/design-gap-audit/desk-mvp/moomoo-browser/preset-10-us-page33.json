@@ -1,0 +1,207 @@
+{
+  "observed_at": "2026-10-02T20:54:38.390Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/low-pe-ratio-stocks-10",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/PWCM-US",
+      "text": "1601\nPWCM\nPowerCompute\n0.8972\n-6.47%\n-0.0621\n1.61M\n154.36K\n-0.01\n0.09\n43.73%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FLX-US",
+      "text": "1602\nFLX\nBingEx\n1.410\n-6.62%\n-0.100\n103.11M\n217.42K\n-45.48\n0.94\n35.16%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GWAV-US",
+      "text": "1603\nGWAV\nGreenwave Technology Solutions\n2.305\n-6.68%\n-0.165\n1.91M\n9.15K\n-0.11\n0.09\n52.99%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GLUE-US",
+      "text": "1604\nGLUE\nMonte Rosa Therapeutics\n10.500\n-6.75%\n-0.760\n895.79M\n2.21M\n-6.00\n1.84\n48.05%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LEXX-US",
+      "text": "1605\nLEXX\nLexaria Bioscience\n2.880\n-6.80%\n-0.210\n6.07M\n77.27K\n-0.56\n1.28\n37.66%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NCNA-US",
+      "text": "1606\nNCNA\nNuCana\n1.090\n-6.84%\n-0.080\n4.54M\n320.12K\n0.02\n0.17\n18.46%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ZSHGY-US",
+      "text": "1607\nZSHGY\nZHONGSHENG GROUP H\n2.993\n-6.85%\n-0.220\n708.32M\n5.03K\n-1.84\n0.11\n58.03%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AIFF-US",
+      "text": "1608\nAIFF\nFirefly Neuroscience\n1.360\n-6.85%\n-0.100\n21.34M\n698.00K\n-2.67\n1.45\n27.11%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PLRZ-US",
+      "text": "1609\nPLRZ\nPolyrizon\n9.610\n-6.88%\n-0.710\n23.34M\n56.47K\n-1.94\n0.96\n2.07%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SVRN-US",
+      "text": "1610\nSVRN\nSVRN Inc\n36.160\n-6.96%\n-2.705\n67.83M\n179.18K\n-0.20\n0.43\n5.38%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SORA-US",
+      "text": "1611\nSORA\nAsiaStrategy\n2.230\n-7.08%\n-0.170\n55.45M\n1.45M\n4.49\n2.54\n45.12%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ICCM-US",
+      "text": "1612\nICCM\nIcecure Medical\n1.570\n-7.10%\n-0.120\n5.38M\n306.78K\n-0.23\n0.45\n34.83%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/UNCY-US",
+      "text": "1613\nUNCY\nUnicycive Therapeutics\n4.220\n-7.25%\n-0.330\n117.55M\n1.50M\n-2.41\n2.21\n38.54%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TVRD-US",
+      "text": "1614\nTVRD\nTvardi Therapeutics\n1.150\n-7.26%\n-0.090\n15.34M\n313.80K\n-0.41\n1.83\n34.69%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/XELB-US",
+      "text": "1615\nXELB\nXcel Brands\n0.6570\n-7.27%\n-0.0515\n4.31M\n36.06K\n-0.21\n0.31\n59.37%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GNTA-US",
+      "text": "1616\nGNTA\nGenenta Science\n0.7450\n-7.30%\n-0.0587\n35.92M\n59.11K\n-2.01\n1.46\n31.51%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NUWE-US",
+      "text": "1617\nNUWE\nNuwellis\n0.6938\n-7.37%\n-0.0552\n2.53M\n104.60K\n0.00\n-1.23\n57.01%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BKYI-US",
+      "text": "1618\nBKYI\nBIO-key International\n2.120\n-7.42%\n-0.170\n3.05M\n408.08K\n-0.27\n0.70\n38.50%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CLVT-US",
+      "text": "1619\nCLVT\nClarivate\n1.480\n-7.50%\n-0.120\n946.70M\n3.70M\n-2.85\n0.21\n56.25%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SSTK-US",
+      "text": "1620\nSSTK\nShutterstock\n3.810\n-7.52%\n-0.310\n140.77M\n834.40K\n-0.66\n0.39\n57.15%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DRK-US",
+      "text": "1621\nDRK\nDarkHorse Technologies Inc\n2.640\n-7.69%\n-0.220\n27.90M\n148.40K\n-0.30\n1.97\n7.25%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/UCIX-US",
+      "text": "1622\nUCIX\nUMBRA COMPANIES INC\n0.0120\n-7.69%\n-0.0010\n6.03M\n44.60K\n-0.01\n0.71\n28.84%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MGX-US",
+      "text": "1623\nMGX\nMetagenomi Therapeutics\n1.020\n-7.69%\n-0.085\n38.53M\n121.66K\n-0.41\n0.34\n28.27%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BVHMY-US",
+      "text": "1624\nBVHMY\nVISTRY GROUP PLC UNSPON ADS EA REPR 1 ORD SHS\n3.230\n-7.71%\n-0.270\n1.03B\n2.69K\n-1.55\n0.29\n47.88%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GNLN-US",
+      "text": "1625\nGNLN\nGreenlane\n2.660\n-7.80%\n-0.225\n1.85M\n8.30K\n-0.02\n0.07\n9.62%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VCIG-US",
+      "text": "1626\nVCIG\nVCI Global\n1.370\n-8.05%\n-0.120\n1.74M\n2.96M\n-0.00\n0.02\n17.70%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TRSG-US",
+      "text": "1627\nTRSG\nTungray Technologies\n1.140\n-8.06%\n-0.100\n18.64M\n8.68K\n-1140.00\n1.02\n38.89%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ASPU-US",
+      "text": "1628\nASPU\nAspen Group\n0.2370\n-8.14%\n-0.0210\n7.52M\n627.00\n-3.39\n0.26\n51.47%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KALA-US",
+      "text": "1629\nKALA\nKALA BIO\n0.3850\n-8.20%\n-0.0344\n7.45M\n1.05M\n-0.04\n0.82\n26.28%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HODO-US",
+      "text": "1630\nHODO\nHouse of Doge\n0.1450\n-8.29%\n-0.0131\n12.93M\n41.84M\n-0.03\n1.51\n51.85%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ENLV-US",
+      "text": "1631\nENLV\nEnlivex\n0.3873\n-8.37%\n-0.0354\n7.71M\n616.62K\n0.00\n0.00\n16.85%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VYGR-US",
+      "text": "1632\nVYGR\nVoyager Therapeutics\n2.450\n-8.41%\n-0.225\n150.96M\n1.17M\n-1.35\n0.98\n22.28%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TNON-US",
+      "text": "1633\nTNON\nTenon Medical\n3.700\n-8.42%\n-0.340\n2.47M\n5.85M\n-0.09\n-0.51\n53.16%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/EQ-US",
+      "text": "1634\nEQ\nEquillium\n1.410\n-8.44%\n-0.130\n89.41M\n933.79K\n-15.67\n1.60\n10.32%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RSCF-US",
+      "text": "1635\nRSCF\nREFLECT SCIENTIFIC INC\n0.0476\n-8.50%\n-0.0044\n4.08M\n223.34K\n-9.52\n1.90\n29.09%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/EMUS-US",
+      "text": "1636\nEMUS\nELECTRIC METALS USA LIMITED\n0.1100\n-8.64%\n-0.0104\n22.21M\n5.88K\n-2.20\n1.83\n6.67%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/USDE-US",
+      "text": "1637\nUSDE\nStablecoinX\n14.150\n-8.77%\n-1.360\n384.70M\n2.63M\n-39.31\n1.80\n17.80%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/IFBD-US",
+      "text": "1638\nIFBD\nInfobird Software\n0.8632\n-8.95%\n-0.0849\n7.07M\n63.89K\n-0.13\n0.40\n21.39%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MGRX-US",
+      "text": "1639\nMGRX\nMangoceuticals\n0.4371\n-9.03%\n-0.0434\n9.43M\n871.16K\n-0.44\n0.75\n5.54%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RMXI-US",
+      "text": "1640\nRMXI\nRMX INDUSTRIES INC\n5.000\n-9.09%\n-0.500\n51.74M\n406.00\n-1.37\n1.69\n18.16%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NMRA-US",
+      "text": "1641\nNMRA\nNeumora Therapeutics\n0.4999\n-9.11%\n-0.0501\n93.93M\n2.69M\n-0.41\n2.11\n45.63%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AVX-US",
+      "text": "1642\nAVX\nAVAX One Technology\n6.200\n-9.22%\n-0.630\n45.86M\n445.99K\n-0.63\n0.42\n4.10%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SHFS-US",
+      "text": "1643\nSHFS\nSHF Holdings\n1.180\n-9.23%\n-0.120\n1.21M\n695.41K\n-0.10\n0.20\n52.14%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ALDX-US",
+      "text": "1644\nALDX\nAldeyra Therapeutics\n1.170\n-9.30%\n-0.120\n70.58M\n2.27M\n-3.08\n1.86\n38.59%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SGRX-US",
+      "text": "1645\nSGRX\nSangrix Inc\n1.260\n-9.35%\n-0.130\n2.40M\n17.06M\n-0.02\n0.24\n57.10%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PMAX-US",
+      "text": "1646\nPMAX\nPowell Max\n0.8500\n-9.40%\n-0.0882\n1.46M\n335.03K\n-0.08\n0.46\n41.20%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GSPFD-US",
+      "text": "1647\nGSPFD\nGORDON MINING GROUP INC\n0.2384\n-9.53%\n-0.0251\n2.89M\n10.36K\n-6.81\n0.65\n2.89%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CRTD-US",
+      "text": "1648\nCRTD\nCREATD INC\n4.200\n-9.68%\n-0.450\n2.50M\n209.00\n-0.14\n-35.59\n47.65%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NCPL-US",
+      "text": "1649\nNCPL\nNetcapital\n1.400\n-9.68%\n-0.150\n10.99M\n1.23M\n-0.09\n0.51\n28.69%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LFEV-US",
+      "text": "1650\nLFEV\nLIFE ELECTRIC VEHICLES HOLDINGS INC\n1.353\n-9.80%\n-0.147\n12.67M\n565.00\n-3.47\n0.23\n13.15%"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\n\nDeposit, Share & Win NVDA 0.1\n\nGet started\nScreener\nRecommended Screeners\nLow P/E Ratio Stocks\nLow P/E Ratio Stocks\n\nSpot stocks with low P/E ratios, which are potentially undervalued for stable gains and reduced risk.\n\nApplied Filters: P/E < 5, P/B < 3, Debt to Assets Ratio < 60%.\n\nSelected:\n\nSave Screener\nMarket: USP/E TTM: <5.00P/B: <3.00Debt to Asset Ratio: <60%\nResult: 1694 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nP/E (TTM)\nP/B\nDebt to Asset Ratio\nWatchlist\nPaper Trade\n1601\nPWCM\nPowerCompute\n0.8972\n-6.47%\n-0.0621\n1.61M\n154.36K\n-0.01\n0.09\n43.73%\n1602\nFLX\nBingEx\n1.410\n-6.62%\n-0.100\n103.11M\n217.42K\n-45.48\n0.94\n35.16%\n1603\nGWAV\nGreenwave Technology Solutions\n2.305\n-6.68%\n-0.165\n1.91M\n9.15K\n-0.11\n0.09\n52.99%\n1604\nGLUE\nMonte Rosa Therapeutics\n10.500\n-6.75%\n-0.760\n895.79M\n2.21M\n-6.00\n1.84\n48.05%\n1605\nLEXX\nLexaria Bioscience\n2.880\n-6.80%\n-0.210\n6.07M\n77.27K\n-0.56\n1.28\n37.66%\n1606\nNCNA\nNuCana\n1.090\n-6.84%\n-0.080\n4.54M\n320.12K\n0.02\n0.17\n18.46%\n1607\nZSHGY\nZHONGSHENG GROUP H\n2.993\n-6.85%\n-0.220\n708.32M\n5.03K\n-1.84\n0.11\n58.03%\n1608\nAIFF\nFirefly Neuroscience\n1.360\n-6.85%\n-0.100\n21.34M\n698.00K\n-2.67\n1.45\n27.11%\n1609\nPLRZ\nPolyrizon\n9.610\n-6.88%\n-0.710\n23.34M\n56.47K\n-1.94\n0.96\n2.07%\n1610\nSVRN\nSVRN Inc\n36.160\n-6.96%\n-2.705\n67.83M\n179.18K\n-0.20\n0.43\n5.38%\n1611\nSORA\nAsiaStrategy\n2.230\n-7.08%\n-0.170\n55.45M\n1.45M\n4.49\n2.54\n45.12%\n1612\nICCM\nIcecure Medical\n1.570\n-7.10%\n-0.120\n5.38M\n306.78K\n-0.23\n0.45\n34.83%\n1613\nUNCY\nUnicycive Therapeutics\n4.220\n-7.25%\n-0.330\n117.55M\n1.50M\n-2.41\n2.21\n38.54%\n1614\nTVRD\nTvardi Therapeutics\n1.150\n-7.26%\n-0.090\n15.34M\n313.80K\n-0.41\n1.83\n34.69%\n1615\nXELB\nXcel Brands\n0.6570\n-7.27%\n-0.0515\n4.31M\n36.06K\n-0.21\n0.31\n59.37%\n1616\nGNTA\nGenenta Science\n0.7450\n-7.30%\n-0.0587\n35.92M\n59.11K\n-2.01\n1.46\n31.51%\n1617\nNUWE\nNuwellis\n0.6938\n-7.37%\n-0.0552\n2.53M\n104.60K\n0.00\n-1.23\n57.01%\n1618\nBKYI\nBIO-key International\n2.120\n-7.42%\n-0.170\n3.05M\n408.08K\n-0.27\n0.70\n38.50%\n1619\nCLVT\nClarivate\n1.480\n-7.50%\n-0.120\n946.70M\n3.70M\n-2.85\n0.21\n56.25%\n1620\nSSTK\nShutterstock\n3.810\n-7.52%\n-0.310\n140.77M\n834.40K\n-0.66\n0.39\n57.15%\n1621\nDRK\nDarkHorse Technologies Inc\n2.640\n-7.69%\n-0.220\n27.90M\n148.40K\n-0.30\n1.97\n7.25%\n1622\nUCIX\nUMBRA COMPANIES INC\n0.0120\n-7.69%\n-0.0010\n6.03M\n44.60K\n-0.01\n0.71\n28.84%\n1623\nMGX\nMetagenomi Therapeutics\n1.020\n-7.69%\n-0.085\n38.53M\n121.66K\n-0.41\n0.34\n28.27%\n1624\nBVHMY\nVISTRY GROUP PLC UNSPON ADS EA REPR 1 ORD SHS\n3.230\n-7.71%\n-0.270\n1.03B\n2.69K\n-1.55\n0.29\n47.88%\n1625\nGNLN\nGreenlane\n2.660\n-7.80%\n-0.225\n1.85M\n8.30K\n-0.02\n0.07\n9.62%\n1626\nVCIG\nVCI Global\n1.370\n-8.05%\n-0.120\n1.74M\n2.96M\n-0.00\n0.02\n17.70%\n1627\nTRSG\nTungray Technologies\n1.140\n-8.06%\n-0.100\n18.64M\n8.68K\n-1140.00\n1.02\n38.89%\n1628\nASPU\nAspen Group\n0.2370\n-8.14%\n-0.0210\n7.52M\n627.00\n-3.39\n0.26\n51.47%\n1629\nKALA\nKALA BIO\n0.3850\n-8.20%\n-0.0344\n7.45M\n1.05M\n-0.04\n0.82\n26.28%\n1630\nHODO\nHouse of Doge\n0.1450\n-8.29%\n-0.0131\n12.93M\n41.84M\n-0.03\n1.51\n51.85%\n1631\nENLV\nEnlivex\n0.3873\n-8.37%\n-0.0354\n7.71M\n616.62K\n0.00\n0.00\n16.85%\n1632\nVYGR\nVoyager Therapeutics\n2.450\n-8.41%\n-0.225\n150.96M\n1.17M\n-1.35\n0.98\n22.28%\n1633\nTNON\nTenon Medical\n3.700\n-8.42%\n-0.340\n2.47M\n5.85M\n-0.09\n-0.51\n53.16%\n1634\nEQ\nEquillium\n1.410\n-8.44%\n-0.130\n89.41M\n933.79K\n-15.67\n1.60\n10.32%\n1635\nRSCF\nREFLECT SCIENTIFIC INC\n0.0476\n-8.50%\n-0.0044\n4.08M\n223.34K\n-9.52\n1.90\n29.09%\n1636\nEMUS\nELECTRIC METALS USA LIMITED\n0.1100\n-8.64%\n-0.0104\n22.21M\n5.88K\n-2.20\n1.83\n6.67%\n1637\nUSDE\nStablecoinX\n14.150\n-8.77%\n-1.360\n384.70M\n2.63M\n-39.31\n1.80\n17.80%\n1638\nIFBD\nInfobird Software\n0.8632\n-8.95%\n-0.0849\n7.07M\n63.89K\n-0.13\n0.40\n21.39%\n1639\nMGRX\nMangoceuticals\n0.4371\n-9.03%\n-0.0434\n9.43M\n871.16K\n-0.44\n0.75\n5.54%\n1640\nRMXI\nRMX INDUSTRIES INC\n5.000\n-9.09%\n-0.500\n51.74M\n406.00\n-1.37\n1.69\n18.16%\n1641\nNMRA\nNeumora Therapeutics\n0.4999\n-9.11%\n-0.0501\n93.93M\n2.69M\n-0.41\n2.11\n45.63%\n1642\nAVX\nAVAX One Technology\n6.200\n-9.22%\n-0.630\n45.86M\n445.99K\n-0.63\n0.42\n4.10%\n1643\nSHFS\nSHF Holdings\n1.180\n-9.23%\n-0.120\n1.21M\n695.41K\n-0.10\n0.20\n52.14%\n1644\nALDX\nAldeyra Therapeutics\n1.170\n-9.30%\n-0.120\n70.58M\n2.27M\n-3.08\n1.86\n38.59%\n1645\nSGRX\nSangrix Inc\n1.260\n-9.35%\n-0.130\n2.40M\n17.06M\n-0.02\n0.24\n57.10%\n1646\nPMAX\nPowell Max\n0.8500\n-9.40%\n-0.0882\n1.46M\n335.03K\n-0.08\n0.46\n41.20%\n1647\nGSPFD\nGORDON MINING GROUP INC\n0.2384\n-9.53%\n-0.0251\n2.89M\n10.36K\n-6.81\n0.65\n2.89%\n1648\nCRTD\nCREATD INC\n4.200\n-9.68%\n-0.450\n2.50M\n209.00\n-0.14\n-35.59\n47.65%\n1649\nNCPL\nNetcapital\n1.400\n-9.68%\n-0.150\n10.99M\n1.23M\n-0.09\n0.51\n28.69%\n1650\nLFEV\nLIFE ELECTRIC VEHICLES HOLDINGS INC\n1.353\n-9.80%\n-0.147\n12.67M\n565.00\n-3.47\n0.23\n13.15%\n1\n30\n31\n32\n33\n34\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\nSTRW\n\n+4.90%\n\nABX\n\n+4.82%\n\nSNLAY\n\n+3.77%\n\nLow P/E Ratio Stocks\n\nZENVF\n\n+2900.00%\n\nBHATF\n\n+500.00%\n\nNXUR\n\n+266.67%\n\nBelow 30 RSI Stocks\n\nBPTH\n\n+200.00%\n\nNCLX\n\n+36.36%\n\nNIVF\n\n+27.72%\n\nJunk Stocks\n\nAILEQ\n\n+9900.00%\n\nPCTL\n\n+9900.00%\n\nZENVF\n\n+2900.00%\n\nSmall Cap Stocks with Huge Growth Potential\n\nFCEL\n\n+11.47%\n\nAZ\n\n+9.75%\n\nHYLN\n\n+7.60%\n\nBlue Chip Dividend Stocks\n\nRIO\n\n+1.44%\n\n--\n\n--\n\n--\n\n--\n\n1\n2\nCustomer Service\n0800 886 800\n\n(toll free)\n\n+64 9 872 6000\n\n(from overseas)\n\nTrading days: 24 hours\n\nNon-trading days: 9:30 - 21:30 NZT\n\nsupport@nz.moomoo.com\n\nOfficial WhatsApp\n\nAbout moomoo\nAbout moomoo\nContact Us\nInvestor Relations\nTerms & Conditions\nPrivacy Policy\nTerms of Use\nFinancial Services Guide\nLicensed Entities*\nCareers / Contact:\nApply Now\ncareer@au.moomoo.com\nFollow us on\n\nThe moomoo app is an online trading platform offered by Moomoo Technologies Inc. In New Zealand, financial services are offered by Moomoo Securities Australia Ltd, NZBN: 942 905 240 2296, a financial services provider registered in New Zealand (FSP1008656). Moomoo Securities Australia Limited is not licensed by a New Zealand regulator to provide financial services. Its registration on the New Zealand FSP Register does not mean that it is subject to active regulation or oversight by a New Zealand regulator.\n\nInvestments carry risks and may result in losses. Market data or information on this website is for reference only and should not be seen as an endorsement or recommendation to buy or sell financial products. Past performance is not indicative of future results. The information is general and doesn't consider your personal investment objectives, financial situation, or needs. Consider your personal circumstances before making investment decisions.\n\nOptions trading involves substantial risks and may not be suitable for all investors. Losses could potentially exceed your initial investment. Please carefully review and consider our US Options Product Disclosure Statement and OCC's Characteristics and Risks of Standardized Options before trading options with us.\n\nPlease read, consider and understand our Financial Services Disclosure Statement, Privacy Policy, Website Terms and Conditions, Information Collection Notice and Risk Disclosure Statement before deciding to use our services.\n\nCompany Address: Moomoo Securities Australia Ltd. Suite 5.01, 570 George Street, Sydney NSW 2000\n\nCopyright © 2026 Moomoo Technologies Inc. All Rights Reserved."
+}
