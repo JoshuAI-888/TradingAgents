@@ -1,5 +1,6 @@
 {
-  "checked_at": "2026-10-02T20:22:43.552108+00:00",
+  "checked_at": "2026-10-02T21:12:19.034470+00:00",
+  "scope": "Read-only public deployed first-page availability check; no auth, refresh or private connector metadata queries. Does not qualify local candidate or full source coverage.",
   "observations": [
     {
       "market": "US",
@@ -8,7 +9,7 @@
       "available": true,
       "matched": 12045,
       "retrieved": 1,
-      "universe_as_of": "2026-10-02T19:01:44.494347+00:00",
+      "universe_as_of": "2026-10-02T21:01:27.607001+00:00",
       "generation_id": null
     },
     {
@@ -21,6 +22,5 @@
       "universe_as_of": null,
       "generation_id": null
     }
-  ],
-  "scope": "Read-only public deployed first-page availability check; no auth, refresh or private connector metadata queries. Does not qualify local candidate or full source coverage."
+  ]
 }
