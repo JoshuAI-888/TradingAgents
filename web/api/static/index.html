@@ -1600,7 +1600,7 @@ function scrPanelFetch(market) {
     api("/api/candidates").catch(() => ({ candidates: [] })),
     api("/api/decisions?limit=8").catch(() => ({ decisions: [] })),
     api("/api/market/state").catch(() => ({ available: false })),
-    api("/api/screener/presets?market=" + market).catch(() => ({ presets: [] })),
+    api("/api/screener/presets?definitions_only=true&market=" + market).catch(() => ({ presets: [] })),
   ]).then(([cands, decs, ms, rail]) => {
     const panels = { cands, decs, ms, rail, market, ts: Date.now() };
     if (window.__scr.market === market) window.__panelCache = panels;
@@ -1799,6 +1799,9 @@ const pages = {
         scrStreamPanels(st.market);
       }
       window.__scrDataset = ds;
+      // Older IndexedDB copies predate the share-class symbol fix. Canonical
+      // provider codes retain the full ticker without waiting for a refresh.
+      ds.rows.forEach(r => { if (r.code?.startsWith(st.market + ".")) r.symbol = r.code.slice(st.market.length + 1); });
       let base = ds.rows;
       if (st.watchlistOnly) {
         const wset = new Set(ds.watchlist || st.watchlistSyms || []);
@@ -2007,7 +2010,7 @@ const pages = {
       </div>
       <div class="panel scr-rail">
         <h3 class="sec">Recommended Screeners <small>${(rail.universe_rows ?? 0).toLocaleString()} rows scored · top 3 each</small></h3>
-        ${railCards || '<div class="empty">Presets unavailable.</div>'}
+        ${railCards || '<div class="empty">Loading recommended screens…</div>'}
         <div class="faint" style="font-size:10px;margin-top:8px">Top-3 from the current universe. Recreated from moomoo's recommended screeners (pages 1–2) over our data.</div>
       </div>
     </div>

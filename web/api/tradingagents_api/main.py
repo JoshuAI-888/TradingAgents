@@ -635,7 +635,11 @@ def _stored_universe(market: str, max_age: float = 60.0):
     if hit and now - hit[0] < max_age:
         return hit[1], hit[2]
     stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "row,updated_at")
-    rows = [r["row"] for r in stored if isinstance(r.get("row"), dict)]
+    rows = [dict(r["row"]) for r in stored if isinstance(r.get("row"), dict)]
+    for row in rows:
+        code = row.get("code") or ""
+        if code.startswith(f"{market}."):
+            row["symbol"] = code.split(".", 1)[1]
     stamps = [r.get("updated_at") for r in stored if r.get("updated_at")]
     as_of = max(stamps) if stamps else None
     _stored_universe_cache[market] = (now, rows, as_of)
@@ -928,10 +932,12 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
 
 
 @app.get("/api/screener/presets")
-def screener_presets(market: str = "US", universe: str = "auto"):
+def screener_presets(market: str = "US", universe: str = "auto", definitions_only: bool = False):
     """ALL recommended screeners (one list) scored over the ACTIVE universe —
     whole-market (stored universe first, live slices as fallback) or watchlist.
     The stored universe needs no moomoo keys; only the live fallback does."""
+    if definitions_only:
+        return {"available": True, "presets": [{**p, "top": []} for p in PRESET_SCREENERS]}
     client = _market_client()
     cache = _cache()
     hit = _presets_cache.get(f"{market}|{universe}")
