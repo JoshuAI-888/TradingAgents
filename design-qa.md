@@ -1,5 +1,7 @@
 # Design QA — screener workspace
 
+Latest review: [fresh Desk/inspector/Explorer/Changes comparison and build tickets](docs/investment-workspace-design-review-latest.md). Four captures were saved/opened at 1280 × 720; 368 API/worker and 70 JavaScript tests pass. Pending preset hydration is not browser-qualified. All final live-data/platform/device/release gates remain open; the historical checkpoints below do not override this status.
+
 Reviewed 2 October 2026. This is a local implementation review, not a production release sign-off.
 
 ## Comparison evidence

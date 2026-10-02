@@ -1,5 +1,7 @@
 # Current build against the approved design
 
+**Current design review:** [fresh four-step comparison and D01–D09 delivery tickets](investment-workspace-design-review-latest.md) rechecks Desk, inspector, Explorer and Changes at 1280 × 720 against the original three mockups. The latest regression is 368 API/worker and 70 JavaScript tests; pending preset hydration is uncommitted/browser-unqualified. The review and plan are complete; feature and production acceptance remain open.
+
 **Latest capture/export handoff:** [viewed-generation provenance](screener-generation-capture-handoff.md) binds capture retries/reloads to the viewed cohort and retains generation IDs in observations and downloaded CSVs. 362 API/worker and 70 JavaScript tests pass; two actual 1,176-row synthetic browser downloads reconcile. Remaining readers, native capture/PostgREST, live data, retention/cutover and full release gates remain open.
 
 **Latest R01 API checkpoint:** [generation-consistent API readers](screener-generation-api-readers.md) pin stored screener rows/server pages/downloads and derive facets, previews, groups and coverage from validated generations. 360 API/worker and 68 JavaScript tests pass, plus actual API/native worker-generation round-trip. Remaining direct readers, capture provenance, frontend handoff, PostgREST, retention and production cutover remain open; R01 is not closed.
