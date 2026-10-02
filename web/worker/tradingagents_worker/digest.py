@@ -90,8 +90,59 @@ def _norm(d: dict) -> dict:
     return out
 
 
-def build_digest(db, run_id: str, ticker: str) -> dict:
-    """Generate + store the digest for a stored run. Returns {"stored": bool, ...}."""
+def backfill_digests(db, cap: int = 2) -> int:
+    """Re-digest succeeded runs whose run_digest row is missing.
+
+    The digest call dies silently when the model is degraded (it is wrapped in
+    a non-fatal print, no event), leaving the dossier without its structured
+    layer — and, before persist-time seeding, without the verified snapshot.
+    The snapshot text is rebuilt here from the same deterministic inputs.
+    Returns the number of digests written.
+    """
+    if not os.getenv("OPENROUTER_API_KEY"):
+        return 0
+    runs = db.select("runs", {"status": "eq.succeeded", "order": "started_at.desc",
+                              "limit": "40"}, "id,ticker_id,trade_date")
+    if not runs:
+        return 0
+    # A row seeded with only the verified snapshot (persist-time seed) carries
+    # no "evidence" key — treat it as incomplete so its panels get regenerated.
+    have = {r["run_id"] for r in db.select("run_digest", {}, "run_id")
+            if "evidence" in (r.get("digest") or {})}
+    todo = [r for r in runs if r["id"] not in have][:cap]
+    if not todo:
+        return 0
+    tick_ids = {r["ticker_id"] for r in todo}
+    trows = db.select("tickers", {"id": f"in.({','.join(tick_ids)})"}, "id,symbol")
+    sym_by_id = {t["id"]: t["symbol"] for t in trows}
+    written = 0
+    for r in todo:
+        ticker = sym_by_id.get(r["ticker_id"])
+        if not ticker:
+            continue
+        snapshot_text = None
+        try:
+            from .price_context import build_price_context
+            ctx = build_price_context(ticker, str(r["trade_date"]))
+            snapshot_text = ctx["text"] if ctx else None
+        except Exception as e:  # noqa: BLE001 — snapshot is a bonus on backfill
+            print(f"backfill snapshot (non-fatal): {e}", flush=True)
+        try:
+            out = build_digest(db, r["id"], ticker, verified_snapshot=snapshot_text)
+            if out.get("stored"):
+                written += 1
+        except Exception as e:  # noqa: BLE001 — backfill never blocks the queue
+            print(f"backfill digest (non-fatal): {e}", flush=True)
+    return written
+
+
+def build_digest(db, run_id: str, ticker: str, verified_snapshot: str | None = None) -> dict:
+    """Generate + store the digest for a stored run. Returns {"stored": bool, ...}.
+
+    ``verified_snapshot`` is the exact market-data block every agent was shown
+    at run start (price_context.py); stored alongside the digest so the report
+    page can render it next to the chart that serves the same rows.
+    """
     if not os.getenv("OPENROUTER_API_KEY"):
         return {"stored": False, "reason": "no OPENROUTER_API_KEY"}
     runs = db.select("runs", {"id": f"eq.{run_id}"},
@@ -161,6 +212,10 @@ def build_digest(db, run_id: str, ticker: str) -> dict:
         _acc(retry)
         text = retry.choices[0].message.content or ""
         digest = _norm(_parse_json(text))
+
+    if verified_snapshot:
+        # Not LLM output — the deterministic run-start snapshot, clipped for the JSONB doc.
+        digest["verified_snapshot"] = _clip(verified_snapshot, 8000)
 
     db.upsert("run_digest", "run_id", {"run_id": run_id, "digest": digest, "model": model})
 

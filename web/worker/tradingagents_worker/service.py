@@ -145,6 +145,30 @@ def _hash_cfg(cfg: dict) -> str:
     return hashlib.sha256(json.dumps(cfg, sort_keys=True).encode()).hexdigest()[:16]
 
 
+def _upsert_snapshot_rows(db: Db, ticker_id: str, rows: list[dict]) -> None:
+    """Persist the verified snapshot's OHLCV rows into price_bars.
+
+    Same source/adjusted key the per-run enrich uses, so these values win for
+    rows ≤ trade_date and the report chart serves byte-identical bars to the
+    price_context text every agent was shown.
+    """
+    db.upsert("price_bars", "ticker_id,bar_date,source,adjusted", [
+        {"ticker_id": ticker_id, "bar_date": r["date"],
+         "open": r["open"], "high": r["high"], "low": r["low"], "close": r["close"],
+         "volume": r["volume"], "source": "yfinance", "adjusted": True}
+        for r in rows])
+
+
+def _queue_busy(db: Db, pending_only: bool = False) -> bool:
+    """True while the LLM budget belongs to pipeline work: any run in flight,
+    or (for post-job repair) anything waiting to start."""
+    statuses = ["eq.pending"] if pending_only else ["eq.pending", "eq.running"]
+    for st in statuses:
+        if db.select("jobs", {"status": st}, "id"):
+            return True
+    return False
+
+
 def rehydrate_crashed(db: Db, worker_id: str):
     """On boot, release jobs stuck 'running' from a dead worker. requeue_job
     decides pending-vs-failed by attempts — a deploy kill must not strand a job
@@ -187,11 +211,17 @@ def run_forever():
 
     def _boot_rehydrate():
         # drain the pre-fix debate-row backlog: passes of a few rows each until
-        # nothing more is repaired (hard cap so a pathological row can't loop)
+        # nothing more is repaired (hard cap so a pathological row can't loop).
+        # A live run owns the LLM budget — with a degraded model a repair chunk
+        # can take 5-12 min, enough to starve the run's own calls (#seen-live:
+        # bear-researcher hung 35 min while boot chunks ran), so wait for quiet.
         try:
             from .rehydrate import rehydrate_debates
             total = 0
             while total < 40:
+                if _queue_busy(db):
+                    time.sleep(30)
+                    continue
                 fixed = rehydrate_debates(db)
                 if not fixed:
                     break
@@ -199,6 +229,12 @@ def run_forever():
                 time.sleep(2)
             if total:
                 print(f"rehydrate: repaired {total} legacy debate row(s) at boot", flush=True)
+            # one quiet pass: digests that died on a degraded model
+            if not _queue_busy(db, pending_only=True):
+                from .digest import backfill_digests
+                fixed_dg = backfill_digests(db)
+                if fixed_dg:
+                    print(f"backfill: regenerated {fixed_dg} missing run digest(s) at boot", flush=True)
         except Exception as e:
             print(f"rehydrate boot (non-fatal): {e}", flush=True)
     threading.Thread(target=_boot_rehydrate, daemon=True, name="rehydrate").start()
@@ -239,20 +275,59 @@ def run_forever():
             ticker, trade_date = payload["ticker"], payload["trade_date"]
             depth = payload.get("depth", "standard")
             emit.emit("analysts", "started", f"{ticker} @ {trade_date} (depth={depth})")
-            result = runner.run(ticker, trade_date, depth, payload.get("instructions"), emit, cancel)
+            # Verified as-of price snapshot BEFORE the graph: its text becomes the
+            # price_context every debate/synthesis agent renders; its rows go into
+            # price_bars so the report chart serves the same bars (price_context.py).
+            price_ctx = None
+            try:
+                if not get_runtime_flags(db).get("stub"):
+                    from .price_context import build_price_context
+                    price_ctx = build_price_context(ticker, trade_date)
+            except Exception as e:
+                print(f"price_context (non-fatal): {e}", flush=True)
+            if price_ctx:
+                try:
+                    trow = db.select("tickers", {"symbol": f"eq.{ticker}"}, "id")
+                    tid = trow[0]["id"] if trow else _ensure_ticker(db, ticker)
+                    _upsert_snapshot_rows(db, tid, price_ctx["rows"])
+                    emit.emit("analysts", "progress",
+                              f"verified snapshot: {len(price_ctx['rows'])} bars "
+                              f"as of {price_ctx['latest_date']} — shared by all agents and the chart")
+                except Exception as e:
+                    print(f"price_context persist (non-fatal): {e}", flush=True)
+                    price_ctx = None
+            result = runner.run(ticker, trade_date, depth, payload.get("instructions"), emit, cancel,
+                                price_context=price_ctx["text"] if price_ctx else None)
+            snapshot_text = price_ctx["text"] if price_ctx else None
             run_id = persist_run(db, job, result)
             db.finish_job(str(job["id"]), "succeeded", run_id=run_id)
             emit.emit("report_qc", "done", f"stored run {run_id[:8]}")
+            if snapshot_text:
+                # Seed the verified snapshot immediately: it survives even when
+                # the digest LLM call below dies on a degraded model.
+                try:
+                    db.upsert("run_digest", "run_id", {"run_id": run_id,
+                               "digest": {"verified_snapshot": snapshot_text}})
+                except Exception as e0:
+                    print(f"digest seed (non-fatal): {e0}", flush=True)
             try:
                 from .enrich import enrich_run
                 got = enrich_run(db, ticker)
                 emit.emit("report_qc", "progress",
                           f"context: {got['bars']} bars · {got['news']} news · profile={'✓' if got['profile'] else '—'}")
+                if price_ctx:
+                    # enrich re-fetched price_bars after the run; same-day yfinance
+                    # fetches can drift ~0.03% — the snapshot's own rows win for
+                    # ≤ trade_date so the chart is byte-identical to what the
+                    # agents were shown in price_context.
+                    trow = db.select("tickers", {"symbol": f"eq.{ticker}"}, "id")
+                    if trow:
+                        _upsert_snapshot_rows(db, trow[0]["id"], price_ctx["rows"])
             except Exception as e2:
                 print(f"enrich (non-fatal): {e2}", flush=True)
             try:
                 from .digest import build_digest
-                dig = build_digest(db, run_id, ticker)
+                dig = build_digest(db, run_id, ticker, verified_snapshot=snapshot_text)
                 if dig.get("stored"):
                     emit.emit("report_qc", "progress",
                               f"digest: {dig['evidence']} evidence · {dig['scenarios']} scenarios · "
@@ -262,11 +337,19 @@ def run_forever():
             except Exception as e3:
                 print(f"digest (non-fatal): {e3}", flush=True)
             try:
-                from .rehydrate import rehydrate_debates
-                fixed = rehydrate_debates(db)
-                if fixed:
-                    emit.emit("report_qc", "progress",
-                              f"repaired {fixed} legacy debate row(s) · spacing restored, originals preserved")
+                # Repair only when nothing is queued behind this job — with a
+                # degraded model a pass can stall the queue for many minutes.
+                if not _queue_busy(db, pending_only=True):
+                    from .rehydrate import rehydrate_debates
+                    fixed = rehydrate_debates(db)
+                    if fixed:
+                        emit.emit("report_qc", "progress",
+                                  f"repaired {fixed} legacy debate row(s) · spacing restored, originals preserved")
+                    from .digest import backfill_digests
+                    fixed_dg = backfill_digests(db)
+                    if fixed_dg:
+                        emit.emit("report_qc", "progress",
+                                  f"backfilled {fixed_dg} missing run digest(s) · dossier panels restored")
             except Exception as e4:
                 print(f"rehydrate (non-fatal): {e4}", flush=True)
         except Cancelled:

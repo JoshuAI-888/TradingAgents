@@ -120,3 +120,52 @@ def test_yf_batch_is_missing_first_and_bounded(fake_db, monkeypatch):
     assert set(got) <= {"US.A", "US.C"}            # missing + stale only
     assert got[0] == "US.A" or got[0] == "US.C"    # missing/stale first
     assert len(got) == 2                           # cap respected
+
+
+def test_technicals_stream_per_chunk_not_all_in_memory(fake_db, monkeypatch):
+    """Regression (production 2026-10-01 00:04 UTC): loading every fresh code's
+    bars into one dict OOM-killed the 512MiB cron at 3,254 codes. Bars must be
+    read and computed per BAR_CHUNK, then discarded — verify one select per
+    chunk and technicals landing for codes in every chunk."""
+    import tradingagents_worker.enrich_nightly as en
+
+    fresh = datetime.now(timezone.utc).isoformat()
+    codes = [f"US.S{i}" for i in range(5)]
+    fake_db.upsert_many("screener_universe", "market,code",
+                        [{"market": "US", "code": c} for c in codes])
+    fake_db.upsert_many("screener_kline_state", "market,code",
+                        [{"market": "US", "code": c, "last_fetch": fresh} for c in codes])
+    fake_db.upsert_many("screener_klines", "market,code,day",
+                        [{"market": "US", "code": c, "day": f"2025-01-{d:02d}",
+                          "o": 100, "h": 102, "l": 99, "c": 100 + d, "v": 1e6}
+                         for c in codes for d in range(1, 29)])
+    yf = FakeYf([])
+    monkeypatch.setattr(en, "BAR_CHUNK", 2)
+
+    kline_rows_read = [0]   # cumulative bars returned by the time each compute() runs
+    orig_select_all = fake_db.select_all
+
+    def counting_select_all(table, query=None, columns="*"):
+        out = orig_select_all(table, query, columns)
+        if table == "screener_klines":
+            kline_rows_read[0] += len(out)
+        return out
+
+    monkeypatch.setattr(fake_db, "select_all", counting_select_all)
+
+    compute_at = []
+    orig_compute = en.compute
+
+    def spy_compute(bars):
+        compute_at.append(kline_rows_read[0])   # memory watermark: bars read so far
+        return orig_compute(bars)
+
+    monkeypatch.setattr(en, "compute", spy_compute)
+    out = EnrichNightly(fake_db, yf_fetch=yf, market="US").run(run_klines=False)
+    # ACCUMULATION mode: every select finishes before the first compute →
+    # watermark at first compute = ALL 5*28=140 rows. STREAMING mode: only the
+    # current chunk's rows exist → watermark <= 2 codes * 28 days.
+    assert max(compute_at[:1]) <= 2 * 28, f"bars accumulated before compute: {compute_at[0]}"
+    assert out["enriched"] == 5                        # every code still enriched
+    rows = {r["code"]: r["data"] for r in fake_db.select("screener_enrichment", {"market": "eq.US"})}
+    assert all("sma20_pos" in rows[c] for c in codes)  # technicals intact across chunks

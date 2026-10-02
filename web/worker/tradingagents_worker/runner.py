@@ -29,15 +29,21 @@ class Cancelled(Exception):
 
 class Runner(Protocol):
     def run(self, ticker: str, trade_date: str, depth: str, instructions: str | None,
-            emit: Emitter, cancel: "threading.Event | None" = None) -> dict:
-        """Returns {signal, rating, decision, reports{stage: md}, tokens, cost}."""
+            emit: Emitter, cancel: "threading.Event | None" = None,
+            price_context: str | None = None) -> dict:
+        """Returns {signal, rating, decision, reports{stage: md}, tokens, cost}.
+
+        ``price_context`` is the verified as-of market snapshot text (see
+        price_context.py); the engine injects it into every debate and
+        synthesis prompt, the stub ignores it.
+        """
         ...
 
 
 class StubRunner:
     """Deterministic offline run: validates the whole pipeline without an LLM key."""
 
-    def run(self, ticker, trade_date, depth, instructions, emit, cancel=None):
+    def run(self, ticker, trade_date, depth, instructions, emit, cancel=None, price_context=None):
         stages = ["analysts", "quality_gate", "research_debate", "research_manager",
                   "trader", "risk_debate", "portfolio_manager", "report_qc"]
         reports = {}
@@ -104,7 +110,7 @@ class EngineRunner:
             self._graphs[key] = TradingAgentsGraph(**kwargs)
         return self._graphs[key]
 
-    def run(self, ticker, trade_date, depth, instructions, emit, cancel=None):
+    def run(self, ticker, trade_date, depth, instructions, emit, cancel=None, price_context=None):
         emit.emit("analysts", "progress", f"engine run starting ({SETTINGS.llm_provider})")
         self._apply_prompts()
         from . import llm_usage
@@ -121,7 +127,8 @@ class EngineRunner:
             if ev:
                 emit.emit(ev[0], "progress", ev[1])
 
-        final_state, signal = ta.propagate(ticker, trade_date, on_node=on_node)
+        final_state, signal = ta.propagate(ticker, trade_date, on_node=on_node,
+                                           price_context=price_context or "")
         if cancel is not None and cancel.is_set():
             raise Cancelled("cancelled by caller")
         reports = {
@@ -229,9 +236,10 @@ class RuntimeRunner:
         self._stub = StubRunner()
         self._engine: EngineRunner | None = None
 
-    def run(self, ticker, trade_date, depth, instructions, emit, cancel=None):
+    def run(self, ticker, trade_date, depth, instructions, emit, cancel=None, price_context=None):
         if self._stub_resolver():
             return self._stub.run(ticker, trade_date, depth, instructions, emit, cancel)
         if self._engine is None:
             self._engine = EngineRunner(self._pair_resolver, self._prompts_resolver)
-        return self._engine.run(ticker, trade_date, depth, instructions, emit, cancel)
+        return self._engine.run(ticker, trade_date, depth, instructions, emit, cancel,
+                                price_context=price_context)

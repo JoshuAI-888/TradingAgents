@@ -155,7 +155,8 @@ class TradingAgentsGraph:
             f"portfolio={portfolio.fingerprint() if portfolio is not None else 'none'}",
         ])
 
-    def propagate(self, company_name, trade_date, asset_type: str = "stock", portfolio=None, on_node=None):
+    def propagate(self, company_name, trade_date, asset_type: str = "stock", portfolio=None, on_node=None,
+                  price_context: str = ""):
         """Run the trading agents graph for a company on a specific date.
 
         ``asset_type`` selects between the stock pipeline (default) and the
@@ -164,6 +165,11 @@ class TradingAgentsGraph:
         ``checkpoint_enabled`` is set in config, the graph is recompiled with
         a per-ticker SqliteSaver so a crashed run can resume from the last
         successful node on a subsequent invocation with the same ticker+date.
+
+        ``price_context`` is the caller-computed verified as-of market snapshot
+        (see ``build_verified_market_snapshot``); when provided it reaches every
+        debate and synthesis agent's prompt, pinning their exact numbers to the
+        data the report chart serves. Empty = not provided.
 
         ``on_node(node_name, state_delta)`` is called after each graph node
         finishes (streamed execution); it exists for live progress surfaces.
@@ -182,6 +188,7 @@ class TradingAgentsGraph:
             return self._run_graph(
                 company_name, trade_date, asset_type=asset_type,
                 checkpoint_thread_id=thread_id_value, portfolio=portfolio, on_node=on_node,
+                price_context=price_context,
             )
 
     def begin_checkpoint(self, company_name, trade_date, asset_type: str = "stock", portfolio=None) -> str | None:
@@ -262,7 +269,8 @@ class TradingAgentsGraph:
             )
         return write_report_tree(final_state, ticker, save_path)
 
-    def create_run_state(self, company_name, trade_date, asset_type: str = "stock", portfolio=None):
+    def create_run_state(self, company_name, trade_date, asset_type: str = "stock", portfolio=None,
+                         price_context: str = ""):
         """Build a run's initial state; propagate() and the CLI both start here.
 
         Settles this ticker's pending decisions first, then injects the lessons
@@ -280,6 +288,7 @@ class TradingAgentsGraph:
             ),
             instrument_context=self.resolve_instrument_context(company_name, asset_type, trade_date),
             portfolio_context=portfolio.render(company_name) if portfolio is not None else "",
+            price_context=price_context,
         )
 
     def settle_pending(self, company_name):
@@ -304,9 +313,11 @@ class TradingAgentsGraph:
         )
 
     def _run_graph(self, company_name, trade_date, asset_type: str = "stock",
-                   checkpoint_thread_id: str | None = None, portfolio=None, on_node=None):
+                   checkpoint_thread_id: str | None = None, portfolio=None, on_node=None,
+                   price_context: str = ""):
         """Execute the graph and write the resulting state to disk and memory log."""
-        init_agent_state = self.create_run_state(company_name, trade_date, asset_type, portfolio)
+        init_agent_state = self.create_run_state(company_name, trade_date, asset_type, portfolio,
+                                                 price_context=price_context)
         args = self.propagator.get_graph_args(callbacks=self.llm_callbacks or None)
 
         # Inject the checkpoint thread_id (from checkpoint_scope) so the same

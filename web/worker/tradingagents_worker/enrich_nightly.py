@@ -22,6 +22,7 @@ from .kline_backfill import KLINE_TTL_DAYS, KlineBackfill
 from .moomoo import MoomooClient
 from .technicals import append_snapshot_bar, compute
 from .yf_enrich import fetch_yf_enrichment
+from .enrich_fields import TECH_FIELDS, YF_ONLY_FIELDS
 
 FRESH_CAP_PER_RUN = 4000  # = the kline rotation slice: technicals compute the night klines land
 BAR_CHUNK = 100
@@ -44,8 +45,8 @@ class EnrichNightly:
         self._yf_fetch = yf_fetch or fetch_yf_enrichment
 
     def _universe_codes(self) -> list[str]:
-        rows = self.db.select_all("screener_universe", {"market": f"eq.{self.market}"}, "code")
-        return [r["code"] for r in rows if r.get("code")]
+        rows = self.db.select_all("screener_universe", {"market": f"eq.{self.market}"}, "code,stock_type")
+        return [r["code"] for r in rows if r.get("code") and r.get("stock_type") in (None, "STOCK")]
 
     def _client(self):
         return MoomooClient(SETTINGS.moomoo_appkey, SETTINGS.moomoo_private_key)
@@ -67,20 +68,31 @@ class EnrichNightly:
         fresh.sort()  # oldest fetch first = most stale of the fresh
         return [c for _, c in fresh[:FRESH_CAP_PER_RUN]]
 
-    def _bars_for(self, codes: list[str]) -> dict[str, list]:
-        bars: dict[str, list] = {}
-        for i in range(0, len(codes), BAR_CHUNK):
-            chunk = codes[i:i + BAR_CHUNK]
+    def _technical_data(self, fresh_codes: list[str], quotes: dict):
+        """Stream: read bars for one BAR_CHUNK of codes, compute technicals,
+        DISCARD the bars before the next chunk. Holding every fresh code's
+        bars at once OOM-killed the 512MiB cron at ~3.2k codes (2026-10-01);
+        a chunk is ~100 codes × ~780 bars ≈ tens of MB. Yields (code, data)."""
+        for i in range(0, len(fresh_codes), BAR_CHUNK):
+            chunk = fresh_codes[i:i + BAR_CHUNK]
             if not chunk:
                 continue
             rows = self.db.select_all(
                 "screener_klines",
                 {"market": f"eq.{self.market}", "code": f"in.({','.join(chunk)})"})
+            by: dict[str, list] = {}
             for b in rows:
-                bars.setdefault(b["code"], []).append(b)
-        for code in bars:
-            bars[code].sort(key=lambda b: b["day"])
-        return bars
+                by.setdefault(b["code"], []).append(b)
+            for code in chunk:
+                bars = sorted(by.get(code) or [], key=lambda b: b["day"])
+                if not bars:
+                    continue
+                q = quotes.get(code)
+                if q:
+                    bars = append_snapshot_bar(bars, q)
+                data = compute(bars)
+                if data:
+                    yield code, data
 
     def run(self, run_klines: bool = True) -> dict:
         out: dict = {"market": self.market,
@@ -105,21 +117,24 @@ class EnrichNightly:
         # cron's runtime and Yahoo throttling; full coverage lands in ~5 nights
         # and later runs refresh the stalest slice.
         yf_ttl_cut = datetime.now(timezone.utc) - timedelta(days=YF_TTL_DAYS)
-        enr_state = {r["code"]: _parse(r.get("as_of"))
-                     for r in self.db.select_all("screener_enrichment",
-                                                 {"market": f"eq.{self.market}"},
-                                                 "code,as_of")}
+        existing = {r["code"]: r for r in self.db.select_all(
+            "screener_enrichment", {"market": f"eq.{self.market}"}, "*")}
+        def fundamental_stamp(r):
+            data = r.get("data") or {}
+            # A technical-only update must never postpone a missing-fundamental retry.
+            if not any(data.get(k) is not None for k in YF_ONLY_FIELDS):
+                return None
+            return _parse((data.get("_meta") or {}).get("fundamentals_at") or r.get("as_of"))
+        enr_state = {c: fundamental_stamp(r) for c, r in existing.items()}
         def _enr_rank(c):
             ts = enr_state.get(c)
-            return (1, datetime.min.replace(tzinfo=timezone.utc)) if ts is None else (0, ts)
-        eligible = [c for c in codes
-                    if _enr_rank(c)[0] == 1 or _parse(enr_state.get(c)) < yf_ttl_cut]
+            return (0, datetime.min.replace(tzinfo=timezone.utc)) if ts is None else (1, ts)
+        eligible = [c for c in codes if enr_state.get(c) is None or enr_state[c] < yf_ttl_cut]
         yf_codes = sorted(eligible, key=_enr_rank)[:YF_BATCH_PER_RUN]
         yf_rows = self._yf_fetch(yf_codes, prices, market=self.market) or []
         by_code = {r["code"]: dict(r.get("data") or {}) for r in yf_rows}
 
         fresh_codes = self._fresh_codes(codes)
-        bars_by_code = self._bars_for(fresh_codes) if fresh_codes else {}
         # Freshness lift: append the current session's partial bar (from the
         # stored snapshot) to each code's history before computing technicals —
         # no extra vendor calls, technicals track the hourly quote refresh.
@@ -127,20 +142,29 @@ class EnrichNightly:
                   for r in self.db.select_all("screener_quotes",
                                               {"market": f"eq.{self.market}"},
                                               "code,row,updated_at")}
-        for code, bars in bars_by_code.items():
-            q = quotes.get(code)
-            if q:
-                bars_by_code[code] = append_snapshot_bar(bars, q)
+        tech: dict[str, dict] = {}
+        if fresh_codes:
+            for code, tdata in self._technical_data(fresh_codes, quotes):
+                tech[code] = tdata
 
         now = datetime.now(timezone.utc).isoformat()
         upserts = []
         for code in codes:
-            data = dict(by_code.get(code) or {})
-            bars = bars_by_code.get(code)
-            if bars:
-                data.update(compute(bars))
-            if not data:
+            if code not in by_code and code not in tech:
                 continue
+            data = dict((existing.get(code) or {}).get("data") or {})
+            meta = dict(data.get("_meta") or {})
+            if not meta.get("fundamentals_at") and enr_state.get(code):
+                meta["fundamentals_at"] = enr_state[code].isoformat()
+            if by_code.get(code):
+                data.update({k: v for k, v in by_code[code].items() if v is not None})
+                meta["fundamentals_at"] = now
+            if code in tech:
+                for field in TECH_FIELDS:
+                    data.pop(field, None)
+                data.update(tech[code])
+                meta["technicals_at"] = now
+            data["_meta"] = meta
             upserts.append({"market": self.market, "code": code, "data": data,
                             "source": "yfinance+computed", "as_of": now})
         for i in range(0, len(upserts), 400):

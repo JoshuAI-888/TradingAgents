@@ -12,7 +12,7 @@ def snapshot_to_row(s: dict) -> dict:
     if pct is None and last is not None and prev:
         pct = (float(last) - float(prev)) / float(prev) * 100
     return {
-        "symbol": (s.get("code") or "").split(".")[-1],
+        "symbol": (s.get("code") or "").split(".", 1)[-1],
         "code": s.get("code"),
         "name": s.get("name") or s.get("sc_name") or "",
         "price": last,

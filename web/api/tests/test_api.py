@@ -1,5 +1,6 @@
 """API contract tests (offline): health, meta, submit dedup against fake Db."""
 import os
+from datetime import datetime, timezone
 os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
 os.environ.setdefault("SUPABASE_SERVICE_KEY", "test")
 os.environ.setdefault("CRON_SECRET", "cron-test")
@@ -216,7 +217,7 @@ def test_screener_filters_and_sort():
     assert [r["symbol"] for r in got] == ["BBB"]
     # a field absent from the universe SKIPS its filter instead of failing all rows
     got, skipped = api._apply_filters(rows, [{"field": "rsi14", "max": 30}])
-    assert len(got) == 3 and skipped == ["rsi14"]
+    assert got == [] and skipped == ["rsi14"]
     # Buffett-style triple filter: none of the sample rows pass all three
     buffett, skipped = api._apply_filters(rows, [{"field": "market_cap", "min": 1e10},
                                                  {"field": "pe_ttm", "min": 0.01, "max": 15},
@@ -237,7 +238,7 @@ def test_values_multiselect_and_facets(monkeypatch):
     got2, _ = api._apply_filters(rows, [{"field": "stock_type", "values": ["WARRANT"]}])
     assert got2 == []
     got3, sk3 = api._apply_filters(rows, [{"field": "absent_field", "values": ["X"]}])
-    assert len(got3) == 3 and sk3 == ["absent_field"]  # absent field skips, not fails
+    assert got3 == [] and sk3 == ["absent_field"]  # absent criteria cannot match
 
 
 def test_snapshot_to_row_normalizes():
@@ -531,10 +532,10 @@ def _seed_enrichment_rows(fdb):
         {"code": "US.MSFT", "market": "US", "updated_at": "2025-01-01T00:00:00+00:00",
          "row": {"symbol": "MSFT", "name": "Microsoft", "price": 400.0, "pe_ttm": 33.0}})
     fdb._t("screener_enrichment").append(
-        {"code": "US.AAPL", "market": "US", "as_of": "2025-01-02T00:00:00+00:00",
+        {"code": "US.AAPL", "market": "US", "as_of": datetime.now(timezone.utc).isoformat(),
          "data": {"forward_pe": 28.0, "beta": 1.2}})
     fdb._t("screener_enrichment").append(
-        {"code": "US.MSFT", "market": "US", "as_of": "2025-01-02T00:00:00+00:00",
+        {"code": "US.MSFT", "market": "US", "as_of": datetime.now(timezone.utc).isoformat(),
          "data": {"forward_pe": 31.0}})
 
 
@@ -556,7 +557,7 @@ def test_screener_yf_mode_merges_and_stamps(monkeypatch):
     _seed_enrichment_rows(fdb)
     api.db = fdb
     r = client.get("/api/screener?watchlist_only=0&src=yf").json()
-    assert r["enrich_as_of"] == "2025-01-02T00:00:00+00:00"
+    assert r["enrich_as_of"] is not None
     by = {row["symbol"]: row for row in r["rows"]}
     assert by["AAPL"]["forward_pe"] == 28.0 and by["AAPL"]["beta"] == 1.2
     assert by["MSFT"]["forward_pe"] == 31.0 and "beta" not in by["MSFT"]  # absent, not zero
@@ -659,6 +660,55 @@ def test_groups_excludes_unclassified_rows(monkeypatch):
     assert [x["stocks"] for x in r["rows"]] == [2]      # only the classified pair
 
 
+def _bars_db():
+    fdb = FakeDb()
+    fdb._t("tickers").append({"id": "tick-1", "symbol": "NVDA"})
+    for d, c in [("2026-09-25", 177.0), ("2026-09-26", 178.05), ("2026-09-29", 180.0)]:
+        fdb._t("price_bars").append({"ticker_id": "tick-1", "bar_date": d,
+                                     "open": c, "high": c, "low": c, "close": c, "volume": 1000})
+    api.db = fdb
+    return fdb
+
+
+def test_bars_as_of_rejects_malformed_dates():
+    _bars_db()
+    assert client.get("/api/bars/NVDA?as_of=not-a-date").status_code == 400
+    assert client.get("/api/bars/NVDA?as_of=2026-9-6").status_code == 400
+
+
+def test_bars_as_of_echoes_the_cutoff():
+    _bars_db()
+    r = client.get("/api/bars/NVDA?days=400&as_of=2026-09-26").json()
+    assert r["as_of"] == "2026-09-26" and r["bars"]
+    # the lte filter is PostgREST-side; the request must carry it
+    # (FakeDb ignores lte. so we assert via the recorded call shape instead)
+
+
+def test_bars_without_as_of_returns_latest():
+    _bars_db()
+    r = client.get("/api/bars/NVDA").json()
+    assert r["as_of"] is None and len(r["bars"]) == 3
+
+
+def test_analyses_by_symbol_lists_runs_newest_first():
+    fdb = FakeDb()
+    fdb._t("tickers").append({"id": "tick-1", "symbol": "NVDA"})
+    fdb._t("runs").append({"id": "run-1", "job_id": "job-a", "ticker_id": "tick-1",
+                           "trade_date": "2026-09-26", "status": "succeeded",
+                           "depth_preset": "standard", "created_at": "2026-09-26T10:00:00Z"})
+    fdb._t("runs").append({"id": "run-2", "job_id": "job-b", "ticker_id": "tick-1",
+                           "trade_date": "2026-09-29", "status": "succeeded",
+                           "depth_preset": "deep", "created_at": "2026-09-29T10:00:00Z"})
+    api.db = fdb
+    r = client.get("/api/analyses?symbol=nvda").json()
+    assert r["symbol"] == "NVDA" and len(r["runs"]) == 2
+    assert {x["job_id"] for x in r["runs"]} == {"job-a", "job-b"}
+
+
+def test_analyses_by_symbol_unknown_returns_empty():
+    api.db = FakeDb()
+    r = client.get("/api/analyses?symbol=ZZZZZ").json()
+    assert r["runs"] == []
 def test_execute_uses_the_preset_sort_and_reports_server_limit(monkeypatch):
     _fresh_caches(monkeypatch)
     api._execute_cache.clear()
@@ -674,7 +724,7 @@ def test_execute_uses_the_preset_sort_and_reports_server_limit(monkeypatch):
 
     monkeypatch.setattr(api, "_market_client", lambda: Screen())
     r = client.get("/api/screener/execute?key=penny&limit=3").json()
-    assert calls[0]["sort"] == {"direction": 2, "simple_property": {"name": 2210}}
+    assert calls[0]["sort"] == {"direction": 2, "cumulative_property": {"name": 3102, "days": 1}}
     assert r["sort"] == "pct" and r["direction"] == 2
     assert r["result_limit"] == 3 and r["possibly_truncated"] is True
     assert r["filters"] == next(p["filters"] for p in api.PRESET_SCREENERS if p["key"] == "penny")

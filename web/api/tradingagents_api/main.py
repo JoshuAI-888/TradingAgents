@@ -7,7 +7,10 @@ and lets the browser read its own rows via the anon key + RLS directly
 from __future__ import annotations
 
 import json
+import math
+import hashlib
 import os
+import re
 import tempfile
 import time
 import uuid
@@ -18,10 +21,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from tradingagents_worker.enrich_fields import TECH_FIELDS
 from tradingagents_worker.config import SETTINGS
 from tradingagents_worker.db import Db
 from tradingagents_worker.runner import demangle_debate
 from tradingagents_worker.screener_rows import snapshot_to_row as _snapshot_to_row
+
+_AS_OF_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 app = FastAPI(title="TradingAgents Portal API", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=[o for o in os.getenv(
@@ -253,17 +259,36 @@ def _report_payload(ref: str) -> dict:
 
 
 @app.get("/api/bars/{symbol}")
-def bars(symbol: str, days: int = 180):
+def bars(symbol: str, days: int = 180, as_of: str | None = None):
+    """Daily bars for the report chart. `as_of` (YYYY-MM-DD) truncates at that
+    date so a run's chart shows the market as its agents saw it; omit = latest."""
+    if as_of is not None and not _AS_OF_RE.fullmatch(as_of):
+        raise HTTPException(400, "as_of must be YYYY-MM-DD")
     rows = db.select("tickers", {"symbol": f"eq.{symbol.upper()}"}, "id")
     if not rows:
         raise HTTPException(404, "unknown ticker")
-    bars = db.select("price_bars", {"ticker_id": f"eq.{rows[0]['id']}",
-                                    "order": "bar_date.desc", "limit": "400"},
+    q = {"ticker_id": f"eq.{rows[0]['id']}", "order": "bar_date.desc", "limit": "400"}
+    if as_of:
+        q["bar_date"] = f"lte.{as_of}"
+    bars = db.select("price_bars", q,
                      "bar_date,open,high,low,close,volume")
     bars = list(reversed([b for b in bars if b.get("bar_date")]))
     if days > 0 and len(bars) > days:
         bars = bars[-days:]
-    return {"symbol": symbol.upper(), "bars": bars}
+    return {"symbol": symbol.upper(), "as_of": as_of, "bars": bars}
+
+
+@app.get("/api/analyses")
+def list_analyses(symbol: str, limit: int = 10):
+    """Runs most-recent-first for one symbol — the stock page's Analysis tab
+    links each row into its full report dossier (openReport takes the job id)."""
+    tick = db.select("tickers", {"symbol": f"eq.{symbol.upper()}"}, "id")
+    if not tick:
+        return {"symbol": symbol.upper(), "runs": []}
+    runs = db.select("runs", {"ticker_id": f"eq.{tick[0]['id']}", "order": "started_at.desc",
+                              "limit": str(min(limit, 25))},
+                     "id,job_id,trade_date,status,depth_preset,started_at")
+    return {"symbol": symbol.upper(), "runs": runs}
 
 
 @app.get("/api/news/{symbol}")
@@ -409,7 +434,7 @@ _SCREEN_SORT_IDS = {"market_cap": 2301, "price": 2201, "pct": 2210}
 _SCREEN_RETRIEVE_IDS = [2201, 2202, 2204, 2205, 2207, 2208, 2210, 2215, 2301]
 _SCREEN_MARKET_ENUM = {"US": 2, "HK": 1}
 
-# The 21 recommended screeners, transcribed 1:1 from moomoo's preset pages
+# The 22 recommended screeners, transcribed from moomoo's preset pages
 # ("Applied Filters" text + the Selected chips, 2026-09-28). Filters over
 # fields the snapshot doesn't carry (ROE, growth rates, margins, RSI, sector…)
 # stay in the definition for fidelity — the filter engine skips them until the
@@ -529,16 +554,19 @@ PRESET_SCREENERS = [
 ]
 
 
-def _apply_filters(rows: list[dict], filters: list[dict]) -> tuple[list[dict], list[str]]:
-    """Filter rows; a field absent from the whole universe SKIPS its filter
-    instead of failing every row (moomoo presets carry fundamental/technical
-    factors the snapshot doesn't provide yet). Returns (rows, skipped_fields)."""
+def _apply_filters(rows: list[dict], filters: list[dict], strict: bool = True) -> tuple[list[dict], list[str]]:
+    """Fail closed when criterion data is absent. Non-strict mode is used only
+    for explicitly partial library previews. Returns rows and missing fields."""
+    if not rows:
+        return [], []
     present: set[str] = set()
-    for r in rows[:50]:
+    for r in rows:
         present.update(k for k, v in r.items() if v is not None)
     active, skipped = [], []
     for f in filters or []:
         (active if f.get("field") in present else skipped).append(f)
+    if skipped and strict:
+        return [], [f.get("field") for f in skipped]
     def keep(r: dict) -> bool:
         for f in active:
             vals = f.get("values")
@@ -558,9 +586,9 @@ def _apply_filters(rows: list[dict], filters: list[dict]) -> tuple[list[dict], l
                 v = float(v)
             except (TypeError, ValueError):
                 return False
-            if lo is not None and v < float(lo):
+            if lo is not None and (v < float(lo) or (f.get("excl_min") and v == float(lo))):
                 return False
-            if hi is not None and v > float(hi):
+            if hi is not None and (v > float(hi) or (f.get("excl_max") and v == float(hi))):
                 return False
         return True
     return [r for r in rows if keep(r)], [f.get("field") for f in skipped]
@@ -795,7 +823,7 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
         cache.put("quotes", universe_key, rows)
     if rows:
         rows = _merge_universe_meta(rows, market)
-    # Parity with moomoo's screener count: their 9,381 is common stocks only.
+    # Classify explicitly; the public Moomoo universe can differ by venue/session.
     # Our stored universe also holds ETFs/indices/warrants (for stock pages);
     # whole-market mode restricts to STOCK unless the user filters Type.
     # Watchlist mode is exempt — it shows exactly what the user starred.
@@ -804,6 +832,7 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
     # Data-source mode (spec §5b): src=yf merges screener_enrichment keys into
     # rows; src=moo (strict) leaves rows untouched — moomoo-carried fields
     # only. Yf-only filters under moo are deferred with an honest reason.
+    rows = [dict(r) for r in rows]
     enrich_as_of = None
     if src == "yf" and rows:
         stored_enr = db.select_all("screener_enrichment", {"market": f"eq.{market}"},
@@ -812,16 +841,29 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
         stamps = [a for _, a in emap.values() if a]
         enrich_as_of = max(stamps) if stamps else None
         for r in rows:
-            data, _ = emap.get(r.get("code")) or \
+            data, row_stamp = emap.get(r.get("code")) or \
                 emap.get(f"{market}.{r.get('symbol')}") or ({}, None)
+            meta = data.get("_meta") or {}
             for k, v in data.items():
-                r.setdefault(k, v)
+                if k == "_meta":
+                    continue
+                stamp = meta.get("technicals_at" if k in TECH_FIELDS else "fundamentals_at") or row_stamp
+                try:
+                    age = (datetime.now(timezone.utc) - datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))).total_seconds()
+                except (TypeError, ValueError):
+                    continue
+                if 0 <= age <= (86400 if k in TECH_FIELDS else 7 * 86400):
+                    r.setdefault(k, v)
+            r["enrichment_dates"] = {"fundamentals": meta.get("fundamentals_at") or row_stamp,
+                                     "technicals": meta.get("technicals_at") or row_stamp}
     deferred = []
     if src != "yf":
         yf_flt = [f for f in flt if f.get("field") in _YF_ONLY_FIELDS]
         deferred = [f"{f['field']} (requires src=yf)" for f in yf_flt]
         flt = [f for f in flt if f.get("field") not in _YF_ONLY_FIELDS]
     rows, skipped = _apply_filters(rows, flt)
+    if deferred:
+        rows = []
     skipped = skipped + deferred
     # Always display-sort in Python: the server-side slices decide WHICH stocks
     # are in the universe; global ordering across the union happens here.
@@ -942,7 +984,7 @@ def screener_presets(market: str = "US", universe: str = "auto"):
     for preset in PRESET_SCREENERS:
         pool = (liquid if any(f.get("field") == "volume" and f.get("days")
                               for f in preset.get("filters") or []) else rows)
-        matched, _ = _apply_filters(pool, preset.get("filters") or [])
+        matched, _ = _apply_filters(pool, preset.get("filters") or [], strict=False)
         picked = _sort_rows(matched, preset.get("sort", "pct"), preset.get("direction", 2))[:3]
         out.append({**preset, "sort": preset.get("sort", "pct"), "direction": preset.get("direction", 2),
                     "top": [{"symbol": r["symbol"],
@@ -990,6 +1032,8 @@ def screener_probe(body: dict):
     client = _market_client()
     if client is None:
         return {"available": False, "reason": "moomoo keys not configured"}
+    if next_key:
+        body["next_key"] = next_key
     try:
         data = client.call("POST", "/quote/stock-screen", body=body)
         return {"available": True, "data": data}
@@ -1026,8 +1070,9 @@ _FIELD_SERVER = {
     "debt_ratio":         ("financial", 4109, 1000.0),
     "roe":                ("financial", 4110, 1000.0),
     "eps_growth":         ("financial", 4606, 1000.0),
-    "op_profit_growth":   ("financial", 4607, 1000.0),
-    "roe_yoy":            ("financial", 4625, 1000.0),
+
+    "roe_yoy":            ("financial", 4607, 1000.0),
+    "op_profit_growth":   ("financial", 4607, 1000.0),  # Preserved legacy preset key: Moomoo labels this ROE YOY.
     "op_ebt":             ("financial", 4702, 1000.0),
     "float_cap":          ("financial", 4903, 1000.0),   # raw dollars x1000
     "eps":                ("financial", 4801, 1000.0),
@@ -1041,16 +1086,12 @@ def _server_filter(field: str, f: dict) -> dict | None:
     indicatorPositionalQuery, 10-day new low via cumulative 3108, sectors via
     plateQuery plateIdList (numeric ids from moomoo's strategy payloads)."""
     if field == "rsi14":
-        val = f.get("max") if f.get("max") is not None else f.get("min")
-        if val is None:
-            return None
-        pos = 2 if f.get("max") is not None else 1
-        return {"indicator_positional_query": {
-            "position": pos, "period": 11, "firstIndicator": 52,
-            "firstIndicatorParams": [14],
-            "secondValue": round(float(val) * 1000)}}
+        # Live probes: the legacy camel-case form ignores RSI; the published
+        # snake-case form returns invalid_parameter. Never claim qualification
+        # until this provider capability is verified.
+        return None
     if field == "new_low_10d":
-        return {"cumulative_property_query": {"property": {"name": 3108}, "days": 10,
+        return {"cumulative_property_query": {"property": {"name": 3108, "days": 10}, "days": 10,
                                               "upper": {"value": 0, "includes": False}}}
     if field == "sector":
         ids = f.get("plate_ids") or []
@@ -1072,7 +1113,8 @@ def _server_filter(field: str, f: dict) -> dict | None:
     if kind == "simple":
         return {"simple_property_query": {"property": {"name": pid}, **rng}}
     if kind == "cumulative":
-        return {"cumulative_property_query": {"property": {"name": pid},
+        return {"cumulative_property_query": {"property": {"name": pid, "periodAverage": int(f.get("days") or 30)},
+                                              "days": int(f.get("days") or 30),
                                               "periodAverage": int(f.get("days") or 30), **rng}}
     return {"financial_property_query": {"property": {"name": pid, "term": _FINANCIAL_TERM}, **rng}}
 
@@ -1094,11 +1136,11 @@ def _server_retrieves(fields: list[str]) -> list[dict]:
 
 
 @app.get("/api/screener/execute")
-def screener_execute(key: str = "", market: str = "US", limit: int = 60):
+def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_key: str = ""):
     """Execute a preset (or saved screener by ?key=saved:<id>) SERVER-SIDE — the
     same screening backend moomoo's own screener page uses, so results and
     result counts reconcile with moomoo.com/screener."""
-    ck = f"{key}|{market}|{min(limit, 300)}"
+    ck = f"{key}|{market}|{min(limit, 300)}|{next_key}"
     hit = _execute_cache.get(ck)
     if hit and time.time() - hit[0] < 60.0:
         return hit[1]
@@ -1132,12 +1174,17 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60):
             pending.append(f.get("field"))
         else:
             queries.append(q)
+    if pending:
+        return {"available": False, "rows": [], "pending": pending,
+                "reason": "This screen cannot be fully evaluated: provider criteria unavailable (" + ", ".join(pending) + "). Its saved definition is preserved."}
     retrieves = _server_retrieves([f.get("field") for f in filters])
     retrieves += [{"simple_property": {"name": 2201}}, {"simple_property": {"name": 2301}},
-                  {"simple_property": {"name": 2210}}]
+                  {"cumulative_property": {"name": 3102, "days": 1}}]
     sort_property = {"pct": 2210, "market_cap": 2301, "price": 2201, "pe_ttm": 2303, "pb": 2304}.get(sort, 2301)
-    body = {"screen_queries": queries, "sort": {"direction": direction, "simple_property": {"name": sort_property}},
+    body = {"screen_queries": queries, "sort": ({"direction": direction, "cumulative_property": {"name": 3102, "days": 1}} if sort == "pct" else {"direction": direction, "simple_property": {"name": sort_property}}),
             "limit": max(1, min(limit, 300)), "retrieve_queries": retrieves}
+    if next_key:
+        body["next_key"] = next_key
     try:
         data = client.call("POST", "/quote/stock-screen", body=body)
     except Exception as e:  # noqa: BLE001
@@ -1148,18 +1195,29 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60):
         vals = {}
         for r in it.get("results") or []:
             rr = list(r.values())[0]
-            raw = rr.get("ival")
+            res = rr.get("res") or rr
+            raw = res.get("ival")
             if raw is None:
-                raw = rr.get("dval")
-            vals[rr.get("property", {}).get("name")] = float(raw) if raw not in (None, "") else None
+                raw = res.get("dval")
+            if raw is None and "res" not in rr:
+                raw = rr.get("value")  # Legacy flat response only; empty typed res is unavailable.
+            try:
+                value = float(raw) if raw not in (None, "") else None
+                if value is not None and not math.isfinite(value):
+                    value = None
+            except (ValueError, TypeError):
+                value = None
+            vals[rr.get("property", {}).get("name")] = value
         code = it.get("code") or ""
-        pct = vals.get(2210)
+        pct = vals.get(3102, vals.get(2210))
         rows.append({
-            "symbol": code.split(".")[-1], "code": code, "name": it.get("name") or "",
+            "symbol": code.split(".", 1)[-1], "code": code, "name": it.get("name") or "",
             "price": (vals.get(2201) or 0) / 1000 or None,
             "pct": pct / 1000 if pct is not None else None,
             "market_cap": (vals.get(2301) or 0) / 1000 or None,
-            "factors": {k: v for k, v in vals.items() if k not in (2201, 2301, 2210)},
+            "factors": {k: v for k, v in vals.items() if k not in (2201, 2301, 2210, 3102)},
+            "criterion_values": {f: vals[spec[1]] / spec[2] for f, spec in _FIELD_SERVER.items()
+                                 if vals.get(spec[1]) is not None},
         })
     # moomoo's stock-screen retrieves can come back all-null for every item
     # (2026-09-29), which left preset tables blank — display fields are filled
@@ -1188,10 +1246,30 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60):
             except Exception:
                 pass
         _merge_universe_meta(rows, market)
+        unclassified = [r["code"] for r in rows if not r.get("stock_type")]
+        if unclassified:
+            try:
+                basic = client.call("POST", "/quote/stock-basicinfo", body={"code_list": unclassified}) or {}
+                info = {b.get("code"): b for b in basic.get("basic_list") or []}
+                for r in rows:
+                    b = info.get(r["code"]) or {}
+                    if not r.get("stock_type"):
+                        r["stock_type"] = b.get("stock_type")
+                    if not r.get("exchange"):
+                        r["exchange"] = b.get("exchange")
+            except Exception:
+                pass  # Unclassified instruments remain excluded by the stock-only view.
+    pagination = data.get("pagination") or {}
+    cursor = pagination.get("next_key") or data.get("next_key") or data.get("nextKey")
+    has_more = pagination.get("has_more")
+    if has_more is None:
+        has_more = bool(data.get("has_more") or data.get("hasMore") or (cursor and cursor != "-1") or len(items) >= body["limit"])
     out_payload = {"available": True, "key": key, "name": name, "description": description,
                    "market": market, "pending": pending, "filters": filters,
                    "sort": sort, "direction": direction, "result_limit": body["limit"],
-                   "possibly_truncated": len(items) >= body["limit"], "rows": rows, "shown": len(rows)}
+                   "possibly_truncated": bool(has_more), "next_key": cursor if cursor != "-1" else None,
+                   "provider_total": pagination.get("total", data.get("total")), "retrieved_at": datetime.now(timezone.utc).isoformat(),
+                   "evidence_status": "provider_membership", "rows": rows, "shown": len(rows)}
     _execute_cache[ck] = (time.time(), out_payload)
     return out_payload
 
@@ -1251,6 +1329,7 @@ class SavedScreenerIn(BaseModel):
     filters: list[dict] = Field(default_factory=list, max_length=40)
     sort: str = "market_cap"
     direction: int = Field(default=2, ge=1, le=2)
+    settings: dict = Field(default_factory=dict)
 
 
 def _screener_owner() -> str:
@@ -1274,7 +1353,7 @@ def save_screener(inp: SavedScreenerIn):
     row = db.insert("saved_screeners", {
         "user_id": user, "name": inp.name.strip(), "description": inp.description,
         "market": inp.market, "watchlist_only": inp.watchlist_only,
-        "filters": inp.filters, "sort": inp.sort, "direction": inp.direction,
+        "filters": inp.filters, "sort": inp.sort, "direction": inp.direction, "settings": inp.settings,
     }, prefer="return=representation")
     return {"saved": True, "screener": (row if isinstance(row, dict) else (row or [{}])[0])}
 
@@ -1289,6 +1368,7 @@ def update_screener(sid: str, inp: SavedScreenerIn):
         "name": inp.name.strip(), "description": inp.description,
         "market": inp.market, "watchlist_only": inp.watchlist_only,
         "filters": inp.filters, "sort": inp.sort, "direction": inp.direction,
+        **({"settings": inp.settings} if "settings" in inp.model_fields_set else {}),
         "updated_at": datetime.now(timezone.utc).isoformat()})
     return {"saved": True, "id": sid}
 
@@ -1324,9 +1404,14 @@ def queue_candidate(cid: str, depth: str = "standard", _: None = Depends(require
 
 @app.get("/api/meta")
 def meta():
-    runs = db.select("runs", {"order": "created_at.desc", "limit": "500"},
-                     "cost_usd,prompt_tokens,completion_tokens")
-    spend = {"runs": len(runs),
+    spend_available = True
+    try:
+        runs = db.select("runs", {"order": "created_at.desc", "limit": "500"},
+                         "cost_usd,prompt_tokens,completion_tokens")
+    except RuntimeError:
+        runs = []
+        spend_available = False
+    spend = {"available": spend_available, "runs": len(runs),
              "cost_usd": round(sum(float(r.get("cost_usd") or 0) for r in runs), 4),
              "tokens_in": sum(int(r.get("prompt_tokens") or 0) for r in runs),
              "tokens_out": sum(int(r.get("completion_tokens") or 0) for r in runs)}
@@ -1336,6 +1421,108 @@ def meta():
             "stock_page": {"fixtures_mode": bool(os.getenv("TA_STOCK_FIXTURES")),
                            "info_page": "/#/info"},
             "stub_mode": SETTINGS.stub_mode, "spend": spend}
+
+
+# Screen snapshots contain server-validated membership, never client-submitted rows.
+class ScreenDefinition(BaseModel):
+    market: str = Field(default="US", pattern="^(US|HK)$")
+    src: str = Field(default="moo", pattern="^(moo|yf)$")
+    etfs: bool = False
+    watchlist_only: bool = False
+    filters: list[dict] = Field(default_factory=list, max_length=60)
+    preset: str | None = Field(default=None, max_length=100)
+
+
+def _snapshot_key(definition: ScreenDefinition) -> str:
+    spec = definition.model_dump()
+    if definition.preset:
+        p = next((p for p in PRESET_SCREENERS if p["key"] == definition.preset), None)
+        if not p:
+            raise HTTPException(400, "Only named recommended presets support provider snapshots")
+        spec["preset_definition"] = p
+    spec["version"] = 1
+    digest = hashlib.sha256(json.dumps(spec, sort_keys=True).encode()).hexdigest()
+    owner = hashlib.sha256(_screener_owner().encode()).hexdigest()[:16]
+    return "screen_history:" + owner + ":" + digest
+
+
+def _snapshot_history(key: str) -> list[dict]:
+    rows = db.select("app_settings", {"key": f"eq.{key}"}, "value")
+    return (rows[0].get("value") or {}).get("snapshots", []) if rows else []
+
+
+@app.post("/api/screener/snapshots")
+def capture_screen_snapshot(inp: ScreenDefinition):
+    key = _snapshot_key(inp)
+    if inp.preset:
+        result = screener_execute(inp.preset, inp.market, 300)
+        combined = list(result.get("rows") or [])
+        cursors = set()
+        while result.get("available") and result.get("possibly_truncated") and result.get("next_key") and len(cursors) < 24:
+            cursor = result["next_key"]
+            if cursor in cursors:
+                break
+            cursors.add(cursor)
+            result = screener_execute(inp.preset, inp.market, 300, cursor)
+            combined.extend(result.get("rows") or [])
+        if not result.get("available") or result.get("possibly_truncated") or result.get("pending"):
+            raise HTTPException(409, "Provider results are unavailable, incomplete or have unapplied criteria; no snapshot captured")
+        filters = inp.filters
+        original = result.get("filters") or []
+        extra = [f for f in filters if f not in original]
+        rows, missing = _apply_filters(combined, extra)
+        if missing:
+            raise HTTPException(409, "Additional criteria lack data; no snapshot captured")
+        if inp.watchlist_only:
+            wl = set(_watchlist_symbols())
+            rows = [r for r in rows if r.get("symbol") in wl]
+        source_at = result.get("retrieved_at")
+    else:
+        result = screener(market=inp.market, watchlist_only=int(inp.watchlist_only),
+                          filters=json.dumps(inp.filters), sort="market_cap", direction=2,
+                          limit=20000, offset=0, src=inp.src)
+        if (not result.get("available") or not result.get("universe_loaded")
+                or result.get("skipped_filters") or result.get("matched", 0) > len(result.get("rows") or [])):
+            raise HTTPException(409, "Stored universe is unavailable, incomplete or lacks criterion data; no snapshot captured")
+        rows = result.get("rows") or []
+        source_at = result.get("universe_as_of")
+    codes = [r.get("code") for r in rows]
+    if any(not c for c in codes) or len(codes) != len(set(codes)):
+        raise HTTPException(409, "Result identities are incomplete or duplicated; no snapshot captured")
+    if not source_at:
+        raise HTTPException(409, "Source timestamp is unavailable; no comparable snapshot captured")
+    source_age = (datetime.now(timezone.utc) - datetime.fromisoformat(source_at.replace("Z", "+00:00"))).total_seconds()
+    if source_age > 86400:
+        raise HTTPException(409, "Source data is older than 24 hours; refresh before capturing changes")
+    snapshot = {"at": datetime.now(timezone.utc).isoformat(), "source_at": source_at,
+                "members": [{"code": r["code"], "symbol": r.get("symbol"), "name": r.get("name"),
+                             "evidence": {f.get("field"): (r.get("criterion_values") or {}).get(f.get("field"), r.get(f.get("field")))
+                                          for f in inp.filters}}
+                            for r in rows], "complete": True}
+    history = _snapshot_history(key)
+    history = (history + [snapshot])[-2:]
+    db.upsert("app_settings", "key", {"key": key, "value": {"snapshots": history}})
+    return {"captured": True, "members": len(rows), "at": snapshot["at"], "baseline": len(history) == 1}
+
+
+@app.get("/api/screener/changes")
+def screen_changes(definition: str):
+    try:
+        inp = ScreenDefinition.model_validate_json(definition)
+    except ValueError:
+        raise HTTPException(400, "Invalid screen definition")
+    history = _snapshot_history(_snapshot_key(inp))
+    if len(history) < 2:
+        return {"comparable": False, "reason": "Baseline captured. Capture another complete snapshot to compare." if history else
+                "No baseline yet. Capture a complete snapshot to start."}
+    previous, current = history[-2:]
+    if not previous.get("complete") or not current.get("complete"):
+        return {"comparable": False, "reason": "Incomplete snapshots cannot establish entries or exits."}
+    a = {r["code"]: r for r in previous["members"]}
+    b = {r["code"]: r for r in current["members"]}
+    return {"comparable": True, "previous_at": previous["at"], "current_at": current["at"],
+            "added": [b[k] for k in sorted(b.keys() - a.keys())],
+            "exited": [a[k] for k in sorted(a.keys() - b.keys())], "unchanged": len(a.keys() & b.keys())}
 
 
 # ── model catalog + settings ─────────────────────────────────────────────
@@ -1550,7 +1737,7 @@ def _stock_code(symbol: str) -> str:
     s = symbol.strip().upper()
     if s.endswith("-US"):
         s = s[:-3]
-    return s if "." in s else f"US.{s}"
+    return s if re.match(r"^(US|HK|SH|SZ|AU)\.", s) else f"US.{s}"
 
 
 def _stock_fetch(key: str, symbol: str, category: str, fetch):

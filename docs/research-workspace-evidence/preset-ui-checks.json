@@ -1,0 +1,90 @@
+[
+  {
+    "name": "Penny Stocks ›",
+    "selected": "Penny Stocks"
+  },
+  {
+    "name": "High Dividend Stocks ›",
+    "selected": "High Dividend Stocks"
+  },
+  {
+    "name": "Blue Chip Stocks ›",
+    "selected": "Blue Chip Stocks"
+  },
+  {
+    "name": "Warren Buffett Strategy ›",
+    "selected": "Warren Buffett Strategy"
+  },
+  {
+    "name": "Undervalued Stocks ›",
+    "selected": "Undervalued Stocks"
+  },
+  {
+    "name": "Best Growth Stocks ›",
+    "selected": "Best Growth Stocks"
+  },
+  {
+    "name": "P/B Ratio Less Than 1 ›",
+    "selected": "P/B Ratio Less Than 1"
+  },
+  {
+    "name": "Best Long Term High Dividend Stocks ›",
+    "selected": "Best Long Term High Dividend Stocks"
+  },
+  {
+    "name": "High P/E Ratio Stocks ›",
+    "selected": "High P/E Ratio Stocks"
+  },
+  {
+    "name": "Good P/E Ratio Stocks ›",
+    "selected": "Good P/E Ratio Stocks"
+  },
+  {
+    "name": "Low P/E Ratio Stocks ›",
+    "selected": "Low P/E Ratio Stocks"
+  },
+  {
+    "name": "Below 30 RSI Stocks ›",
+    "selected": "Below 30 RSI Stocks"
+  },
+  {
+    "name": "Junk Stocks ›",
+    "selected": "Junk Stocks"
+  },
+  {
+    "name": "Small Cap Stocks with Huge Growth Potential ›",
+    "selected": "Small Cap Stocks with Huge Growth Potential"
+  },
+  {
+    "name": "Blue Chip Dividend Stocks ›",
+    "selected": "Blue Chip Dividend Stocks"
+  },
+  {
+    "name": "Speculative Stocks ›",
+    "selected": "Speculative Stocks"
+  },
+  {
+    "name": "High Return On Equity Stocks ›",
+    "selected": "High Return On Equity Stocks"
+  },
+  {
+    "name": "Low P/E High Dividend Stocks ›",
+    "selected": "Low P/E High Dividend Stocks"
+  },
+  {
+    "name": "Undervalued Semiconductor Stocks ›",
+    "selected": "Undervalued Semiconductor Stocks"
+  },
+  {
+    "name": "Undervalued Tech Stocks ›",
+    "selected": "Undervalued Tech Stocks"
+  },
+  {
+    "name": "Undervalued Bank Stocks ›",
+    "selected": "Undervalued Bank Stocks"
+  },
+  {
+    "name": "High EPS Stocks ›",
+    "selected": "High EPS Stocks"
+  }
+]

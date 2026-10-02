@@ -129,7 +129,12 @@ class MoomooClient:
                 continue
             if out.get("ret_code") != 0:
                 raise MoomooError(f"{method} {path} -> ret_code {out.get('ret_code')}: {str(out.get('ret_msg'))[:200]}")
-            return out.get("data", {})
+            data = out.get("data", {})
+            # Screening pagination is a sibling of data, not part of data.items.
+            # Retaining it enables complete cohorts without fabricating totals.
+            if isinstance(data, dict) and isinstance(out.get("pagination"), dict):
+                data = {**data, "pagination": out["pagination"]}
+            return data
         raise MoomooError("unreachable")
 
     # ── read-only quote operations ────────────────────────────────────────
