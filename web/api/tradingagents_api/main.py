@@ -1959,6 +1959,12 @@ def _change_evidence(before: dict | None, after: dict | None, inp: ScreenDefinit
 def screen_changes(definition: str, previous_id: str | None = None, current_id: str | None = None,
                    status: str = "all", q: str = "", sort: str = "symbol", direction: int = 1,
                    limit: int = 100, offset: int = 0, history_offset: int = 0):
+    return _screen_changes(definition,previous_id,current_id,status,q,sort,direction,limit,offset,history_offset)
+
+
+def _screen_changes(definition: str, previous_id: str | None = None, current_id: str | None = None,
+                   status: str = "all", q: str = "", sort: str = "symbol", direction: int = 1,
+                   limit: int = 100, offset: int = 0, history_offset: int = 0, *, review_lookup=None, review_status="all", review_code=None):
     if status not in ("new", "exited", "all"):
         raise HTTPException(400, "Invalid review filter or sort")
     if direction not in (1, 2) or not 1 <= limit <= 500 or not 0 <= offset <= 40000 or len(q) > 100:
@@ -2046,6 +2052,14 @@ def screen_changes(definition: str, previous_id: str | None = None, current_id: 
     needle = q.strip().casefold()
     filtered = [r for r in changes if (status == "all" or r["status"] == status) and
                 (not needle or needle in str(r.get("symbol") or "").casefold() or needle in str(r.get("name") or "").casefold())]
+    if review_code is not None:
+        filtered=[r for r in filtered if r['code']==review_code]
+    if review_lookup is not None:
+        reviews=review_lookup(key,_snapshot_id(previous),_snapshot_id(current))
+        for row in filtered:
+            row['review']=reviews.get(row['code'],{'code':row['code'],'revision':0,'note':'','review_status':'unreviewed'})
+        if review_status!='all':
+            filtered=[r for r in filtered if r['review']['review_status']==review_status]
     def sort_value(row):
         if criterion_sort:
             side, identifier = criterion_sort.groups()
@@ -2887,6 +2901,8 @@ def stock_spa(rest: str):
 
 from .research_lists import router as research_lists_router
 app.include_router(research_lists_router)
+from .research_reviews import router as research_reviews_router
+app.include_router(research_reviews_router)
 from .research_auth import router as research_auth_router
 app.include_router(research_auth_router)
 
