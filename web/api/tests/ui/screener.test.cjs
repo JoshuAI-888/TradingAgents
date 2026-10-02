@@ -455,7 +455,7 @@ test('provider scope distinguishes retrieved, stock-filtered, unknown and displa
  const c=harness(),gid='11111111-1111-4111-8111-111111111111';
  const payload={rows:[{code:'US.A',stock_type:'STOCK',quote_generation_id:gid},{code:'US.E',stock_type:'ETF',quote_generation_id:gid},{code:'US.U',stock_type:'UNKNOWN'}],provider_total:9,quote_generation_id:gid,hydration_warnings:['<untrusted quote>'],next_key:'p2',possibly_truncated:true};
  const html=c.researchProviderScopeHTML(payload,[payload.rows[0]],{etfs:false});
- assert.match(html,/1 stock matches loaded/);assert.match(html,/3 provider members retrieved/);assert.match(html,/9 provider matches before exclusions/);assert.match(html,/1 retrieved instruments have unknown classification/);assert.match(html,/1 retrieved members outside this cohort/);assert.match(html,/does not freeze provider membership/);assert.match(html,/&lt;untrusted quote&gt;/);assert.doesNotMatch(html,/<untrusted quote>/);assert.match(html,/Load next 300 matches/);
+ assert.match(html,/1 stock matches loaded/);assert.match(html,/3 provider members retrieved/);assert.match(html,/9 provider matches before exclusions/);assert.match(html,/1 instrument has unknown classification/);assert.match(html,/1 retrieved members outside this cohort/);assert.match(html,/does not freeze provider membership/);assert.match(html,/&lt;untrusted quote&gt;/);assert.doesNotMatch(html,/<untrusted quote>/);assert.match(html,/Load next 300 matches/);
 });
 test('preset paging pins display cohort and retains earlier hydration warnings',async()=>{
  const c=harness(),gid='11111111-1111-4111-8111-111111111111';Object.assign(c.__scr,{activePreset:'p',market:'US'});
@@ -496,4 +496,11 @@ test('provider paging and explicit refresh cannot run simultaneously',async()=>{
 });
 test('provider scope appears before analytical rows and does not add content to default results',()=>{
  const c=harness(),html=c.researchDeskHTML({st:c.__scr,scr:{rows:[],matched:0},table:'<table id="rows"></table>',allChips:'',msPanel:''});assert.ok(html.indexOf('id="research-provider-paging"')<html.indexOf('id="rows"'));assert.equal((html.match(/id="research-provider-paging"/g)||[]).length,1);
+});
+
+test('provider coverage keeps partial scope and warnings visible with expandable source details',()=>{
+ const c=harness(),payload={rows:[{code:'US.U',stock_type:'UNKNOWN'}],provider_total:10,hydration_warnings:['<warning>'],quote_generation_id:'<cohort>',next_key:'p2',possibly_truncated:true};
+ const html=c.researchProviderScopeHTML(payload,[],{market:'US',activePreset:'p',etfs:false});
+ assert.match(html,/aria-label="Provider result coverage"/);assert.match(html,/0 stock matches loaded/);assert.match(html,/10 provider matches before exclusions/);assert.match(html,/<summary>1 instrument has unknown classification · 1 hydration warning<\/summary>/);assert.match(html,/&lt;cohort&gt;/);assert.match(html,/&lt;warning&gt;/);assert.equal((html.match(/id="research-load-more"/g)||[]).length,1);assert.equal((html.match(/id="research-refresh-preset"/g)||[]).length,1);
+ c.__presetRefresh={'p|US':true};const busy=c.researchProviderScopeHTML(payload,[],{market:'US',activePreset:'p'});assert.match(busy,/Previous results retained while refreshing/);assert.match(busy,/research-load-more[^>]*disabled/);assert.match(busy,/research-refresh-preset[^>]*disabled/);
 });

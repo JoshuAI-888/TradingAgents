@@ -1,5 +1,7 @@
 # Design QA — screener workspace
 
+Latest presentation: [compact provider Desk/inspector](docs/design-gap-audit/compact-provider-desk/README.md) records original-size default table position, phone controls, paging/refresh/reset and 82 JavaScript checks. Full investment-team acceptance remains open.
+
 Latest review: [fresh retained-build comparison](docs/investment-workspace-design-review-latest.md) captures Desk, Inspector, Explorer and Changes, corrects implemented versus missing foundations and defines the next D02–D04 packet. Investment-team acceptance remains unfinished.
 
 Latest implementation: [retained preset paging/explicit refresh](docs/screener-preset-retention.md), 379 API/worker and 81 JavaScript tests; controlled browser retains a multi-page cohort beyond 60 seconds through Explore/Changes/full-research return. Final release acceptance stays open.

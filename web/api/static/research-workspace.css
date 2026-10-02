@@ -100,3 +100,16 @@
 
 .research-settings{min-width:0}.research-settings .frow>select,.research-settings .frow>input,.research-settings textarea{min-width:0;max-width:100%;box-sizing:border-box}.research-settings .trow{gap:8px}.research-settings .trow>b{min-width:0;text-align:right;overflow-wrap:anywhere}.research-settings .trow>select{min-width:0;max-width:100%}
 @media(max-width:700px){.research-settings .frow>select,.research-settings .frow>input{flex-basis:100%!important;width:100%}.research-settings .sec{flex-wrap:wrap}.research-settings .btn,.research-settings select{min-height:44px}.research-settings .trow{flex-wrap:wrap}.research-settings .trow>b{flex:1;min-width:160px}}
+
+/* Provider scope keeps counts and quality visible without a separate row per action. */
+.provider-scope{padding:8px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:4px 0 8px;font-size:12px;color:#b4c8e1;line-height:1.5;min-width:0}
+.provider-scope-head,.provider-scope-meta{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap}
+.provider-scope-head>p{flex:1 1 340px;margin:0;color:var(--txt);font-size:12px;line-height:1.5}
+.provider-scope-actions{display:flex;gap:8px;flex-wrap:wrap}.provider-scope-actions .btn{min-height:36px;padding:6px 10px;font-size:12px}
+.provider-scope-meta{margin-top:4px}.provider-scope details{background:transparent;border:0;border-radius:0;margin:0;padding:0;min-width:0}
+.provider-scope details>summary{display:block;list-style:revert;padding:4px 0;min-height:28px;cursor:pointer;font-size:12px;font-weight:500;color:#b4c8e1;box-sizing:border-box}
+.provider-scope details>div{padding:8px 12px;background:var(--panel2);border-left:2px solid #72b9ff;overflow-wrap:anywhere}
+.provider-scope details p{font-size:12px;margin:4px 0;line-height:1.6}.provider-scope .provider-quality>summary{color:#ffce92}
+.provider-scope .provider-refresh-status{margin:4px 0;font-size:12px}.provider-scope .delay-note{margin:4px 0;font-size:12px}
+.research-inspector .inspector-key-metrics{margin:0 0 16px;gap:8px 12px;font-size:13px}.research-inspector .inspector-provenance p,#inspect-chart-status{font-size:12px;color:#b4c8e1}
+@media(max-width:760px){.provider-scope-head>p{flex-basis:100%}.provider-scope-actions{width:100%}.provider-scope-actions .btn{min-height:44px;flex:1 1 145px}.provider-scope details>summary{min-height:44px;padding:10px 0}.provider-scope-meta{display:block}.provider-scope-meta>span{display:block;overflow-wrap:anywhere}.provider-scope-details[open]>div,.provider-quality[open]>div{max-width:100%;box-sizing:border-box}}

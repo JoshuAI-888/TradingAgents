@@ -1,5 +1,7 @@
 # TradingAgents: combined screener and research workflow
 
+**Latest presentation checkpoint:** [compact provider coverage and inspector hierarchy](design-gap-audit/compact-provider-desk/README.md). Default table top 357.625 px at the original 1487 × 1058 viewport; warning-bearing laptop state is about 45 px shorter. Coverage counts/quality remain visible, phone controls measure 44 px with no document overflow, and preview metrics precede the simplified chart. 82 JavaScript tests pass; broader D02–D04/data/release gates remain open.
+
 **Current mockup review:** [fresh retained-build audit and D01–D09 tickets](investment-workspace-design-review-latest.md) supersedes older design status below. Desk reset was checked, all four views freshly captured, and the next packet specifies compact scope/quality, company/criterion context and reload/Compare continuity before Explorer region-to-save, review queue and monitoring. Latest tested build: 379 API/worker and 81 JavaScript tests; live-data and production release gates remain open.
 
 **Latest navigation/refresh checkpoint:** [retained provider pages and explicit refresh](screener-preset-retention.md) preserves opened pages through expired-cache navigation/full-research return, commits replacement only after successful explicit refresh, revalidates selection and moves coverage/quality disclosure above rows. 379 API/worker and 81 JavaScript tests plus controlled actual-route browser checks pass. Reload/deep links, full-feature/data/device/platform and release gates remain open.
