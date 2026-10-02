@@ -142,25 +142,7 @@ Proposed budgets: visible feedback within 100 ms; cached state changes within 30
 
 ## Release checklist
 
-- [ ] All stocks default excludes ETFs and sorts market cap descending; reset restores the complete default state.
-- [ ] Clear remains present; preset selection and second-click deselection are deterministic.
-- [ ] Every recommended screen keeps its exact criteria, periods and explicit sorting.
-- [ ] Existing saved screens, CRUD, provider choices, column templates and shared links survive migration.
-- [ ] Unsupported/missing/stale factors are never silently treated as verified, zero or passing.
-- [ ] CSV/Excel scopes, source, filters, sort, columns, row numbers and result limits match the UI.
-- [ ] Ticker click opens full research; Inspect retains screen context; back/forward preserves state.
-- [ ] Seven stock tabs, six financial tabs, all options controls and agent-analysis handoffs remain reachable.
-- [ ] All KLine modes, panes, studies, sessions, ranges, drawings and fullscreen remain functional.
-- [ ] Drawings survive appropriate rerenders; Cursor does not clear them; chart listeners clean up.
-- [ ] Compare preserves layouts and synchronization and accepts selected screener instruments.
-- [ ] Canonical symbols, share classes and markets survive route/provider/export round trips.
-- [ ] Enrichment retains previous successful fields and separates fundamental/technical freshness.
-- [ ] Coverage is measured by eligible universe and date; no metadata badge stands in for actual coverage.
-- [ ] Public database writes are denied while API and worker service-role operations continue.
-- [ ] Explore reports missing/unplottable points; advanced axes meet their coverage gate.
-- [ ] Changes uses complete comparable snapshots; incomplete data cannot create false exits.
-- [ ] Desktop/mobile responsiveness, keyboard access and agreed latency budgets pass.
-- [ ] Staged deployment, production smoke checks and rollback are documented.
+The executable checklist, measured results, live Moomoo reconciliation and remaining coverage/performance gates are maintained in [investment-workspace-release-checklist.md](investment-workspace-release-checklist.md). The phases above retain acceptance requirements for the supported initial release and the gated institutional-factor expansion.
 
 ## Inspection screenshots
 

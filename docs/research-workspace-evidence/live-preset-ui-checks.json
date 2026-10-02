@@ -1,0 +1,116 @@
+[
+  {
+    "name": "Penny Stocks",
+    "result": "Result: 55 stocks · ▲12 ▼36 · avg -2.53% on page",
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "High Dividend Stocks",
+    "result": "Result: 0 stocks",
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "Blue Chip Stocks",
+    "result": "Result: 39 stocks · ▲21 ▼18 · avg +0.33% on page",
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "Warren Buffett Strategy",
+    "result": "Result: 125 stocks · ▲52 ▼66 · avg -0.02% on page",
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "Undervalued Stocks",
+    "result": "Result: 4 stocks · ▲2 ▼0 · avg +1.05% on page",
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "Best Growth Stocks",
+    "result": "Result: 101 stocks · ▲40 ▼56 · avg -0.15% on page",
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "P/B Ratio Less Than 1",
+    "result": "Result: 300 stocks · ▲300 ▼0 · avg +2199.42% on page",
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "Best Long Term High Dividend Stocks",
+    "result": "Result: 35 stocks · ▲12 ▼13 · avg -0.13% on page",
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "High P/E Ratio Stocks",
+    "result": "Result: 288 stocks · ▲210 ▼38 · avg +1.75% on page",
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "Good P/E Ratio Stocks",
+    "result": "Result: 87 stocks · ▲38 ▼41 · avg -0.22% on page",
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "Low P/E Ratio Stocks",
+    "result": "Result: 300 stocks · ▲300 ▼0 · avg +8.04% on page",
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "Below 30 RSI Stocks",
+    "result": "Result: 0 stocks",
+    "unavailable": true,
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "Junk Stocks",
+    "result": "Result: 292 stocks · ▲102 ▼64 · avg +140.44% on page",
+    "unavailable": false,
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "Small Cap Stocks with Huge Growth Potential",
+    "result": "Result: 0 stocks",
+    "unavailable": true,
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "Blue Chip Dividend Stocks",
+    "result": "Result: 1 stocks · ▲0 ▼1 · avg -1.38% on page",
+    "unavailable": false,
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "Speculative Stocks",
+    "result": "Result: 202 stocks · ▲59 ▼141 · avg -1.06% on page",
+    "reset": "Table\nExplore\nChanges\nUS · ETFs excluded · Market Cap descending\nSave screen"
+  },
+  {
+    "name": "Undervalued Tech Stocks",
+    "result": "text Result: 67 stocks ·  ▲38 ▼28  · avg +0.99% on page",
+    "reset": true
+  },
+  {
+    "name": "Undervalued Bank Stocks",
+    "result": "text Result: 6 stocks ·  ▲4 ▼2  · avg -0.21% on page",
+    "reset": true
+  },
+  {
+    "name": "High EPS Stocks",
+    "result": "text Result: 89 stocks ·  ▲51 ▼34  · avg +0.37% on page",
+    "reset": true
+  },
+  {
+    "name": "High Return On Equity Stocks",
+    "result": "text Result: 183 stocks ·  ▲69 ▼89  · avg -0.49% on page",
+    "reset": true
+  },
+  {
+    "name": "Low P/E High Dividend Stocks",
+    "result": "text Result: 91 stocks ·  ▲35 ▼35  · avg -0.18% on page",
+    "reset": true
+  },
+  {
+    "name": "Undervalued Semiconductor Stocks",
+    "result": "text Result: 3 stocks ·  ▲2 ▼1  · avg -0.80% on page",
+    "reset": true
+  }
+]
