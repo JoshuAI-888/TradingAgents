@@ -1,5 +1,19 @@
 # TradingAgents: combined screener and research workflow
 
+**Latest execution plan:** [current build against the mockups](investment-workspace-mockup-review.md), reviewed against the working tree on 2 October. Its gap-to-build table supersedes earlier local status paragraphs below. Research account/list UI is now wired locally; it remains unmerged, undeployed and unqualified against real Auth. All original preservation and data gates remain required.
+
+Current build order and completion checklist:
+
+- [ ] Finish shortlist workflow: named/centered dialogs, bounded inspector, phone cards/list chooser, search/status/Next unreviewed, sign-in handoff and conflict/export recovery.
+- [ ] Qualify authentication/private storage; implement team roles and explicit legacy ownership migration without losing saved definitions.
+- [ ] Make Changes contextual and compact; add criterion matrix/sorting, selected review actions and pair-scoped review status.
+- [ ] Implement immutable retained history, complete paired observations and opt-in capture schedules.
+- [ ] Qualify provider coverage; add sector/cap/peer context and supported advanced axes with explicit eligibility.
+- [ ] Finish desk typography/icons and research toolbar grouping; verify every original preset, chart/tab/Compare feature and export scope.
+- [ ] Complete dated Moomoo reconciliation, real-device performance/accessibility and analyst tasks; merge/deploy and verify production with rollback.
+
+Fresh regression checks: 230 API/worker tests and 49 JavaScript tests pass. Browser evidence is synthetic; passing tests do not close the checklist above.
+
 Prepared 2 October 2026. This records the approved design, implementation sequence and release checks. Implementation and verification status is recorded in [the release checklist](investment-workspace-release-checklist.md). Based on the current repository, live browser inspection, read-only API probes and read-only database aggregates. The approved Research Desk, Factor Explorer and Change Monitor become views of one workflow, rather than separate products.
 
 ## Product decision
@@ -12,7 +26,7 @@ Prepared 2 October 2026. This records the approved design, implementation sequen
 4. Click **Inspect** to open a lightweight right panel: quote, small KLine preview, watchlist action and screen context. Ticker/name links continue opening the full stock page. No information is removed from that page to make the inspector fit.
 5. Full research offers **Back to screen** and previous/next within the originating result set. Returning restores criteria, selected screen, sort, columns, page, selection and scroll. Direct links remain usable without a parent screen.
 6. Select stocks for the existing **Compare** workspace. Keep its layouts, synchronized chart controls and indicators. Return to the originating screen without losing selections.
-7. **Export** presents format and scope explicitly: this page or available matches; selected rows can be added later. **Save screen** preserves the complete reproducible screen definition. Changes becomes usable only after comparable, complete snapshots exist.
+7. **Export** presents format and scope explicitly: this page, available matches or selected rows. Selected exports are implemented and remain a preservation requirement in new views. **Save screen** preserves the complete reproducible screen definition. Changes becomes usable only after comparable, complete snapshots exist.
 
 Do not put every current action on the new top bar. Retain infrequent controls in labeled menus, keep full functionality discoverable, and use the existing page routes as compatibility aliases. Use “Run agent analysis” for the job action to distinguish it from the stock Analysis tab and the global Analyze workspace.
 

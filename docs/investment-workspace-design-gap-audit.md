@@ -1,5 +1,7 @@
 # Design fidelity review and remaining build plan
 
+**Latest review:** [current build against the mockups](investment-workspace-mockup-review.md) contains fresh captures, current login/shortlist status and the next acceptance sequence. The initial audit and checkpoint sections below are historical. No full design-completion or production-readiness gate has been closed by the latest review.
+
 Reviewed 2 October 2026 against the live workspace and local release `8b7b019` (merged release `1f3bd19`). This initial browser/code audit updates delivery status. Later local implementation checkpoints below record fixes made after that baseline.
 
 ## Verdict
