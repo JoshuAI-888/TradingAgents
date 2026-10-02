@@ -1003,7 +1003,7 @@ test('normalizing an existing screener deep link does not push another browser h
 });
 
 test('navigation helpers are loaded through versioned browser assets',()=>{
- assert.match(html,/research-workspace\.js\?v=20261003-desk-mvp1/);assert.match(html,/research-account\.js\?v=20261003-desk-mvp1/);
+ assert.match(html,/research-workspace\.js\?v=20261003-desk-recovery2/);assert.match(html,/research-account\.js\?v=20261003-desk-mvp1/);
 });
 
 
