@@ -210,7 +210,7 @@ test('selected CSV and Excel export exactly the sorted selection and reject a pa
  c.document.createElement=()=>({click(){clicked++;filename=this.download;},remove(){}});c.alert=m=>alert=m;
  c.scrExport('csv','selected');const csv=Buffer.from(await blob.arrayBuffer());
  assert.equal(csv.subarray(0,3).toString('hex'),'efbbbf');
- assert.equal(csv.toString('utf8').replace(/^\ufeff/,'').split('\n').slice(1).join('\n'),'1,BRK.A,10\n2,BRK.B,9');assert.match(filename,/_selected\.csv$/);
+ assert.equal(csv.toString('utf8').replace(/^\ufeff/,'').split('\n').slice(1).join('\n'),'1,BRK.A,10,US.BRK.A\n2,BRK.B,9,US.BRK.B');assert.match(filename,/_selected\.csv$/);
  c.scrExport('xls','selected');const xml=await blob.text();assert.match(xml,/BRK.A[\s\S]*BRK.B/);assert.equal((xml.match(/<Row>/g)||[]).length,3);assert.match(filename,/_selected\.xls$/);
  c.__researchSelected.push('US.MISSING');c.scrExport('csv','selected');assert.equal(clicked,2);assert.match(alert,/outside the current loaded cohort/);
 });
@@ -265,7 +265,7 @@ test('region CSV exports only inclusive region members with both axes and exact 
  const c=harness(),rows=[stock('A',100,0,{pe_ttm:10}),stock('B',200,2,{pe_ttm:20}),stock('C',300,-1,{pe_ttm:30})];
  c.scrClientRows=()=>rows;c.__scr.cols=['symbol'];c.researchExploreState().bounds={x:{min:10,max:20},y:{min:0,max:2}};
  let blob,filename,clicked=0;c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){clicked++;filename=this.download;},remove(){}});c.alert=()=>{};
- c.scrExport('csv','explore');assert.equal((await blob.text()).replace(/^\ufeff/,'').split('\n').slice(1).join('\n'),'1,A,10,0\n2,B,20,2');assert.match(filename,/_region\.csv$/);assert.equal(c.__scr.cols.join(','),'symbol');
+ c.scrExport('csv','explore');assert.equal((await blob.text()).replace(/^\ufeff/,'').split('\n').slice(1).join('\n'),'1,A,,10,0\n2,B,,20,2');assert.match(filename,/_region\.csv$/);assert.equal(c.__scr.cols.join(','),'symbol');
  c.researchExploreState().bounds.x.min=99;c.scrExport('csv','explore');assert.equal(clicked,1);
 });
 test('Clear discards the Explorer region and zoom as well as defaulting the query',()=>{
@@ -379,11 +379,11 @@ test('historical columns and sort options use capture evidence rather than curre
 });
 
 test('capture retry preserves its request identity and disables the capture control',async()=>{
- const c=harness(),el={innerHTML:'',textContent:''},button={disabled:false,isConnected:true};let generated=0;const calls=[];
+ const c=harness(),el={innerHTML:'',textContent:''},button={disabled:false,isConnected:true};let generated=0;const calls=[],generations=[];c.__scrDataset={key:'US|0|moo',generationId:'11111111-1111-4111-8111-111111111111'};
  c.crypto={randomUUID:()=>`request-${++generated}`};c.document.getElementById=id=>id==='research-change-results'?el:null;c.document.querySelector=selector=>{assert.equal(selector,'[data-capture]');return button;};c.researchLoadChanges=async()=>{};
- c.api=async(url,options)=>{assert.equal(button.disabled,true);calls.push(options.headers['Idempotency-Key']);if(calls.length===1)throw new Error('response unavailable');return {captured:true};};
+ c.api=async(url,options)=>{assert.equal(button.disabled,true);calls.push(options.headers['Idempotency-Key']);generations.push(options.headers['X-Screener-Generation']);if(calls.length===1)throw new Error('response unavailable');return {captured:true};};
  await c.researchSnapshot();assert.match(el.innerHTML,/Retry capture/);assert.equal(button.disabled,false);assert.equal(c.__captureRequest.id,'request-1');
- await c.researchSnapshot();assert.equal(c.__captureRequest,null);await c.researchSnapshot();assert.deepEqual(calls,['request-1','request-1','request-2']);assert.equal(c.__snapshotBusy,false);
+ c.__scrDataset.generationId='22222222-2222-4222-8222-222222222222';await c.researchSnapshot();assert.equal(c.__captureRequest,null);await c.researchSnapshot();assert.deepEqual(calls,['request-1','request-1','request-2']);assert.deepEqual(generations,['11111111-1111-4111-8111-111111111111','11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222']);assert.equal(c.__snapshotBusy,false);
 });
 test('paging retained history preserves the selected comparison and row page',()=>{
  const c=harness(),st=c.researchChangeState();Object.assign(st,{previous_id:'old-before',current_id:'old-after',offset:200});let loaded=0;c.researchLoadChanges=()=>{loaded++;};c.researchChangeSet('history_offset',100);
@@ -392,7 +392,7 @@ test('paging retained history preserves the selected comparison and row page',()
 
 test('an uncertain capture request survives reload without persisting market rows or notes',()=>{
  const c=harness(),store=new Map();c.sessionStorage={getItem:k=>store.get(k) || null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};c.crypto={randomUUID:()=> '00000000-0000-4000-8000-000000000001'};
- const first=c.researchCaptureRequest({market:'US',filters:[]});c.__captureRequest=null;c.crypto.randomUUID=()=>assert.fail('Reload generated a different request');const restored=c.researchCaptureRequest({filters:[],market:'US'});assert.equal(restored.id,first.id);assert.deepEqual(Object.keys(JSON.parse(store.get('researchCaptureRequestV1'))).sort(),['id','key']);c.researchCaptureConfirmed(restored);assert.equal(store.size,0);
+ const first=c.researchCaptureRequest({market:'US',filters:[]});c.__captureRequest=null;c.crypto.randomUUID=()=>assert.fail('Reload generated a different request');const restored=c.researchCaptureRequest({filters:[],market:'US'});assert.equal(restored.id,first.id);assert.deepEqual(Object.keys(JSON.parse(store.get('researchCaptureRequestV1'))).sort(),['generation_id','id','key']);c.researchCaptureConfirmed(restored);assert.equal(store.size,0);
 });
 test('definition disclosure does not fabricate missing before-and-after observations',()=>{
  const c=harness();const html=c.researchCriteriaDefinition([{field:'volume',min:100000,days:30}]);assert.match(html,/Screen definition/);assert.match(html,/30d/);assert.doesNotMatch(html,/Before|After|Unavailable|Paired/);assert.equal(c.researchCaptureClockLabel('stored_universe'),'Stored cache update');assert.equal(c.researchCaptureClockLabel('provider_retrieval'),'Provider retrieval');assert.equal(c.researchCaptureClockLabel(undefined),'Time type unverified');
@@ -430,4 +430,23 @@ test('quote inspector separates provider update and cache clocks without inferri
  assert.equal(c.researchQuoteCurrency(row),'');assert.equal(c.researchQuoteCurrency({...row,currency:'CNY'}),'CNY');assert.equal(c.researchQuoteCurrency({...row,currency:'<script>'}),'');
  const html=c.researchQuoteProvenance(row);assert.match(html,/Provider snapshot updated:/);assert.match(html,/Cache updated:/);assert.match(html,/Currency: Not supplied/);assert.match(html,/not last-trade time/);assert.doesNotMatch(html,/HKD/);
  const missing=c.researchQuoteProvenance({...row,quote_time_semantics:null,quote_observed_at:null,quote_cache_at:'2026-10-02 01:00:00'});assert.match(missing,/Provider snapshot updated: Unavailable/);assert.match(missing,/Cache updated: Unavailable/);
+});
+
+test('capture retry keeps viewed generation through a refresh and reload',()=>{
+ const c=harness(),store=new Map();let ids=0;c.crypto={randomUUID:()=>`00000000-0000-4000-8000-${String(++ids).padStart(12,'0')}`};
+ c.sessionStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
+ const first='11111111-1111-4111-8111-111111111111',next='22222222-2222-4222-8222-222222222222';
+ c.__scrDataset={key:'US|0|moo',generationId:first};const def=c.researchDefinition(),request=c.researchCaptureRequest(def);
+ c.__scrDataset.generationId=next;c.__captureRequest=null;
+ const retry=c.researchCaptureRequest(def);assert.equal(retry.id,request.id);assert.equal(retry.generation_id,first);
+ c.researchCaptureConfirmed(retry);assert.equal(c.researchCaptureRequest(def).generation_id,next);
+ c.__scr.activePreset='p';assert.equal(c.researchViewedGeneration(),null);
+ c.__scr.activePreset=null;c.__scr.market='HK';assert.equal(c.researchViewedGeneration(),null);
+});
+test('local export retains canonical generation and cache time while escaping spreadsheet formulas',async()=>{
+ const c=harness(),gid='11111111-1111-4111-8111-111111111111';c.__scr.cols=['symbol','name'];
+ c.scrClientRows=()=>[stock('A',10,1,{code:'US.A',name:'=1+1',generation_id:gid,quote_cache_at:'2026-10-02T06:00:00Z'})];
+ let blob;c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){},remove(){}});
+ c.scrExport('csv','all');const text=await blob.text();assert.match(text,/generation_id,quote_cache_at/);assert.match(text,/US.A/);assert.match(text,/'=1\+1/);assert.ok(text.includes(gid));
+ c.scrExport('xls','all');const xml=await blob.text();assert.ok(xml.includes(gid));assert.match(xml,/ss:Type="String">=1\+1/);
 });

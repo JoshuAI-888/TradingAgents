@@ -15,7 +15,7 @@ api.db=FakeDb()
 # Synthetic account/store transport for UI verification only. No remote Auth.
 from tradingagents_api import research_auth, research_lists
 from fastapi import HTTPException
-import json,base64,uuid,time
+import json,base64,uuid,time,hashlib
 PREVIEW_OWNER='00000000-0000-4000-8000-000000000001'
 def preview_token(owner=PREVIEW_OWNER):
     payload=base64.urlsafe_b64encode(json.dumps({'sub':owner,'session_id':str(uuid.uuid4())}).encode()).decode().rstrip('=')
@@ -81,6 +81,26 @@ if os.getenv('RESEARCH_REFRESH_FAILURE_FIXTURE'):
 for row in fixture.ROWS:
     api.db._t('screener_quotes').append({'market':'US','code':row['code'],'row':row.copy(),'updated_at':now})
     api.db._t('screener_universe').append({'market':'US',**row})
+# Opt-in immutable-generation fixture for provenance/capture/download checks.
+# Same synthetic securities; no live financial accuracy claim.
+if os.getenv('RESEARCH_GENERATION_FIXTURE'):
+    class GenerationPreviewDb(FakeDb):
+        def select_all(self, table, query=None, columns='*', cap=20000):
+            return self.select(table,query,columns)[:cap]
+    generated=GenerationPreviewDb();generated.tables=api.db.tables;api.db=generated
+    gid='11111111-1111-4111-8111-111111111111'
+    codes=sorted(r['code'] for r in fixture.ROWS)
+    result={'quotes':{'market':'US','quotes':len(codes)}}
+    api.db._t('screener_generations').append({'id':gid,'market':'US','row_count':len(codes),
+        'started_at':(datetime.now(timezone.utc)-timedelta(minutes=1)).isoformat(),
+        'published_at':now,'cohort_fingerprint':hashlib.sha256('\n'.join(codes).encode()).hexdigest(),'result':result})
+    for row in fixture.ROWS:
+        api.db._t('screener_generation_rows').append({'generation_id':gid,'code':row['code'],'row':row.copy(),
+            'metadata':{'code':row['code'],'market':'US','name':row['name'],'stock_type':row['stock_type'],
+                        'plate':row.get('plate'),'plates':row.get('plates') or [],'exchange':row.get('exchange')},
+            'quote_cache_at':now})
+    api.db.upsert('app_settings','key',{'key':'universe_state_US','value':{
+        'generation_id':gid,'last_quotes':now,'last_result':result}})
 # Optional public quote response retained from a bounded deployment read. Only
 # the quote provenance is real; chart/other fixture responses remain synthetic.
 if os.getenv('RESEARCH_PUBLIC_QUOTE_FIXTURE'):

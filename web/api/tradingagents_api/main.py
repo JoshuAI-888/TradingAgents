@@ -1602,11 +1602,17 @@ def _snapshot_metadata_page(key: str, limit: int = 100, offset: int = 0) -> tupl
 
 @app.post("/api/screener/snapshots")
 def capture_screen_snapshot(inp: ScreenDefinition,
-                            request_id: Annotated[uuid.UUID | None, Header(alias="Idempotency-Key")] = None):
+                            request_id: Annotated[uuid.UUID | None, Header(alias="Idempotency-Key")] = None,
+                            generation_id: Annotated[uuid.UUID | None, Header(alias="X-Screener-Generation")] = None):
+    pinned_generation = str(generation_id) if generation_id is not None else None
+    if pinned_generation and (inp.preset or inp.watchlist_only):
+        raise HTTPException(400, "Generation pinning requires a stored market screen")
     key = _snapshot_key(inp)
     if request_id:
         existing = _snapshot_get(key, str(request_id))
         if existing:
+            if pinned_generation and existing.get("source_generation_id") != pinned_generation:
+                raise HTTPException(409, "Capture request already belongs to a different generation")
             return _capture_reply(key, existing, True)
     inp = _capture_criteria(inp)
     observations = None
@@ -1639,7 +1645,7 @@ def capture_screen_snapshot(inp: ScreenDefinition,
     else:
         result = screener(market=inp.market, watchlist_only=int(inp.watchlist_only),
                           filters=json.dumps([{'field':'stock_type','values':['STOCK','ETF'] if inp.etfs else ['STOCK']}]), sort="market_cap", direction=2,
-                          limit=20000, offset=0, src=inp.src)
+                          limit=20000, offset=0, src=inp.src, generation_id=pinned_generation)
         if (not result.get("available") or not result.get("universe_loaded")
                 or result.get("skipped_filters") or result.get("unclassified_count", 0) or result.get("matched", 0) > len(result.get("rows") or [])):
             raise HTTPException(409, "Stored universe is unavailable, incomplete or lacks criterion data; no snapshot captured")
@@ -1693,7 +1699,7 @@ def capture_screen_snapshot(inp: ScreenDefinition,
         raise HTTPException(409, "Source time is older than 24 hours or in the future; refresh before capturing changes")
     snapshot = {"id": str(request_id or uuid.uuid4()), "version": 3 if observations is not None else 2,
                 "at": datetime.now(timezone.utc).isoformat(), "source_at": source_at,
-                "source_clock": "provider_retrieval" if inp.preset else "stored_universe",
+                "source_clock": "provider_retrieval" if inp.preset else "generation_publication" if result.get("generation_id") else "stored_universe",
                 "definition": inp.model_dump(),
                 "members": [{"code": r["code"], "symbol": r.get("symbol"), "name": r.get("name"),
                              "metrics": {k: r.get(k) for k in ("price", "pct", "market_cap", "pe_ttm")},
@@ -1701,6 +1707,8 @@ def capture_screen_snapshot(inp: ScreenDefinition,
                                           if inp.preset else r.get(f.get("field"))
                                           for f in inp.filters}}
                             for r in rows], "complete": True}
+    if not inp.preset and result.get("generation_id"):
+        snapshot["source_generation_id"] = result["generation_id"]
     if observations is not None:
         selected = {r['code'] for r in rows}
         snapshot['observations'] = observations
@@ -1720,6 +1728,8 @@ def capture_screen_snapshot(inp: ScreenDefinition,
     except (RuntimeError, OSError):
         existing = _snapshot_get(key, snapshot["id"])
         if existing:
+            if existing.get("source_generation_id") != snapshot.get("source_generation_id"):
+                raise HTTPException(409, "Capture request already belongs to a different generation")
             return _capture_reply(key, existing, True)
         raise HTTPException(503, "Capture was not confirmed. Retry with the same capture request.") from None
     return _capture_reply(key, snapshot)
@@ -1728,7 +1738,8 @@ def capture_screen_snapshot(inp: ScreenDefinition,
 def _capture_reply(key: str, snapshot: dict, idempotent: bool = False) -> dict:
     history = _snapshot_history(key)
     return {"captured": True, "id": _snapshot_id(snapshot), "members": len(snapshot['members']),
-            "at": snapshot["at"], "baseline": len(history) == 1, "idempotent": idempotent}
+            "at": snapshot["at"], "source_generation_id": snapshot.get("source_generation_id"),
+            "baseline": len(history) == 1, "idempotent": idempotent}
 
 
 def _snapshot_id(snapshot: dict) -> str:
@@ -1889,6 +1900,7 @@ def screen_changes(definition: str, previous_id: str | None = None, current_id: 
             "previous_id": _snapshot_id(previous), "current_id": _snapshot_id(current),
             "previous_at": previous["at"], "current_at": current["at"],
             "previous_source_at": previous.get("source_at"), "current_source_at": current.get("source_at"),
+            "previous_generation_id": previous.get("source_generation_id"), "current_generation_id": current.get("source_generation_id"),
             "previous_source_clock": previous.get("source_clock", "unverified"), "current_source_clock": current.get("source_clock", "unverified"),
             "rows": selected, "counts": counts, "matched": len(filtered), "offset": offset, "limit": limit,
             "definition": inp.model_dump(), "added": [b[k] for k in sorted(b.keys() - a.keys())],

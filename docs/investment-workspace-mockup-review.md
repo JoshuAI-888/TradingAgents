@@ -1,5 +1,7 @@
 # Current build against the approved design
 
+**Latest capture/export handoff:** [viewed-generation provenance](screener-generation-capture-handoff.md) binds capture retries/reloads to the viewed cohort and retains generation IDs in observations and downloaded CSVs. 362 API/worker and 70 JavaScript tests pass; two actual 1,176-row synthetic browser downloads reconcile. Remaining readers, native capture/PostgREST, live data, retention/cutover and full release gates remain open.
+
 **Latest R01 API checkpoint:** [generation-consistent API readers](screener-generation-api-readers.md) pin stored screener rows/server pages/downloads and derive facets, previews, groups and coverage from validated generations. 360 API/worker and 68 JavaScript tests pass, plus actual API/native worker-generation round-trip. Remaining direct readers, capture provenance, frontend handoff, PostgREST, retention and production cutover remain open; R01 is not closed.
 
 **Latest R01 worker checkpoint:** [actual worker/native database evidence](screener-generation-worker-integration.md) verifies staged atomic publication, exact replay after a lost commit response and successor fencing. 347 API/worker and 68 JavaScript tests pass. API readers still use legacy mirrors; pinned paging/capture/export, PostgREST, retention and production cutover remain open. R01 is not closed.

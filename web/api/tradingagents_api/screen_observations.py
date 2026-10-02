@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import math
 import re
+from tradingagents_worker.screener_generations import canonical_generation
 from datetime import datetime
 
 
@@ -42,6 +43,7 @@ def capture_observation(row, filters):
             'cache_at': row.get('quote_cache_at')}
     return {'code': row['code'], 'symbol': row.get('symbol'), 'name': row.get('name'),
             'instrument_type': row.get('stock_type'), 'quote_cache_at': row.get('quote_cache_at'),
+            **({'generation_id': row['generation_id']} if row.get('generation_id') else {}),
             'metrics': {k: row.get(k) for k in ('price', 'pct', 'market_cap', 'pe_ttm')},
             'evidence': {c.get('field'): observations[key]['value'] for key, c in criterion_slots(filters)
                          if counts[c.get('field')] == 1}, 'criterion_observations': observations}
@@ -61,6 +63,13 @@ def validate_observation_capture(snapshot, definition):
     captured = datetime.fromisoformat(str(snapshot.get('at')).replace('Z','+00:00'))
     if captured.tzinfo is None:
         raise ValueError('Capture timezone missing')
+    generation = snapshot.get('source_generation_id')
+    if snapshot.get('source_clock') == 'generation_publication' and 'source_generation_id' not in snapshot:
+        raise ValueError('Generation identity missing from publication capture')
+    if 'source_generation_id' in snapshot:
+        canonical_generation(generation)
+        if snapshot.get('source_clock') != 'generation_publication':
+            raise ValueError('Generation publication clock missing')
     slots = dict(criterion_slots(definition['filters']))
     unique_fields = {c['field'] for c in slots.values() if sum(other['field']==c['field'] for other in slots.values())==1}
     lookup = {}
@@ -68,6 +77,8 @@ def validate_observation_capture(snapshot, definition):
         if not isinstance(record,dict):
             raise ValueError('Invalid observation record')
         code = record.get('code')
+        if record.get('generation_id') != generation:
+            raise ValueError('Observation generation differs from its capture')
         if (not isinstance(code,str) or not re.fullmatch(r'(US|HK)\.[A-Z0-9][A-Z0-9._-]{0,30}',code)
                 or not code.startswith(definition['market']+'.') or code in lookup):
             raise ValueError('Invalid or duplicated observation identity')

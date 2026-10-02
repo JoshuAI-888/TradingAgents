@@ -670,6 +670,7 @@ function scrExport(kind, scope) {
     // We don't hold this view's data (cold watchlist fallback) — server build.
     const qs = new URLSearchParams({ market: st.market, watchlist_only: st.watchlistOnly ? 1 : 0,
       filters: JSON.stringify(scrEffFilters()), sort: st.sort, direction: st.dir, export: kind, src: st.src || "moo", scope: scope || "all" });
+    const generation = researchViewedGeneration(); if(generation && !st.watchlistOnly) qs.set("generation_id", generation);
     if (scope === "page") { qs.set("limit", String(st.pageSize || 500)); qs.set("offset", String(((st.page || 1) - 1) * (st.pageSize || 500))); }
     window.open("/api/screener?" + qs.toString(), "_blank");
     return;
@@ -685,9 +686,9 @@ function scrExport(kind, scope) {
   }
   if (scope === "explore" && !list.length) { alert("No stocks qualify in the current Explorer region."); return; }
   const rowNumber = (r, i) => ["selected","explore"].includes(scope) ? rows.indexOf(r) + 1 : (scope === "page" ? ((st.page || 1) - 1) * (st.pageSize || 500) : 0) + i + 1;
-  const cols = [...new Set(["symbol", ...st.cols.filter(k => k !== "symbol"), ...(scope === "explore" ? [researchExploreState().x,researchExploreState().y] : [])])];
+  const cols = [...new Set(["symbol", ...st.cols.filter(k => k !== "symbol"), "code", ...(list.some(r=>r.generation_id)?["generation_id","quote_cache_at"]:[]), ...(scope === "explore" ? [researchExploreState().x,researchExploreState().y] : [])])];
   const headers = ["No.", ...cols.map(k => (SCR_COLS[k] || [k])[0])];
-  const ccell = v => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const ccell = v => { let s = v == null ? "" : String(v); if(typeof v === "string" && /^[=+@\-\t\r]/.test(s)) s="'"+s; return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const stamp = new Date().toISOString().slice(0, 10);
   const fname = "screener_" + st.market + "_" + list.length + "rows_" + stamp + (scope === "selected" ? "_selected" : scope === "explore" ? "_region" : "");
   let blob, ext;
@@ -1583,7 +1584,7 @@ async function scrPersistDataset(ds) {
   try {
     const db = await scrIdb();
     db.transaction("ds", "readwrite").objectStore("ds")
-      .put({ key: ds.key, ts: ds.ts, asOf: ds.asOf, watchlist: ds.watchlist, rows: ds.rows }, "cur");
+      .put({ key: ds.key, ts: ds.ts, asOf: ds.asOf, generationId: ds.generationId || null, watchlist: ds.watchlist, rows: ds.rows }, "cur");
   } catch (e) { /* private mode / quota — the in-memory copy still works */ }
 }
 async function scrLoadDataset(key) {
@@ -1775,14 +1776,14 @@ const pages = {
       } else {
         const saved = await scrLoadDataset(dsKey);
         if (gen !== __homeGen) return "";
-        if (saved) { ds = { key: saved.key, ts: saved.ts, asOf: saved.asOf, watchlist: saved.watchlist, rows: saved.rows }; fromCache = true; }
+        if (saved) { ds = { key: saved.key, ts: saved.ts, asOf: saved.asOf, generationId: saved.generationId || null, watchlist: saved.watchlist, rows: saved.rows }; fromCache = true; }
       }
       if (!ds) {
         // Cold first-ever load: dataset and panels fetch in parallel.
         const [raw, panels] = await Promise.all([
           api("/api/screener?" + dataQs).catch(() => null), scrPanelFetch(st.market)]);
         if (gen !== __homeGen) return "";
-        ds = { key: dsKey, ts: Date.now(), asOf: raw && raw.universe_as_of,
+        ds = { key: dsKey, ts: Date.now(), asOf: raw && raw.universe_as_of, generationId: raw && raw.generation_id,
                watchlist: raw && raw.watchlist, rows: (raw && raw.rows) || [] };
         window.__scrDataset = ds;
         scrPersistDataset(ds);
@@ -1791,7 +1792,7 @@ const pages = {
         if (fromCache || Date.now() - ds.ts > 60000) {
           // paint the saved copy now; refresh in the background, update once
           api("/api/screener?" + dataQs).then(raw => {
-            const fresh = { key: dsKey, ts: Date.now(), asOf: raw && raw.universe_as_of,
+            const fresh = { key: dsKey, ts: Date.now(), asOf: raw && raw.universe_as_of, generationId: raw && raw.generation_id,
                             watchlist: raw && raw.watchlist, rows: (raw && raw.rows) || [] };
             scrPersistDataset(fresh);
             const currentKey = [window.__scr.market, window.__scr.etfs ? 1 : 0, window.__scr.src || "moo"].join("|");
@@ -1814,7 +1815,7 @@ const pages = {
       const all = scrSortRows(scrFieldPass(base, scrEffFilters()));
       scr = { available: true, ...scrPageRows(all),
               skipped_filters: [], universe_loaded: ds.rows.length > 0,
-              universe_as_of: ds.asOf, watchlist: ds.watchlist,
+              universe_as_of: ds.asOf, generation_id: ds.generationId || null, watchlist: ds.watchlist,
               client_dataset: true, stale_hint: fromCache ? ds.ts : null };
       window.__homeCtx = { ...scrPanelSnapshot(), scr, execd: null };
     }

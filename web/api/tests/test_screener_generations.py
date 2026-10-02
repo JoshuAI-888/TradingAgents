@@ -1,6 +1,8 @@
 """Generation-consistent public readers: publication between requests and corruption."""
 import hashlib
 import uuid
+import copy
+from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 from tradingagents_api import main as api
@@ -14,10 +16,10 @@ class GenerationDb(FakeDb):
 
 def publish(db, codes=('US.A', 'US.B'), price=10):
     gid = str(uuid.uuid4())
-    stamp = '2026-10-02T06:00:00+00:00'
+    stamp = datetime.now(timezone.utc).isoformat()
     result = {'quotes': {'market': 'US', 'quotes': len(codes)}}
     db._t('screener_generations').append({'id': gid, 'market': 'US', 'row_count': len(codes),
-        'started_at': '2026-10-02T05:59:00+00:00', 'published_at': stamp,
+        'started_at': (datetime.now(timezone.utc)-timedelta(minutes=1)).isoformat(), 'published_at': stamp,
         'cohort_fingerprint': hashlib.sha256('\n'.join(sorted(codes)).encode()).hexdigest(), 'result': result})
     for i, code in enumerate(codes):
         db._t('screener_generation_rows').append({'generation_id': gid, 'code': code,
@@ -32,6 +34,7 @@ def publish(db, codes=('US.A', 'US.B'), price=10):
 
 @pytest.fixture
 def setup(monkeypatch):
+    monkeypatch.setenv('DEFAULT_USER_ID', 'generation-test-owner')
     db = GenerationDb()
     monkeypatch.setattr(api, 'db', db)
     monkeypatch.setattr(api, '_stored_universe_cache', {})
@@ -129,3 +132,39 @@ def test_cached_preview_cannot_mask_corrupt_success_state(setup):
     assert client.get('/api/screener/presets').status_code == 200
     db.tables['app_settings'][0]['value']['last_quotes'] = '2026-10-02T06:00:01Z'
     assert client.get('/api/screener/presets').status_code == 503
+
+
+def test_capture_pins_viewed_generation_across_publication_and_retry(setup):
+    db, client = setup
+    first = publish(db)
+    second = publish(db, ('US.C', 'US.D'), 20)
+    request = str(uuid.uuid4())
+    headers = {'Idempotency-Key': request, 'X-Screener-Generation': first}
+    definition = {'market': 'US', 'filters': []}
+    response = client.post('/api/screener/snapshots', json=definition, headers=headers)
+    assert response.status_code == 200, response.text
+    assert response.json()['source_generation_id'] == first
+    snapshot = db.tables['screen_captures'][-1]['snapshot']
+    assert {r['code'] for r in snapshot['members']} == {'US.A', 'US.B'}
+    assert snapshot['source_clock'] == 'generation_publication'
+    assert {r['generation_id'] for r in snapshot['observations']} == {first}
+    assert client.post('/api/screener/snapshots', json=definition, headers=headers).json()['idempotent']
+    wrong = client.post('/api/screener/snapshots', json=definition,
+        headers={**headers, 'X-Screener-Generation': second})
+    assert wrong.status_code == 409 and len(db.tables['screen_captures']) == 1
+    missing = copy.deepcopy(snapshot)
+    missing.pop('source_generation_id')
+    with pytest.raises(ValueError, match='Generation identity'):
+        api.validate_observation_capture(missing, snapshot['definition'])
+    tampered = copy.deepcopy(snapshot)
+    tampered['observations'][0]['generation_id'] = second
+    with pytest.raises(ValueError, match='generation'):
+        api.validate_observation_capture(tampered, snapshot['definition'])
+
+
+def test_pinned_generation_rejected_for_provider_and_watchlist_captures(setup):
+    db, client = setup
+    gid = publish(db)
+    for definition in [{'watchlist_only': True}, {'preset': api.PRESET_SCREENERS[0]['key']}]:
+        result = client.post('/api/screener/snapshots', json=definition, headers={'X-Screener-Generation': gid})
+        assert result.status_code == 400

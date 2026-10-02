@@ -143,4 +143,8 @@ Three fresh 2249 × 1168 screenshots were saved/opened against the original mock
 
 Core stored-universe APIs now resolve and validate generation identity before cache hits; immutable row copies and generation metadata prevent stale legacy classification or caller mutations. Explicit server paging/downloads retain the original generation through a later publication; zero-result responses retain identity. Facets, preview caches, groups and Settings counts follow the published cohort. Actual API/native SQL read of the worker-published 401-row fixture passes, alongside 360 API/worker and 68 JavaScript tests. [Evidence and remaining gates](docs/screener-generation-api-readers.md). Remaining direct readers, capture provenance, frontend handoff, live PostgREST/retention/cutover, field coverage and all broader R02–R15 gates remain open. No browser/UI or production acceptance is claimed.
 
+## Viewed-generation capture/export handoff
+
+Capture requests now bind generation independently of definition/history identity and preserve it through retry/reload; observations and pair exports validate/retain that provenance. Table and Changes distinguish publication/cache/source clocks. Actual browser synthetic captures and two 1,176-row CSVs reconcile generation, canonical identities, sort/values and coverage; screenshot saved/opened and final warning/error log empty. Full regressions: 362 API/worker and 70 JavaScript tests pass. [Evidence and remaining gates](docs/screener-generation-capture-handoff.md). No live accuracy, native capture/PostgREST, all-format export, phone/zoom/accessibility/performance, retention/cutover or full release sign-off is claimed.
+
 Final result: blocked
