@@ -40,6 +40,10 @@ begin
   -- Lock the parent so archive/add are serialized; check ownership in the same transaction.
   perform 1 from public.research_lists where id=p_list and owner_id=p_owner and active for update;
   if not found then return; end if;
+  if exists(select 1 from public.research_list_items where list_id=p_list and code=p_code and active) then
+    return query select * from public.research_list_items where list_id=p_list and code=p_code;
+    return;
+  end if;
   return query insert into public.research_list_items as existing (list_id,owner_id,code)
     values (p_list,p_owner,p_code)
     on conflict (list_id,code) do update set
@@ -47,6 +51,7 @@ begin
       revision=existing.revision + case when existing.active then 0 else 1 end,
       updated_at=case when existing.active then existing.updated_at else now() end
     returning *;
+  update public.research_lists set revision=revision+1, updated_at=now() where id=p_list and owner_id=p_owner;
 end;
 $$;
 revoke all on function public.research_list_add(uuid,uuid,text) from public, anon, authenticated;
@@ -56,6 +61,7 @@ grant execute on function public.research_list_add(uuid,uuid,text) to service_ro
 create function public.research_list_review(p_list uuid, p_owner uuid, p_code text,
   p_revision bigint, p_note text, p_status text, p_active boolean)
 returns setof public.research_list_items language plpgsql security invoker set search_path = '' as $$
+declare changed integer;
 begin
   perform 1 from public.research_lists where id=p_list and owner_id=p_owner and active for update;
   if not found then return; end if;
@@ -63,6 +69,10 @@ begin
     active=coalesce(p_active,active), revision=revision+1, updated_at=now()
     where list_id=p_list and owner_id=p_owner and code=p_code and revision=p_revision
     returning *;
+  get diagnostics changed = row_count;
+  if changed>0 then
+    update public.research_lists set revision=revision+1, updated_at=now() where id=p_list and owner_id=p_owner;
+  end if;
 end;
 $$;
 revoke all on function public.research_list_review(uuid,uuid,text,bigint,text,text,boolean) from public, anon, authenticated;

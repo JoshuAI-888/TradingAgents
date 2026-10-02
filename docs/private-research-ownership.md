@@ -1,6 +1,6 @@
 # Private research ownership checkpoint
 
-2 October 2026. Backend foundation only; not a finished shortlist experience or release.
+2 October 2026. Backend foundation and local login/shortlist UI; not a production-qualified release.
 
 ## Contract
 
@@ -35,3 +35,9 @@ The migration is **not applied to production**; Supabase's actual project uses P
 5. Resolve the existing database security baseline before publishing a browser client configuration: the read-only advisor report still identifies public tables without RLS, definer views and mutable function search paths. Those findings precede this migration. Review actual browser/API grants and dependencies before changing access. Relevant remedies: [RLS in exposed schemas](https://supabase.com/docs/guides/database/database-linter?lint=0013_rls_disabled_in_public), [definer views](https://supabase.com/docs/guides/database/database-linter?lint=0010_security_definer_view), [function search paths](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable). RLS-without-policy informational notices on service-only tables describe intentional closed browser access, not a reason to add public policies.
 
 Developer test inputs live in `web/api/tests/research-db-bootstrap.sql`, `research-db-contract.sql` and `research-db-concurrency.py`. These scripts are explicitly for an isolated local database; the bootstrap must never be run on a Supabase project. The migration file contains schema only, not those fixture accounts.
+
+## Local workflow follow-through
+
+The same-origin Auth proxy and tab-scoped session UI now support existing-account sign-in, refresh and sign-out, with fixed-issuer verification and private no-store responses. Passwords are not retained. Private caches and in-memory drafts clear on account change/sign-out; generation guards reject late responses. No browser Supabase key was exposed. Login/list/review forms are wired locally with a native named dialog, pending Add handoff, chooser, phone cards, soft removal/undo, ticker/status filtering, cross-page Next unreviewed and explicit conflict comparison. Company-name search and full device/zoom checks remain open.
+
+Every membership/review mutation advances the parent revision; already-active adds are idempotent. Full-shortlist CSV pages through 501 members in tests and checks a consistent revision through a final probe. The modified native SQL contract and observed two-connection archive/add lock test pass in isolated PostgreSQL 16.14; its server was then stopped. Synthetic two-tab browser edits demonstrate stale-save rejection, draft retention, latest comparison and explicit retry. Updated full regressions pass: 233 API/worker and 57 JavaScript tests. Production Auth/PostgREST/migration, sharing permissions and legacy ownership gates above remain open; no production account or private data was written.

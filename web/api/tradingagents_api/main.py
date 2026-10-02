@@ -1575,7 +1575,7 @@ def _change_evidence(before: dict | None, after: dict | None, inp: ScreenDefinit
 def screen_changes(definition: str, previous_id: str | None = None, current_id: str | None = None,
                    status: str = "all", q: str = "", sort: str = "symbol", direction: int = 1,
                    limit: int = 100, offset: int = 0):
-    if status not in ("new", "exited", "all") or sort not in ("symbol", "name", "status", "market_cap"):
+    if status not in ("new", "exited", "all"):
         raise HTTPException(400, "Invalid review filter or sort")
     if direction not in (1, 2) or not 1 <= limit <= 500 or not 0 <= offset <= 40000 or len(q) > 100:
         raise HTTPException(400, "Invalid review pagination")
@@ -1583,6 +1583,12 @@ def screen_changes(definition: str, previous_id: str | None = None, current_id: 
         inp = ScreenDefinition.model_validate_json(definition)
     except ValueError:
         raise HTTPException(400, "Invalid screen definition")
+    criterion_sort = re.fullmatch(r"criterion:(before|after):([a-z][a-z0-9_]{0,63})", sort)
+    numeric_criteria = {c.get("field") for c in inp.filters
+                        if c.get("values") is None and (c.get("min") is not None or c.get("max") is not None)}
+    if sort not in ("symbol", "name", "status", "market_cap") and (
+            not criterion_sort or criterion_sort.group(2) not in numeric_criteria):
+        raise HTTPException(400, "Choose a captured numeric criterion to sort")
     history = _snapshot_history(_snapshot_key(inp))
     metadata = [_snapshot_meta(s) for s in history]
     if len(history) < 2:
@@ -1628,9 +1634,14 @@ def screen_changes(definition: str, previous_id: str | None = None, current_id: 
     filtered = [r for r in changes if (status == "all" or r["status"] == status) and
                 (not needle or needle in str(r.get("symbol") or "").casefold() or needle in str(r.get("name") or "").casefold())]
     def sort_value(row):
+        if criterion_sort:
+            side, field = criterion_sort.groups()
+            observation = row.get("previous" if side == "before" else "current") or {}
+            value = (observation.get("evidence") or {}).get(field)
+            return float(value) if type(value) in (int, float) and math.isfinite(value) else None
         if sort == "market_cap":
             value = ((row.get("current") or row.get("previous") or {}).get("metrics") or {}).get("market_cap")
-            return float(value) if isinstance(value, (int, float)) and math.isfinite(value) else None
+            return float(value) if type(value) in (int, float) and math.isfinite(value) else None
         return str(row.get(sort) or "").casefold()
     known = [r for r in filtered if sort_value(r) is not None]
     missing = [r for r in filtered if sort_value(r) is None]
@@ -2428,6 +2439,16 @@ def stock_spa(rest: str):
 
 from .research_lists import router as research_lists_router
 app.include_router(research_lists_router)
+from .research_auth import router as research_auth_router
+app.include_router(research_auth_router)
+
+@app.middleware("http")
+async def private_research_no_cache(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/api/research/"):
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Pragma"] = "no-cache"
+    return response
 
 # Static portal (built SPA) — mounted last so /api wins.
 _static = os.getenv("PORTAL_STATIC_DIR", "")

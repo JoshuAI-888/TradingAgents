@@ -202,3 +202,19 @@ def test_snapshot_rejects_missing_instrument_classification_before_inference(mon
     monkeypatch.setattr(api,'screener_execute',lambda *a:{'available':True,'retrieved_at':now,'rows':[{'code':'US.A'}]})
     with pytest.raises(HTTPException):api.capture_screen_snapshot(api.ScreenDefinition(preset='penny'))
     assert not api.db._t('app_settings')
+
+
+def test_review_criterion_sort_uses_exact_capture_side_before_pagination(monkeypatch):
+    spec=api.ScreenDefinition(filters=[{'field':'pe_ttm','max':12}])
+    def row(code,value):return {'code':code,'symbol':code[3:],'evidence':{'pe_ttm':value},'metrics':{'pe_ttm':999}}
+    before={'id':'before','version':2,'at':'2026-10-01T00:00:00Z','complete':True,'members':[row('US.A',0),row('US.B',10),row('US.D',float('nan'))]}
+    after={'id':'after','version':2,'at':'2026-10-02T00:00:00Z','complete':True,'members':[row('US.A',8),row('US.C',-1),row('US.D',True)]}
+    monkeypatch.setattr(api,'_snapshot_history',lambda key:[before,after])
+    for side,first in [('before','US.A'),('after','US.C')]:
+        result=api.screen_changes(spec.model_dump_json(),sort='criterion:'+side+':pe_ttm',limit=1)
+        assert result['rows'][0]['code']==first and result['matched']==4
+        for direction in (1,2):
+            rows=api.screen_changes(spec.model_dump_json(),sort='criterion:'+side+':pe_ttm',direction=direction)['rows']
+            assert {r['code'] for r in rows[-2:]}==({'US.C','US.D'} if side=='before' else {'US.B','US.D'})
+    for sort in ['criterion:after:roe','criterion:latest:pe_ttm','criterion:after:pe_ttm;drop','arbitrary']:
+        with pytest.raises(HTTPException):api.screen_changes(spec.model_dump_json(),sort=sort)

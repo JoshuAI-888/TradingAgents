@@ -4,7 +4,8 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const html = fs.readFileSync(require('node:path').join(__dirname, '../../static/index.html'), 'utf8');
 const helper = fs.readFileSync(require('node:path').join(__dirname, '../../static/research-workspace.js'),'utf8');
-const script = helper + '\n' + [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].slice(1).map(m=>m[1]).join('\n');
+const account = fs.readFileSync(require('node:path').join(__dirname, '../../static/research-account.js'),'utf8');
+const script = helper + '\n' + account + '\n' + [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].slice(1).map(m=>m[1]).join('\n');
 function harness(saved = {}, hash = '') {
   const page = {innerHTML:'existing screener'};
   const elements = new Map([['page',page]]);
@@ -13,7 +14,7 @@ function harness(saved = {}, hash = '') {
     createElement:()=>({style:{},remove(){}}), body:{appendChild(){}}};
   const c = {document, localStorage:{getItem:k=>k==='scrState'?JSON.stringify(saved):null,setItem(){}},
     location:{hash,pathname:'/',search:''}, history:{replaceState(_a,_b,h){c.location.hash=h;}},
-    URLSearchParams, URL, console, setTimeout:()=>1,clearTimeout(){},setInterval:()=>1,clearInterval(){},
+    sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},URLSearchParams, URL, console, setTimeout:()=>1,clearTimeout(){},setInterval:()=>1,clearInterval(){},
     fetch:async()=>({ok:true,json:async()=>({})})};
   c.window=c; c.addEventListener=()=>{}; c.scrollTo=()=>{};
   vm.createContext(c);
@@ -302,4 +303,70 @@ test('comparison export rejects missing, changed and duplicate memberships witho
  c.api=async()=>{calls++;return {comparable:true,previous_id: fault==='pair' && calls===2?'different':'a',current_id:'b',matched:fault==='count' && calls===2?502:501,rows:calls===1?first:fault==='missing'?[]:[{code:fault==='duplicate'?'US.T0':'US.T500'}]};};
  await c.researchChangesExport();assert.equal(clicks,0);assert.match(message,/unavailable/);
  }
+});
+const privateSession=(id='00000000-0000-4000-8000-000000000001')=>({access_token:'access',refresh_token:'refresh',expires_at:Date.now()/1000+3600,user:{id,email:'fixture@example.test'}});
+test('sign-out clears every private cache and leaves original screener criteria intact',()=>{
+ const c=harness();const before=JSON.stringify(c.__scr);c.__researchSession=privateSession();c.__researchCurrentList={name:'Private'};c.__researchLists=[{name:'Private'}];c.__researchListItems=[{note:'Private thesis'}];c.__researchReviewDraft={note:'draft'};c.__researchUndo={code:'US.A'};
+ c.researchPrivateClear();assert.equal(c.__researchSession,null);assert.equal(c.__researchCurrentList,null);assert.equal(c.__researchListItems.length,0);assert.equal(c.__researchLists.length,0);assert.equal(c.__researchReviewDraft,null);assert.equal(c.__researchUndo,null);assert.equal(JSON.stringify(c.__scr),before);
+});
+test('late private responses are rejected after account switch',async()=>{
+ const c=harness();c.researchSessionSet(privateSession());let resolve;c.fetch=()=>new Promise(r=>resolve=r);const pending=c.researchPrivateAPI('/api/research/lists');
+ c.researchSessionSet(privateSession('00000000-0000-4000-8000-000000000002'));resolve({ok:true,json:async()=>({lists:[{name:'Old owner secret'}]})});await assert.rejects(pending,e=>e.status===499);assert.equal(c.__researchLists.length,0);
+});
+test('session refresh is single-flight and cannot replace a changed account',async()=>{
+ const c=harness();c.researchSessionSet(privateSession());let resolve,requests=0;c.fetch=()=>{requests++;return new Promise(r=>resolve=r);};const one=c.researchRefreshSession(),two=c.researchRefreshSession();
+ c.researchSessionSet(privateSession('00000000-0000-4000-8000-000000000002'));resolve({ok:true,json:async()=>privateSession()});await assert.rejects(one,e=>e.status===499);await assert.rejects(two,e=>e.status===499);assert.equal(requests,1);assert.equal(c.__researchSession.user.id,'00000000-0000-4000-8000-000000000002');
+});
+test('a revoked refresh clears private data while a network failure preserves retryable session',async()=>{
+ for(const status of [401,503]){const c=harness();c.researchSessionSet(privateSession());c.__researchListItems=[{note:'Private'}];c.fetch=async()=>({ok:false,status,text:async()=>'{"detail":"Unavailable"}'});
+ await assert.rejects(c.researchRefreshSession());assert.equal(!!c.__researchSession,status===503);assert.equal(c.__researchListItems.length,status===503?1:0);}
+});
+test('shortlist CSV preserves share classes, missing quotes and numeric negatives while guarding spreadsheet formulas',()=>{
+ const c=harness();const csv=c.researchListCSV({name:'Quality',revision:3},[{code:'US.BRK.B',note:'=HYPERLINK("bad")',review_status:'reviewed',quote:{code:'US.BRK.B',symbol:'BRK.B',name:'Berkshire, Inc.',price:-1,currency:'USD'}}]);
+ assert.match(csv,/US.BRK.B,BRK.B,"Berkshire, Inc.",-1,USD/);assert.match(csv,/'=HYPERLINK/);assert.match(csv,/list_revision/);
+ const missing=c.researchListQuote({code:'US.A',quote:{code:'US.B',price:5}});assert.equal(missing.price,undefined);assert.equal(missing.code,'US.A');
+});
+test('shortlist export rejects changed list revision before creating a partial file',async()=>{
+ const c=harness();c.researchSessionSet(privateSession());c.__researchListID='list';let calls=0,message;c.researchPrivateAPI=async()=>({list:{name:'Quality',revision:++calls},items:[{code:'US.A'}],has_more:false});c.document.getElementById=()=>({set textContent(v){message=v;}});c.Blob=()=>assert.fail('partial export');await c.researchListExport();assert.match(message,/changed/);
+});
+
+test('Next unreviewed continues and wraps the filtered ticker cohort without modifying the current page',async()=>{
+ const c=harness();c.__researchListID='list';c.__researchCurrentList={active:true};c.__researchListGen=7;c.__researchListSearch='BRK';c.__researchListStatus='reviewed';c.__researchReviewCursor='US.BRK.C';c.__researchListItems=[{code:'US.CURRENT'}];
+ const calls=[];let opened;c.researchReviewOpen=(code,item)=>opened={code,item};c.researchPrivateAPI=async url=>{calls.push(new URLSearchParams(url.split('?')[1]));return {items:calls.length===1?[]:[{code:'US.BRK.B',review_status:'unreviewed'}]};};
+ await c.researchNextUnreviewed();assert.equal(calls.length,2);assert.equal(calls[0].get('after_code'),'US.BRK.C');assert.equal(calls[1].get('after_code'),null);for(const q of calls){assert.equal(q.get('q'),'BRK');assert.equal(q.get('review_status'),'unreviewed');assert.equal(q.get('offset'),'0');assert.equal(q.get('limit'),'1');}assert.equal(opened.code,'US.BRK.B');assert.equal(c.__researchListItems[0].code,'US.CURRENT');
+});
+test('Next unreviewed does not open an old list after navigation',async()=>{
+ const c=harness();c.__researchListID='list';c.__researchCurrentList={active:true};c.__researchListGen=1;let resolve;c.researchPrivateAPI=()=>new Promise(r=>resolve=r);c.researchReviewOpen=()=>assert.fail('old list opened');const pending=c.researchNextUnreviewed();c.__researchListID='new';c.__researchListGen=2;resolve({items:[{code:'US.A'}]});await pending;
+});
+test('shortlist export retrieves all 501 members and rechecks revision before download',async()=>{
+ const c=harness();c.researchSessionSet(privateSession());c.__researchListID='list';c.__researchListSearch='BRK';c.__researchListStatus='reviewed';const items=Array.from({length:501},(_,i)=>({code:'US.T'+i,note:'',review_status:'unreviewed'}));let blob,clicks=0;const calls=[];
+ c.researchPrivateAPI=async url=>{const q=new URLSearchParams(url.split('?')[1]);calls.push(q);return {list:{name:'Quality',revision:4},items:items.slice(Number(q.get('offset') || 0),Number(q.get('offset') || 0)+Number(q.get('limit'))),has_more:q.get('limit')!=='1' && Number(q.get('offset'))===0};};
+ c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){clicks++;},remove(){}});await c.researchListExport();assert.equal(clicks,1);assert.equal(calls.length,3);assert.equal(calls[1].get('offset'),'500');assert.equal(calls[2].get('limit'),'1');assert.equal((await blob.text()).split('\n').length,502);for(const q of calls){assert.equal(q.get('q'),null);assert.equal(q.get('review_status'),null);}
+});
+test('closing a review keeps a tab-only draft, successful close and sign-out do not recreate it',()=>{
+ const c=harness(),form={elements:{note:{value:'Unsaved thesis'},review_status:{value:'in_review'}}};const dialog={querySelector:s=>s==='form[data-review]'?form:null,close(){},remove(){}};
+ c.__researchReviewDraft={list:'list',code:'US.BRK.B',revision:2};c.__researchDialog=dialog;c.researchDialogClose();assert.equal(c.__researchNoteDrafts['list|US.BRK.B'].note,'Unsaved thesis');
+ c.__researchDialog=dialog;c.researchPrivateClear();assert.equal(Object.keys(c.__researchNoteDrafts).length,0);assert.equal(c.__researchDialog,null);
+ c.__researchReviewDraft={list:'list',code:'US.BRK.B',revision:2};c.__researchDialog=dialog;c.researchDialogClose(false);assert.equal(Object.keys(c.__researchNoteDrafts).length,0);
+});
+
+ test('debounced shortlist search cannot navigate back after leaving the view or switching lists',async()=>{
+ for(const change of ['page','list','generation']){
+ const c=harness();let run,calls=0;c.setTimeout=fn=>{run=fn;return 1;};c.__researchListID='old';c.__researchListGen=3;vm.runInContext("state.page='shortlists'",c);c.showPage=()=>{calls++;};
+ c.researchListSearch({value:'BRK',selectionStart:3});
+ if(change==='page')vm.runInContext("state.page='home'",c);if(change==='list')c.__researchListID='new';if(change==='generation')c.__researchListGen=4;
+ await run();assert.equal(calls,0);
+ }
+ });
+
+test('historical criteria matrix retains exclusive bounds, periods, zero and missing evidence',()=>{
+ const c=harness();const html=c.researchCriterionMatrix([{field:'pe_ttm',max:12,excl_max:1},{field:'pct',min:0,excl_min:1}],[{field:'pe_ttm',previous:8,current:null,period:'TTM',source:'provider criterion',status:'unavailable_pair'},{field:'pct',previous:0,current:-1,period:'day',source:'stored',status:'paired'}]);
+ assert.match(html,/&lt; 12/);assert.match(html,/&gt; 0%/);assert.match(html,/TTM/);assert.match(html,/Paired values unavailable/);assert.match(html,/0%/);assert.match(html,/-1%/);assert.match(html,/Both values supplied/);assert.doesNotMatch(html,/crossed|passed/);
+});
+test('Changes uses contextual capture controls while preserving current-screen exports in Table',()=>{
+ const c=harness();const st=c.__scr;st.presentation='changes';const args={st,scr:{matched:1,rows:[],shown:0},table:'',allChips:'',msPanel:''};const changes=c.researchDeskHTML(args);assert.match(changes,/Changes in All stocks/);assert.match(changes,/Capture snapshot/);assert.match(changes,/scrResetAll/);assert.doesNotMatch(changes,/aria-label="Column view"|aria-label="Sort results"|onclick="scrExport/);st.presentation='table';const table=c.researchDeskHTML(args);assert.match(table,/aria-label="Column view"/);assert.match(table,/scrExport\('csv','all'\)/);assert.match(table,/scrResetAll/);
+});
+
+test('historical columns and sort options use capture evidence rather than current quote metrics',()=>{
+ const c=harness(),el={innerHTML:'',querySelector:()=>null};c.document.activeElement=null;const d={comparable:true,previous_id:'a',current_id:'b',previous_at:'2026-10-01T00:00:00Z',current_at:'2026-10-02T00:00:00Z',counts:{new:0,exited:0,all:1,unchanged:1},matched:1,definition:{filters:[{field:'pe_ttm',max:12}]},rows:[{code:'US.A',symbol:'A',status:'unchanged',previous:{evidence:{pe_ttm:0},metrics:{pe_ttm:999}},current:{evidence:{pe_ttm:8},metrics:{pe_ttm:999}}}]};c.researchChangesRender(el,d);assert.match(el.innerHTML,/criterion:before:pe_ttm/);assert.match(el.innerHTML,/criterion:after:pe_ttm/);assert.match(el.innerHTML,/<td>0<\/td><td>8<\/td>/);assert.doesNotMatch(el.innerHTML,/>999</);
 });

@@ -430,12 +430,14 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
       <details class="nav-more"><summary>More</summary><div>
         <button data-page="quotes">Quotes</button>
         <button data-page="groups">Groups</button>
+        <button data-page="shortlists">Shortlists</button>
         <button data-page="settings">Settings</button>
         <button data-page="info">Data &amp; Coverage</button>
       </div></details>
     </div>
     <div class="research-global" onkeydown="researchSearchKey(event)"><input id="research-global-search" aria-label="Search symbols, companies or screens" aria-expanded="false" aria-controls="research-global-results" placeholder="Search symbols, companies, screens…" autocomplete="off" oninput="researchSearchInput(this.value)" onfocus="if(this.value)researchSearchInput(this.value)"><div id="research-global-results" hidden></div></div>
     <div class="right">
+      <button class="btn ghost" id="research-account-button" onclick="researchAccountOpen()">Sign in</button>
       <span id="spend" class="faint mono" style="font-size:10.5px"></span>
       <span id="health" class="pill pd"><i></i>checking…</span>
     </div>
@@ -1422,6 +1424,7 @@ async function scrDeleteSaved(id) {
 }
 </script>
 <script src="/research-workspace.js"></script>
+<script src="/research-account.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -5099,6 +5102,7 @@ window.addEventListener("hashchange", () => {
   else if (r?.picker) openStockPicker();
   else if (/^#\/screener/.test(location.hash)) { scrRestoreFromHash(); showPage("home"); }
 });
+window.__researchAccountReady=researchAccountInit();
 { scrRestoreFromHash();
   const r0 = stkRoute();
   if (r0?.stock) openStock(r0.stock);

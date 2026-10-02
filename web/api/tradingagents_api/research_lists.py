@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from uuid import UUID
+from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 from tradingagents_worker.db import Db
@@ -103,6 +104,11 @@ def create(inp: ListIn, owner: ResearchOwner = Depends(require_research_owner)):
     return {'list': rows[0]}
 
 
+@router.get('/lists/{sid}')
+def get_list(sid: UUID, owner: ResearchOwner = Depends(require_research_owner)):
+    return {'list': _owned_list(sid, owner)}
+
+
 @router.patch('/lists/{sid}')
 def edit(sid: UUID, inp: ListEdit, owner: ResearchOwner = Depends(require_research_owner)):
     _owned_list(sid, owner)
@@ -118,15 +124,60 @@ def edit(sid: UUID, inp: ListEdit, owner: ResearchOwner = Depends(require_resear
 @router.get('/lists/{sid}/items')
 def items(sid: UUID, offset: int = Query(default=0, ge=0, le=40000),
           limit: int = Query(default=100, ge=1, le=500), include_removed: bool = False,
+          q: str = Query(default='', max_length=34, pattern=r'^[A-Za-z0-9._-]*$'),
+          review_status: Literal['all', 'unreviewed', 'in_review', 'reviewed'] = 'all',
+          after_code: str = '',
           owner: ResearchOwner = Depends(require_research_owner)):
     shortlist = _owned_list(sid, owner)
     query = {'list_id': f'eq.{sid}', 'owner_id': f'eq.{owner.id}', 'select': '*',
              'order': 'code.asc', 'limit': str(limit + 1), 'offset': str(offset)}
     if not include_removed:
         query['active'] = 'eq.true'
+    if review_status != 'all':
+        query['review_status'] = f'eq.{review_status}'
+    if q:
+        # Restricted alphabet prevents wildcard/operator injection. This searches
+        # canonical ticker identities, not incomplete company-name quote caches.
+        literal = q.upper().replace('_', r'\_')
+        query['code'] = f'ilike.*{literal}*'
+    if after_code:
+        try:
+            ItemIn(code=after_code)
+        except ValidationError:
+            raise HTTPException(422, 'Invalid canonical instrument code.') from None
+        # PostgREST AND supports a second predicate on code alongside ticker search.
+        query['and'] = f'(code.gt.{after_code})'
     rows = _call('GET', 'research_list_items', query=query) or []
-    return {'list': shortlist, 'items': rows[:limit], 'has_more': len(rows) > limit,
-            'offset': offset, 'limit': limit}
+    has_more = len(rows) > limit
+    rows = _with_quotes(rows[:limit])
+    return {'list': shortlist, 'items': rows, 'has_more': has_more,
+            'offset': offset, 'limit': limit, 'q': q, 'review_status': review_status}
+
+
+def _with_quotes(rows):
+    if not rows:
+        return rows
+    codes = ','.join(r['code'] for r in rows)
+    # Database code constraints and path validation make the in-list canonical.
+    quotes = _call('GET', 'screener_quotes', query={'code': f'in.({codes})',
+                   'select': 'code,row,updated_at', 'limit': str(len(rows))}) or []
+    lookup = {r['code']: r for r in quotes if isinstance(r.get('row'),dict) and r['row'].get('code')==r['code']}
+    return [{**r, 'quote': lookup.get(r['code'], {}).get('row'),
+             'quote_cache_at': lookup.get(r['code'], {}).get('updated_at')} for r in rows]
+
+
+@router.get('/lists/{sid}/items/{code}')
+def item(sid: UUID, code: str, owner: ResearchOwner = Depends(require_research_owner)):
+    try:
+        ItemIn(code=code)
+    except ValidationError:
+        raise HTTPException(422, 'Invalid canonical instrument code.') from None
+    _owned_list(sid, owner)
+    rows = _call('GET', 'research_list_items', query={'list_id': f'eq.{sid}',
+                'owner_id': f'eq.{owner.id}', 'code': f'eq.{code}', 'select': '*'}) or []
+    if not rows:
+        raise HTTPException(404, 'Stock review not found.')
+    return {'item': _with_quotes(rows)[0]}
 
 
 @router.post('/lists/{sid}/items')
