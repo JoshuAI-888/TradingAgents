@@ -1,5 +1,7 @@
 # Build-to-design review and remaining delivery plan
 
+**Latest R01 storage checkpoint:** [immutable generation publication contract](screener-generation-publication.md) passes native PostgreSQL lease/fencing/atomicity/replay/20,000-row tests and isolated Supabase advisors; 331 API/worker and 68 JavaScript regressions pass. The worker/API are not yet wired to generations, so runtime atomic publication, production migration and full release acceptance remain open.
+
 Reviewed 2 October 2026 against local commit `bab57b2`, the three original mockups and the original product proposal. This review supersedes the build-order/status summaries in the older comparison checkpoints; those remain historical evidence. The local implementation has not been merged or deployed by this review.
 
 ## Decision

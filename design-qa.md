@@ -129,4 +129,8 @@ The real cloud snapshot producer now records canonical field identity, finite va
 
 Strict identity/paging/classification validation and per-market/cohort success clocks now prevent missing or mismatched provider rows from earning a successful refresh. Settings distinguishes stored counts, last complete refresh and failure state; Save cadence's 422 request-model defect is fixed. The synthetic desktop and phone save flows retain prior success/failure state. Phone model-selector overflow was 627 px; after scoped sizing and loading the versioned stylesheet, document width is 390 px at a 390 × 844 viewport. Final desktop/phone screenshots were saved/opened; final warning/error log empty. 331 API/worker and 68 JavaScript tests pass. [Evidence and rollout/remaining gates](docs/universe-refresh-integrity.md) explicitly leave concurrent run fencing, atomic publication, actual provider-wide classification/coverage and live count reconciliation open. No production or release sign-off.
 
+## Generation storage reliability checkpoint
+
+The additive immutable generation/lease RPC migration passes twelve actual PostgreSQL contract groups, including observed two-session acquisition/publication races, post-insert rollback, expiry fencing and the 20,000-row bound. Official isolated Supabase security/performance advisors report no issues; 331 API/worker and 68 JavaScript regressions pass. [Storage evidence and runtime gates](docs/screener-generation-publication.md). No new UI/production evidence: worker/API generation wiring, retention/platform qualification and R01 runtime acceptance remain open alongside the full R02–R15 requirements.
+
 Final result: blocked

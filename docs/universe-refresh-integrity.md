@@ -1,5 +1,7 @@
 # Universe refresh integrity — 2 October 2026
 
+**Latest R01 storage checkpoint:** [immutable generation publication contract](screener-generation-publication.md) passes native PostgreSQL lease/fencing/atomicity/replay/20,000-row tests and isolated Supabase advisors; 331 API/worker and 68 JavaScript regressions pass. The worker/API are not yet wired to generations, so runtime atomic publication, production migration and full release acceptance remain open.
+
 This checkpoint strengthens the actual enumeration and quote producer. It is local development evidence, not a new deployment or proof of complete market coverage.
 
 ## Fixed behavior

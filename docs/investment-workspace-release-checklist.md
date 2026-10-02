@@ -1,5 +1,7 @@
 # Investment workspace release checklist
 
+**Latest R01 storage checkpoint:** [immutable generation publication contract](screener-generation-publication.md) passes native PostgreSQL lease/fencing/atomicity/replay/20,000-row tests and isolated Supabase advisors; 331 API/worker and 68 JavaScript regressions pass. The worker/API are not yet wired to generations, so runtime atomic publication, production migration and full release acceptance remain open.
+
 **Current authoritative review and build sequence:** [build-to-design gap register](investment-workspace-current-gap-plan.md), reviewed against `bab57b2` and fresh desktop captures of all three views. It distinguishes built foundations from missing workflow/data elements and defines R01–R15, six dependent build packets and preservation gates. Older status/build-order paragraphs below are dated evidence; this review supersedes them. No new merge/deployment or production qualification is claimed.
 
 **Latest refresh checkpoint:** [universe refresh integrity](universe-refresh-integrity.md) adds strict batch/paging/classification validation, market-specific success/failure clocks, cohort fingerprints and a working cadence save. 331 API/worker and 68 JavaScript tests pass; synthetic desktop/phone evidence verifies status/save and 390 px document fit. Atomic publication/concurrency, complete market coverage and live reconciliation remain open.
