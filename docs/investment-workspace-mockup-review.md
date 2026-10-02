@@ -1,5 +1,9 @@
 # Current build against the approved design
 
+**Latest plan recheck:** [2 October comparison and remaining build sequence](#plan-recheck-against-the-three-original-mockups). Earlier checkpoints below remain dated evidence; they are not cumulative release sign-off.
+
+Latest follow-through: [paired screen observations](paired-screen-observations.md). Stored-universe entrants/exits now retain both sides in locally verified v3 captures; exact criterion slots and persisted membership are validated. Real provenance producers/provider-wide coverage, private pair review, schedules and release qualification remain open. Fresh regression total: 272 API/worker and 67 JavaScript tests. The earlier uncommitted status in the plan-recheck section describes that review's point in time.
+
 Reviewed 2 October 2026. This is the latest design review of the local working tree on `codex/investment-team-release-evidence`, initially based on HEAD `92c7cd2`; follow-through checkpoints below cover committed `b7ffd7a` and the newer local retained-history build. Initial screenshots/findings are dated comparison evidence, not the current status of fixes documented below. It does not describe a newly deployed release. The private-research migration is still unapplied to production.
 
 ## Verdict and scope
@@ -151,3 +155,33 @@ At 390 × 844, scrollY 0, card Inspect/Review/Remove are 44 px tall and span y=7
 ![Retained phone edit and export actions](design-gap-audit/shortlist-search-checkpoint/03-phone-list-actions.jpg)
 
 Fresh regressions: **240 API/worker and 65 JavaScript tests pass**, including company punctuation/caret continuity, private download revocation and late-error suppression after account change. The additive company-search migration is unapplied to production. This advances package 1; real ownership/team roles, paired historical observations/review/schedules, richer provider coverage, complete original-feature/export verification, accessibility/performance and release qualification remain open.
+## Plan recheck against the three original mockups
+
+Reviewed again on 2 October 2026 against the original Research Desk, Factor Explorer and Change Monitor images and the product proposal. This recheck is of the local build, not production. HEAD is `f018fa7`; the working tree also contains uncommitted version-3 observation work. The running preview uses the earlier in-memory synthetic API, so the screenshots do **not** verify that new capture implementation.
+
+Fresh in-app-browser evidence was saved and opened for all three steps. CSS viewport: 2249 × 1168, scrollY 0. This differs from the illustrated 1487 × 1058 references, so the comparison concerns hierarchy, missing elements and workflow, not pixel fidelity. The preview contains 1,176 synthetic stocks and 24 ETFs; its recorded inspector chart does not reconcile to the synthetic stock price. None of these values qualifies market accuracy.
+
+| Step | Current health | Gap against the original design | Required build and acceptance |
+| --- | --- | --- | --- |
+| 1 — Research Desk → Inspect | Working library/table/inspector structure; Clear restores stocks excluding ETFs, market-cap descending. All 22 recommended screens remain visible. | Muted small secondary text; long brand; sparse company context; no row trend column. Full rule evidence, sector/industry and metric-specific provenance do not match the concept's depth. | Polish type/contrast and compact header using existing tokens. Add qualified company context and criterion-led evidence. Add optional lazy, batched row trends only after canonical identity, actual bar span and cache coverage are verified; no eager history call per market row. Preserve saved columns, declared preset sort and export scopes. |
+| 2 — Factor Explorer | Axes, scales, missing-data counts and linked table exist. Forward P/E and growth are explicitly disabled pending coverage. | No sector legend, cap-sized bubbles, peer rank panel or explicit region → editable saved criteria handoff. Constant fixture P/E collapses points onto a vertical line. | Qualify factor/sector/cap observations first; build size/sector encodings, cohort-labelled ranks, overlap disambiguation and an explicit Apply region as filters action. Numeric and keyboard paths must equal pointer membership and exported rows. Keep original coordinates; do not fabricate spread. |
+| 3 — Change Monitor | Contextual heading, capture pair, New/Exited/All, review evidence and CSV exist. First row is 491.4 CSS px; no document overflow in this viewport. | No row selection/bulk shortlist, pair-scoped review notes/status or Next unreviewed. Scheduled capture state is absent. Legacy entrant/exit evidence lacks the other side. | Finish trustworthy full-universe observations and provider provenance; then implement pair-scoped review persistence and bulk actions, followed by opt-in capture schedules with explicit failure/retry states. No threshold/cause claim from membership alone. |
+
+![1 — current desk](design-gap-audit/plan-recheck-20261002/01-desk.jpg)
+
+![2 — current factor exploration](design-gap-audit/plan-recheck-20261002/02-explorer.jpg)
+
+![3 — current change review](design-gap-audit/plan-recheck-20261002/03-changes.jpg)
+
+Cross-cutting gaps remain: private-owner lists are not shared investment-team ACLs; production migrations/Auth are unqualified; the full research toolbar needs narrower-width grouping; every research tab, financial subtab, KLine tool, Compare mode and return-state path needs a fresh preservation run. General shortlist review status must not be reused as capture-pair review status. Reload/deep-link restoration must include the shortlist route rather than silently returning to the public screener.
+
+### Revised build order
+
+1. **Preservation and presentation:** freeze the 22 presets and saved-definition hashes, retain Clear/toggle/sort/export contracts; improve readable hierarchy and company/evidence context; group existing research tools without removing functionality. Fix shortlist route restoration. Carry phone/tablet/zoom and keyboard checks through every increment.
+2. **Observation reliability:** finish version-3 storage/read validation, full eligible observations, repeated-criterion identity and real source/period/unit/currency/clock contracts. Qualify the actual producer and provider paging; legacy data stays explicitly limited. Current local implementation has passing synthetic API tests, not verified provider coverage.
+3. **Team and review workflow:** qualify owner Auth and additive migrations, implement team/member access and explicit legacy ownership mapping, then pair-specific notes/status, Next unreviewed and selected/bulk actions. Test conflicts, revocation, cross-owner leakage and revision-safe exports.
+4. **Explorer completion:** measure eligible-universe coverage; add only qualified advanced factors, sector/cap encodings and cohort ranks, then region-to-filter/save handoff and collision handling. Unsupported fields remain gated; do not substitute illustrative mockup values.
+5. **Capture automation:** opt-in schedules, bounded provider work, immutable retry identities, running/last-success/failure state and recovery that preserves prior successful captures.
+6. **Investment-team release:** fresh like-for-like Moomoo instrument/count reconciliation, downloaded-file reconciliation, full research/KLine/Compare preservation, real-device/network p95, accessibility and analyst task checks; then merge/deploy with migration/cutover/rollback and production smoke evidence.
+
+Each package requires working UI, qualified data, preservation checks and browser evidence before closure. The latest full local regression run passes **255 API/worker tests and 66 JavaScript tests**. The first Python invocation lacked the required PYTHONPATH and failed collection; the correctly configured full run passed. Neither these tests nor the three synthetic screenshots establish real financial accuracy, production readiness, full accessibility or p95 latency. No merge, deployment or production write occurred in this recheck.

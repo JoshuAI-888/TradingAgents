@@ -109,4 +109,16 @@ Verified-owner company search now filters the complete shortlist before paging, 
 
 Company search and these two layout states are locally qualified. Production Auth/PostgREST/migration, team roles, long-content/200%-zoom/assistive technology, large-list downloaded exports/performance, historical paired evidence/review/schedules, provider coverage/Moomoo reconciliation and full preservation/release remain open. No investment-ready, merge or deployment claim.
 
+## Original-mockup plan recheck
+
+Fresh desktop Desk/Inspect, Explore and Changes screenshots were saved/opened under `docs/design-gap-audit/plan-recheck-20261002` and compared with each original reference. Actual CSS viewport is 2249 × 1168; comparisons assess structure and missing workflow, not pixel fidelity. Clear visibly returns to All stocks excluding ETFs, market-cap descending. Changes first row is 491.4 CSS px at scrollY 0 with no document overflow. Explorer's constant synthetic P/E reveals overlapping points; no real distribution claim. The recorded inspector chart is not reconciled to the synthetic quote and cannot qualify identity or price accuracy.
+
+The revised [mockup review/build order](docs/investment-workspace-mockup-review.md#plan-recheck-against-the-three-original-mockups) adds explicit acceptance for company context/criterion provenance, optional batched row trends, sector/cap/peer exploration, region-to-saved-filter handoff, overlap handling, pair-scoped review/bulk actions, private route restoration and capture schedules. All original 22 presets and research/KLine/export gates remain required. Fresh local regressions: 255 API/worker and 66 JavaScript tests pass. Version-3 capture code is uncommitted and was not exercised by this preview; producer/storage/browser qualification remains open. No production changes or release sign-off.
+
+## Paired-observation follow-through
+
+Stored-universe v3 captures now retain nonmember observations and independent exact criterion slots, with per-quote identity/freshness and complete-value checks. Comparison revalidates stored contracts and recomputes qualifying membership before reporting changes. Numeric rule results require compatible actual source/period/unit/currency/time metadata; supplied values alone remain unverified. Legacy/provider member-only captures remain limited.
+
+Fresh synthetic browser entrants/exits show both dated values (12→8, 6→14 against ≤10), with explicit noncausal wording and source-time labels. At 390 × 844 the primary action ends at y=826 and Escape restores origin focus with no inert leftovers. Three screenshots were saved/opened under `docs/design-gap-audit/observation-checkpoint`. Actual CSV download reconciles all 108 unique union rows and each row's typed evidence; 1,176 eligible observations per side are distinguished from 107 members per capture. [Full contract/evidence/limits](docs/paired-screen-observations.md). Native PostgreSQL round-trip and existing immutable grant contracts pass; full suites pass 272 API/worker and 67 JavaScript tests. Actual field-evidence producers, provider-wide observations, team/pair review, schedules and production/accessibility/performance/full-preservation gates remain open. No investment-ready or deployment claim.
+
 Final result: blocked

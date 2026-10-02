@@ -1,5 +1,9 @@
 # Investment workspace release checklist
 
+**Latest acceptance scope:** [fresh original-mockup recheck and revised delivery order](investment-workspace-mockup-review.md#plan-recheck-against-the-three-original-mockups). Prior checked initial-release items below are historical preservation evidence, not sign-off for the full approved build. Current full local regressions: 255 API/worker and 66 JavaScript tests pass; current browser evidence is synthetic and covers only the three desktop views. Advanced data, team/pair review, schedules, full research preservation and production qualification remain open.
+
+Subsequent evidence: [stored-universe paired observations](paired-screen-observations.md), 272 API/worker and 67 JavaScript tests, native rollback-only v3 storage contract, desktop/phone inspection and an actual 108-row synthetic comparison download checked for every row. This advances historical evidence without closing the live-provider, ownership, scheduling or release gates.
+
 2 October 2026. This checklist separates completed verification from provider limitations. The [build plan](investment-workspace-build-plan.md) retains the full feature inventory and proposed follow-on coverage gates.
 
 The [fresh design-gap review](investment-workspace-design-gap-audit.md) separates this functional-release checklist from full design acceptance. The approved shell/inspector/Explorer/Change Monitor/mobile experience is not complete. Its packages A–F remain open; prior passing checks do not imply mockup fidelity, measured p95 or accessibility compliance.

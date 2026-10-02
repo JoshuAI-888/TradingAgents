@@ -1,8 +1,10 @@
 # TradingAgents: combined screener and research workflow
 
-**Latest execution plan:** [current build against the mockups](investment-workspace-mockup-review.md), reviewed against the working tree on 2 October. Its gap-to-build table supersedes earlier local status paragraphs below. Research account/list UI and compact criterion review are committed locally; immutable retained history is now implemented and tested locally. These changes remain unmerged, undeployed and unqualified against real Auth/production storage. All original preservation and data gates remain required.
+**Latest execution plan:** [fresh comparison against all three original mockups](investment-workspace-mockup-review.md#plan-recheck-against-the-three-original-mockups), reviewed on 2 October. Its revised build order supersedes earlier local status paragraphs below: preservation/presentation → observation reliability → team/pair review → qualified Explorer → capture automation → investment-team release. Research account/list UI, company search, compact criterion review and immutable retained history are committed locally. Version-3 eligible observations and repeated-criterion safeguards are uncommitted local work with passing synthetic tests; real producers and browser/storage qualification remain open. These changes are unmerged, undeployed and unqualified against real Auth/production storage. All original preservation and data gates remain required.
 
 Current build order and completion checklist:
+
+Latest D2 progress: [paired observation contract and evidence](paired-screen-observations.md). Stored-universe v3 capture and read validation, independent criterion slots, conservative assessments and full-union CSV are locally verified (272 API/worker, 67 JavaScript, native PostgreSQL round-trip, desktop/phone and downloaded 108-row synthetic export). Actual provenance producers and provider-wide observations remain missing; D2 remains open.
 
 - [ ] Finish shortlist workflow acceptance: dialogs, bounded inspector, phone cards/chooser, ticker/status/Next unreviewed and conflict recovery are implemented locally. Company search and measured phone/tablet layout now pass locally; complete 200% zoom/full keyboard coverage, real Auth and large-cohort browser export qualification. A downloaded one-item synthetic shortlist CSV was parsed and reconciled.
 - [ ] Qualify authentication/private storage; implement team roles and explicit legacy ownership migration without losing saved definitions.
@@ -10,6 +12,8 @@ Current build order and completion checklist:
 - [ ] Qualify immutable retained history in production: append-only storage, retries and paged date selection are implemented locally. Complete verified capture ownership, paired observations, opt-in schedules, large-history performance and recovery qualification. See [retained-history contract](durable-screen-history.md).
 - [ ] Qualify provider coverage; add sector/cap/peer context and supported advanced axes with explicit eligibility.
 - [ ] Finish desk typography/icons and research toolbar grouping; verify every original preset, chart/tab/Compare feature and export scope.
+- [ ] Complete original visual elements: qualified company sector/industry/website and criterion evidence, optional batched row trends, Explorer sector legend/cap bubbles/peer ranks, explicit region-to-filter/save workflow and overlap disambiguation. Verify each field's identity/period/source/currency before presentation; do not copy the mockups' sample values or vendor labels.
+- [ ] Restore private shortlist route/context through reload/deep links and full research return; do not let an old public Changes hash reopen instead.
 - [ ] Complete dated Moomoo reconciliation, real-device performance/accessibility and analyst tasks; merge/deploy and verify production with rollback.
 
 Fresh regression checks: 240 API/worker tests and 65 JavaScript tests pass; isolated PostgreSQL revision/locking and immutable capture/concurrent append contracts pass. Browser evidence is synthetic; passing tests do not close the checklist above.

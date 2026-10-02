@@ -27,6 +27,7 @@ from tradingagents_worker.config import SETTINGS
 from tradingagents_worker.db import Db
 from tradingagents_worker.runner import demangle_debate
 from tradingagents_worker.screener_rows import snapshot_to_row as _snapshot_to_row
+from .screen_observations import capture_observation, paired_evidence, criterion_slots, numeric, validate_observation_capture
 
 _AS_OF_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
@@ -587,6 +588,8 @@ def _apply_filters(rows: list[dict], filters: list[dict], strict: bool = True) -
                 v = float(v)
             except (TypeError, ValueError):
                 return False
+            if not math.isfinite(v):
+                return False
             if lo is not None and (v < float(lo) or (f.get("excl_min") and v == float(lo))):
                 return False
             if hi is not None and (v > float(hi) or (f.get("excl_max") and v == float(hi))):
@@ -635,8 +638,10 @@ def _stored_universe(market: str, max_age: float = 60.0):
     hit = _stored_universe_cache.get(market)
     if hit and now - hit[0] < max_age:
         return hit[1], hit[2]
-    stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "row,updated_at")
-    rows = [dict(r["row"]) for r in stored if isinstance(r.get("row"), dict)]
+    stored = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "code,row,updated_at")
+    rows = [{**r['row'], 'quote_cache_at':r.get('updated_at'),
+             'quote_identity_status':'verified' if r.get('code') == r['row'].get('code') and r.get('code') else 'unverified'}
+            for r in stored if isinstance(r.get("row"), dict)]
     for row in rows:
         code = row.get("code") or ""
         if code.startswith(f"{market}."):
@@ -1459,6 +1464,13 @@ def _snapshot_key(definition: ScreenDefinition) -> str:
     return "screen_history:" + owner + ":" + digest
 
 
+def _capture_criteria(inp: ScreenDefinition) -> ScreenDefinition:
+    if not inp.preset:
+        return inp
+    original = next(p['filters'] for p in PRESET_SCREENERS if p['key'] == inp.preset)
+    return inp.model_copy(update={'filters':original+[c for c in inp.filters if c not in original]})
+
+
 def _legacy_snapshot_history(key: str) -> list[dict]:
     try:
         rows = db.select("app_settings", {"key": f"eq.{key}"}, "value")
@@ -1513,6 +1525,8 @@ def capture_screen_snapshot(inp: ScreenDefinition,
         existing = _snapshot_get(key, str(request_id))
         if existing:
             return _capture_reply(key, existing, True)
+    inp = _capture_criteria(inp)
+    observations = None
     if inp.preset:
         result = screener_execute(inp.preset, inp.market, 300)
         combined = list(result.get("rows") or [])
@@ -1541,12 +1555,42 @@ def capture_screen_snapshot(inp: ScreenDefinition,
         source_at = result.get("retrieved_at")
     else:
         result = screener(market=inp.market, watchlist_only=int(inp.watchlist_only),
-                          filters=json.dumps(inp.filters), sort="market_cap", direction=2,
+                          filters=json.dumps([{'field':'stock_type','values':['STOCK','ETF'] if inp.etfs else ['STOCK']}]), sort="market_cap", direction=2,
                           limit=20000, offset=0, src=inp.src)
         if (not result.get("available") or not result.get("universe_loaded")
                 or result.get("skipped_filters") or result.get("unclassified_count", 0) or result.get("matched", 0) > len(result.get("rows") or [])):
             raise HTTPException(409, "Stored universe is unavailable, incomplete or lacks criterion data; no snapshot captured")
-        rows = result.get("rows") or []
+        eligible = result.get("rows") or []
+        eligible = [r for r in eligible if inp.etfs or r.get('stock_type') == 'STOCK']
+        eligible_codes = [r.get('code') for r in eligible]
+        if any(not isinstance(c,str) or not re.fullmatch(r'(US|HK)\.[A-Z0-9][A-Z0-9._-]{0,30}',c) or not c.startswith(inp.market+'.') for c in eligible_codes) or len(eligible_codes) != len(set(eligible_codes)):
+            raise HTTPException(409, 'Eligible quote identities are incomplete or duplicated; no snapshot captured')
+        if any(r.get('quote_identity_status') != 'verified' for r in eligible):
+            raise HTTPException(409, 'Stored quote identities are unverified; no snapshot captured')
+        for r in eligible:
+            try:
+                stamp = datetime.fromisoformat(str(r.get('quote_cache_at')).replace('Z','+00:00'))
+                age = (datetime.now(timezone.utc)-stamp).total_seconds()
+                if stamp.tzinfo is None or not -300 <= age <= 86400:
+                    raise ValueError('invalid cache time')
+            except (TypeError, ValueError):
+                raise HTTPException(409, 'An eligible quote cache is stale or has no valid timestamp; no snapshot captured') from None
+        try:
+            observations = [capture_observation(r,inp.filters) for r in eligible]
+        except ValueError:
+            raise HTTPException(409, 'Stored field values conflict with criterion observations; no snapshot captured') from None
+        rows = []
+        for raw, observation in zip(eligible,observations):
+            qualifies = True
+            for slot, criterion in criterion_slots(inp.filters):
+                value = observation['criterion_observations'][slot]['value']
+                if value is None or (criterion.get('values') is None and not numeric(value) and not (
+                    type(value) is bool and all(bound in (None,0,1) for bound in (criterion.get('min'),criterion.get('max'))))):
+                    raise HTTPException(409, 'Eligible-universe criterion observations are incomplete or ambiguous; no snapshot captured')
+                matches, missing = _apply_filters([{criterion.get('field'):value}],[criterion])
+                qualifies = qualifies and bool(matches) and not missing
+            if qualifies:
+                rows.append(raw)
         source_at = result.get("universe_as_of")
     if not inp.etfs:
         rows = [r for r in rows if r.get("stock_type") == "STOCK"]
@@ -1564,7 +1608,7 @@ def capture_screen_snapshot(inp: ScreenDefinition,
         raise HTTPException(409, "Source timestamp is invalid or lacks a timezone; no snapshot captured")
     if source_age > 86400 or source_age < -300:
         raise HTTPException(409, "Source time is older than 24 hours or in the future; refresh before capturing changes")
-    snapshot = {"id": str(request_id or uuid.uuid4()), "version": 2,
+    snapshot = {"id": str(request_id or uuid.uuid4()), "version": 3 if observations is not None else 2,
                 "at": datetime.now(timezone.utc).isoformat(), "source_at": source_at,
                 "source_clock": "provider_retrieval" if inp.preset else "stored_universe",
                 "definition": inp.model_dump(),
@@ -1574,6 +1618,16 @@ def capture_screen_snapshot(inp: ScreenDefinition,
                                           if inp.preset else r.get(f.get("field"))
                                           for f in inp.filters}}
                             for r in rows], "complete": True}
+    if observations is not None:
+        selected = {r['code'] for r in rows}
+        snapshot['observations'] = observations
+        snapshot['members'] = [r for r in observations if r['code'] in selected]
+        snapshot['observation_scope'] = 'eligible_stored_universe'
+        snapshot['eligible_count'] = len(observations)
+        try:
+            validate_observation_capture(snapshot,inp.model_dump())
+        except (KeyError,TypeError,ValueError):
+            raise HTTPException(409, 'Eligible observation contract is invalid or inconsistent; no snapshot captured') from None
     legacy = _legacy_snapshot_history(key)
     records = [{"id": _snapshot_id(s), "snapshot": s} for s in legacy] + [{"id": snapshot["id"], "snapshot": snapshot}]
     try:
@@ -1621,8 +1675,9 @@ def _change_evidence(before: dict | None, after: dict | None, inp: ScreenDefinit
     evidence = []
     for criterion in inp.filters:
         field = criterion.get("field")
-        prior = (before or {}).get("evidence", {}).get(field)
-        current = (after or {}).get("evidence", {}).get(field)
+        unique = sum(c.get('field') == field for c in inp.filters) == 1
+        prior = (before or {}).get("evidence", {}).get(field) if unique else None
+        current = (after or {}).get("evidence", {}).get(field) if unique else None
         period = (str(criterion["days"]) + "-day window") if criterion.get("days") else (
             "TTM" if field == "pe_ttm" else "Annual provider financial criterion" if inp.preset and
             field in ("revenue_growth", "net_profit_growth", "roe", "roe_yoy", "debt_ratio", "eps_growth") else "Period not supplied")
@@ -1645,13 +1700,15 @@ def screen_changes(definition: str, previous_id: str | None = None, current_id: 
         inp = ScreenDefinition.model_validate_json(definition)
     except ValueError:
         raise HTTPException(400, "Invalid screen definition")
+    key = _snapshot_key(inp)
+    inp = _capture_criteria(inp)
     criterion_sort = re.fullmatch(r"criterion:(before|after):([a-z][a-z0-9_]{0,63})", sort)
-    numeric_criteria = {c.get("field") for c in inp.filters
-                        if c.get("values") is None and (c.get("min") is not None or c.get("max") is not None)}
+    numeric_criteria = {key:c for key,c in criterion_slots(inp.filters)
+                        if c.get('values') is None and (c.get('min') is not None or c.get('max') is not None)}
+    numeric_criteria.update({c['field']:c for c in list(numeric_criteria.values()) if sum(f.get('field')==c['field'] for f in inp.filters)==1})
     if sort not in ("symbol", "name", "status", "market_cap") and (
             not criterion_sort or criterion_sort.group(2) not in numeric_criteria):
         raise HTTPException(400, "Choose a captured numeric criterion to sort")
-    key = _snapshot_key(inp)
     history = _snapshot_history(key)
     metadata, history_more = _snapshot_metadata_page(key, 100, history_offset)
     # Preserve injected/offline and unimported legacy history metadata.
@@ -1692,11 +1749,28 @@ def screen_changes(definition: str, previous_id: str | None = None, current_id: 
             return {"comparable": False, **history_meta, "reason": "Snapshot identities are duplicated; no changes inferred."}
     a = {r["code"]: r for r in previous["members"]}
     b = {r["code"]: r for r in current["members"]}
+    observed = []
+    if previous.get('version') == 3:
+        for snapshot in (previous,current):
+            try:
+                lookup = validate_observation_capture(snapshot,inp.model_dump())
+            except (KeyError,TypeError,ValueError):
+                return {'comparable':False, **history_meta, 'reason':'Eligible observation contract is invalid or inconsistent; no changes inferred.'}
+            if any(lookup.get(r['code']) != r for r in snapshot['members']):
+                return {'comparable':False, **history_meta, 'reason':'Member evidence differs from captured universe observations; no changes inferred.'}
+            qualifying = set()
+            for code,record in lookup.items():
+                if all(_apply_filters([{c['field']:record['criterion_observations'][slot]['value']}],[c])[0]
+                       for slot,c in criterion_slots(inp.filters)):
+                    qualifying.add(code)
+            if qualifying != {r['code'] for r in snapshot['members']}:
+                return {'comparable':False, **history_meta, 'reason':'Captured membership disagrees with criterion observations; no changes inferred.'}
+            observed.append(lookup)
     changes = []
     for code in sorted(a.keys() | b.keys()):
-        before, after = a.get(code), b.get(code)
-        member_status = "new" if before is None else "exited" if after is None else "unchanged"
-        member = after or before
+        member_status = "new" if code not in a else "exited" if code not in b else "unchanged"
+        before, after = (observed[0].get(code),observed[1].get(code)) if observed else (a.get(code),b.get(code))
+        member = b.get(code) or a.get(code)
         changes.append({"code": code, "symbol": member.get("symbol"), "name": member.get("name"),
                         "status": member_status, "previous": before, "current": after,
                         "reason": "Membership retained" if member_status == "unchanged" else
@@ -1707,9 +1781,13 @@ def screen_changes(definition: str, previous_id: str | None = None, current_id: 
                 (not needle or needle in str(r.get("symbol") or "").casefold() or needle in str(r.get("name") or "").casefold())]
     def sort_value(row):
         if criterion_sort:
-            side, field = criterion_sort.groups()
+            side, identifier = criterion_sort.groups()
+            criterion = numeric_criteria[identifier]
+            field = criterion['field']
             observation = row.get("previous" if side == "before" else "current") or {}
-            value = (observation.get("evidence") or {}).get(field)
+            key = identifier if identifier.startswith('c') and identifier in dict(criterion_slots(inp.filters)) else next(key for key,c in criterion_slots(inp.filters) if c == criterion)
+            value = (observation.get('criterion_observations',{}).get(key) or {}).get('value') if observed else (
+                (observation.get('evidence') or {}).get(field) if sum(c.get('field')==field for c in inp.filters)==1 else None)
             return float(value) if type(value) in (int, float) and math.isfinite(value) else None
         if sort == "market_cap":
             value = ((row.get("current") or row.get("previous") or {}).get("metrics") or {}).get("market_cap")
@@ -1720,8 +1798,11 @@ def screen_changes(definition: str, previous_id: str | None = None, current_id: 
     known.sort(key=lambda r: (sort_value(r), r["code"]), reverse=direction == 2)
     selected = (known + missing)[offset:offset + limit]
     for row in selected:
-        row["evidence"] = _change_evidence(row["previous"], row["current"], inp)
+        row["evidence"] = paired_evidence(row['previous'],row['current'],inp.filters,times) if observed else _change_evidence(row["previous"], row["current"], inp)
+        if row['status'] != 'unchanged' and any(e.get('status') == 'comparable' for e in row['evidence']):
+            row['reason'] = 'Membership changed; comparable captured rule results are available. This does not establish a sole cause.'
     return {"comparable": True, **history_meta,
+            'observation_coverage':{'previous':len(observed[0]),'current':len(observed[1]),'scope':'eligible_stored_universe'} if observed else {'scope':'legacy_member_only'},
             "previous_id": _snapshot_id(previous), "current_id": _snapshot_id(current),
             "previous_at": previous["at"], "current_at": current["at"],
             "previous_source_at": previous.get("source_at"), "current_source_at": current.get("source_at"),

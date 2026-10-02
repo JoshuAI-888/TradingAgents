@@ -277,6 +277,13 @@ test('comparison CSV carries immutable pair IDs, times, definition and unavailab
  const csv=c.researchChangesCSV(d,[{code:'US.BRK.B',symbol:'BRK.B',name:'Berkshire, Inc.',status:'exited',reason:'numeric cause unavailable',previous:{metrics:{price:4}},current:null,evidence:[{field:'price',previous:4,current:null,status:'unavailable_pair'}]}]);
  assert.match(csv,/^\ufeffdefinition_json,previous_id,current_id/);assert.match(csv,/,a,b,2026-10-01,2026-10-02,one,two,US.BRK.B,BRK.B,"Berkshire, Inc."/);assert.match(csv,/unavailable_pair/);assert.match(csv,/filters/);
 });
+test('comparison CSV preserves eligible coverage and both typed observations',()=>{
+ const c=harness(),criterion={field:'price',max:10},before={criterion,value:12,unit:'currency',currency:'USD',clock:'quote_source',source:'synthetic_fixture',period:'point_in_time',observed_at:'2026-10-01T00:00:00Z'},after={...before,value:8,observed_at:'2026-10-02T00:00:00Z'};
+ const d={definition:{filters:[criterion]},previous_id:'before',current_id:'after',observation_coverage:{scope:'eligible_stored_universe',previous:1176,current:1176}};
+ const csv=c.researchChangesCSV(d,[{code:'US.A',evidence:[{criterion_key:'c0',criterion,previous:12,current:8,previous_observation:before,current_observation:after,status:'comparable',assessment:'rule_entered'}]}]);
+ assert.match(csv,/observation_scope,previous_eligible_observations,current_eligible_observations/);
+ assert.match(csv,/eligible_stored_universe,1176,1176/);assert.match(csv,/previous_observation/);assert.match(csv,/rule_entered/);assert.match(csv,/quote_source/);
+});
 test('a late change-review response cannot replace a newer cohort',async()=>{
  const c=harness();const el={innerHTML:''};c.document.getElementById=id=>id==='research-change-results'?el:null;const pending=[];c.api=()=>new Promise(resolve=>pending.push(resolve));c.researchChangesRender=(_el,d)=>_el.innerHTML=d.tag;
  const old=c.researchLoadChanges();c.researchChangeState().status='exited';const latest=c.researchLoadChanges();pending[1]({tag:'exited'});await latest;pending[0]({tag:'new'});await old;assert.equal(el.innerHTML,'exited');
@@ -410,4 +417,11 @@ test('prepared private download URLs are revoked when the research account clear
 });
 test('late export errors cannot surface private activity after an account change',async()=>{
  const c=harness();c.researchSessionSet(privateSession());c.__researchListID='list';let reject,writes=[];const status={isConnected:true,set textContent(v){writes.push(v);}};c.document.getElementById=id=>id==='research-list-status'?status:null;c.researchPrivateAPI=()=>new Promise((_,r)=>reject=r);const pending=c.researchListExport();c.researchPrivateClear();reject(Error('Old owner private list failure'));await pending;assert.deepEqual(writes,['Preparing full shortlist CSV…']);
+});
+
+test('repeated criterion windows retain independent columns, sorts and evidence rows',()=>{
+ const c=harness(),definition={filters:[{field:'volume',days:30,min:0},{field:'volume',days:60,min:0}]};const criteria=c.researchChangeCriteria(definition);assert.equal(criteria.length,2);assert.equal(criteria[0].sort_key,'c0');assert.equal(criteria[1].sort_key,'c1');
+ const row={evidence:{volume:999},criterion_observations:{c0:{value:10},c1:{value:100}}};assert.equal(c.researchCapturedCriterion(row,criteria[0]),10);assert.equal(c.researchCapturedCriterion(row,criteria[1]),100);assert.equal(c.researchCapturedCriterion({evidence:{volume:999}},criteria[0]),undefined);
+ const html=c.researchCriterionMatrix(definition.filters,[{criterion_key:'c0',field:'volume',previous:10,current:20,period:'30-day average',status:'comparable',assessment:'rule_retained'},{criterion_key:'c1',field:'volume',previous:100,current:200,period:'60-day average',status:'unavailable_pair'}],true);
+ assert.match(html,/30-day average/);assert.match(html,/60-day average/);assert.match(html,/100/);assert.match(html,/200/);assert.match(html,/Comparable observations/);assert.match(html,/comparability unverified/);
 });

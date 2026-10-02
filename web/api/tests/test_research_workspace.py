@@ -59,10 +59,13 @@ def test_nested_provider_results_are_scaled_and_unclassified_rows_hydrated(monke
     assert row['criterion_values']['revenue_growth']==43.96
     assert row['revenue_growth']==43.96
 
+def observed_rows(rows, stamp):
+    return [{**r, 'quote_cache_at':stamp, 'quote_identity_status':'verified'} for r in rows]
+
 def test_changes_require_complete_compatible_snapshots(monkeypatch):
     now=datetime.now(timezone.utc).isoformat()
     members=[{'code':'US.A','symbol':'A','name':'Alpha','price':10,'stock_type':'STOCK'}]
-    def result(**kw):return {'available':True,'universe_loaded':True,'universe_as_of':now,'rows':members.copy(),'matched':len(members)}
+    def result(**kw):return {'available':True,'universe_loaded':True,'universe_as_of':now,'rows':observed_rows(members,now),'matched':len(members)}
     monkeypatch.setattr(api,'screener',result)
     spec=api.ScreenDefinition()
     assert not api.screen_changes(spec.model_dump_json())['comparable']
@@ -159,7 +162,7 @@ def test_snapshot_rejects_invalid_naive_and_future_source_without_writing(monkey
 
 def test_change_pair_ids_history_and_unavailable_exit_evidence(monkeypatch):
     now=datetime.now(timezone.utc).isoformat();members=[{'code':'US.A','symbol':'A','stock_type':'STOCK','price':3}]
-    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':members.copy(),'matched':len(members)})
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':observed_rows(members,now),'matched':len(members)})
     spec=api.ScreenDefinition(filters=[{'field':'price','max':5}]);first=api.capture_screen_snapshot(spec)
     members[:]=[{'code':'US.B','symbol':'B','stock_type':'STOCK','price':4}];second=api.capture_screen_snapshot(spec)
     assert first['id']!=second['id'];history=api.screen_snapshot_history(spec.model_dump_json());assert len(history['snapshots'])==2
@@ -173,7 +176,7 @@ def test_change_pair_ids_history_and_unavailable_exit_evidence(monkeypatch):
 
 def test_snapshot_stock_only_scope_excludes_etfs_and_unknown_types(monkeypatch):
     now=datetime.now(timezone.utc).isoformat();rows=[{'code':'US.A','stock_type':'STOCK'},{'code':'US.B','stock_type':'ETF'},{'code':'US.C'}]
-    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':rows,'matched':3})
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':observed_rows(rows[:2],now),'matched':2})
     assert api.capture_screen_snapshot(api.ScreenDefinition())['members']==1
 
 def test_review_pages_search_and_sorts_missing_caps_last_in_both_directions(monkeypatch):
@@ -226,7 +229,7 @@ def test_immutable_history_retains_legacy_and_every_new_capture(monkeypatch):
     legacy={'id':'legacy-record','version':1,'at':'2026-09-30T00:00:00Z','complete':True,'members':[{'code':'US.LEGACY'}]}
     key=api._snapshot_key(spec);api.db._t('app_settings').append({'key':key,'value':{'snapshots':[legacy]}})
     old=copy.deepcopy(api.db._t('app_settings'))
-    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':[{'code':'US.A','symbol':'A','stock_type':'STOCK','price':1}],'matched':1})
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':observed_rows([{'code':'US.A','symbol':'A','stock_type':'STOCK','price':1}],now),'matched':1})
     ids=[api.capture_screen_snapshot(spec)['id'] for _ in range(5)]
     assert api.db._t('app_settings')==old
     timeline=api.screen_snapshot_history(spec.model_dump_json(),limit=2)
@@ -249,7 +252,7 @@ def test_immutable_history_retains_legacy_and_every_new_capture(monkeypatch):
 def test_capture_request_is_idempotent_after_a_lost_response(monkeypatch, failure):
     import uuid
     now=datetime.now(timezone.utc).isoformat();spec=api.ScreenDefinition();request=uuid.uuid4()
-    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':[{'code':'US.A','stock_type':'STOCK'}],'matched':1})
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':observed_rows([{'code':'US.A','stock_type':'STOCK'}],now),'matched':1})
     rpc=api.db._call
     def lost(*args,**kwargs):
         rpc(*args,**kwargs);raise failure
@@ -295,7 +298,7 @@ def test_capture_http_idempotency_header_and_metadata_contract(monkeypatch):
     now=datetime.now(timezone.utc).isoformat();calls=[];spec=api.ScreenDefinition()
     def provider(**kwargs):
         calls.append(kwargs)
-        return {'available':True,'universe_loaded':True,'universe_as_of':now,'rows':[{'code':'US.A','stock_type':'STOCK'}],'matched':1}
+        return {'available':True,'universe_loaded':True,'universe_as_of':now,'rows':observed_rows([{'code':'US.A','stock_type':'STOCK'}],now),'matched':1}
     monkeypatch.setattr(api,'screener',provider)
     client=TestClient(api.app);request=str(uuid.uuid4())
     first=client.post('/api/screener/snapshots',json=spec.model_dump(),headers={'Idempotency-Key':request,'X-User-ID':'untrusted-owner'})
@@ -308,3 +311,104 @@ def test_capture_http_idempotency_header_and_metadata_contract(monkeypatch):
     assert 'snapshot' not in history['snapshots'][0]
     assert client.post('/api/screener/snapshots',json=spec.model_dump(),headers={'Idempotency-Key':'bad'}).status_code==422
     assert len(calls)==1
+
+
+def test_full_eligible_observations_retain_both_sides_of_entries_and_exits(monkeypatch):
+    from datetime import timedelta
+    criterion={'field':'price','max':5};spec=api.ScreenDefinition(filters=[criterion]);now=datetime.now(timezone.utc)
+    rows=[]
+    def source(**kw):return {'available':True,'universe_loaded':True,'universe_as_of':now.isoformat(),'matched':len(rows),'rows':observed_rows(rows,now.isoformat())}
+    monkeypatch.setattr(api,'screener',source)
+    def observation(code,value,hours):
+        return {'code':code,'symbol':code[3:],'stock_type':'STOCK','price':value,'field_evidence':{'price':{'criterion':criterion,'value':value,'source':'moomoo_snapshot','period':'point_in_time','unit':'currency','currency':'USD','clock':'quote_source','observed_at':(now-timedelta(hours=hours)).isoformat()}}}
+    rows[:]=[observation('US.A',6,2),observation('US.B',3,2)];before=api.capture_screen_snapshot(spec)
+    rows[:]=[observation('US.A',4,1),observation('US.B',7,1)];after=api.capture_screen_snapshot(spec)
+    captures=[r['snapshot'] for r in api.db._t('screen_captures')]
+    assert all(s['version']==3 and s['eligible_count']==2 and len(s['observations'])==2 and len(s['members'])==1 for s in captures)
+    result=api.screen_changes(spec.model_dump_json(),previous_id=before['id'],current_id=after['id'])
+    by_code={r['code']:r for r in result['rows']}
+    assert by_code['US.A']['status']=='new' and by_code['US.B']['status']=='exited'
+    assert by_code['US.A']['evidence'][0]['assessment']=='rule_entered'
+    assert by_code['US.B']['evidence'][0]['assessment']=='rule_exited'
+    assert by_code['US.A']['previous']['evidence']['price']==6 and by_code['US.B']['current']['evidence']['price']==7
+    assert result['counts']=={'new':1,'exited':1,'all':2,'unchanged':0}
+    assert 'sole cause' in by_code['US.A']['reason']
+
+
+@pytest.mark.parametrize('bad', ['stale','missing_clock','missing_criterion','duplicate','conflicting'])
+def test_incomplete_nonmember_observations_cannot_produce_a_capture(monkeypatch,bad):
+    now=datetime.now(timezone.utc).isoformat();criterion={'field':'price','max':5};spec=api.ScreenDefinition(filters=[criterion])
+    rows=observed_rows([{'code':'US.A','stock_type':'STOCK','price':4},{'code':'US.B','stock_type':'STOCK','price':10}],now)
+    if bad=='stale':rows[1]['quote_cache_at']='2020-01-01T00:00:00Z'
+    if bad=='missing_clock':rows[1]['quote_cache_at']=None
+    if bad=='missing_criterion':rows[1]['price']=None
+    if bad=='duplicate':rows[1]['code']='US.A'
+    if bad=='conflicting':rows[1]['field_evidence']={'price':{'criterion':criterion,'value':1}}
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'matched':2,'rows':rows})
+    with pytest.raises(HTTPException) as e:api.capture_screen_snapshot(spec)
+    assert e.value.status_code==409 and not api.db._t('screen_captures')
+
+
+def test_distinct_windows_keep_independent_observations_and_sort_slots(monkeypatch):
+    now=datetime.now(timezone.utc).isoformat();criteria=[{'field':'volume','days':30,'min':0},{'field':'volume','days':60,'min':0}]
+    spec=api.ScreenDefinition(filters=criteria)
+    def row(code,a,b):return {'code':code,'stock_type':'STOCK','volume':999,'field_evidence':{f'c{i}':{'criterion':c,'value':v,'period':f'{c["days"]}-day average'} for i,(c,v) in enumerate(zip(criteria,[a,b]))}}
+    rows=observed_rows([row('US.A',1,100),row('US.B',100,1)],now)
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'matched':2,'rows':rows})
+    api.capture_screen_snapshot(spec);api.capture_screen_snapshot(spec)
+    for identifier,code in [('c0','US.A'),('c1','US.B')]:
+        d=api.screen_changes(spec.model_dump_json(),sort='criterion:before:'+identifier)
+        assert d['rows'][0]['code']==code
+        assert d['rows'][0]['evidence'][0]['criterion_key']=='c0' and d['rows'][0]['evidence'][1]['criterion_key']=='c1'
+    with pytest.raises(HTTPException):api.screen_changes(spec.model_dump_json(),sort='criterion:before:volume')
+    for r in rows:r.pop('field_evidence')
+    with pytest.raises(HTTPException):api.capture_screen_snapshot(spec)
+
+
+@pytest.mark.parametrize('mutation', ['currency','period','source','unit','clock','missing_stamp','future_stamp','same_stamp'])
+def test_numeric_rule_assessment_requires_compatible_actual_observation_contract(mutation):
+    from tradingagents_api.screen_observations import capture_observation,paired_evidence
+    from datetime import timedelta
+    now=datetime.now(timezone.utc);criterion={'field':'price','max':5}
+    def row(value,stamp):return capture_observation({'code':'US.A','price':value,'field_evidence':{'price':{'criterion':criterion,'value':value,'period':'point_in_time','source':'moomoo_snapshot','unit':'currency','currency':'USD','clock':'quote_source','observed_at':stamp}}},[criterion])
+    a=row(6,(now-timedelta(hours=2)).isoformat());b=row(4,(now-timedelta(hours=1)).isoformat());o=b['criterion_observations']['c0']
+    if mutation in ('currency','period','source','unit'):o[mutation]='different'
+    if mutation=='clock':o['clock']='cache_update'
+    if mutation=='missing_stamp':o['observed_at']=None
+    if mutation=='future_stamp':o['observed_at']=(now+timedelta(days=1)).isoformat()
+    if mutation=='same_stamp':o['observed_at']=a['criterion_observations']['c0']['observed_at']
+    evidence=paired_evidence(a,b,[criterion],[now,now])[0]
+    assert evidence['status']=='unavailable_pair' and evidence['assessment'] is None
+
+
+@pytest.mark.parametrize('mutation', ['definition','count_bool','wrong_market','unknown_type','missing_cache',
+    'stale_cache','missing_slot','extra_slot','wrong_criterion','nonfinite','flat_mismatch','cache_mismatch',
+    'observations_not_list','slots_not_object','member_changed','member_missing','nonmember_added'])
+def test_persisted_observation_contract_is_revalidated_before_membership_claims(monkeypatch,mutation):
+    import copy
+    now=datetime.now(timezone.utc).isoformat();spec=api.ScreenDefinition(filters=[{'field':'price','max':5}])
+    rows=observed_rows([{'code':'US.A','stock_type':'STOCK','price':4},{'code':'US.B','stock_type':'STOCK','price':10}],now)
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'matched':2,'rows':rows})
+    api.capture_screen_snapshot(spec);api.capture_screen_snapshot(spec)
+    pair=copy.deepcopy([r['snapshot'] for r in api.db._t('screen_captures')]);snapshot=pair[1];record=snapshot['observations'][1]
+    if mutation=='definition':snapshot['definition']['filters'][0]['max']=20
+    if mutation=='count_bool':snapshot['eligible_count']=True
+    if mutation=='wrong_market':record['code']='HK.B'
+    if mutation=='unknown_type':record['instrument_type']='UNKNOWN'
+    if mutation=='missing_cache':record['quote_cache_at']=None
+    if mutation=='stale_cache':record['quote_cache_at']='2020-01-01T00:00:00Z'
+    if mutation=='missing_slot':record['criterion_observations'].pop('c0')
+    if mutation=='extra_slot':record['criterion_observations']['c1']={}
+    if mutation=='wrong_criterion':record['criterion_observations']['c0']['criterion']={'field':'price','max':20}
+    if mutation=='nonfinite':record['criterion_observations']['c0']['value']=float('inf')
+    if mutation=='flat_mismatch':record['evidence']['price']=0
+    if mutation=='cache_mismatch':record['criterion_observations']['c0']['cache_at']='2020-01-01T00:00:00Z'
+    if mutation=='observations_not_list':snapshot['observations']={}
+    if mutation=='slots_not_object':record['criterion_observations']=[]
+    if mutation=='member_changed':snapshot['members'][0]=copy.deepcopy(snapshot['members'][0]);snapshot['members'][0]['metrics']['price']=999
+    if mutation=='member_missing':snapshot['members']=[]
+    if mutation=='nonmember_added':snapshot['members'].append(record)
+    monkeypatch.setattr(api,'_snapshot_history',lambda key:pair)
+    result=api.screen_changes(spec.model_dump_json())
+    assert result['comparable'] is False and 'no changes inferred' in result['reason']
+    assert 'rows' not in result and 'counts' not in result

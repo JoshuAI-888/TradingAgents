@@ -106,6 +106,34 @@ if os.getenv('RESEARCH_HISTORY_PAGING') == '1':
         api.db._call('POST','rpc/screen_capture_append',body={'p_key':capture_key,'p_records':paging_records[offset:offset+100]})
 
 api.db._t('saved_screeners').append({'id':'saved','user_id':'offline-review','name':'Saved Price Ascending','filters':[{'field':'price','max':10}],'sort':'price','direction':1,'market':'US','settings':{}})
+# Optional paired observations for browser review of the v3 evidence contract.
+# Explicitly synthetic; this does not qualify any live provider's provenance.
+if os.getenv('RESEARCH_OBSERVATION_FIXTURE') == '1':
+    import copy
+    from tradingagents_api.screen_observations import capture_observation,validate_observation_capture
+    observation_definition=api.ScreenDefinition(filters=[{'field':'price','max':10},{'field':'stock_type','values':['STOCK']}])
+    captures=[]
+    for side,hours in [('before',20),('after',1)]:
+        captured=datetime.now(timezone.utc)-timedelta(hours=hours)
+        observed=(captured-timedelta(minutes=10)).isoformat()
+        records=[]
+        for source in fixture.ROWS:
+            if source['stock_type']!='STOCK':continue
+            row=copy.deepcopy(source)
+            if row['code']=='US.S0001':row['price']=12 if side=='before' else 8
+            if row['code']=='US.S0002':row['price']=6 if side=='before' else 14
+            row['quote_cache_at']=captured.isoformat()
+            row['field_evidence']={'c0':{'criterion':observation_definition.filters[0],'value':row['price'],
+                'source':'synthetic_fixture','period':'point_in_time','unit':'currency','currency':'USD',
+                'clock':'quote_source','observed_at':observed}}
+            records.append(capture_observation(row,observation_definition.filters))
+        snapshot={'id':'observations-'+side,'version':3,'at':captured.isoformat(),'source_at':captured.isoformat(),
+            'source_clock':'stored_universe','definition':observation_definition.model_dump(),'complete':True,
+            'observation_scope':'eligible_stored_universe','eligible_count':len(records),'observations':records,
+            'members':[r for r in records if r['evidence']['price']<=10]}
+        validate_observation_capture(snapshot,observation_definition.model_dump())
+        captures.append({'id':snapshot['id'],'snapshot':snapshot})
+    api.db._call('POST','rpc/screen_capture_append',body={'p_key':api._snapshot_key(observation_definition),'p_records':captures})
 class MemoryCache:
     def key(self,*args):return str(args)
     def get(self,*args):return None
