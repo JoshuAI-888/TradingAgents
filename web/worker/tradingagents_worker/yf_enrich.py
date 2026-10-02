@@ -9,9 +9,10 @@ HK branch is here so the mapping rule lives in exactly one place).
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import math
+import re
+from collections import Counter
 
-from .enrich_fields import YF_FIELDS, apply_transform
+from .enrich_fields import YF_FIELDS, YF_FIELD_CONTRACTS, apply_transform, finite_number
 
 
 class EnrichUnavailable(RuntimeError):
@@ -19,10 +20,13 @@ class EnrichUnavailable(RuntimeError):
 
 
 def to_yahoo_symbol(code: str, market: str = "US") -> str:
-    sym = code.split(".", 1)[1] if "." in code else code
+    if market not in ('US','HK') or not isinstance(code,str) or not re.fullmatch(re.escape(market)+r'\.[A-Z0-9][A-Z0-9._-]{0,30}',code):
+        return ''
+    sym = code.split(".", 1)[1]
     if market == "HK":
+        if not sym.isdigit() or not 0<int(sym)<100000:return ''
         return str(int(sym)).zfill(4) + ".HK"  # moomoo 00700 → yahoo 0700.HK
-    return sym
+    return sym.replace('.', '-')  # preserve canonical identity; Yahoo uses BRK-B.
 
 
 def _default_import():
@@ -40,9 +44,13 @@ def fetch_yf_enrichment(codes: list[str], prices: dict[str, float],
         except ImportError as e:
             raise EnrichUnavailable(f"yfinance not installed: {e}") from e
     rows: list[dict] = []
+    # Ignore malformed inputs before dictionary construction; retain each exact
+    # canonical code once and fail closed on distinct codes sharing a Yahoo alias.
+    codes = list(dict.fromkeys(c for c in codes if isinstance(c, str)))
     sym_of = {c: to_yahoo_symbol(c, market) for c in codes}
+    aliases = Counter(sym_of.values())
     chunk_size = 200
-    codes = [c for c in codes if sym_of[c]]
+    codes = [c for c in codes if sym_of[c] and aliases[sym_of[c]]==1]
     for i in range(0, len(codes), chunk_size):
         chunk = codes[i:i + chunk_size]
         try:
@@ -56,13 +64,14 @@ def fetch_yf_enrichment(codes: list[str], prices: dict[str, float],
                 continue
             if not isinstance(info, dict):
                 continue
+            if info and info.get('symbol') != sym_of[code]:
+                continue  # missing/wrong identity is a failed fetch, not empty success.
             data: dict = {}
-            price = prices.get(code)
-            mcap = None
-            try:
-                mcap = float(info.get("marketCap")) if info.get("marketCap") else None
-            except (TypeError, ValueError):
-                pass
+            # Same-response aggregate money ratios avoid cross-provider prices
+            # and per-share basis ambiguity. `prices` stays for caller compatibility.
+            currency, financial_currency = info.get('currency'), info.get('financialCurrency')
+            compatible = isinstance(currency,str) and bool(re.fullmatch(r'[A-Z]{3}',currency)) and currency==financial_currency
+            mcap = finite_number(info.get('marketCap')) if compatible else None
             for ykey, (okey, transform) in YF_FIELDS.items():
                 if isinstance(info.get(ykey), bool):
                     continue
@@ -73,19 +82,20 @@ def fetch_yf_enrichment(codes: list[str], prices: dict[str, float],
                     if eq is not None and not isinstance(eq, bool):
                         got = apply_transform({"lt": info.get(ykey), "eq": eq},
                                               transform)
-                        if type(got) in (int, float) and math.isfinite(got):
+                        if finite_number(got) is not None:
                             data["lt_debt_eq"] = got
                     continue
                 got = apply_transform(info.get(ykey), transform,
-                                      price=price, market_cap=mcap)
+                                      market_cap=mcap)
                 text_field = okey in {"country", "sector", "industry", "website", "earnings_date", "ex_div_date"}
                 if text_field:
                     if isinstance(got, str) and got.strip():
                         data[okey] = got.strip()
-                elif type(got) in (int, float) and math.isfinite(got):
+                elif finite_number(got) is not None:
                     data[okey] = got
             # Even an empty successful info response replaces vanished fields.
             # Transport/ticker failures above remain absent and keep the old clock.
             rows.append({"market": market, "code": code, "data": data,
-                         "source": "yfinance", "as_of": datetime.now(timezone.utc).isoformat()})
+                         "source": "yfinance", "field_contracts": dict(YF_FIELD_CONTRACTS),
+                         "as_of": datetime.now(timezone.utc).isoformat()})
     return rows

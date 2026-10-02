@@ -22,7 +22,7 @@ from .kline_backfill import KLINE_TTL_DAYS, KlineBackfill
 from .moomoo import MoomooClient
 from .technicals import append_snapshot_bar, compute
 from .yf_enrich import fetch_yf_enrichment
-from .enrich_fields import TECH_FIELDS, YF_ONLY_FIELDS
+from .enrich_fields import TECH_FIELDS, YF_ONLY_FIELDS, YF_FIELD_CONTRACTS
 
 FRESH_CAP_PER_RUN = 4000  # = the kline rotation slice: technicals compute the night klines land
 BAR_CHUNK = 100
@@ -121,6 +121,12 @@ class EnrichNightly:
             "screener_enrichment", {"market": f"eq.{self.market}"}, "*")}
         def fundamental_stamp(r):
             data = r.get("data") or {}
+            contracts = (data.get('_meta') or {}).get('field_contracts') or {}
+            if not isinstance(contracts, dict) or any(
+                data.get(k) is not None and contracts.get(k) != version
+                for k, version in YF_FIELD_CONTRACTS.items()
+            ):
+                return None  # bounded priority refresh for legacy corrected fields
             # A technical-only update must never postpone a missing-fundamental retry.
             if not any(data.get(k) is not None for k in YF_ONLY_FIELDS):
                 return None
@@ -135,7 +141,7 @@ class EnrichNightly:
         # A successful response replaces its fundamental category. Missing fields
         # must not inherit a new clock from an unrelated field or technical run.
         fundamental_fields = YF_ONLY_FIELDS | {"lt_debt_eq"}
-        by_code, yf_stamps = {}, {}
+        by_code, yf_stamps, yf_contracts = {}, {}, {}
         requested_codes = set(yf_codes)
         for row in yf_rows:
             if not isinstance(row, dict) or row.get("code") not in requested_codes or row.get("market") != self.market:
@@ -148,6 +154,9 @@ class EnrichNightly:
                 continue
             by_code[row["code"]] = {k: v for k, v in payload.items() if k in fundamental_fields and v is not None}
             yf_stamps[row["code"]] = stamp.isoformat()
+            contracts = row.get('field_contracts')
+            yf_contracts[row['code']] = {field: version for field, version in YF_FIELD_CONTRACTS.items()
+                if isinstance(contracts, dict) and contracts.get(field) == version}
 
         fresh_codes = self._fresh_codes(codes)
         # Freshness lift: append the current session's partial bar (from the
@@ -176,6 +185,7 @@ class EnrichNightly:
                     data.pop(field, None)
                 data.update(by_code[code])
                 meta["fundamentals_at"] = yf_stamps[code]
+                meta['field_contracts'] = yf_contracts[code]
             if code in tech:
                 for field in TECH_FIELDS:
                     data.pop(field, None)

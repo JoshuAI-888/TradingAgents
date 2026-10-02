@@ -239,3 +239,65 @@ def test_empty_success_clears_prior_fundamentals_without_removing_technicals(fak
     data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
     assert 'forward_pe' not in data and 'sector' not in data and 'rsi14' in data
     assert data['_meta']['fundamentals_at']==now
+
+
+def test_actual_fetcher_corrects_fresh_legacy_ratios_and_api_uses_corrected_units(fake_db,monkeypatch):
+    from tradingagents_api import main as api
+    from tradingagents_worker.yf_enrich import fetch_yf_enrichment
+    from tradingagents_worker.enrich_fields import YF_FIELD_CONTRACTS
+    from test_yf_enrich import FakeYfModule
+    _seed(fake_db)
+    now=datetime.now(timezone.utc).isoformat()
+    fake_db.upsert('screener_enrichment','market,code',{'market':'US','code':'US.AAPL','as_of':now,
+        'data':{'payout_ratio':0.6246,'pcf':0.002,'pfcf':5,'beta':0,'_meta':{'fundamentals_at':now}}})
+    legacy=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
+    assert api._fresh_supplemental(legacy,now)[0]=={'beta':0}
+    seen=[]
+    def fetch(codes,prices,market):
+        seen.extend(codes)
+        return fetch_yf_enrichment(codes,prices,market,yf_module=FakeYfModule({'AAPL':{
+            'marketCap':1000,'totalCash':400,'freeCashflow':100,'payoutRatio':0.6246,
+            'currency':'USD','financialCurrency':'USD'}}))
+    EnrichNightly(fake_db,yf_fetch=fetch).run(run_klines=False)
+    assert seen==['US.AAPL']  # fresh legacy values get a bounded priority refresh
+    data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
+    assert data['_meta']['field_contracts']==YF_FIELD_CONTRACTS
+    values,origins=api._fresh_supplemental(data,now)
+    assert values['payout_ratio']==62.46 and values['pcf']==2.5 and values['pfcf']==10
+    assert origins['pcf']['field_contract']==YF_FIELD_CONTRACTS['pcf']
+    monkeypatch.setattr(api,'db',fake_db)
+    monkeypatch.setattr(api,'_market_client',lambda:object())
+    monkeypatch.setattr(api,'_merge_universe_meta',lambda rows,market:rows)
+    monkeypatch.setattr(api,'_stored_universe',lambda *args,**kwargs:([{
+        'code':'US.AAPL','symbol':'AAPL','stock_type':'STOCK','price':128}],now))
+    result=api.screener(watchlist_only=0,src='yf',filters='[{"field":"payout_ratio","min":60},{"field":"pcf","max":3}]')
+    assert len(result['rows'])==1 and result['rows'][0]['payout_ratio']==62.46
+    assert api.screener(watchlist_only=0,src='yf',filters='[{"field":"payout_ratio","max":1}]')['rows']==[]
+
+
+def test_failed_correction_retains_cache_but_cannot_qualify_legacy_ratio(fake_db):
+    from tradingagents_api import main as api
+    _seed(fake_db)
+    now=datetime.now(timezone.utc).isoformat()
+    fake_db.upsert('screener_enrichment','market,code',{'market':'US','code':'US.AAPL','as_of':now,
+        'data':{'payout_ratio':0.6246,'_meta':{'fundamentals_at':now}}})
+    EnrichNightly(fake_db,yf_fetch=FakeYf([])).run(run_klines=False)
+    data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
+    assert data['payout_ratio']==0.6246 and data['_meta']['fundamentals_at']==now
+    assert 'payout_ratio' not in api._fresh_supplemental(data,now)[0]
+
+
+def test_wrong_ticker_identity_cannot_replace_cached_fundamentals_or_their_clock(fake_db):
+    from tradingagents_worker.yf_enrich import fetch_yf_enrichment
+    from test_yf_enrich import FakeYfModule
+    _seed(fake_db)
+    old=(datetime.now(timezone.utc)-timedelta(days=9)).isoformat()
+    fake_db.upsert('screener_enrichment','market,code',{'market':'US','code':'US.AAPL','as_of':old,
+        'data':{'beta':1,'_meta':{'fundamentals_at':old}}})
+    def fetch(codes,prices,market):
+        return fetch_yf_enrichment(codes,prices,market,yf_module=FakeYfModule({
+            'AAPL':{'symbol':'MSFT','beta':99}}))
+    EnrichNightly(fake_db,yf_fetch=fetch).run(run_klines=False)
+    data=fake_db.select('screener_enrichment',{'market':'eq.US'})[0]['data']
+    assert data['beta']==1 and data['_meta']['fundamentals_at']==old
+    assert data['_meta']['technicals_at']!=old

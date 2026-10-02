@@ -78,6 +78,14 @@ def test_share_class_codes_do_not_collapse():
     assert api._stock_code('BRK.B')=='US.BRK.B'
     assert api._stock_code('HK.00700')=='HK.00700'
 
+
+@pytest.mark.parametrize('contracts',[None,{},[],{'payout_ratio':'old'},{'pcf':'old'}])
+def test_old_ratio_contracts_cannot_qualify_fresh_cache(contracts):
+    now=datetime.now(timezone.utc).isoformat()
+    values,origins=api._fresh_supplemental({'payout_ratio':0.6246,'pcf':0.002,'pfcf':10,
+        'beta':0,'_meta':{'fundamentals_at':now,'field_contracts':contracts}},now)
+    assert values=={'beta':0} and set(origins)=={'beta'}
+
 def test_legacy_saved_screen_edit_preserves_presentation():
     api.db._t('saved_screeners').append({'id':'one','user_id':'research-owner','settings':{'cols':['symbol','price'],'etfs':False,'preset':'penny'}})
     api.update_screener('one',api.SavedScreenerIn(name='Renamed',filters=[{'field':'price','max':5}]))

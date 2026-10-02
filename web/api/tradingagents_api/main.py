@@ -22,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from tradingagents_worker.enrich_fields import TECH_FIELDS, YF_ONLY_FIELDS
+from tradingagents_worker.enrich_fields import TECH_FIELDS, YF_ONLY_FIELDS, YF_FIELD_CONTRACTS
 from tradingagents_worker.quote_observations import CURRENCY_FIELDS, field_currency
 from tradingagents_worker.config import SETTINGS
 from tradingagents_worker.db import Db
@@ -841,6 +841,9 @@ def _fresh_supplemental(data, row_stamp, now=None):
     for field, value in data.items():
         if field not in _YF_ONLY_FIELDS and field not in TECH_FIELDS:
             continue
+        contracts = meta.get('field_contracts')
+        if field in YF_FIELD_CONTRACTS and (not isinstance(contracts, dict) or contracts.get(field) != YF_FIELD_CONTRACTS[field]):
+            continue  # old units/derivations cannot qualify until corrected refresh
         technical = field in TECH_FIELDS
         stamp = meta.get('technicals_at' if technical else 'fundamentals_at') or row_stamp
         try:
@@ -855,6 +858,8 @@ def _fresh_supplemental(data, row_stamp, now=None):
         values[field] = value.strip() if text else value
         origins[field] = {'source': 'computed_technicals' if technical else 'yfinance',
                           'cache_at': stamp, 'timestamp_semantics': 'retrieval_or_computation_not_reporting_period'}
+        if field in YF_FIELD_CONTRACTS:
+            origins[field]['field_contract'] = YF_FIELD_CONTRACTS[field]
     return values, origins
 
 

@@ -7,20 +7,40 @@ Transforms (yfinance raw → ours):
   pct            ratio → percent (×100)
   pct_of_float   shortPercentOfFloat ratio → percent
   unix_date      epoch seconds → ISO date string
-  div_price      ingredient value ÷ stored price (Price/Cash)
-  div_mcap_flow  ingredient value ÷ market cap (P/FCF)
+  div_price      price ÷ per-share ingredient (legacy helper; not used by fetcher)
+  div_mcap_flow  market cap ÷ aggregate cash or free cash flow
   best_effort_lt_de {"lt","eq"} dict → ratio; None leg → None (no fake data)
 """
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import math
+
+# Corrections must not reinterpret pre-correction cached values as current units.
+YF_FIELD_CONTRACTS = {
+    "payout_ratio": "ratio_to_percent_v1",
+    "pcf": "market_cap_over_total_cash_same_currency_v1",
+    "pfcf": "market_cap_over_free_cashflow_same_currency_v1",
+}
+
+
+def finite_number(value):
+    """Finite vendor numbers only, including zero; reject bool/coercion/overflow."""
+    if type(value) not in (int, float):
+        return None
+    try:
+        number = float(value)
+        return number if math.isfinite(number) else None
+    except (OverflowError, ValueError):
+        return None
 
 # yfinance Ticker.info key → (our key, transform, is-best-effort)
 YF_FIELDS: dict[str, tuple[str, str | None]] = {
     "forwardPE": ("forward_pe", None),
     "trailingPegRatio": ("peg", None),
     "priceToSalesTrailing12Months": ("ps", None),
-    "totalCashPerShare": ("pcf", "div_price"),
+    # Aggregate cash avoids a per-share basis mismatch across share classes.
+    "totalCash": ("pcf", "div_mcap_flow"),
     "freeCashflow": ("pfcf", "div_mcap_flow"),
     "enterpriseValue": ("ev", None),
     "enterpriseToEbitda": ("ev_ebitda", None),
@@ -41,7 +61,7 @@ YF_FIELDS: dict[str, tuple[str, str | None]] = {
     "fullTimeEmployees": ("employees", None),
     "earningsTimestamp": ("earnings_date", "unix_date"),
     "exDividendDate": ("ex_div_date", "unix_date"),
-    "payoutRatio": ("payout_ratio", None),
+    "payoutRatio": ("payout_ratio", "pct"),
     "returnOnEquity": ("roe", "pct"),
     "grossMargins": ("gross_margin", "pct"),
     "operatingMargins": ("operating_margin", "pct"),
@@ -101,39 +121,28 @@ def _unix_date(ts) -> str | None:
 
 def apply_transform(raw, transform: str | None, price: float | None = None,
                     market_cap: float | None = None):
-    if raw is None:
+    if raw is None or isinstance(raw,bool):
         return None
     if transform is None:
         return raw
-    if transform == "pct":
-        try:
-            return round(float(raw) * 100, 4)
-        except (TypeError, ValueError):
-            return None
-    if transform == "pct_of_float":
-        try:
-            return round(float(raw) * 100, 4)
-        except (TypeError, ValueError):
-            return None
+    if transform in ("pct", "pct_of_float"):
+        number = finite_number(raw)
+        result = finite_number(number * 100) if number is not None else None
+        return round(result, 4) if result is not None else None
     if transform == "unix_date":
-        return _unix_date(raw)
-    if transform == "div_price":
-        # P/C = price ÷ cash-per-share (raw is the per-share ingredient)
-        try:
-            return round(float(price) / float(raw), 4) if price else None
-        except (TypeError, ValueError, ZeroDivisionError):
+        return _unix_date(raw) if finite_number(raw) is not None else None
+    if transform in ("div_price", "div_mcap_flow"):
+        numerator = finite_number(price if transform == "div_price" else market_cap)
+        denominator = finite_number(raw)
+        if numerator is None or denominator is None or numerator <= 0 or denominator <= 0:
             return None
-    if transform == "div_mcap_flow":
-        # P/FCF = market cap ÷ free cash flow
-        try:
-            return round(float(market_cap) / float(raw), 4) if (market_cap and float(raw) > 0) else None
-        except (TypeError, ValueError):
-            return None
+        result = finite_number(numerator / denominator)
+        return round(result, 4) if result is not None else None
     if transform == "best_effort_lt_de":
-        eq, lt = (raw or {}).get("eq"), (raw or {}).get("lt")
-        try:
-            # percent form, consistent with yfinance's total_debt_eq
-            return round(float(lt) / float(eq) * 100, 4) if (eq and lt is not None) else None
-        except (TypeError, ValueError, ZeroDivisionError):
+        if not isinstance(raw,dict):return None
+        eq, lt = finite_number(raw.get("eq")), finite_number(raw.get("lt"))
+        if eq is None or eq == 0 or lt is None:
             return None
+        result = finite_number(lt / eq * 100)
+        return round(result, 4) if result is not None else None
     raise ValueError(f"unknown transform {transform!r}")

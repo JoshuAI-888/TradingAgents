@@ -17,7 +17,7 @@ def test_transforms():
     assert ef.apply_transform(0.037, "pct_of_float") == 3.7
     assert ef.apply_transform(1735689600, "unix_date") == "2025-01-01"
     assert ef.apply_transform(None, "pct") is None
-    # price/cash and P/FCF derive from stored price / market cap
+    # Legacy per-share helper and current aggregate market-cap ratios.
     assert ef.apply_transform(4.0, "div_price", price=100.0) == 25.0   # 100 ÷ 4
     assert ef.apply_transform(1_000.0, "div_mcap_flow", market_cap=50_000.0) == 50.0
     assert ef.apply_transform(1_000.0, "div_mcap_flow", market_cap=None) is None
@@ -38,3 +38,14 @@ def test_financial_fields_present():
     for key, tr in expected.items():
         assert key in ef.YF_ONLY_FIELDS, f"{key} missing from registry"
         assert tr in [t for k, t in ef.YF_FIELDS.values() if k == key], f"{key} wrong transform"
+
+
+def test_transforms_reject_bad_numeric_legs_and_nonfinite_results():
+    for raw in [True,{},[],10**400,float('inf'),float('nan'),'2',1e308]:
+        assert ef.apply_transform(raw,'pct') is None
+    for numerator in [True,'100',float('inf'),10**400,0,-10]:
+        assert ef.apply_transform(4,'div_mcap_flow',market_cap=numerator) is None
+    assert ef.apply_transform(1e-320,'div_mcap_flow',market_cap=1e308) is None
+    assert ef.apply_transform({'lt':True,'eq':4},'best_effort_lt_de') is None
+    assert ef.apply_transform({'lt':1e308,'eq':1e-320},'best_effort_lt_de') is None
+    assert ef.apply_transform(0,'pct')==0

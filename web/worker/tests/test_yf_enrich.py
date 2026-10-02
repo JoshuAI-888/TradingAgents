@@ -27,14 +27,16 @@ class FakeYfModule:
         syms = names.split()
 
         class TickersObj:
-            tickers = {s: FakeTicker(outer._infos.get(s, RuntimeError("unexpected symbol")))
+            tickers = {s: FakeTicker({'symbol':s,**outer._infos[s]} if isinstance(outer._infos.get(s),dict) else outer._infos.get(s, RuntimeError("unexpected symbol")))
                        for s in syms}
 
         return TickersObj()
 
 
 INFO_A = {"forwardPE": 22.5, "shortPercentOfFloat": 0.021, "country": "USA",
-          "earningsTimestamp": 1747000000, "totalCashPerShare": 4.0}
+          "earningsTimestamp": 1747000000, "totalCashPerShare": 4.0,
+          "totalCash":2000.0,"marketCap":100000.0,
+          "regularMarketPrice":200.0,"currency":"USD","financialCurrency":"USD"}
 INFO_B = {"beta": 1.1}
 
 
@@ -53,7 +55,7 @@ def test_fetch_maps_codes_and_transforms():
     by = {r["code"]: r for r in rows}
     assert by["US.AAPL"]["data"]["forward_pe"] == 22.5
     assert by["US.AAPL"]["data"]["short_float"] == 2.1
-    assert by["US.AAPL"]["data"]["pcf"] == 50.0          # price 200 / cash/share 4
+    assert by["US.AAPL"]["data"]["pcf"] == 50.0          # market cap / aggregate cash
     assert by["US.AAPL"]["data"]["country"] == "USA"
     assert by["US.AAPL"]["data"]["earnings_date"].startswith("2025-05")
     assert by["US.AAPL"]["source"] == "yfinance" and by["US.AAPL"]["market"] == "US"
@@ -98,3 +100,55 @@ def test_empty_success_is_distinct_from_failed_fetch_for_replacement():
     rows=ye.fetch_yf_enrichment(['US.AAPL','US.MSFT'],prices={},yf_module=yf)
     assert len(rows)==1 and rows[0]['code']=='US.AAPL' and rows[0]['data']=={}
     assert rows[0]['as_of']
+
+
+def test_share_class_aliases_keep_canonical_identity_and_reject_collisions():
+    assert ye.to_yahoo_symbol('US.BRK.B') == 'BRK-B'
+    rows=ye.fetch_yf_enrichment(['US.BRK.B','US.BRK.B',None,{},'HK.00700','US.bad','US.'],prices={},
+        yf_module=FakeYfModule({'BRK-B':{'beta':0}}))
+    assert len(rows)==1 and rows[0]['code']=='US.BRK.B' and rows[0]['data']=={'beta':0}
+    assert ye.fetch_yf_enrichment(['US.BRK.B','US.BRK-B'],prices={},
+        yf_module=FakeYfModule({'BRK-B':{'beta':1}}))==[]
+    for code in ['HK.00000','HK.100000','HK.AAPL','US.00700']:
+        assert ye.to_yahoo_symbol(code,'HK')==''
+
+
+def test_wrong_or_missing_response_identity_is_failed_fetch_not_empty_success():
+    for identity in [None,'MSFT','brk-b']:
+        assert ye.fetch_yf_enrichment(['US.BRK.B'],prices={},
+            yf_module=FakeYfModule({'BRK-B':{'symbol':identity,'payoutRatio':0.5}}))==[]
+
+
+def test_aggregate_cash_does_not_borrow_a_share_class_basis_or_stored_price():
+    info={'totalCashPerShare':256115.53,'regularMarketPrice':500.5,
+          'totalCash':400,'marketCap':1000,'freeCashflow':100,
+          'currency':'USD','financialCurrency':'USD','payoutRatio':0.6246}
+    row=ye.fetch_yf_enrichment(['US.BRK.B'],prices={'US.BRK.B':999999},
+        yf_module=FakeYfModule({'BRK-B':info}))[0]
+    assert row['data']['pcf']==2.5 and row['data']['pfcf']==10
+    assert row['data']['payout_ratio']==62.46
+    assert row['field_contracts']==ye.YF_FIELD_CONTRACTS
+    del info['totalCash']
+    assert 'pcf' not in ye.fetch_yf_enrichment(['US.BRK.B'],prices={'US.BRK.B':500.5},
+        yf_module=FakeYfModule({'BRK-B':info}))[0]['data']
+
+
+def test_money_ratios_require_explicit_same_currency_and_positive_legs():
+    base={'totalCash':100,'marketCap':1000,'freeCashflow':50,'currency':'USD',
+          'financialCurrency':'USD','payoutRatio':0}
+    for change in [{'financialCurrency':'CNY'},{'currency':None},{'financialCurrency':None},
+                   {'currency':'usd','financialCurrency':'usd'},{'marketCap':True},
+                   {'marketCap':10**400},{'marketCap':float('inf')},{'marketCap':-10}]:
+        data=ye.fetch_yf_enrichment(['US.AAPL'],prices={'US.AAPL':10},
+            yf_module=FakeYfModule({'AAPL':base | change}))[0]['data']
+        assert 'pcf' not in data and 'pfcf' not in data and data['payout_ratio']==0
+    for value in [True,-1,0,{},'100',float('nan'),10**400]:
+        data=ye.fetch_yf_enrichment(['US.AAPL'],prices={},
+            yf_module=FakeYfModule({'AAPL':base | {'totalCash':value,'freeCashflow':value}}))[0]['data']
+        assert 'pcf' not in data and 'pfcf' not in data
+
+
+def test_untransformed_huge_vendor_number_cannot_abort_other_tickers():
+    rows=ye.fetch_yf_enrichment(['US.AAPL','US.MSFT'],prices={},yf_module=FakeYfModule({
+        'AAPL':{'forwardPE':10**400,'payoutRatio':1e308},'MSFT':{'payoutRatio':0}}))
+    assert rows[0]['data']=={} and rows[1]['data']=={'payout_ratio':0}
