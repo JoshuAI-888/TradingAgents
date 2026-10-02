@@ -2,6 +2,8 @@
 
 2 October 2026. This checklist separates completed verification from provider limitations. The [build plan](investment-workspace-build-plan.md) retains the full feature inventory and proposed follow-on coverage gates.
 
+The [fresh design-gap review](investment-workspace-design-gap-audit.md) separates this functional-release checklist from full design acceptance. The approved shell/inspector/Explorer/Change Monitor/mobile experience is not complete. Its packages A–F remain open; prior passing checks do not imply mockup fidelity, measured p95 or accessibility compliance.
+
 ## Build sequence and completed work
 
 - [x] Freeze all 22 original recommended definitions in a golden fixture; retain saved screens and their individual sort orders.
@@ -116,3 +118,32 @@ The table below distinguishes all provider matches from classified stocks in the
 Good P/E illustrates the expected stock-only difference: 116 provider instruments = 87 stocks + 29 ETFs. All-stock defaults and Clear exclude ETFs by design. Financial criterion columns show verified annual provider values; for Penny, RFL revenue growth is 43.956%, displayed as 43.96. The current stock Overview uses actual distribution values for gross flows, not a sum of net-flow observations ([Moomoo capital-flow field definition](https://openapi.moomoo.com/moomoo-api-doc/en/quote/get-capital-flow.html)).
 
 Final presentation polish also labels provider totals on complete small screens, so ETF exclusions remain clear, and bounds the initial Market Pulse feed to 12 score-ranked signals. Additional signals remain accessible through Show 12 more / Show fewer; no candidate records are removed. This avoids rendering the entire accumulated discovery backlog on every screener interaction.
+
+## Local design implementation checkpoint — 2 October 2026
+
+- [x] 23 JavaScript tests and 199 API/worker tests pass for the working tree. Selected CSV/Excel content and a stale inspector response race are covered.
+- [x] Offline inspector range/tab/focus and selection-removal interactions checked; synthetic screenshot linked in the design-gap audit.
+- [ ] Browser-downloaded selected files reconciled; full responsive/modal/keyboard acceptance.
+- [ ] A/B combined mockup acceptance, C/D/E/F completion and fresh production/Moomoo evidence.
+
+This checkpoint is unmerged and undeployed; initial-release checkmarks above do not close the design-completion gates.
+
+
+### Newer local desk checkpoint
+
+- [x] Direct desk, all 22 preset groups, global search, seven-field Overview and saved column compatibility implemented.
+- [x] Desktop table starts at 356.6 px at 1487 × 1058; inspector actions remain visible.
+- [x] Mobile selection measures 44 × 44; responsive modal Escape restores row Inspect focus and releases background isolation.
+- [x] 30 JavaScript tests pass; 199 API/worker tests passed before later frontend-only refinements; whitespace check passes.
+- [x] Source/implementation full-view and focused comparisons recorded in [design QA](../design-qa.md).
+- [ ] Resolve QA P1/P2 findings; A/B are not complete.
+- [ ] Complete C/D/E/F and fresh end-to-end/live-data/download/production gates.
+
+Current QA result is **blocked by remaining implementation and qualification work**, not by a missing user approval. This checkpoint is unmerged and undeployed.
+
+
+### Local linked Explorer checkpoint
+
+Core C now supports labeled linear/log axes, outlier-view disclosure, numeric/pointer region selection, zoom/clear, a linked results table, shared selection/inspection and explicit region CSV/Excel exports. Advanced forward-P/E/growth/ROIC/sector comparison remains gated on E; C acceptance is not closed. Numeric workflow, linked selection and Clear reset were browser-verified. Pointer dragging and full real-cohort/device qualification remain open.
+
+A/B status work adds no-match library recovery, per-export counts, retained-column labels and Modified saved-screen relationships. Applying saved settings now clones nested arrays/objects so UI edits cannot mutate the saved definition in memory. **37 JavaScript tests pass**; evidence and remaining findings are in [design QA](../design-qa.md). This is a local, unmerged, undeployed checkpoint.

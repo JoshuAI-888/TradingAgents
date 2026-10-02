@@ -98,9 +98,24 @@ Yfinance exposes per-ticker statements, history and estimates, but those APIs do
 - **API health:** `/api/meta` returned HTTP 500 in one probe. Reproduce and repair before relying on it for capabilities.
 - **Verified database exposure:** RLS is disabled on enrichment/KLine tables and both `anon` and `authenticated` hold broad write grants. Add an access-control migration and test that public writes fail while service-role API/worker operations continue. Check the broader exposed-table list; do not assume simply enabling RLS addresses every grant. [Supabase RLS guidance](https://supabase.com/docs/guides/database/postgres/row-level-security).
 
-Evidence: [database coverage](research-workspace-evidence/baseline/database-coverage.json), [live API probes](research-workspace-evidence/baseline/live-api-probes.json). These audits did not mutate production data or saved screens.
+Evidence: [database coverage](research-workspace-evidence/database-coverage.json), [live API probes](research-workspace-evidence/live-api-probes.json). These audits did not mutate production data or saved screens.
 
 ## Build plan and release gates
+
+### Current status after the design review
+
+The initial functional release is deployed; the complete approved design is unfinished. The [fresh design-gap audit and build packages](investment-workspace-design-gap-audit.md) are the current execution backlog and preserve the contracts below.
+
+| Original phase | Delivery status | Remaining work |
+| --- | --- | --- |
+| 0 — foundation | Initial repairs delivered; richer data contracts partial | Typed evidence, taxonomy and fresh coverage validation |
+| 1 — shell | Shared state/library/export delivered; hierarchy partial | Screener navigation, compact context, collapsible library, pinned toolbar, mobile rows/sheets |
+| 2 — continuity | Inspector/research/Compare return delivered; inspector design partial | Tabs/ranges/watchlist, selected chips/export, focus lifecycle and toolbar polish |
+| 3 — Explore | Quote plot delivered; analytical interaction incomplete | Scales/outliers, brush/form selection, linked subset, saved axes; advanced factors gated |
+| 4 — Changes | Manual two-snapshot membership comparison delivered | Review queue, dated history, paired evidence, schedules and review state |
+| 5 — quality | Functional checks and production smoke tests delivered | Measured p95, accessibility, matched visual QA and intended-user tasks |
+
+Packages A–F in the audit define the next implementation sequence. Functional regression tests do not close design-completion gates.
 
 ### Phase 0 — feature baseline, data contracts and repairs
 
@@ -153,3 +168,35 @@ Current full research and financial views establish the preservation baseline. T
 ![Analysis chart initialization failure](research-workspace-evidence/baseline/03-stock-analysis.png)
 ![Financial tab baseline](research-workspace-evidence/baseline/04-financials.png)
 ![Compare baseline](research-workspace-evidence/baseline/05-compare.png)
+
+
+## Design completion sequence after the initial release
+
+The [design-gap audit and follow-up acceptance checklist](investment-workspace-design-gap-audit.md) is authoritative for remaining mockup fidelity. Work through A (shell/library/toolbar/responsive rows), B (inspector/selection/research continuity), C (usable linked Explorer), D1 (change-review UI), D2 (history/paired evidence/schedules), E (measured coverage and advanced factors), and F (performance/accessibility/usability). Begin F instrumentation before A; perform E in bounded batches alongside supported UI work. Each package must carry preservation tests, browser evidence, deployment verification and rollback. Prior initial-release checkmarks do not close these packages.
+
+The first cohesive UI milestone is A+B: compare the default desk and open inspector against the combined mockup, including phone/tablet behavior. The final presentation gate also requires C, D, coverage disclosures and measured F evidence. Keep optional named shortlists distinct from watchlists and saved screen definitions; establish ownership before shared persistence. Inspector range controls must disclose and verify actual history span, bar interval, session and adjustment.
+
+Local progress on 2 October: B's tabbed inspector, requested ranges, watchlist action and selected ticker/export controls are implemented in the working tree. Twenty-three JavaScript checks and 199 API/worker tests pass; offline interaction evidence is linked in the design-gap audit. This is not A/B completion or a deployed release. Next: finish inspector lifecycle/accessibility and export browser validation, then implement A's unified desk and mobile results while measuring F. C/D/E and independent shortlist persistence remain explicit work packages.
+
+
+### Updated execution checkpoint after mockup comparison
+
+A/B now include the direct desk shell, grouped 22-preset/saved library, global search, unified controls, readable Overview, responsive rows/sheets, typed inspector and selection exports. Current evidence and the remaining P1/P2 list are in [design QA](../design-qa.md) and the [design-gap audit](investment-workspace-design-gap-audit.md). Thirty JavaScript tests pass; the 199-test API/worker suite passed earlier in this checkpoint. Changes remain local.
+
+Continue in this order, retaining each package's acceptance requirements:
+
+1. **Finish A/B:** library no-match/unavailable/modified states, retained-column disclosure, export counts/descriptions, consistent typography/icons; complete inspector range/provenance contract and independent named shortlists.
+2. **Preservation gate:** all 22 definitions and saved count/hash, default/second-click/Clear, canonical identities, all export scopes/files, full research/KLine/Compare and return state on the new shell.
+3. **C:** usable factor Explorer with labeled scales, outlier handling, accessible brush/form subset and linked table/inspector. Unsupported factors remain gated.
+4. **D1/D2:** New/Exited/All review, search/sort/date pairs, compatible historical cohorts, paired criterion evidence, notes and scheduling with explicit missing-history states.
+5. **E/F alongside UI:** fresh eligible-universe coverage/freshness measurements, comparable Moomoo reconciliation; representative performance, tablet/phone/zoom, keyboard/screen-reader/contrast checks.
+6. **Release:** matching live-data visual QA with no open P1/P2, end-to-end downloaded-file/data reconciliation, merge/deploy, production smoke and rollback evidence.
+
+The desktop stack now meets the ≤360 px table-start target (356.6 px). Twelve synthetic warm sorts yielded nearest-rank p95 157.4 ms; this preliminary sample does not establish real-device or production performance.
+
+
+### Local linked Explorer checkpoint
+
+Core C now supports labeled linear/log axes, outlier-view disclosure, numeric/pointer region selection, zoom/clear, a linked results table, shared selection/inspection and explicit region CSV/Excel exports. Advanced forward-P/E/growth/ROIC/sector comparison remains gated on E; C acceptance is not closed. Numeric workflow, linked selection and Clear reset were browser-verified. Pointer dragging and full real-cohort/device qualification remain open.
+
+A/B status work adds no-match library recovery, per-export counts, retained-column labels and Modified saved-screen relationships. Applying saved settings now clones nested arrays/objects so UI edits cannot mutate the saved definition in memory. **37 JavaScript tests pass**; evidence and remaining findings are in [design QA](../design-qa.md). This is a local, unmerged, undeployed checkpoint.
