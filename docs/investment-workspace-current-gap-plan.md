@@ -1,5 +1,7 @@
 # Build-to-design review and remaining delivery plan
 
+**Latest recovery implementation:** [independent Settings panels and unknown pricing](design-gap-audit/settings-recovery/README.md) prevents catalog outages from hiding Data & coverage, guards obsolete responses, and retains active models absent from refreshed catalogs. 108 JavaScript tests pass; actual-route offline browser checks cover catalog failure/recovery and cadence save, with phone containment. Broader R12 and production/data acceptance remain open.
+
 **Latest Explorer implementation:** [visible region/Compare/export actions](design-gap-audit/explorer-actions/README.md) moves the action strip and numeric bounds above the unchanged plot, distinguishes region membership from Compare selection, and fixes phone export clipping. 103 JavaScript tests pass; actual CSV/Excel downloads reconcile 240 synthetic region identities and order. Laptop controls are visible at scrollY 0; broader R08/R09/R11/R13 and production acceptance remain open.
 
 **Latest Desk implementation:** [inspector focus continuity and company retrieval dates](design-gap-audit/inspector-continuity-dates/README.md). Programmatic inspector focus preserves page position; connected/reconstructed row return and source-date disclosure are verified locally. Fresh direct pointer/keyboard desktop and phone checks retain scrollY 0 and return focus; 100 JavaScript tests pass. Broader navigation/accessibility/data/production gates remain open.

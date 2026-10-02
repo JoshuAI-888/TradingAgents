@@ -219,6 +219,20 @@ if not os.getenv('RESEARCH_PROVIDER_GENERATION_FIXTURE'):
 api.market_state=lambda:{'available':False}
 for route in api.app.routes:
     if getattr(route,'path',None)=='/api/market/state':route.endpoint=api.market_state;route.dependant.call=api.market_state
+# Offline settings fault injection: actual /api/models route, no vendor calls.
+if os.getenv('RESEARCH_SETTINGS_FIXTURE'):
+    catalog_ready = os.getenv('RESEARCH_SETTINGS_FIXTURE') == 'unknown'
+    def preview_catalog(force=False):
+        global catalog_ready
+        catalog_ready = catalog_ready or force
+        if not catalog_ready:
+            return None, 'Synthetic catalog outage'
+        return {'models': [
+            {'id':'openrouter/auto','in_per_m':-1,'out_per_m':-1,'est_per_run':-1,'free':False},
+            {'id':'fixture/free','in_per_m':0,'out_per_m':0,'est_per_run':0,'free':True},
+            {'id':'fixture/paid','in_per_m':2,'out_per_m':10,'est_per_run':5,'free':False}
+        ],'count':3,'stale':False,'est_run_basis':'synthetic fixture mix'}, None
+    api.CATALOG.try_get = preview_catalog
 # Recorded chart fixtures end in 2025. Shift only this offline harness's
 # synthetic bars to the current date so range clipping can be exercised.
 recorded_kline=stock_fixtures._kline

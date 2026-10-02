@@ -2009,33 +2009,7 @@ const pages = {
       ${d || '<tr><td colspan="7" class="empty">Empty ledger — decisions appear here once the first run completes.</td></tr>'}</table></div>`;
   },
   async settings() {
-    const [cat] = await Promise.all([api("/api/models"), api("/api/settings").then(r => { state.models = r.models; state.runtime = r.runtime || {}; })]).then(([c]) => [c]).catch(e => [null]);
-    if (!cat) return '<div class="panel"><div class="empty">Model catalog unavailable — try Refresh.</div></div>';
-    const opt = (m, sel) => `<option value="${esc(m.id)}" ${sel === m.id ? "selected" : ""}>${esc(m.id)} — $${m.in_per_m}/M in · $${m.out_per_m}/M out · est $${m.est_per_run}/run${m.free ? " · FREE" : ""}${m.recommended ? " · ★ recommended" : ""}</option>`;
-    const a = state.models || {};
-    const selOpts = (role) => cat.models.map(m => opt(m, a[role])).join("");
-    return `<div class="research-settings"><div class="panel"><h3 class="sec">Models — which model does what
-        <span class="pill ${cat.stale ? "pa" : "pd"}"><i></i>${cat.count} models ${cat.stale ? "(stale cache)" : "from OpenRouter"}</span></h3>
-      <p class="faint" style="font-size:11px;margin-bottom:8px">Sorted recommended-first: intelligence per dollar (curated tiers ÷ analysis-mix cost). Cost shown as $/1M tokens in+out and estimated per typical analysis (${esc(cat.est_run_basis)}).</p>
-      <div class="frow" style="margin-top:6px"><span style="width:110px" class="dim">Quick model</span>
-        <select id="s-quick" style="flex:1">${selOpts("quick")}</select></div>
-      <div class="frow" style="margin-top:6px"><span style="width:110px" class="dim">Deep model</span>
-        <select id="s-deep" style="flex:1">${selOpts("deep")}</select></div>
-      <div class="frow" style="margin-top:6px"><span style="width:110px" class="dim">Custom ID</span>
-        <input id="s-custom" placeholder="paste any model id (e.g. openai/gpt-6-sol)" style="flex:1"></div>
-      <div class="frow" style="margin-top:10px">
-        <button class="btn" onclick="saveModels()">Save model pair</button>
-        <button class="btn ghost" onclick="refreshModels()">Refresh list from OpenRouter</button>
-        <span id="s-out" class="faint" style="font-size:11.5px"></span>
-      </div>
-      <p class="faint" style="font-size:11px;margin-top:8px">Active: quick=<b>${esc(a.quick || "default")}</b> · deep=<b>${esc(a.deep || "default")}</b>. The deep model powers the research manager and portfolio manager; quick powers analysts, debate and trader.</p></div>
-      <div class="panel"><h3 class="sec">Runtime <small>applies to the next queued run</small></h3>
-        <label style="display:flex;gap:9px;align-items:flex-start;font-size:12.5px;cursor:pointer">
-          <input type="checkbox" id="s-stub" style="margin-top:2px" ${state.runtime.stub ? "checked" : ""} onchange="toggleStub(this)">
-          <span><b>Stub mode</b> — deterministic offline runs that validate the pipeline with <i>no</i> LLM calls and zero cost.
-          When off, every analysis is a real multi-agent run via OpenRouter (billed per token, ≈$0.14 on cheap defaults). </span>
-        </label>
-        <div id="s-runtime-out" class="faint" style="font-size:11px;margin-top:6px"></div></div>
+    return `<div class="research-settings"><div id="settings-model-panel" class="panel"><h3 class="sec">Models</h3><p role="status">Loading model catalog…</p></div><div id="settings-runtime-panel" class="panel"><h3 class="sec">Runtime</h3><p role="status">Loading runtime settings…</p></div>
       <div class="panel"><h3 class="sec">Agent prompts <small>each agent's system prompt · versioned · applies to runs queued after saving</small></h3>
         <div id="prompts-panel" class="empty">loading…</div></div>
       <div class="panel"><h3 class="sec">Data &amp; coverage <small>moomoo screener universe loader</small></h3>
@@ -3903,6 +3877,59 @@ async function review(decId, rating) {
     if (out) out.textContent = "✓ saved: " + rating;
   } catch (e) { if (out) out.textContent = "save failed: " + (e.message || e); }
 }
+function settingsPrice(value,suffix) {
+ return typeof value==='number' && Number.isFinite(value) && value>=0 ? '$'+esc(value)+suffix : 'Unknown'+suffix;
+}
+function settingsModelPanelHTML(cat,a) {
+ const opt=(m,sel)=>`<option value="${esc(m.id)}" ${sel===m.id?'selected':''}>${esc(m.id)} — ${settingsPrice(m.in_per_m,'/M in')} · ${settingsPrice(m.out_per_m,'/M out')} · est ${settingsPrice(m.est_per_run,'/run')}${m.in_per_m===0 && m.out_per_m===0?' · FREE':''}${m.recommended?' · ★ recommended':''}</option>`;
+ const selOpts=role=>{const selected=a[role];const retained=selected && !cat.models.some(m=>m.id===selected)?`<option value="${esc(selected)}" selected>${esc(selected)} — current model · pricing unavailable</option>`:'';return retained+cat.models.map(m=>opt(m,selected)).join('');};
+ return `<h3 class="sec">Models — which model does what
+        <span class="pill ${cat.stale ? "pa" : "pd"}"><i></i>${cat.count} models ${cat.stale ? "(stale cache)" : "from OpenRouter"}</span></h3>
+      <p class="faint" style="font-size:11px;margin-bottom:8px">Sorted recommended-first: intelligence per dollar (curated tiers ÷ analysis-mix cost). Cost shown as $/1M tokens in+out and estimated per typical analysis (${esc(cat.est_run_basis)}).</p>
+      <div class="frow" style="margin-top:6px"><span style="width:110px" class="dim">Quick model</span>
+        <select id="s-quick" aria-label="Quick model" style="flex:1">${selOpts("quick")}</select></div>
+      <div class="frow" style="margin-top:6px"><span style="width:110px" class="dim">Deep model</span>
+        <select id="s-deep" aria-label="Deep model" style="flex:1">${selOpts("deep")}</select></div>
+      <div class="frow" style="margin-top:6px"><span style="width:110px" class="dim">Custom ID</span>
+        <input id="s-custom" aria-label="Custom model ID" placeholder="paste any model id (e.g. openai/gpt-6-sol)" style="flex:1"></div>
+      <div class="frow" style="margin-top:10px">
+        <button class="btn" onclick="saveModels()">Save model pair</button>
+        <button class="btn ghost" onclick="refreshModels()">Refresh list from OpenRouter</button>
+        <span id="s-out" class="faint" style="font-size:11.5px"></span>
+      </div>
+      <p class="faint" style="font-size:11px;margin-top:8px">Active: quick=<b>${esc(a.quick || "default")}</b> · deep=<b>${esc(a.deep || "default")}</b>. The deep model powers the research manager and portfolio manager; quick powers analysts, debate and trader.</p>`;
+}
+function settingsRuntimePanelHTML(runtime) {
+ return `<h3 class="sec">Runtime <small>applies to the next queued run</small></h3>
+        <label style="display:flex;gap:9px;align-items:flex-start;font-size:12.5px;cursor:pointer">
+          <input type="checkbox" id="s-stub" style="margin-top:2px" ${runtime.stub ? "checked" : ""} onchange="toggleStub(this)">
+          <span><b>Stub mode</b> — deterministic offline runs that validate the pipeline with <i>no</i> LLM calls and zero cost.
+          When off, every analysis is a real multi-agent run via OpenRouter (billed per token, ≈$0.14 on cheap defaults). </span>
+        </label>
+        <div id="s-runtime-out" class="faint" style="font-size:11px;margin-top:6px"></div>`;
+}
+function settingsRequestCurrent(generation,target) {
+ return generation===__pageGen && state.page==='settings' && document.getElementById(target.id)===target;
+}
+async function loadSettingsRuntime(generation) {
+ const target=document.getElementById('settings-runtime-panel');if(!target)return;
+ try{
+  const result=await api('/api/settings');
+  if(!settingsRequestCurrent(generation,target))return;
+  state.models=result.models || {};state.runtime=result.runtime || {};
+  target.innerHTML=settingsRuntimePanelHTML(state.runtime);
+ }catch(e){if(settingsRequestCurrent(generation,target))target.innerHTML='<h3 class="sec">Runtime</h3><p role="alert">Runtime settings unavailable. Existing configuration is unchanged.</p><button class="btn ghost" onclick="showPage(\'settings\')">Retry settings</button>';}
+}
+async function loadSettingsModels(generation) {
+ const target=document.getElementById('settings-model-panel');if(!target)return;
+ try{
+  const cat=await api('/api/models');
+  if(!settingsRequestCurrent(generation,target))return;
+  if(!Array.isArray(cat?.models) || !cat.models.length)throw Error('No models in catalog');
+  target.innerHTML=settingsModelPanelHTML(cat,cat.active || state.models || {});
+ }catch(e){if(settingsRequestCurrent(generation,target))target.innerHTML='<h3 class="sec">Models</h3><p role="alert">Model catalog unavailable. Data &amp; coverage and other settings remain available.</p><button class="btn ghost" onclick="refreshModels()">Refresh list from OpenRouter</button><span id="s-out" role="status"></span>';}
+}
+
 async function toggleStub(cb) {
   const out = $("#s-runtime-out");
   out.textContent = "Saving…";
@@ -3930,23 +3957,27 @@ async function saveModels() {
   } catch (e) { out.textContent = "Save failed: " + (e.message || e); }
 }
 async function refreshModels() {
-  const out = $("#s-out");
+  const out = $("#s-out"),generation=__pageGen;
+  if(!out)return;
   out.textContent = "Refreshing catalog from OpenRouter…";
   try {
     const cat = await api("/api/models?refresh=1");
+    if(generation!==__pageGen || state.page!=="settings" || $("#s-out")!==out)return;
     out.textContent = `✓ ${cat.count} models fetched ${cat.stale ? "(stale fallback!)" : "live"}`;
     showPage("settings");
-  } catch (e) { out.textContent = "Refresh failed: " + (e.message || e); }
+  } catch (e) { if(generation===__pageGen && state.page==="settings" && $("#s-out")===out)out.textContent = "Refresh failed: " + (e.message || e); }
 }
 
 // ── agent prompts (Settings panel: versioned system prompts per agent) ──
-async function loadPromptsPanel() {
+async function loadPromptsPanel(generation=__pageGen) {
   const el = document.getElementById("prompts-panel");
   if (!el) return;
   try {
     const r = await api("/api/prompts");
+    if(!settingsRequestCurrent(generation,el))return;
     window.__prompts = r.agents || [];
   } catch (e) {
+    if(!settingsRequestCurrent(generation,el))return;
     el.className = "";
     el.innerHTML = `<div class="empty">Prompt store unavailable (${esc(String(e.message || e).slice(0, 90))}). Apply migration 0009 and let the worker boot once to seed the stock prompts.</div>`;
     return;
@@ -5058,9 +5089,11 @@ async function showPage(p) {
     if (p === "compare") { if(window.__researchContext){const back=document.createElement('div');back.className='research-breadcrumb';back.innerHTML='<button class="btn ghost" onclick="researchReturn()">← Back to screen</button>';$("#page").prepend(back);}cmpMount(); }
     if (p === "settings") {
       loadPromptsPanel();
+      loadSettingsRuntime(pageGen);
+      loadSettingsModels(pageGen);
       api("/api/screener/schedule").then(s => {
         const el = document.getElementById("scr-sched");
-        if (!el) return;
+        if (!el || pageGen !== __pageGen || state.page !== 'settings') return;
         const last = s.last_quotes ? fmtTs(s.last_quotes) : "never";
         el.className = "";
         el.innerHTML = `<div class="trow"><span>Universe</span><b>${s.universe_rows.toLocaleString()} listings</b></div>
@@ -5070,13 +5103,13 @@ async function showPage(p) {
           <div class="trow"><span>Latest attempt</span><b>${s.last_attempt?.status === 'failed' ? 'Failed · prior data retained' : s.last_attempt?.status === 'succeeded' ? 'Completed' : 'Not verified'}</b></div>
           ${s.last_attempt?.status === 'failed' ? `<p class="faint" role="status">${esc(s.last_attempt.reason || 'Refresh failed')}. Last complete refresh has not advanced.</p>` : ''}
           <div class="trow"><span>Refresh cadence</span>
-            <select id="scr-interval" style="background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:11.5px">
+            <select id="scr-interval" aria-label="Universe refresh cadence" style="background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:11.5px">
               ${[1, 2, 4, 8, 12, 24].map(h => `<option value="${h}" ${s.interval_h === h ? "selected" : ""}>every ${h}h during US market hours</option>`).join("")}
             </select></div>
           <div class="actions" style="margin-top:8px"><button class="btn" onclick="saveSchedule()">Save cadence</button>
           <span id="scr-sched-out" class="faint" style="font-size:11px"></span></div>
           <div class="faint" style="font-size:10.5px;margin-top:6px">The loader runs hourly (cron, US market hours). A successful refresh covers every requested stored identity; source times and field coverage vary. Plate and screen-slice enumeration runs daily and does not establish a complete exchange universe. Failed attempts remain eligible for retry.</div>`;
-      }).catch(() => {});
+      }).catch(() => { if(pageGen !== __pageGen || state.page !== 'settings')return; const el=document.getElementById('scr-sched');if(el)el.innerHTML='<p role="alert">Data &amp; coverage unavailable. Prior refresh and cadence settings are unchanged.</p><button class="btn ghost" onclick="showPage(\'settings\')">Retry coverage</button>'; });
     }
     if (p === "home" && window.__scrRefreshJob && !window.__scrPollActive) {
       setTimeout(() => { if (window.__scrRefreshJob) scrPollProgress(window.__scrRefreshJob); }, 400);
@@ -5084,11 +5117,11 @@ async function showPage(p) {
     if (p === "settings") {
       api("/api/meta").then(m => {
         const el = $("#sysmeta");
-        if (el) el.innerHTML = `<div class="trow"><span>Framework</span><b>${esc(m.framework)}</b></div>
+        if (el && pageGen === __pageGen && state.page === 'settings') el.innerHTML = `<div class="trow"><span>Framework</span><b>${esc(m.framework)}</b></div>
           <div class="trow"><span>Markets</span><b>${esc(m.markets.join(", "))}</b></div>
           <div class="trow"><span>Vendors</span><b>${Object.entries(m.vendors).map(([k, v]) => `${k}=${esc(v)}`).join(" · ")}</b></div>
           <div class="trow"><span>Spend to date</span><b>$${Number(m.spend?.cost_usd || 0).toFixed(4)} · ${m.spend?.runs || 0} runs</b></div>`;
-      });
+      }).catch(()=>{if(pageGen !== __pageGen || state.page !== 'settings')return;const el=$('#sysmeta');if(el)el.textContent='System metadata unavailable.';});
     }
   } catch (e) {
     if (pageGen !== __pageGen || state.page !== p) return;

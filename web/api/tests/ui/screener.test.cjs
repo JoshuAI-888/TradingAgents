@@ -705,3 +705,47 @@ test('opening numeric bounds dismisses export menu without modifying region or s
  const prior=JSON.stringify(st.bounds);c.researchExploreBoundsToggle({open:true});
  assert.equal(menu.open,false);assert.equal(st.formOpen,true);assert.equal(JSON.stringify(st.bounds),prior);assert.deepEqual(Array.from(c.__researchSelected),['US.A']);
 });
+
+test('settings shell renders coverage without waiting for catalog or runtime requests',async()=>{
+ const c=harness();let requests=0;c.api=()=>{requests++;return new Promise(()=>{});};
+ const result=await vm.runInContext('pages.settings()',c);
+ assert.equal(requests,0);assert.match(result,/id="scr-sched"/);assert.match(result,/id="settings-model-panel"/);assert.match(result,/id="settings-runtime-panel"/);
+ assert.match(result,/Data &amp; coverage/);assert.match(result,/Display timezone/);
+});
+
+test('unknown model pricing never renders negative costs or false free claims',()=>{
+ const c=harness(),cat={models:[{id:'auto',in_per_m:-1,out_per_m:-1,est_per_run:-1,free:true},{id:'missing',in_per_m:null,out_per_m:'0',est_per_run:Infinity},{id:'free',in_per_m:0,out_per_m:0,est_per_run:0},{id:'paid',in_per_m:2,out_per_m:10,est_per_run:5}],count:4};
+ const result=c.settingsModelPanelHTML(cat,{quick:'auto'});
+ assert.match(result,/Unknown\/M in/);assert.match(result,/Unknown\/run/);assert.doesNotMatch(result,/\$-|\$null|\$Infinity/);
+ const options=[...result.matchAll(/<option[^>]*>(.*?)<\/option>/g)].map(m=>m[1]);
+ assert.doesNotMatch(options[0],/FREE/);assert.doesNotMatch(options[1],/FREE/);assert.match(options[2],/FREE/);assert.match(options[3],/\$2\/M in.*\$10\/M out.*\$5\/run/);
+});
+
+test('catalog failure retains runtime and coverage targets and offers recovery',async()=>{
+ const c=harness(),targets=new Map(['settings-model-panel','settings-runtime-panel','scr-sched'].map(id=>[id,{id,innerHTML:id}]));
+ c.document.getElementById=id=>targets.get(id);vm.runInContext("state.page='settings'; __pageGen=9",c);
+ c.api=async path=>{if(path==='/api/models')throw Error('outage');return {models:{quick:'active/q',deep:'active/d'},runtime:{stub:true}};};
+ await Promise.all([c.loadSettingsModels(9),c.loadSettingsRuntime(9)]);
+ assert.match(targets.get('settings-model-panel').innerHTML,/Model catalog unavailable/);assert.match(targets.get('settings-model-panel').innerHTML,/refreshModels\(\)/);
+ assert.match(targets.get('settings-runtime-panel').innerHTML,/id="s-stub"[^>]*checked/);assert.equal(targets.get('scr-sched').innerHTML,'scr-sched');
+ assert.equal(vm.runInContext('state.models.quick',c),'active/q');
+});
+
+test('obsolete settings responses cannot overwrite a newer render or runtime state',async()=>{
+ const c=harness(),old={id:'settings-model-panel',innerHTML:'old'},replacement={id:'settings-model-panel',innerHTML:'new'};
+ let current=old,resolve;c.document.getElementById=()=>current;vm.runInContext("state.page='settings'; __pageGen=3",c);
+ c.api=()=>new Promise(r=>resolve=r);const pending=c.loadSettingsModels(3);current=replacement;vm.runInContext('__pageGen=4',c);
+ resolve({models:[{id:'obsolete',in_per_m:1,out_per_m:2,est_per_run:3}],count:1});await pending;
+ assert.equal(old.innerHTML,'old');assert.equal(replacement.innerHTML,'new');
+ const runtime={id:'settings-runtime-panel',innerHTML:'current'};current=runtime;const request=c.loadSettingsRuntime(4);
+ vm.runInContext("state.page='home'; __pageGen=5",c);resolve({models:{quick:'obsolete'},runtime:{stub:false}});await request;
+ assert.equal(runtime.innerHTML,'current');assert.equal(vm.runInContext('state.models',c),null);
+});
+
+test('catalog recovery retains active model IDs absent from the refreshed catalog',()=>{
+ const c=harness(),cat={models:[{id:'auto',in_per_m:-1,out_per_m:-1,est_per_run:-1}],count:1};
+ const result=c.settingsModelPanelHTML(cat,{quick:'current/quick',deep:'current/deep'});
+ assert.match(result,/<option value="current\/quick" selected>current\/quick — current model · pricing unavailable/);
+ assert.match(result,/<option value="current\/deep" selected>current\/deep — current model · pricing unavailable/);
+ assert.doesNotMatch(result,/<option value="auto" selected/);
+});
