@@ -263,10 +263,10 @@ function researchProviderScopeHTML(payload,rows,st) {
  const warnings=Array.isArray(payload.hydration_warnings)?payload.hydration_warnings:[];
  const unknown=(payload.rows || []).filter(r=>!r.stock_type || ['UNKNOWN','UNKNOW','UNCLASSIFIED','N/A'].includes(String(r.stock_type).toUpperCase())).length;
  const outside=(payload.rows || []).filter(r=>!r.quote_generation_id).length;
- const ck=st.activePreset+'|'+st.market,entry=window.__presetCache?.[ck],busy=!!window.__presetRefresh?.[ck];
+ const ck=st.activePreset+'|'+st.market,entry=window.__presetCache?.[ck],busy=!!window.__presetRefresh?.[ck],paging=!!window.__presetPagePending?.has(ck);
  const counts=`${rows.length.toLocaleString()} ${st.etfs?'instrument':'stock'} matches loaded · ${(payload.rows || []).length.toLocaleString()} provider members retrieved${payload.provider_total!=null?' · '+Number(payload.provider_total).toLocaleString()+' provider matches before exclusions/refinements':''}`;
- const refresh=`<button class="btn ghost" id="research-refresh-preset" onclick="researchRefreshPreset()" ${busy?'disabled':''}>${busy?'Refreshing results…':'Refresh results'}</button>`;
- const more=payload.next_key && payload.possibly_truncated?`<button class="btn ghost" id="research-load-more" onclick="researchLoadMore()" ${busy?'disabled':''}>Load next 300 matches</button>`:'';
+ const refresh=`<button class="btn ghost" id="research-refresh-preset" onclick="researchRefreshPreset()" ${busy || paging?'disabled':''}>${busy?'Refreshing results…':'Refresh results'}</button>`;
+ const more=payload.next_key && payload.possibly_truncated?`<button class="btn ghost" id="research-load-more" onclick="researchLoadMore()" ${busy || paging?'disabled':''}>${paging?'Loading next provider page…':entry?.pageError?'Retry next page':'Load next 300 matches'}</button>`:'';
  const quality=unknown || warnings.length;
  const qualityText=[unknown?`${unknown.toLocaleString()} ${unknown===1?'instrument has':'instruments have'} unknown classification`:'',warnings.length?`${warnings.length} hydration ${warnings.length===1?'warning':'warnings'}`:''].filter(Boolean).join(' · ');
  return `<section class="provider-scope" aria-label="Provider result coverage">
@@ -275,7 +275,7 @@ function researchProviderScopeHTML(payload,rows,st) {
   <div class="provider-scope-meta"><span>Latest provider page retrieved: ${esc(researchCaptureTime(payload.retrieved_at))}</span><details class="provider-scope-details"><summary>Scope &amp; quote sources</summary><div><p>Exports and Explore use loaded matches. While navigating, loaded pages stay retained until Refresh results; refresh replaces them with the first provider page.</p>${payload.quote_generation_id?`<p><strong>Quote display cohort</strong><br>${esc(payload.quote_generation_id)} · ${outside.toLocaleString()} retrieved members outside this cohort. Membership comes from the provider screen; this quote cohort does not freeze provider membership or reporting periods.</p>`:'<p>Quote display cohort unavailable.</p>'}</div></details></div>
   ${quality?`<details class="provider-quality"><summary>${qualityText}</summary><div><p>Unknown classifications are excluded from stock-only results. Captures require complete classification.</p>${warnings.map(w=>`<p>${esc(String(w))}</p>`).join('')}</div></details>`:''}
   ${busy?'<p class="provider-refresh-status" role="status">Previous results retained while refreshing.</p>':''}
-  ${entry?.refreshError?`<p class="delay-note" role="status">Refresh failed; previous results retained. ${esc(entry.refreshError)}</p>`:''}<span id="research-page-status" role="status"></span>
+  ${entry?.refreshError?`<p class="delay-note" role="status">Refresh failed; previous results retained. ${esc(entry.refreshError)}</p>`:''}<span id="research-page-status" role="status">${esc(entry?.pageError || '')}</span>
  </section>`;
 }
 function researchExploreState() {
@@ -920,12 +920,29 @@ async function researchLoadMore() {
   if(!next.available)throw new Error(next.reason || 'Provider page unavailable');
   if((next.quote_generation_id || null)!==(current.quote_generation_id || null))throw new Error('Quote display cohort changed; previous results retained. Refresh this screen.');
   if(window.__scr.activePreset!==key || window.__scr.market!==market || window.__presetCache?.[ck]!==entry)return;
-  const byCode=new Map(current.rows.map(r=>[r.code,r]));next.rows.forEach(r=>byCode.set(r.code,r));
-  if(byCode.size===current.rows.length && next.possibly_truncated)throw new Error('Provider returned duplicate membership; previous results retained');
+  const merged=researchMergeProviderPage(current,next,market,entry.pageCursors || []);
   const hydration_warnings=[...new Set([...(current.hydration_warnings || []),...(next.hydration_warnings || [])])];
-  window.__presetCache[ck]={ts:Date.now(),retained:true,payload:{...next,rows:[...byCode.values()],hydration_warnings,result_limit:byCode.size}};
+  window.__presetCache[ck]={ts:Date.now(),retained:true,pageCursors:[...(entry.pageCursors || []),current.next_key],payload:{...next,provider_total:next.provider_total ?? current.provider_total,rows:merged,hydration_warnings,result_limit:merged.length}};
+  paging.delete(ck);
   await showPage('home');
- }catch(e){if(window.__scr.activePreset!==key || window.__scr.market!==market || window.__presetCache?.[ck]!==entry)return;if(button){button.disabled=false;button.textContent='Retry next page';}const el=document.getElementById('research-page-status');if(el)el.textContent=e.message;}finally{paging.delete(ck);}
+ }catch(e){if(window.__scr.activePreset!==key || window.__scr.market!==market || window.__presetCache?.[ck]!==entry)return;entry.pageError=e.message;if(button){button.disabled=false;button.textContent='Retry next page';}const el=document.getElementById('research-page-status');if(el)el.textContent=e.message;}finally{paging.delete(ck);}
+}
+function researchMergeProviderPage(current,next,market,pageCursors) {
+ const failed=message=>{throw new Error(message+'; previous results retained. Refresh this screen.');};
+ if(!Array.isArray(current.rows) || !Array.isArray(next.rows))failed('Provider membership page is invalid');
+ const existing=new Set(current.rows.map(r=>r.code)),incoming=new Set();
+ for(const row of next.rows){
+  if(typeof row?.code!=='string' || !row.code.startsWith(market+'.') || incoming.has(row.code))failed('Provider page identities are invalid');
+  if(existing.has(row.code))failed('Provider pages overlap; membership may have changed');
+  incoming.add(row.code);
+ }
+ if(current.provider_total!=null && next.provider_total!=null && current.provider_total!==next.provider_total)failed('Provider match total changed');
+ const total=next.provider_total ?? current.provider_total,rows=[...current.rows,...next.rows];
+ if(total!=null && rows.length>total)failed('Provider pages exceed the declared match total');
+ if(next.next_key && [current.next_key,...pageCursors].includes(next.next_key))failed('Provider continuation cursor repeated');
+ if(next.possibly_truncated && !next.rows.length)failed('Provider continuation returned no new members');
+ if(next.possibly_truncated===false && (next.next_key || total!=null && rows.length!==total))failed('Provider completion does not match loaded membership');
+ return rows;
 }
 function researchSearchClose() {
  clearTimeout(window.__researchSearchTimer);window.__researchSearchGen=(window.__researchSearchGen || 0)+1;

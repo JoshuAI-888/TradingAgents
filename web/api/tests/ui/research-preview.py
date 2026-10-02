@@ -827,7 +827,10 @@ class Provider:
 api._market_client = lambda: Provider()
 
 
-def execute(key="", market="US", limit=300, next_key=""):
+provider_page_attempts = {}
+
+
+def execute(key="", market="US", limit=300, next_key="", **_kwargs):
     p = next(p for p in api.PRESET_SCREENERS if p["key"] == key)
     rows, _ = api._apply_filters([r.copy() for r in fixture.ROWS], p["filters"])
     rows = api._sort_rows(rows, p.get("sort", "pct"), p.get("direction", 2))
@@ -835,6 +838,14 @@ def execute(key="", market="US", limit=300, next_key=""):
         r["criterion_values"] = {f["field"]: r.get(f["field"]) for f in p["filters"]}
     offset = int(next_key or 0)
     page = rows[offset : offset + limit]
+    if os.getenv("RESEARCH_PROVIDER_PAGE_FAULT_FIXTURE") and next_key:
+        identity = (key, market, next_key)
+        attempt = provider_page_attempts.get(identity, 0) + 1
+        provider_page_attempts[identity] = attempt
+        if attempt == 1:
+            return {"available": False, "reason": "Synthetic rate_limited; retry next page"}
+        if attempt == 2:
+            page = [rows[offset - 1], *page]
     cursor = str(offset + limit) if offset + limit < len(rows) else ""
     return {
         "available": True,

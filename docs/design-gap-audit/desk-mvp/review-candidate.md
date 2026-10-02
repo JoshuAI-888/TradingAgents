@@ -15,10 +15,12 @@ Strict lint cleanup is broad because the committed portal/worker baseline also f
 
 ## Current acceptance
 
-Local checks pass: strict Ruff, clean Python 3.12 engine/CLI imports, 787 API/worker tests, 1,008 root tests plus 91 subtests (two documented skips), 186 UI contracts, preset definition equality and diff whitespace. Native combined migration rehearsal passes against synthetic PostgreSQL 16 tables.
+Local checks pass: strict Ruff, clean Python 3.12 engine/CLI imports, 787 API/worker tests, 1,008 root tests plus 91 subtests (two documented skips), 189 UI contracts, preset definition equality and diff whitespace. Native combined migration rehearsal passes against synthetic PostgreSQL 16 tables.
 
 The required remaining gates are live US/HK raw/normalized classification and source coverage; all 20 supported preset membership/sorts; bounded like-for-like Moomoo sanity checks; target-platform migration/advisor/history reconciliation; exact candidate deployment, actual production downloads, analyst-journey timing and rollback smoke checks. The latest public HK full-market response still has zero rows and no clock. These gaps prevent a ready-for-investment-team or safe-to-merge claim.
 
 Newer [live Moomoo source evidence](moomoo-browser/README.md) verifies complete raw provider membership and order for 17/20 working US presets. All four large provider cursor chains terminate with stable totals and no duplicate identities after one explicit rate-limit retry. Three website traversals change declared totals and duplicate boundary rows, so they remain unqualified as immutable source snapshots despite all captured identities occurring in the API chains. Website US total 12,141 versus stored default 12,045 and HK website 2,825 versus empty stored HK remain unresolved. This narrows the source gate; it does not close classification, HK, quote precision/freshness or candidate-hosted UX acceptance.
 
 No production database mutation, writer/collector flag activation, merge or deployment is authorized by this artifact itself. Existing human authorization to merge/deploy remains subject to completing these release checks.
+
+[Provider page recovery](responsiveness/provider-page-recovery/README.md) now rejects overlapping or inconsistent continuation pages and retains rows/cursors on failure. Synthetic browser retries, both default-reset paths and actual retained-match CSV downloads pass. This is an enabled Desk correction, not an optional feature activation or a live-data gate closure.

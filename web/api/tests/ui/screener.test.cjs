@@ -643,6 +643,36 @@ test('preset paging rejects a changed display cohort without replacing prior row
  const c=harness(),entry={payload:{quote_generation_id:'old',next_key:'p2',rows:[{code:'US.A'}]}};Object.assign(c.__scr,{activePreset:'p',market:'US'});c.__presetCache={'p|US':entry};const status={textContent:''};c.document.getElementById=id=>id==='research-page-status'?status:null;
  c.api=async()=>({available:true,quote_generation_id:'new',rows:[{code:'US.B'}]});c.showPage=()=>assert.fail('Mismatched page rendered');await c.researchLoadMore();assert.equal(c.__presetCache['p|US'],entry);assert.match(status.textContent,/Quote display cohort changed/);
 });
+test('provider page drift preserves original rows and cursor with a persistent escaped recovery message',async()=>{
+ for(const fault of ['overlap','total','cursor','empty','incomplete','duplicate','market']){
+  const c=harness(),original={code:'US.A',price:10},entry={retained:true,payload:{available:true,next_key:'p2',possibly_truncated:true,provider_total:3,rows:[original]}};
+  Object.assign(c.__scr,{activePreset:'p',market:'US'});c.__presetCache={'p|US':entry};
+  const next={available:true,rows:[{code:'US.B'}],provider_total:3,next_key:'p3',possibly_truncated:true};
+  if(fault==='overlap')next.rows=[{code:'US.A',price:999},{code:'US.B'}];
+  if(fault==='total')next.provider_total=4;
+  if(fault==='cursor')next.next_key='p2';
+  if(fault==='empty')next.rows=[];
+  if(fault==='incomplete'){next.next_key=null;next.possibly_truncated=false;}
+  if(fault==='duplicate')next.rows=[{code:'US.B'},{code:'US.B'}];
+  if(fault==='market')next.rows=[{code:'HK.00700'}];
+  c.api=async()=>next;c.showPage=()=>assert.fail('Inconsistent continuation rendered');
+  await c.researchLoadMore();assert.equal(c.__presetCache['p|US'],entry);assert.equal(entry.payload.rows[0],original);assert.equal(original.price,10);assert.equal(entry.payload.next_key,'p2');assert.match(entry.pageError,/previous results retained/);assert.equal(c.__presetPagePending.size,0);
+  entry.pageError+='<provider>';const html=c.researchProviderScopeHTML(entry.payload,entry.payload.rows,c.__scr);assert.match(html,/Retry next page/);assert.match(html,/&lt;provider&gt;/);assert.doesNotMatch(html,/<provider>/);
+ }
+});
+test('rate-limited continuation retries the same cursor and clears the error only after a valid complete page',async()=>{
+ const c=harness(),entry={retained:true,payload:{available:true,rows:[{code:'US.A'}],provider_total:2,next_key:'p2',possibly_truncated:true}};
+ Object.assign(c.__scr,{activePreset:'p',market:'US'});c.__presetCache={'p|US':entry};let calls=0;const cursors=[];
+ c.api=async url=>{cursors.push(new URLSearchParams(url.split('?')[1]).get('next_key'));return ++calls===1?{available:false,reason:'rate_limited; retry after 5.0s'}:{available:true,rows:[{code:'US.B'}],provider_total:2,next_key:null,possibly_truncated:false};};
+ c.showPage=()=>{assert.equal(c.__presetPagePending.size,0);};
+ await c.researchLoadMore();assert.equal(c.__presetCache['p|US'],entry);assert.match(entry.pageError,/rate_limited/);
+ await c.researchLoadMore();assert.deepEqual(cursors,['p2','p2']);assert.equal(c.__presetCache['p|US'].payload.rows.map(r=>r.code).join(','),'US.A,US.B');assert.equal(c.__presetCache['p|US'].pageError,undefined);
+});
+test('provider cursor history rejects cycles while preserving established totals when a page omits them',()=>{
+ const c=harness(),current={rows:[{code:'US.A'}],provider_total:3,next_key:'p3'},next={rows:[{code:'US.B'}],next_key:'p2',possibly_truncated:true};
+ assert.throws(()=>c.researchMergeProviderPage(current,next,'US',['p2']),/cursor repeated/);
+ next.next_key='p4';assert.equal(c.researchMergeProviderPage(current,next,'US',['p2']).length,2);
+});
 test('late provider page and error cannot overwrite a refreshed cache entry',async()=>{
  for(const failure of [false,true]){const c=harness(),entry={payload:{next_key:'p2',rows:[{code:'US.A'}]}};Object.assign(c.__scr,{activePreset:'p',market:'US'});c.__presetCache={'p|US':entry};let resolve,reject;const status={textContent:''};c.document.getElementById=id=>id==='research-page-status'?status:null;c.api=()=>new Promise((a,b)=>{resolve=a;reject=b;});c.showPage=()=>assert.fail('Old page rendered');const pending=c.researchLoadMore();const newer={payload:{rows:[{code:'US.NEW'}]}};c.__presetCache['p|US']=newer;if(failure)reject(Error('Old request failed'));else resolve({available:true,rows:[{code:'US.OLD'}]});await pending;assert.equal(c.__presetCache['p|US'],newer);assert.equal(status.textContent,'');}
 });
