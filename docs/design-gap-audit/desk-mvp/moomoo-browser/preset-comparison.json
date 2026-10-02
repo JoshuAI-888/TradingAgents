@@ -1,0 +1,775 @@
+{
+  "checked_at": "2026-10-02T20:51:01.932804+00:00",
+  "comparisons": [
+    {
+      "key": "high-div",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/high-dividend-stocks-1",
+      "source_observed_at": "2026-10-02T20:46:20.355Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=high-div&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:50:56.909875+00:00",
+      "available": true,
+      "source_declared_count": 0,
+      "source_captured_count": 0,
+      "api_captured_count": 0,
+      "api_provider_total": 0,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "market_cap",
+          "min": 2000000000.0,
+          "excl_min": 1
+        },
+        {
+          "field": "pe_ttm",
+          "max": 12
+        },
+        {
+          "field": "div_yield",
+          "min": 8
+        },
+        {
+          "field": "debt_ratio",
+          "max": 30
+        },
+        {
+          "field": "revenue_growth",
+          "min": 5,
+          "excl_min": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "blue-chip",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/blue-chip-stocks-2",
+      "source_observed_at": "2026-10-02T20:46:23.791Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=blue-chip&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:50:57.160970+00:00",
+      "available": true,
+      "source_declared_count": 40,
+      "source_captured_count": 40,
+      "api_captured_count": 40,
+      "api_provider_total": 40,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "price",
+          "min": 50
+        },
+        {
+          "field": "market_cap",
+          "min": 100000000000.0
+        },
+        {
+          "field": "debt_ratio",
+          "max": 50
+        },
+        {
+          "field": "revenue_growth",
+          "min": 5
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "buffett",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/warren-buffett-strategy-3",
+      "source_observed_at": "2026-10-02T20:46:27.076Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=buffett&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:50:58.003531+00:00",
+      "available": true,
+      "source_declared_count": 139,
+      "source_captured_count": 139,
+      "api_captured_count": 139,
+      "api_provider_total": 139,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "float_cap",
+          "min": 500000000.0
+        },
+        {
+          "field": "net_profit_growth",
+          "min": 10
+        },
+        {
+          "field": "gross_margin",
+          "min": 50
+        },
+        {
+          "field": "op_ebt",
+          "min": 70
+        },
+        {
+          "field": "roe",
+          "min": 15
+        },
+        {
+          "field": "roe_yoy",
+          "min": 20
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "undervalued",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/undervalued-stocks-4",
+      "source_observed_at": "2026-10-02T20:46:31.122Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=undervalued&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:50:36.858837+00:00",
+      "available": true,
+      "source_declared_count": 4,
+      "source_captured_count": 4,
+      "api_captured_count": 4,
+      "api_provider_total": 4,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "pe_ttm",
+          "max": 15
+        },
+        {
+          "field": "pb",
+          "max": 1.5
+        },
+        {
+          "field": "div_yield",
+          "min": 4
+        },
+        {
+          "field": "debt_ratio",
+          "max": 30
+        },
+        {
+          "field": "roe",
+          "min": 15,
+          "excl_min": 1
+        },
+        {
+          "field": "revenue_growth",
+          "min": 3,
+          "excl_min": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "growth",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/best-growth-stocks-5",
+      "source_observed_at": "2026-10-02T20:46:17.206Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=growth&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:50:06.894045+00:00",
+      "available": true,
+      "source_declared_count": 115,
+      "source_captured_count": 115,
+      "api_captured_count": 115,
+      "api_provider_total": 115,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "float_cap",
+          "min": 500000000.0
+        },
+        {
+          "field": "net_profit_growth",
+          "min": 15
+        },
+        {
+          "field": "gross_margin",
+          "min": 50
+        },
+        {
+          "field": "roe",
+          "min": 15
+        },
+        {
+          "field": "roe_yoy",
+          "min": 50,
+          "excl_min": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "pb-lt-1",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/pb-ratio-less-than-1-6",
+      "source_observed_at": "2026-10-02T20:46:41.102Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=pb-lt-1&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:50:37.723810+00:00",
+      "available": true,
+      "source_declared_count": 4534,
+      "source_captured_count": 50,
+      "api_captured_count": 300,
+      "api_provider_total": 4534,
+      "api_possibly_truncated": true,
+      "source_complete": false,
+      "api_complete": false,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": false,
+      "full_count_matches": false,
+      "filters": [
+        {
+          "field": "pb",
+          "max": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "best-lt-high-div",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/best-long-term-high-dividend-stocks-7",
+      "source_observed_at": "2026-10-02T20:46:45.613Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=best-lt-high-div&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:50:37.556144+00:00",
+      "available": true,
+      "source_declared_count": 56,
+      "source_captured_count": 56,
+      "api_captured_count": 56,
+      "api_provider_total": 56,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "div_yield",
+          "min": 4
+        },
+        {
+          "field": "pe_ttm",
+          "max": 20
+        },
+        {
+          "field": "pb",
+          "max": 1.5
+        },
+        {
+          "field": "debt_ratio",
+          "max": 40
+        },
+        {
+          "field": "revenue_growth",
+          "min": 3
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "high-pe",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/high-pe-ratio-stocks-8",
+      "source_observed_at": "2026-10-02T20:46:48.876Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=high-pe&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:50:07.114590+00:00",
+      "available": true,
+      "source_declared_count": 479,
+      "source_captured_count": 50,
+      "api_captured_count": 300,
+      "api_provider_total": 479,
+      "api_possibly_truncated": true,
+      "source_complete": false,
+      "api_complete": false,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": false,
+      "full_count_matches": false,
+      "filters": [
+        {
+          "field": "pe_ttm",
+          "min": 25
+        },
+        {
+          "field": "op_profit_growth",
+          "min": 30,
+          "excl_min": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "good-pe",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/good-pe-ratio-stocks-9",
+      "source_observed_at": "2026-10-02T20:46:53.158Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=good-pe&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:50:59.043782+00:00",
+      "available": true,
+      "source_declared_count": 125,
+      "source_captured_count": 125,
+      "api_captured_count": 125,
+      "api_provider_total": 125,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "pe_ttm",
+          "min": 20
+        },
+        {
+          "field": "eps_growth",
+          "min": 5
+        },
+        {
+          "field": "div_yield",
+          "min": 2
+        },
+        {
+          "field": "net_margin",
+          "min": 10
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "low-pe",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/low-pe-ratio-stocks-10",
+      "source_observed_at": "2026-10-02T20:46:56.119Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=low-pe&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:50:59.688604+00:00",
+      "available": true,
+      "source_declared_count": 1695,
+      "source_captured_count": 50,
+      "api_captured_count": 300,
+      "api_provider_total": 1695,
+      "api_possibly_truncated": true,
+      "source_complete": false,
+      "api_complete": false,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": false,
+      "full_count_matches": false,
+      "filters": [
+        {
+          "field": "pe_ttm",
+          "max": 5,
+          "excl_max": 1
+        },
+        {
+          "field": "pb",
+          "max": 3,
+          "excl_max": 1
+        },
+        {
+          "field": "debt_ratio",
+          "max": 60,
+          "excl_max": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "junk",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/junk-stocks-12",
+      "source_observed_at": "2026-10-02T20:47:08.778Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=junk&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:50:07.517451+00:00",
+      "available": true,
+      "source_declared_count": 532,
+      "source_captured_count": 50,
+      "api_captured_count": 300,
+      "api_provider_total": 532,
+      "api_possibly_truncated": true,
+      "source_complete": false,
+      "api_complete": false,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": false,
+      "full_count_matches": false,
+      "filters": [
+        {
+          "field": "pe_ttm",
+          "min": 0
+        },
+        {
+          "field": "price",
+          "max": 5
+        },
+        {
+          "field": "market_cap",
+          "max": 100000000.0
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "blue-chip-div",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/blue-chip-dividend-stocks-14",
+      "source_observed_at": "2026-10-02T20:47:11.711Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=blue-chip-div&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:50:59.041201+00:00",
+      "available": true,
+      "source_declared_count": 1,
+      "source_captured_count": 1,
+      "api_captured_count": 1,
+      "api_provider_total": 1,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "price",
+          "min": 50
+        },
+        {
+          "field": "market_cap",
+          "min": 100000000000.0
+        },
+        {
+          "field": "debt_ratio",
+          "max": 50
+        },
+        {
+          "field": "div_yield",
+          "min": 4
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "speculative",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/speculative-stocks-15",
+      "source_observed_at": "2026-10-02T20:47:15.301Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=speculative&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:51:00.141042+00:00",
+      "available": true,
+      "source_declared_count": 100,
+      "source_captured_count": 100,
+      "api_captured_count": 100,
+      "api_provider_total": 100,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "price",
+          "min": 5
+        },
+        {
+          "field": "market_cap",
+          "min": 100000000.0
+        },
+        {
+          "field": "net_margin",
+          "min": 10
+        },
+        {
+          "field": "debt_ratio",
+          "max": 50
+        },
+        {
+          "field": "new_low_10d",
+          "min": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "high-eps",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/high-eps-stocks-16",
+      "source_observed_at": "2026-10-02T20:47:18.255Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=high-eps&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:51:00.138799+00:00",
+      "available": true,
+      "source_declared_count": 93,
+      "source_captured_count": 93,
+      "api_captured_count": 93,
+      "api_provider_total": 93,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "price",
+          "min": 5
+        },
+        {
+          "field": "market_cap",
+          "min": 100000000.0
+        },
+        {
+          "field": "eps",
+          "min": 10
+        },
+        {
+          "field": "debt_ratio",
+          "max": 50
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "high-roe",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/high-roe-stocks-17",
+      "source_observed_at": "2026-10-02T20:47:22.047Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=high-roe&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:51:00.672171+00:00",
+      "available": true,
+      "source_declared_count": 212,
+      "source_captured_count": 212,
+      "api_captured_count": 212,
+      "api_provider_total": 212,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "roe",
+          "min": 20
+        },
+        {
+          "field": "revenue_growth",
+          "min": 5
+        },
+        {
+          "field": "div_yield",
+          "min": 2
+        },
+        {
+          "field": "pe_ttm",
+          "max": 25
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "lt-high-div",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/low-pe-high-dividend-stocks-18",
+      "source_observed_at": "2026-10-02T20:47:35.183Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=lt-high-div&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:51:01.520321+00:00",
+      "available": true,
+      "source_declared_count": 131,
+      "source_captured_count": 131,
+      "api_captured_count": 131,
+      "api_provider_total": 131,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "pe_ttm",
+          "max": 15
+        },
+        {
+          "field": "div_yield",
+          "min": 4
+        },
+        {
+          "field": "revenue_growth",
+          "min": 3
+        },
+        {
+          "field": "debt_ratio",
+          "max": 50
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "undervalued-semi",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/undervalued-semiconductor-stocks-19",
+      "source_observed_at": "2026-10-02T20:47:37.867Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=undervalued-semi&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:51:01.028943+00:00",
+      "available": true,
+      "source_declared_count": 3,
+      "source_captured_count": 3,
+      "api_captured_count": 3,
+      "api_provider_total": 3,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "sector",
+          "plate_ids": [
+            10002016,
+            10002015
+          ]
+        },
+        {
+          "field": "pe_ttm",
+          "max": 18
+        },
+        {
+          "field": "pb",
+          "max": 5
+        },
+        {
+          "field": "roe",
+          "min": 10
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "undervalued-tech",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/undervalued-tech-stocks-20",
+      "source_observed_at": "2026-10-02T20:47:40.866Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=undervalued-tech&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:51:01.453315+00:00",
+      "available": true,
+      "source_declared_count": 70,
+      "source_captured_count": 70,
+      "api_captured_count": 70,
+      "api_provider_total": 70,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "sector",
+          "plate_ids": [
+            10002016,
+            10002072,
+            10002492,
+            10002470,
+            10002508,
+            10002252,
+            10002098,
+            10002004
+          ]
+        },
+        {
+          "field": "pe_ttm",
+          "max": 15
+        },
+        {
+          "field": "pb",
+          "max": 5
+        },
+        {
+          "field": "roe",
+          "min": 10
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    },
+    {
+      "key": "undervalued-banks",
+      "source_url": "https://www.moomoo.com/screener/stock-strategies/undervalued-bank-stocks-21",
+      "source_observed_at": "2026-10-02T20:47:43.549Z",
+      "api_url": "https://tradingagents-portal.onrender.com/api/screener/execute?key=undervalued-banks&market=US&limit=300",
+      "api_retrieved_at": "2026-10-02T20:51:01.841469+00:00",
+      "available": true,
+      "source_declared_count": 5,
+      "source_captured_count": 5,
+      "api_captured_count": 5,
+      "api_provider_total": 5,
+      "api_possibly_truncated": false,
+      "source_complete": true,
+      "api_complete": true,
+      "same_captured_prefix": true,
+      "source_captured_members_absent_from_api_capture": [],
+      "full_membership_order_match": true,
+      "full_count_matches": true,
+      "filters": [
+        {
+          "field": "sector",
+          "plate_ids": [
+            10002481,
+            10002456
+          ]
+        },
+        {
+          "field": "pe_ttm",
+          "max": 10
+        },
+        {
+          "field": "pb",
+          "max": 1
+        },
+        {
+          "field": "roe",
+          "min": 12
+        }
+      ],
+      "sort": "pct",
+      "direction": 2
+    }
+  ],
+  "limits": "Public deployed build; sequential source clocks. Captured pagination completes smaller screens. Four large screens retain 50 source rows and at most 300 API rows. Prefix/count matches alone do not qualify full membership. Two RSI presets remain unavailable in agreed MVP."
+}

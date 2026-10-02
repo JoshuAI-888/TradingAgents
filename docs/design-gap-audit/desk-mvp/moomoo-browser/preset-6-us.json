@@ -1,0 +1,207 @@
+{
+  "observed_at": "2026-10-02T20:46:41.102Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/pb-ratio-less-than-1-6",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/LADX-US",
+      "text": "1\nLADX\nLadRx\n0.011000\n+1099900.00%\n+0.010999\n5.45K\n4.73K\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMBIQ-US",
+      "text": "2\nAMBIQ\nAmbipar Emergency Response\n0.070000\n+69900.00%\n+0.069900\n3.88M\n15.71K\n0.01"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FPAYQ-US",
+      "text": "3\nFPAYQ\nFLEXSHOPPER\n0.000100\n+9900.00%\n+0.000099\n2.85K\n10.00K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AILEQ-US",
+      "text": "4\nAILEQ\niLearningEngines\n0.000100\n+9900.00%\n+0.000099\n14.12K\n41.01K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PCTL-US",
+      "text": "5\nPCTL\nPCT LTD\n0.000100\n+9900.00%\n+0.000099\n81.30K\n25.00K\n-0.02"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MNGG-US",
+      "text": "6\nMNGG\nMINING GLOBAL INC\n0.000100\n+9900.00%\n+0.000099\n722.52K\n1.00M\n-4.52"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GAHC-US",
+      "text": "7\nGAHC\nGLOBAL ARENA HOLDING INC\n0.000100\n+9900.00%\n+0.000099\n169.54K\n8.33K\n-0.01"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GGII-US",
+      "text": "8\nGGII\nGREEN GLOBE INTERNATIONAL INC\n0.000100\n+9900.00%\n+0.000099\n6.66M\n138.00K\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GTCH-US",
+      "text": "9\nGTCH\nGBT TECHNOLOGIES INC\n0.000100\n+9900.00%\n+0.000099\n2.44M\n30.12M\n-0.24"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GDET-US",
+      "text": "10\nGDET\nGD ENTMT & TECHNOLOGY INC\n0.000100\n+9900.00%\n+0.000099\n447.19K\n750.00K\n-0.16"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GTLL-US",
+      "text": "11\nGTLL\nGLOBAL TECHNOLOGIES\n0.000100\n+9900.00%\n+0.000099\n1.47M\n100.00K\n-1.34"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SMFL-US",
+      "text": "12\nSMFL\nSmart for Life\n0.000100\n+9900.00%\n+0.000099\n709.07\n666.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LTNC-US",
+      "text": "13\nLTNC\nLabor Smart Inc\n0.000100\n+9900.00%\n+0.000099\n2.96M\n20.13M\n-0.10"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ZENVF-US",
+      "text": "14\nZENVF\nZenvia\n0.0060\n+2900.00%\n+0.0058\n315.40K\n3.40K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/STAI-US",
+      "text": "15\nSTAI\nScanTech AI Systems\n0.0155\n+2483.33%\n+0.0149\n58.22K\n389.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SANW-US",
+      "text": "16\nSANW\nS&W Seed\n0.0200\n+1718.18%\n+0.0189\n42.94K\n10.35K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AETHF-US",
+      "text": "17\nAETHF\nAether Global Innovations\n0.0651\n+1202.00%\n+0.0601\n1.61M\n275.00\n-4.07"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ATHXQ-US",
+      "text": "18\nATHXQ\nAthersys\n0.000010\n+900.00%\n+0.000009\n617.19\n25.28K\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SDCCQ-US",
+      "text": "19\nSDCCQ\nSmileDirectClub\n0.000010\n+900.00%\n+0.000009\n1.34K\n6.23K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FRCB-US",
+      "text": "20\nFRCB\nFirst Republic Bank\n0.000800\n+700.00%\n+0.000700\n148.97K\n53.71K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BHATF-US",
+      "text": "21\nBHATF\nBlue Hat Interactive Entertainment Technology\n0.000600\n+500.00%\n+0.000500\n1.36K\n174.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BIGGQ-US",
+      "text": "22\nBIGGQ\nBig Lots\n0.000500\n+400.00%\n+0.000400\n14.85K\n1.98K\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NXUR-US",
+      "text": "23\nNXUR\nNxu Inc\n0.0011\n+266.67%\n+0.0008\n2.82K\n297.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KBSR-US",
+      "text": "24\nKBSR\nKBS REAL ESTATE INVT TR III INC\n0.0600\n+224.68%\n+0.0415\n8.91M\n48.49K\n0.04"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SGRB-US",
+      "text": "25\nSGRB\nSIGMABROADBAND CO\n0.0374\n+211.93%\n+0.0254\n10.28M\n240.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MRGE-US",
+      "text": "26\nMRGE\nMIRAGE ENERGY CORPORATION\n0.0122\n+205.00%\n+0.0082\n6.19M\n100.00\n-2.03"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BPTH-US",
+      "text": "27\nBPTH\nBio-Path Holdings\n0.000300\n+200.00%\n+0.000200\n15.09K\n198.69K\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMOD-US",
+      "text": "28\nAMOD\nAlpha Modus Holdings\n3.490\n+198.29%\n+2.320\n17.33M\n190.63M\n-2.83"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NVOS-US",
+      "text": "29\nNVOS\nNovo Integrated Sciences\n0.0017\n+175.00%\n+0.0011\n32.55K\n5.04K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AUTR-US",
+      "text": "30\nAUTR\nAUTRIS\n0.3699\n+146.60%\n+0.2199\n123.59M\n1.31K\n-123.30"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BOTY-US",
+      "text": "31\nBOTY\nLINGERIE FIGHTING CHAMPIONSHIPS INC\n0.0691\n+115.36%\n+0.0370\n132.24K\n1.20K\n-0.02"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SNYRQ-US",
+      "text": "32\nSNYRQ\nSynergy CHC\n0.0149\n+112.86%\n+0.0079\n222.01K\n403.68K\n-0.01"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SOPAQ-US",
+      "text": "33\nSOPAQ\nSociety Pass\n0.000200\n+100.00%\n+0.000100\n2.57K\n4.68K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AFMDQ-US",
+      "text": "34\nAFMDQ\nAffimed NV\n0.000200\n+100.00%\n+0.000100\n3.28K\n55.47K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RAKR-US",
+      "text": "35\nRAKR\nRAINMAKER WORLDWIDE INC\n0.000200\n+100.00%\n+0.000100\n19.00K\n1.21K\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/APTY-US",
+      "text": "36\nAPTY\nAPT SYSTEMS INC\n0.000200\n+100.00%\n+0.000100\n503.39K\n15.56M\n-0.07"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TIPS-US",
+      "text": "37\nTIPS\nTIARON INTERNET PRODUCTIONS & SERV\n0.0006\n+100.00%\n+0.0003\n1.42M\n315.34M\n-1.60"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GMZP-US",
+      "text": "38\nGMZP\nGEMZ CORPORATION\n0.000200\n+100.00%\n+0.000100\n490.30K\n2.40M\n-5.50"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ILUS-US",
+      "text": "39\nILUS\nILUSTRATO PICTURES INTL INC\n0.000200\n+100.00%\n+0.000100\n499.06K\n3.29M\n0.02"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AZRH-US",
+      "text": "40\nAZRH\nAZURE HLDG GROUP CORP\n0.0500\n+92.31%\n+0.0240\n2.85M\n500.00\n-784.56"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SMIT-US",
+      "text": "41\nSMIT\nSchmitt Industries\n0.0277\n+84.67%\n+0.0127\n107.26K\n515.00\n0.18"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RITRF-US",
+      "text": "42\nRITRF\nReitar Logtech Holdings\n0.0070\n+75.00%\n+0.0030\n437.11K\n1.04M\n0.05"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/EPWKF-US",
+      "text": "43\nEPWKF\nEPWK Holdings\n0.0026\n+73.33%\n+0.0011\n585.20K\n320.00\n-2.60"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BIOM-US",
+      "text": "44\nBIOM\nBIOMOLECULAR LIFE HOLDINGS INC\n0.8500\n+70.00%\n+0.3500\n987.36K\n10.52K\n-18.48"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LIFD-US",
+      "text": "45\nLIFD\nLFTD PARTNERS INC\n0.1710\n+69.31%\n+0.0700\n2.53M\n300.00\n0.36"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/OMTK-US",
+      "text": "46\nOMTK\nOMNITEK ENGINEERING CORP\n0.0325\n+60.10%\n+0.0122\n713.31K\n481.59K\n-0.59"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CYIO-US",
+      "text": "47\nCYIO\nCYIOS Corporation\n0.0008\n+60.00%\n+0.0003\n291.30K\n25.06M\n0.09"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GREH-US",
+      "text": "48\nGREH\nGREEN RAIN ENERGY HOLDINGS INC\n0.0058\n+56.76%\n+0.0021\n268.71K\n183.82K\n-0.09"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HWAL-US",
+      "text": "49\nHWAL\nHOLLYWALL ENTERTAINMENT INC\n0.0529\n+51.14%\n+0.0179\n7.69M\n11.65K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BOTX-US",
+      "text": "50\nBOTX\nDATZ WORLD HOLDINGS CORP\n0.1110\n+50.00%\n+0.0370\n1.74M\n458.00\n-1.28"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\nLog in to access Online Inquiry\nBack to the Top\nScreener\nRecommended Screeners\nP/B Ratio Less Than 1\nP/B Ratio Less Than 1\n\nSpot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.\n\nSelected:\n\nSave Screener\nMarket: USP/B: ≤1.00\nResult: 4534 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nP/B\nWatchlist\nPaper Trade\n1\nLADX\nLadRx\n0.011000\n+1099900.00%\n+0.010999\n5.45K\n4.73K\n-0.00\n2\nAMBIQ\nAmbipar Emergency Response\n0.070000\n+69900.00%\n+0.069900\n3.88M\n15.71K\n0.01\n3\nFPAYQ\nFLEXSHOPPER\n0.000100\n+9900.00%\n+0.000099\n2.85K\n10.00K\n0.00\n4\nAILEQ\niLearningEngines\n0.000100\n+9900.00%\n+0.000099\n14.12K\n41.01K\n0.00\n5\nPCTL\nPCT LTD\n0.000100\n+9900.00%\n+0.000099\n81.30K\n25.00K\n-0.02\n6\nMNGG\nMINING GLOBAL INC\n0.000100\n+9900.00%\n+0.000099\n722.52K\n1.00M\n-4.52\n7\nGAHC\nGLOBAL ARENA HOLDING INC\n0.000100\n+9900.00%\n+0.000099\n169.54K\n8.33K\n-0.01\n8\nGGII\nGREEN GLOBE INTERNATIONAL INC\n0.000100\n+9900.00%\n+0.000099\n6.66M\n138.00K\n-0.00\n9\nGTCH\nGBT TECHNOLOGIES INC\n0.000100\n+9900.00%\n+0.000099\n2.44M\n30.12M\n-0.24\n10\nGDET\nGD ENTMT & TECHNOLOGY INC\n0.000100\n+9900.00%\n+0.000099\n447.19K\n750.00K\n-0.16\n11\nGTLL\nGLOBAL TECHNOLOGIES\n0.000100\n+9900.00%\n+0.000099\n1.47M\n100.00K\n-1.34\n12\nSMFL\nSmart for Life\n0.000100\n+9900.00%\n+0.000099\n709.07\n666.00\n-0.00\n13\nLTNC\nLabor Smart Inc\n0.000100\n+9900.00%\n+0.000099\n2.96M\n20.13M\n-0.10\n14\nZENVF\nZenvia\n0.0060\n+2900.00%\n+0.0058\n315.40K\n3.40K\n0.00\n15\nSTAI\nScanTech AI Systems\n0.0155\n+2483.33%\n+0.0149\n58.22K\n389.00\n-0.00\n16\nSANW\nS&W Seed\n0.0200\n+1718.18%\n+0.0189\n42.94K\n10.35K\n0.00\n17\nAETHF\nAether Global Innovations\n0.0651\n+1202.00%\n+0.0601\n1.61M\n275.00\n-4.07\n18\nATHXQ\nAthersys\n0.000010\n+900.00%\n+0.000009\n617.19\n25.28K\n-0.00\n19\nSDCCQ\nSmileDirectClub\n0.000010\n+900.00%\n+0.000009\n1.34K\n6.23K\n0.00\n20\nFRCB\nFirst Republic Bank\n0.000800\n+700.00%\n+0.000700\n148.97K\n53.71K\n0.00\n21\nBHATF\nBlue Hat Interactive Entertainment Technology\n0.000600\n+500.00%\n+0.000500\n1.36K\n174.00\n0.00\n22\nBIGGQ\nBig Lots\n0.000500\n+400.00%\n+0.000400\n14.85K\n1.98K\n-0.00\n23\nNXUR\nNxu Inc\n0.0011\n+266.67%\n+0.0008\n2.82K\n297.00\n0.00\n24\nKBSR\nKBS REAL ESTATE INVT TR III INC\n0.0600\n+224.68%\n+0.0415\n8.91M\n48.49K\n0.04\n25\nSGRB\nSIGMABROADBAND CO\n0.0374\n+211.93%\n+0.0254\n10.28M\n240.00\n-0.00\n26\nMRGE\nMIRAGE ENERGY CORPORATION\n0.0122\n+205.00%\n+0.0082\n6.19M\n100.00\n-2.03\n27\nBPTH\nBio-Path Holdings\n0.000300\n+200.00%\n+0.000200\n15.09K\n198.69K\n-0.00\n28\nAMOD\nAlpha Modus Holdings\n3.490\n+198.29%\n+2.320\n17.33M\n190.63M\n-2.83\n29\nNVOS\nNovo Integrated Sciences\n0.0017\n+175.00%\n+0.0011\n32.55K\n5.04K\n0.00\n30\nAUTR\nAUTRIS\n0.3699\n+146.60%\n+0.2199\n123.59M\n1.31K\n-123.30\n31\nBOTY\nLINGERIE FIGHTING CHAMPIONSHIPS INC\n0.0691\n+115.36%\n+0.0370\n132.24K\n1.20K\n-0.02\n32\nSNYRQ\nSynergy CHC\n0.0149\n+112.86%\n+0.0079\n222.01K\n403.68K\n-0.01\n33\nSOPAQ\nSociety Pass\n0.000200\n+100.00%\n+0.000100\n2.57K\n4.68K\n0.00\n34\nAFMDQ\nAffimed NV\n0.000200\n+100.00%\n+0.000100\n3.28K\n55.47K\n0.00\n35\nRAKR\nRAINMAKER WORLDWIDE INC\n0.000200\n+100.00%\n+0.000100\n19.00K\n1.21K\n-0.00\n36\nAPTY\nAPT SYSTEMS INC\n0.000200\n+100.00%\n+0.000100\n503.39K\n15.56M\n-0.07\n37\nTIPS\nTIARON INTERNET PRODUCTIONS & SERV\n0.0006\n+100.00%\n+0.0003\n1.42M\n315.34M\n-1.60\n38\nGMZP\nGEMZ CORPORATION\n0.000200\n+100.00%\n+0.000100\n490.30K\n2.40M\n-5.50\n39\nILUS\nILUSTRATO PICTURES INTL INC\n0.000200\n+100.00%\n+0.000100\n499.06K\n3.29M\n0.02\n40\nAZRH\nAZURE HLDG GROUP CORP\n0.0500\n+92.31%\n+0.0240\n2.85M\n500.00\n-784.56\n41\nSMIT\nSchmitt Industries\n0.0277\n+84.67%\n+0.0127\n107.26K\n515.00\n0.18\n42\nRITRF\nReitar Logtech Holdings\n0.0070\n+75.00%\n+0.0030\n437.11K\n1.04M\n0.05\n43\nEPWKF\nEPWK Holdings\n0.0026\n+73.33%\n+0.0011\n585.20K\n320.00\n-2.60\n44\nBIOM\nBIOMOLECULAR LIFE HOLDINGS INC\n0.8500\n+70.00%\n+0.3500\n987.36K\n10.52K\n-18.48\n45\nLIFD\nLFTD PARTNERS INC\n0.1710\n+69.31%\n+0.0700\n2.53M\n300.00\n0.36\n46\nOMTK\nOMNITEK ENGINEERING CORP\n0.0325\n+60.10%\n+0.0122\n713.31K\n481.59K\n-0.59\n47\nCYIO\nCYIOS Corporation\n0.0008\n+60.00%\n+0.0003\n291.30K\n25.06M\n0.09\n48\nGREH\nGREEN RAIN ENERGY HOLDINGS INC\n0.0058\n+56.76%\n+0.0021\n268.71K\n183.82K\n-0.09\n49\nHWAL\nHOLLYWALL ENTERTAINMENT INC\n0.0529\n+51.14%\n+0.0179\n7.69M\n11.65K\n0.00\n50\nBOTX\nDATZ WORLD HOLDINGS CORP\n0.1110\n+50.00%\n+0.0370\n1.74M\n458.00\n-1.28\n1\n2\n3\n4\n5\n91\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nLow P/E Ratio Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBelow 30 RSI Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nJunk Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nSmall Cap Stocks with Huge Growth Potential\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\n1\n2"
+}

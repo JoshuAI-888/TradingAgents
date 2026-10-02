@@ -1,0 +1,207 @@
+{
+  "observed_at": "2026-10-02T20:47:08.778Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/junk-stocks-12",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/AILEQ-US",
+      "text": "1\nAILEQ\niLearningEngines\n0.000100\n+9900.00%\n+0.000099\n14.12K\n41.01K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PCTL-US",
+      "text": "2\nPCTL\nPCT LTD\n0.000100\n+9900.00%\n+0.000099\n81.30K\n25.00K\n0.05"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ZENVF-US",
+      "text": "3\nZENVF\nZenvia\n0.0060\n+2900.00%\n+0.0058\n315.40K\n3.40K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FRCB-US",
+      "text": "4\nFRCB\nFirst Republic Bank\n0.000800\n+700.00%\n+0.000700\n148.97K\n53.71K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FNEC-US",
+      "text": "5\nFNEC\nFIRST NATIONAL ENERGY CORPORATION\n0.0577\n+126.27%\n+0.0322\n5.95M\n340.00\n57.70"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BOTY-US",
+      "text": "6\nBOTY\nLINGERIE FIGHTING CHAMPIONSHIPS INC\n0.0691\n+115.36%\n+0.0370\n132.24K\n1.20K\n0.03"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AGYP-US",
+      "text": "7\nAGYP\nALLIED ENERGY CORPORATION NEVADA\n0.000200\n+100.00%\n+0.000100\n814.08K\n40.53M\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/OMTK-US",
+      "text": "8\nOMTK\nOMNITEK ENGINEERING CORP\n0.0325\n+60.10%\n+0.0122\n713.31K\n481.59K\n3.25"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CYIO-US",
+      "text": "9\nCYIO\nCYIOS Corporation\n0.0008\n+60.00%\n+0.0003\n291.30K\n25.06M\n0.80"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CPWR-US",
+      "text": "10\nCPWR\nOCEAN THERMAL ENERGY CORPORATION\n0.0040\n+48.15%\n+0.0013\n760.05K\n6.00K\n0.03"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FZMD-US",
+      "text": "11\nFZMD\nFUSE MEDICAL INC\n0.0330\n+43.48%\n+0.0100\n2.44M\n248.36K\n0.65"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMIH-US",
+      "text": "12\nAMIH\nAMERICAN INTERNATIONAL HLDGS CORP\n0.0020\n+42.86%\n+0.0006\n390.00K\n301.16K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AIBT-US",
+      "text": "13\nAIBT\nAIBOTICS INC\n0.0022\n+29.41%\n+0.0005\n1.87M\n12.00M\n0.22"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SNRY-US",
+      "text": "14\nSNRY\nSOLAR ENERGY INITIATIVES INC\n0.0023\n+27.78%\n+0.0005\n3.45M\n6.49M\n0.10"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NIVF-US",
+      "text": "15\nNIVF\nNewGenIvf\n0.1290\n+27.72%\n+0.0280\n311.85K\n297.79M\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BSFC-US",
+      "text": "16\nBSFC\nBlue Star Foods\n0.0009\n+25.71%\n+0.0002\n151.25K\n25.00K\n0.09"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NROM-US",
+      "text": "17\nNROM\nNOBLE ROMANS INC\n0.6610\n+18.04%\n+0.1010\n14.68M\n10.15K\n33.05"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/OSCI-US",
+      "text": "18\nOSCI\nOSCEOLA GOLD INC\n0.0698\n+16.33%\n+0.0098\n27.13M\n39.55K\n0.02"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PTPI-US",
+      "text": "19\nPTPI\nPetros Pharmaceuticals\n0.0038\n+13.64%\n+0.0005\n158.90K\n122.24K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PBSV-US",
+      "text": "20\nPBSV\nPHARMA-BIO SERVICES INC\n0.5000\n+11.11%\n+0.0500\n11.45M\n55.56K\n45.45"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CHUC-US",
+      "text": "21\nCHUC\nCHARLIES HOLDINGS INC\n0.1777\n+11.06%\n+0.0177\n49.85M\n24.56K\n8.89"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MDMP-US",
+      "text": "22\nMDMP\nMDM PERMIAN INC\n0.0031\n+10.71%\n+0.0003\n1.67M\n156.00K\n0.52"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SWAG-US",
+      "text": "23\nSWAG\nStran & Company\n1.470\n+10.53%\n+0.140\n27.40M\n35.36K\n147.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LLLI-US",
+      "text": "24\nLLLI\nLAMPERD LESS LETHL INC\n0.0033\n+9.60%\n+0.0003\n941.13K\n105.00\n3.29"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LUD-US",
+      "text": "25\nLUD\nLuda Technology\n3.820\n+9.46%\n+0.330\n86.68M\n12.56K\n152.80"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TXTM-US",
+      "text": "26\nTXTM\nPROTEXT MOBILITY INC\n0.0058\n+9.43%\n+0.0005\n50.99M\n12.01M\n0.01"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MOJO-US",
+      "text": "27\nMOJO\nEQUATOR BEVERAGE CO\n0.8950\n+9.15%\n+0.0750\n8.56M\n4.23K\n8.95"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RMSL-US",
+      "text": "28\nRMSL\nREMSLEEP HOLDINGS INC\n0.0016\n+8.00%\n+0.0001\n2.82M\n1.72M\n115.71"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BDST-US",
+      "text": "29\nBDST\nBebe Stores\n0.4849\n+7.76%\n+0.0349\n6.24M\n2.11K\n0.45"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CYBL-US",
+      "text": "30\nCYBL\nCYBERLUX CORP\n0.0007\n+7.69%\n+0.0001\n5.21M\n14.82M\n0.70"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ACGX-US",
+      "text": "31\nACGX\nALLIANCE CREATIVE GROUP INC\n0.0167\n+7.52%\n+0.0012\n129.68K\n2.72K\n0.02"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ALAR-US",
+      "text": "32\nALAR\nAlarum Technologies\n1.740\n+7.41%\n+0.120\n12.79M\n23.58K\n17.40"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KMRK-US",
+      "text": "33\nKMRK\nK-Tech Solutions\n1.150\n+6.98%\n+0.075\n24.27M\n74.40K\n143.75"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ORISF-US",
+      "text": "34\nORISF\nOriental Rise Holdings\n0.2269\n+6.93%\n+0.0147\n286.85K\n271.00\n0.17"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DWSN-US",
+      "text": "35\nDWSN\nDawson Geophysical\n2.760\n+6.15%\n+0.160\n85.71M\n73.06K\n23.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CHR-US",
+      "text": "36\nCHR\nCheer Holding\n1.650\n+5.77%\n+0.090\n3.87M\n33.66K\n0.12"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MATH-US",
+      "text": "37\nMATH\nMetalpha Technology\n1.110\n+5.71%\n+0.060\n52.30M\n65.92K\n55.50"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AUMN-US",
+      "text": "38\nAUMN\nGolden Minerals\n0.2272\n+5.63%\n+0.0121\n4.29M\n111.89K\n0.65"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/INSG-US",
+      "text": "39\nINSG\nInseego\n4.610\n+5.49%\n+0.240\n75.70M\n739.65K\n32.93"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SGLD-US",
+      "text": "40\nSGLD\nSCORPIO GOLD CORPORATION SPON ADS EACH REP 20 COM SHS\n3.850\n+5.48%\n+0.200\n66.64M\n54.50K\n19.25"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PFAI-US",
+      "text": "41\nPFAI\nPinnacle Food Group\n2.530\n+5.42%\n+0.130\n29.69M\n16.84K\n15.62"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ORBT-US",
+      "text": "42\nORBT\nORBIT INTERNATIONAL INC\n2.698\n+5.39%\n+0.138\n9.03M\n2.38K\n2.81"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ZHUD-US",
+      "text": "43\nZHUD\nZHUDING INTL LTD\n0.0100\n+5.26%\n+0.0005\n1.60M\n390.10K\n0.53"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/OMH-US",
+      "text": "44\nOMH\nOhmyhome\n2.650\n+5.16%\n+0.130\n5.11M\n96.32K\n0.02"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FRQN-US",
+      "text": "45\nFRQN\nFREQUENCY HLDGS INC\n0.0288\n+4.73%\n+0.0013\n166.87K\n7.10K\n0.01"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ATTT-US",
+      "text": "46\nATTT\nAtlas Trinity Tech\n2.690\n+4.67%\n+0.120\n15.80M\n7.49K\n2.94"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ASRV-US",
+      "text": "47\nASRV\nAmeriServ Financial\n4.645\n+4.38%\n+0.195\n78.87M\n12.24K\n9.11"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SNWV-US",
+      "text": "48\nSNWV\nSANUWAVE Health\n4.820\n+4.33%\n+0.200\n41.46M\n20.52K\n5.95"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DTGI-US",
+      "text": "49\nDTGI\nDIGERATI TECHNOLOGIES INC\n0.0049\n+4.26%\n+0.0002\n3.26M\n225.10K\n0.49"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NXTS-US",
+      "text": "50\nNXTS\nNexentis Technologies\n1.490\n+4.20%\n+0.060\n2.17M\n5.26K\n0.03"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\nLog in to access Online Inquiry\nBack to the Top\nScreener\nRecommended Screeners\nJunk Stocks\nJunk Stocks\n\nSpot small, high-risk, yet undervalued stocks with the potential for significant returns.\n\nApplied Filters: P/E ≥ 0, Stock Price < $5, Market Cap < $100 million.\n\nSelected:\n\nSave Screener\nMarket: USP/E TTM: ≥0.00Stock Price: ≤5.00Market Value: ≤100.00M\nResult: 532 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nP/E (TTM)\nWatchlist\nPaper Trade\n1\nAILEQ\niLearningEngines\n0.000100\n+9900.00%\n+0.000099\n14.12K\n41.01K\n0.00\n2\nPCTL\nPCT LTD\n0.000100\n+9900.00%\n+0.000099\n81.30K\n25.00K\n0.05\n3\nZENVF\nZenvia\n0.0060\n+2900.00%\n+0.0058\n315.40K\n3.40K\n0.00\n4\nFRCB\nFirst Republic Bank\n0.000800\n+700.00%\n+0.000700\n148.97K\n53.71K\n0.00\n5\nFNEC\nFIRST NATIONAL ENERGY CORPORATION\n0.0577\n+126.27%\n+0.0322\n5.95M\n340.00\n57.70\n6\nBOTY\nLINGERIE FIGHTING CHAMPIONSHIPS INC\n0.0691\n+115.36%\n+0.0370\n132.24K\n1.20K\n0.03\n7\nAGYP\nALLIED ENERGY CORPORATION NEVADA\n0.000200\n+100.00%\n+0.000100\n814.08K\n40.53M\n0.00\n8\nOMTK\nOMNITEK ENGINEERING CORP\n0.0325\n+60.10%\n+0.0122\n713.31K\n481.59K\n3.25\n9\nCYIO\nCYIOS Corporation\n0.0008\n+60.00%\n+0.0003\n291.30K\n25.06M\n0.80\n10\nCPWR\nOCEAN THERMAL ENERGY CORPORATION\n0.0040\n+48.15%\n+0.0013\n760.05K\n6.00K\n0.03\n11\nFZMD\nFUSE MEDICAL INC\n0.0330\n+43.48%\n+0.0100\n2.44M\n248.36K\n0.65\n12\nAMIH\nAMERICAN INTERNATIONAL HLDGS CORP\n0.0020\n+42.86%\n+0.0006\n390.00K\n301.16K\n0.00\n13\nAIBT\nAIBOTICS INC\n0.0022\n+29.41%\n+0.0005\n1.87M\n12.00M\n0.22\n14\nSNRY\nSOLAR ENERGY INITIATIVES INC\n0.0023\n+27.78%\n+0.0005\n3.45M\n6.49M\n0.10\n15\nNIVF\nNewGenIvf\n0.1290\n+27.72%\n+0.0280\n311.85K\n297.79M\n0.00\n16\nBSFC\nBlue Star Foods\n0.0009\n+25.71%\n+0.0002\n151.25K\n25.00K\n0.09\n17\nNROM\nNOBLE ROMANS INC\n0.6610\n+18.04%\n+0.1010\n14.68M\n10.15K\n33.05\n18\nOSCI\nOSCEOLA GOLD INC\n0.0698\n+16.33%\n+0.0098\n27.13M\n39.55K\n0.02\n19\nPTPI\nPetros Pharmaceuticals\n0.0038\n+13.64%\n+0.0005\n158.90K\n122.24K\n0.00\n20\nPBSV\nPHARMA-BIO SERVICES INC\n0.5000\n+11.11%\n+0.0500\n11.45M\n55.56K\n45.45\n21\nCHUC\nCHARLIES HOLDINGS INC\n0.1777\n+11.06%\n+0.0177\n49.85M\n24.56K\n8.89\n22\nMDMP\nMDM PERMIAN INC\n0.0031\n+10.71%\n+0.0003\n1.67M\n156.00K\n0.52\n23\nSWAG\nStran & Company\n1.470\n+10.53%\n+0.140\n27.40M\n35.36K\n147.00\n24\nLLLI\nLAMPERD LESS LETHL INC\n0.0033\n+9.60%\n+0.0003\n941.13K\n105.00\n3.29\n25\nLUD\nLuda Technology\n3.820\n+9.46%\n+0.330\n86.68M\n12.56K\n152.80\n26\nTXTM\nPROTEXT MOBILITY INC\n0.0058\n+9.43%\n+0.0005\n50.99M\n12.01M\n0.01\n27\nMOJO\nEQUATOR BEVERAGE CO\n0.8950\n+9.15%\n+0.0750\n8.56M\n4.23K\n8.95\n28\nRMSL\nREMSLEEP HOLDINGS INC\n0.0016\n+8.00%\n+0.0001\n2.82M\n1.72M\n115.71\n29\nBDST\nBebe Stores\n0.4849\n+7.76%\n+0.0349\n6.24M\n2.11K\n0.45\n30\nCYBL\nCYBERLUX CORP\n0.0007\n+7.69%\n+0.0001\n5.21M\n14.82M\n0.70\n31\nACGX\nALLIANCE CREATIVE GROUP INC\n0.0167\n+7.52%\n+0.0012\n129.68K\n2.72K\n0.02\n32\nALAR\nAlarum Technologies\n1.740\n+7.41%\n+0.120\n12.79M\n23.58K\n17.40\n33\nKMRK\nK-Tech Solutions\n1.150\n+6.98%\n+0.075\n24.27M\n74.40K\n143.75\n34\nORISF\nOriental Rise Holdings\n0.2269\n+6.93%\n+0.0147\n286.85K\n271.00\n0.17\n35\nDWSN\nDawson Geophysical\n2.760\n+6.15%\n+0.160\n85.71M\n73.06K\n23.00\n36\nCHR\nCheer Holding\n1.650\n+5.77%\n+0.090\n3.87M\n33.66K\n0.12\n37\nMATH\nMetalpha Technology\n1.110\n+5.71%\n+0.060\n52.30M\n65.92K\n55.50\n38\nAUMN\nGolden Minerals\n0.2272\n+5.63%\n+0.0121\n4.29M\n111.89K\n0.65\n39\nINSG\nInseego\n4.610\n+5.49%\n+0.240\n75.70M\n739.65K\n32.93\n40\nSGLD\nSCORPIO GOLD CORPORATION SPON ADS EACH REP 20 COM SHS\n3.850\n+5.48%\n+0.200\n66.64M\n54.50K\n19.25\n41\nPFAI\nPinnacle Food Group\n2.530\n+5.42%\n+0.130\n29.69M\n16.84K\n15.62\n42\nORBT\nORBIT INTERNATIONAL INC\n2.698\n+5.39%\n+0.138\n9.03M\n2.38K\n2.81\n43\nZHUD\nZHUDING INTL LTD\n0.0100\n+5.26%\n+0.0005\n1.60M\n390.10K\n0.53\n44\nOMH\nOhmyhome\n2.650\n+5.16%\n+0.130\n5.11M\n96.32K\n0.02\n45\nFRQN\nFREQUENCY HLDGS INC\n0.0288\n+4.73%\n+0.0013\n166.87K\n7.10K\n0.01\n46\nATTT\nAtlas Trinity Tech\n2.690\n+4.67%\n+0.120\n15.80M\n7.49K\n2.94\n47\nASRV\nAmeriServ Financial\n4.645\n+4.38%\n+0.195\n78.87M\n12.24K\n9.11\n48\nSNWV\nSANUWAVE Health\n4.820\n+4.33%\n+0.200\n41.46M\n20.52K\n5.95\n49\nDTGI\nDIGERATI TECHNOLOGIES INC\n0.0049\n+4.26%\n+0.0002\n3.26M\n225.10K\n0.49\n50\nNXTS\nNexentis Technologies\n1.490\n+4.20%\n+0.060\n2.17M\n5.26K\n0.03\n1\n2\n3\n4\n5\n11\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nLow P/E Ratio Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBelow 30 RSI Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nJunk Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nSmall Cap Stocks with Huge Growth Potential\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\n1\n2"
+}

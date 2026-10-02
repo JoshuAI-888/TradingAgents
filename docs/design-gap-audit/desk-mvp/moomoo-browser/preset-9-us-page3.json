@@ -1,0 +1,107 @@
+{
+  "observed_at": "2026-10-02T20:49:53.849Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/good-pe-ratio-stocks-9",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/ENB-US",
+      "text": "101\nENB\nEnbridge\n45.970\n-0.65%\n-0.300\n102.46B\n6.23M\n25.15\n11.95%\n5.86\n44.66%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CPT-US",
+      "text": "102\nCPT\nCamden Property Trust\n95.960\n-0.68%\n-0.660\n11.11B\n1.05M\n31.67\n25.10%\n4.40\n136.00%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/POAHY-US",
+      "text": "103\nPOAHY\nPORSCHE AUTO HL SE\n2.710\n-0.73%\n-0.020\n8.30B\n459.81K\n77.43\n96.65%\n6.35\n114.94%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CME-US",
+      "text": "104\nCME\nCME Group\n263.140\n-0.74%\n-1.960\n94.62B\n1.49M\n22.32\n62.45%\n4.28\n15.38%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RYN-US",
+      "text": "105\nRYN\nRayonier Inc\n18.060\n-0.88%\n-0.160\n5.37B\n3.83M\n40.13\n99.16%\n5.90\n27.39%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMH-US",
+      "text": "106\nAMH\nAmerican Homes 4 Rent\n30.260\n-0.88%\n-0.270\n10.89B\n3.01M\n24.02\n27.75%\n4.16\n9.26%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/JNJ-US",
+      "text": "107\nJNJ\nJohnson & Johnson\n256.030\n-1.02%\n-2.630\n617.01B\n10.18M\n29.70\n28.46%\n2.05\n90.58%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMGN-US",
+      "text": "108\nAMGN\nAmgen\n403.040\n-1.04%\n-4.230\n217.90B\n3.50M\n25.03\n20.98%\n2.43\n88.06%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KDP-US",
+      "text": "109\nKDP\nKeurig Dr Pepper\n30.370\n-1.04%\n-0.320\n41.33B\n9.93M\n30.68\n12.52%\n3.03\n44.34%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TMSNY-US",
+      "text": "110\nTMSNY\nTEMENOS AG SPON ADR EA REPR 1 ORD\n79.530\n-1.15%\n-0.925\n5.40B\n645.00\n27.71\n25.72%\n2.22\n65.04%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/UDR-US",
+      "text": "111\nUDR\nUDR Inc\n33.270\n-1.22%\n-0.410\n10.69B\n3.13M\n21.06\n23.58%\n5.18\n334.62%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FRT-US",
+      "text": "112\nFRT\nFederal Realty Investment Trust\n106.690\n-1.24%\n-1.340\n9.27B\n1.09M\n21.55\n33.12%\n4.24\n36.84%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KARO-US",
+      "text": "113\nKARO\nKarooooo\n60.000\n-1.25%\n-0.760\n1.85B\n63.27K\n30.21\n18.45%\n2.27\n25.27%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CHGCY-US",
+      "text": "114\nCHGCY\nChugai Pharmaceutical (ADR)\n19.080\n-1.29%\n-0.250\n62.80B\n794.24K\n21.06\n34.50%\n3.40\n12.34%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ROL-US",
+      "text": "115\nROL\nRollins\n30.160\n-1.34%\n-0.410\n14.51B\n5.51M\n27.42\n14.00%\n2.36\n13.54%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/INVH-US",
+      "text": "116\nINVH\nInvitation Homes Inc\n26.040\n-1.36%\n-0.360\n15.38B\n5.80M\n23.89\n21.61%\n4.57\n29.73%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SNY-US",
+      "text": "117\nSNY\nSanofi\n39.920\n-1.84%\n-0.750\n95.65B\n4.33M\n21.72\n16.81%\n5.92\n62.73%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HKXCY-US",
+      "text": "118\nHKXCY\nHONG KONG EXCHANGE\n47.880\n-2.07%\n-1.010\n60.52B\n73.92K\n24.04\n75.12%\n3.34\n35.89%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GIL-US",
+      "text": "119\nGIL\nGildan Activewear\n41.000\n-2.19%\n-0.920\n7.59B\n1.96M\n80.39\n11.02%\n2.32\n6.10%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ADP-US",
+      "text": "120\nADP\nAutomatic Data Processing\n257.680\n-2.38%\n-6.280\n102.11B\n2.13M\n23.55\n20.11%\n2.58\n9.48%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PSEC-US",
+      "text": "121\nPSEC\nProspect Capital\n2.000\n-2.44%\n-0.050\n1.07B\n5.98M\n33.33\n24.03%\n26.00\n104.44%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BXMT-US",
+      "text": "122\nBXMT\nBlackstone Mortgage Trust\n10.900\n-3.54%\n-0.400\n1.84B\n3.54M\n136.25\n19.84%\n17.25\n154.70%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CHLSY-US",
+      "text": "123\nCHLSY\nCHOCOLADEFABRIKEN LINDT SPRUNGLI AG UNSON ADS EACH REP 0.001 ORD SHS\n9.050\n-4.23%\n-0.400\n20.67B\n244.18K\n23.75\n12.28%\n2.48\n23.81%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CPTP-US",
+      "text": "124\nCPTP\nCAPITAL PROPERTIES INC\n14.000\n-4.63%\n-0.680\n92.40M\n132.00\n36.84\n41.67%\n2.29\n26.67%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SPXCY-US",
+      "text": "125\nSPXCY\nSINGAPORE EXCHANGE UNSP ADR EACH REPR 2 ORD\n32.910\n-6.24%\n-2.190\n17.62B\n56.64K\n32.46\n44.79%\n2.04\n5.85%"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\nScreener\nRecommended Screeners\nGood P/E Ratio Stocks\nGood P/E Ratio Stocks\n\nSpot stocks with solid fundamentals and high P/E ratios for consistent profitability and returns.\n\nApplied Filters: P/E ≥ 20, EPS YOY Growth ≥ 5%, Dividend Yield ≥ 2%, Net Margin ≥ 10%.\n\nSelected:\n\nSave Screener\nMarket: USP/E TTM: ≥20.00EPS YOY Growth: ≥5%Dividend Yield TTM: ≥2%Net Margin: ≥10%\nResult: 125 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nP/E (TTM)\nNet Margin\nDiv Yield TTM\nEPS YOY Growth\nWatchlist\nPaper Trade\n101\nENB\nEnbridge\n45.970\n-0.65%\n-0.300\n102.46B\n6.23M\n25.15\n11.95%\n5.86\n44.66%\n102\nCPT\nCamden Property Trust\n95.960\n-0.68%\n-0.660\n11.11B\n1.05M\n31.67\n25.10%\n4.40\n136.00%\n103\nPOAHY\nPORSCHE AUTO HL SE\n2.710\n-0.73%\n-0.020\n8.30B\n459.81K\n77.43\n96.65%\n6.35\n114.94%\n104\nCME\nCME Group\n263.140\n-0.74%\n-1.960\n94.62B\n1.49M\n22.32\n62.45%\n4.28\n15.38%\n105\nRYN\nRayonier Inc\n18.060\n-0.88%\n-0.160\n5.37B\n3.83M\n40.13\n99.16%\n5.90\n27.39%\n106\nAMH\nAmerican Homes 4 Rent\n30.260\n-0.88%\n-0.270\n10.89B\n3.01M\n24.02\n27.75%\n4.16\n9.26%\n107\nJNJ\nJohnson & Johnson\n256.030\n-1.02%\n-2.630\n617.01B\n10.18M\n29.70\n28.46%\n2.05\n90.58%\n108\nAMGN\nAmgen\n403.040\n-1.04%\n-4.230\n217.90B\n3.50M\n25.03\n20.98%\n2.43\n88.06%\n109\nKDP\nKeurig Dr Pepper\n30.370\n-1.04%\n-0.320\n41.33B\n9.93M\n30.68\n12.52%\n3.03\n44.34%\n110\nTMSNY\nTEMENOS AG SPON ADR EA REPR 1 ORD\n79.530\n-1.15%\n-0.925\n5.40B\n645.00\n27.71\n25.72%\n2.22\n65.04%\n111\nUDR\nUDR Inc\n33.270\n-1.22%\n-0.410\n10.69B\n3.13M\n21.06\n23.58%\n5.18\n334.62%\n112\nFRT\nFederal Realty Investment Trust\n106.690\n-1.24%\n-1.340\n9.27B\n1.09M\n21.55\n33.12%\n4.24\n36.84%\n113\nKARO\nKarooooo\n60.000\n-1.25%\n-0.760\n1.85B\n63.27K\n30.21\n18.45%\n2.27\n25.27%\n114\nCHGCY\nChugai Pharmaceutical (ADR)\n19.080\n-1.29%\n-0.250\n62.80B\n794.24K\n21.06\n34.50%\n3.40\n12.34%\n115\nROL\nRollins\n30.160\n-1.34%\n-0.410\n14.51B\n5.51M\n27.42\n14.00%\n2.36\n13.54%\n116\nINVH\nInvitation Homes Inc\n26.040\n-1.36%\n-0.360\n15.38B\n5.80M\n23.89\n21.61%\n4.57\n29.73%\n117\nSNY\nSanofi\n39.920\n-1.84%\n-0.750\n95.65B\n4.33M\n21.72\n16.81%\n5.92\n62.73%\n118\nHKXCY\nHONG KONG EXCHANGE\n47.880\n-2.07%\n-1.010\n60.52B\n73.92K\n24.04\n75.12%\n3.34\n35.89%\n119\nGIL\nGildan Activewear\n41.000\n-2.19%\n-0.920\n7.59B\n1.96M\n80.39\n11.02%\n2.32\n6.10%\n120\nADP\nAutomatic Data Processing\n257.680\n-2.38%\n-6.280\n102.11B\n2.13M\n23.55\n20.11%\n2.58\n9.48%\n121\nPSEC\nProspect Capital\n2.000\n-2.44%\n-0.050\n1.07B\n5.98M\n33.33\n24.03%\n26.00\n104.44%\n122\nBXMT\nBlackstone Mortgage Trust\n10.900\n-3.54%\n-0.400\n1.84B\n3.54M\n136.25\n19.84%\n17.25\n154.70%\n123\nCHLSY\nCHOCOLADEFABRIKEN LINDT SPRUNGLI AG UNSON ADS EACH REP 0.001 ORD SHS\n9.050\n-4.23%\n-0.400\n20.67B\n244.18K\n23.75\n12.28%\n2.48\n23.81%\n124\nCPTP\nCAPITAL PROPERTIES INC\n14.000\n-4.63%\n-0.680\n92.40M\n132.00\n36.84\n41.67%\n2.29\n26.67%\n125\nSPXCY\nSINGAPORE EXCHANGE UNSP ADR EACH REPR 2 ORD\n32.910\n-6.24%\n-2.190\n17.62B\n56.64K\n32.46\n44.79%\n2.04\n5.85%\n1\n2\n3\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\nSTRW\n\n+4.90%\n\nABX\n\n+4.82%\n\nSNLAY\n\n+3.77%\n\nLow P/E Ratio Stocks\n\nZENVF\n\n+2900.00%\n\nBHATF\n\n+500.00%\n\nNXUR\n\n+266.67%\n\nBelow 30 RSI Stocks\n\nBPTH\n\n+200.00%\n\nNCLX\n\n+36.36%\n\nNIVF\n\n+27.72%\n\nJunk Stocks\n\nAILEQ\n\n+9900.00%\n\nPCTL\n\n+9900.00%\n\nZENVF\n\n+2900.00%\n\nSmall Cap Stocks with Huge Growth Potential\n\nFCEL\n\n+11.47%\n\nAZ\n\n+9.75%\n\nHYLN\n\n+7.60%\n\nBlue Chip Dividend Stocks\n\nRIO\n\n+1.44%\n\n--\n\n--\n\n--\n\n--\n\n1\n2\nCustomer Service\n0800 886 800\n\n(toll free)\n\n+64 9 872 6000\n\n(from overseas)\n\nTrading days: 24 hours\n\nNon-trading days: 9:30 - 21:30 NZT\n\nsupport@nz.moomoo.com\n\nOfficial WhatsApp\n\nAbout moomoo\nAbout moomoo\nContact Us\nInvestor Relations\nTerms & Conditions\nPrivacy Policy\nTerms of Use\nFinancial Services Guide\nLicensed Entities*\nCareers / Contact:\nApply Now\ncareer@au.moomoo.com\nFollow us on\n\nThe moomoo app is an online trading platform offered by Moomoo Technologies Inc. In New Zealand, financial services are offered by Moomoo Securities Australia Ltd, NZBN: 942 905 240 2296, a financial services provider registered in New Zealand (FSP1008656). Moomoo Securities Australia Limited is not licensed by a New Zealand regulator to provide financial services. Its registration on the New Zealand FSP Register does not mean that it is subject to active regulation or oversight by a New Zealand regulator.\n\nInvestments carry risks and may result in losses. Market data or information on this website is for reference only and should not be seen as an endorsement or recommendation to buy or sell financial products. Past performance is not indicative of future results. The information is general and doesn't consider your personal investment objectives, financial situation, or needs. Consider your personal circumstances before making investment decisions.\n\nOptions trading involves substantial risks and may not be suitable for all investors. Losses could potentially exceed your initial investment. Please carefully review and consider our US Options Product Disclosure Statement and OCC's Characteristics and Risks of Standardized Options before trading options with us.\n\nPlease read, consider and understand our Financial Services Disclosure Statement, Privacy Policy, Website Terms and Conditions, Information Collection Notice and Risk Disclosure Statement before deciding to use our services.\n\nCompany Address: Moomoo Securities Australia Ltd. Suite 5.01, 570 George Street, Sydney NSW 2000\n\nCopyright © 2026 Moomoo Technologies Inc. All Rights Reserved."
+}

@@ -1,0 +1,207 @@
+{
+  "observed_at": "2026-10-02T20:47:22.047Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/high-roe-stocks-17",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/MRPLY-US",
+      "text": "1\nMRPLY\nMR.PRICE GROUP SPON ADR EACH REP 1 ORD ZAR0.025\n10.930\n+10.91%\n+1.075\n2.81B\n384.00\n12.97\n12.07%\n26.63%\n4.88"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/JUMSY-US",
+      "text": "2\nJUMSY\nJUMBO SA UNSPON ADR EA REPR 1 ORD EUR0.00\n30.440\n+8.08%\n+2.275\n4.09B\n1.03K\n11.36\n21.05%\n21.46%\n2.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/JBS-US",
+      "text": "3\nJBS\nJBS N.V\n11.670\n+7.46%\n+0.810\n38.39B\n6.70M\n10.91\n11.66%\n25.63%\n8.57"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/EGIEY-US",
+      "text": "4\nEGIEY\nENGIE BRASIL ENERGIA SA SPON ADR EACH REP 1 ORD SHS\n6.080\n+7.04%\n+0.400\n8.61B\n21.79K\n9.23\n29.29%\n21.50%\n3.83"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FYGGY-US",
+      "text": "5\nFYGGY\nFUYAO GLASS INDUSTRY GROUP CO. LTD. UNSP ADR EACH REPR 0.25 ORD SHS\n1.930\n+6.63%\n+0.120\n20.15B\n80.95K\n15.95\n21.71%\n25.43%\n3.99"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GJNSY-US",
+      "text": "6\nGJNSY\nGJENSIDIGE FORSIKRING ASA UNSP ADR EA REPR 1 ORD SHS\n27.068\n+6.49%\n+1.649\n13.53B\n1.58K\n19.70\n24.89%\n23.63%\n3.82"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CYRBY-US",
+      "text": "7\nCYRBY\nCYRELA BRAZIL REALTY SA EMPREENDIME SPONS ADR EA REP 1 ORD NPV\n5.460\n+5.81%\n+0.300\n1.97B\n41.54K\n6.13\n33.43%\n20.99%\n9.62"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/STRW-US",
+      "text": "8\nSTRW\nStrawberry Fields REIT\n13.500\n+4.90%\n+0.630\n191.12M\n103.53K\n21.09\n32.41%\n50.04%\n4.81"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BBSEY-US",
+      "text": "9\nBBSEY\nBB SEGURIDADE PARTICIPACOES SA SPON ADR EA REPR 1 ORD\n7.800\n+4.00%\n+0.300\n15.14B\n81.89K\n8.60\n24.94%\n89.81%\n11.22"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VDMCY-US",
+      "text": "10\nVDMCY\nVODACOM GROUP LIMITED SPON ADR EA REPR 1 ORD ZAR0.00\n9.210\n+3.02%\n+0.270\n17.79B\n20.60K\n14.81\n19.21%\n22.37%\n4.23"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CEVMY-US",
+      "text": "11\nCEVMY\nCTS EVENTIM AG & CO. KGAA UNSP ADS ECH REP 0.25 ORD SHS\n15.290\n+2.96%\n+0.440\n5.87B\n1.56K\n16.95\n23.78%\n26.30%\n2.67"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KMT-US",
+      "text": "12\nKMT\nKennametal\n32.600\n+2.94%\n+0.930\n2.49B\n1.54M\n7.38\n19.82%\n24.00%\n2.45"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMIGY-US",
+      "text": "13\nAMIGY\nADMIRAL GROUP UNSP ADR EACH REPR 1 ORD\n48.750\n+2.78%\n+1.320\n14.57B\n22.95K\n16.92\n16.15%\n52.79%\n4.77"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ESEA-US",
+      "text": "14\nESEA\nEuroseas\n72.420\n+2.71%\n+1.910\n510.95M\n43.52K\n3.71\n7.03%\n33.15%\n4.97"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMX-US",
+      "text": "15\nAMX\nAmerica Movil SAB de CV\n21.290\n+2.70%\n+0.560\n63.63B\n3.01M\n13.11\n24.58%\n22.65%\n2.81"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NNCHY-US",
+      "text": "16\nNNCHY\nNISSAN CHEMICAL CORPORATION UNSP ADR EA REPR 1 ORD SHS\n52.438\n+2.56%\n+1.308\n7.00B\n165.00\n22.51\n5.10%\n20.35%\n2.37"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SUZ-US",
+      "text": "17\nSUZ\nSuzano\n8.500\n+2.41%\n+0.200\n10.47B\n1.93M\n6.69\n19.24%\n35.24%\n2.66"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ITRN-US",
+      "text": "18\nITRN\nIturan Location & Control\n52.530\n+2.36%\n+1.210\n1.04B\n100.89K\n16.26\n6.77%\n28.78%\n5.71"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GBOOY-US",
+      "text": "19\nGBOOY\nGrupo Financiero Banorte SAB de CV Sponsored ADR Class O\n52.380\n+2.34%\n+1.200\n29.07B\n292.30K\n9.23\n29.44%\n23.59%\n9.43"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SBHGF-US",
+      "text": "20\nSBHGF\nSBI HOLDINGS INC\n20.250\n+2.30%\n+0.455\n13.09B\n41.98K\n5.13\n24.14%\n27.98%\n2.96"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SBS-US",
+      "text": "21\nSBS\nSabesp\n5.380\n+2.28%\n+0.120\n18.92B\n9.29M\n11.82\n18.86%\n21.33%\n2.71"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KRT-US",
+      "text": "22\nKRT\nKarat Packaging\n54.570\n+2.25%\n+1.200\n1.09B\n250.45K\n21.83\n10.67%\n20.39%\n3.30"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CNI-US",
+      "text": "23\nCNI\nCanadian National Railway\n119.770\n+2.23%\n+2.610\n72.35B\n831.30K\n21.87\n6.38%\n22.15%\n2.12"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HVRRY-US",
+      "text": "24\nHVRRY\nHANNOVER RUECK SE ADR (EACH REP 0.166 COM SHS) (SPONS)\n48.090\n+2.21%\n+1.040\n34.80B\n22.32K\n11.33\n13.40%\n21.37%\n4.99"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KSPI-US",
+      "text": "25\nKSPI\nKaspi.kz\n94.050\n+2.21%\n+2.030\n17.87B\n438.67K\n7.47\n66.83%\n53.54%\n3.85"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PAC-US",
+      "text": "26\nPAC\nPacific Airport\n200.900\n+2.18%\n+4.290\n11.95B\n221.58K\n19.94\n41.36%\n42.69%\n2.41"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CABGY-US",
+      "text": "27\nCABGY\nCarlsberg A/S Sponsored ADR Class B\n25.810\n+2.18%\n+0.550\n17.06B\n38.15K\n17.80\n33.93%\n21.43%\n3.43"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/COHN-US",
+      "text": "28\nCOHN\nCohen\n9.780\n+2.09%\n+0.200\n31.58M\n7.29K\n2.08\n246.19%\n31.12%\n10.22"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TLTZY-US",
+      "text": "29\nTLTZY\nTELE2 AB UNSP ADR EACH REP 0.50 'B' ORD\n7.950\n+2.05%\n+0.160\n11.03B\n114.79K\n11.03\n21.20%\n20.68%\n5.41"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/EVMNY-US",
+      "text": "30\nEVMNY\nEVOLUTION MINING LTD ADR EACH REPR 10 ORD SHS UNSP\n91.200\n+2.00%\n+1.789\n18.65B\n5.44K\n18.08\n33.01%\n27.35%\n2.46"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KTB-US",
+      "text": "31\nKTB\nKontoor Brands\n64.710\n+1.87%\n+1.190\n3.54B\n664.20K\n13.51\n20.90%\n47.14%\n3.26"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GASNY-US",
+      "text": "32\nGASNY\nNATURGY ENERGY GROUP SA UNSPON ADR EACH REPR 0.20 ORD SHS\n6.570\n+1.86%\n+0.120\n30.43B\n63.97K\n13.49\n14.00%\n21.50%\n6.16"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ANYYY-US",
+      "text": "33\nANYYY\nAENA SME S.A. UNSP ADR EACH REPR 0.1 ORD SHS\n14.340\n+1.85%\n+0.260\n43.02B\n51.47K\n17.11\n22.98%\n24.05%\n4.36"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HLTOY-US",
+      "text": "34\nHLTOY\nOTE(HELLENIC TELECOM ORGANIZATION) LVL III ADS EACH REP 1/2 ORD EUR2.83\n10.786\n+1.81%\n+0.192\n8.87B\n3.90K\n9.90\n17.31%\n24.59%\n4.77"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KCDMY-US",
+      "text": "35\nKCDMY\nKIMBERLY-CLARK DE MEXICO SAB DE CV ADR-REPR 5 ORD'A'NPV\n10.449\n+1.74%\n+0.179\n6.24B\n30.38K\n14.49\n15.99%\n103.55%\n5.80"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ATDRY-US",
+      "text": "36\nATDRY\nAUTOTRADER GROUP PLC UNSP ADR EA REPR 0.25 ORD\n1.495\n+1.70%\n+0.025\n4.59B\n2.82M\n13.35\n6.34%\n60.19%\n2.41"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ITUB-US",
+      "text": "37\nITUB\nItau Unibanco\n8.590\n+1.70%\n+0.143\n94.68B\n44.95M\n10.67\n12.60%\n21.59%\n6.97"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BHP-US",
+      "text": "38\nBHP\nBHP Group Ltd\n86.070\n+1.68%\n+1.420\n218.74B\n3.20M\n22.27\n14.63%\n20.56%\n3.09"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMADY-US",
+      "text": "39\nAMADY\nAMADEUS IT GROUP SA UNSP ADS EA REPR 1 ORD SH\n59.570\n+1.60%\n+0.940\n25.02B\n49.61K\n17.49\n19.80%\n26.94%\n2.93"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DRI-US",
+      "text": "40\nDRI\nDarden Restaurants\n200.330\n+1.48%\n+2.920\n22.75B\n1.10M\n19.58\n9.39%\n53.41%\n3.05"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AKBTY-US",
+      "text": "41\nAKBTY\nAKBANK TURK ANONIM SIRKETI ADR REP 2 ORD TRY1\n2.770\n+1.47%\n+0.040\n7.20B\n2.78K\n5.30\n18.17%\n20.80%\n3.39"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/UUGRY-US",
+      "text": "42\nUUGRY\nUNITED UTILITIES GROUP PLC ADR EACH REPR 2 ORD\n37.520\n+1.46%\n+0.540\n13.94B\n110.81K\n16.57\n24.88%\n27.67%\n3.62"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CNQ-US",
+      "text": "43\nCNQ\nCanadian Natural Resources\n48.440\n+1.36%\n+0.650\n99.86B\n4.33M\n12.26\n11.51%\n25.81%\n3.53"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CCHGY-US",
+      "text": "44\nCCHGY\nCOCA-COLA HBC AG UNSPON ADR EACH REP 1 ORD\n56.270\n+1.32%\n+0.735\n20.51B\n6.90K\n18.33\n21.82%\n26.68%\n2.41"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ASR-US",
+      "text": "45\nASR\nGrupo Aeroportuario del Sureste SAB de CV\n234.410\n+1.31%\n+3.020\n7.20B\n70.51K\n12.96\n36.38%\n22.38%\n2.42"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RMVEY-US",
+      "text": "46\nRMVEY\nRIGHTMOVE ADR\n12.160\n+1.25%\n+0.150\n4.41B\n2.36K\n16.11\n17.02%\n266.08%\n2.30"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BOLSY-US",
+      "text": "47\nBOLSY\nB3 SA - BRASIL BOLSA BALCAO UNSPN EACH ADS REP 3 ORD SHS\n10.750\n+1.13%\n+0.120\n17.85B\n499.74K\n18.70\n19.36%\n25.61%\n5.36"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ORKLY-US",
+      "text": "48\nORKLY\nORKLA ASA SPON ADR EACH REP 1 COM SHS CL A\n9.533\n+1.09%\n+0.103\n9.15B\n243.37K\n13.37\n16.82%\n23.73%\n6.38"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CMCL-US",
+      "text": "49\nCMCL\nCaledonia Mining\n24.010\n+1.01%\n+0.240\n464.24M\n160.29K\n6.88\n46.25%\n23.06%\n2.33"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NRIM-US",
+      "text": "50\nNRIM\nNorthrim BanCorp\n24.760\n+0.90%\n+0.220\n550.78M\n159.19K\n8.14\n37.10%\n21.77%\n2.58"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\nLog in to access Online Inquiry\nBack to the Top\nScreener\nRecommended Screeners\nHigh Return On Equity Stocks\nHigh Return On Equity Stocks\n\nSpot high-quality stocks with solid profitability, growth, and attractive dividends for long-term stability.\n\nApplied Filters: ROE ≥ 20%, Revenue Growth (%) ≥5%, Dividend Yield ≥ 2%, P/E ≤ 25.\n\nSelected:\n\nSave Screener\nMarket: USROE: ≥20%Operating Revenue Growth Rate: ≥5%Dividend Yield TTM: ≥2%P/E TTM: ≤25.00\nResult: 212 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nP/E (TTM)\nRevenue GR (YOY)\nROE\nDiv Yield TTM\nWatchlist\nPaper Trade\n1\nMRPLY\nMR.PRICE GROUP SPON ADR EACH REP 1 ORD ZAR0.025\n10.930\n+10.91%\n+1.075\n2.81B\n384.00\n12.97\n12.07%\n26.63%\n4.88\n2\nJUMSY\nJUMBO SA UNSPON ADR EA REPR 1 ORD EUR0.00\n30.440\n+8.08%\n+2.275\n4.09B\n1.03K\n11.36\n21.05%\n21.46%\n2.00\n3\nJBS\nJBS N.V\n11.670\n+7.46%\n+0.810\n38.39B\n6.70M\n10.91\n11.66%\n25.63%\n8.57\n4\nEGIEY\nENGIE BRASIL ENERGIA SA SPON ADR EACH REP 1 ORD SHS\n6.080\n+7.04%\n+0.400\n8.61B\n21.79K\n9.23\n29.29%\n21.50%\n3.83\n5\nFYGGY\nFUYAO GLASS INDUSTRY GROUP CO. LTD. UNSP ADR EACH REPR 0.25 ORD SHS\n1.930\n+6.63%\n+0.120\n20.15B\n80.95K\n15.95\n21.71%\n25.43%\n3.99\n6\nGJNSY\nGJENSIDIGE FORSIKRING ASA UNSP ADR EA REPR 1 ORD SHS\n27.068\n+6.49%\n+1.649\n13.53B\n1.58K\n19.70\n24.89%\n23.63%\n3.82\n7\nCYRBY\nCYRELA BRAZIL REALTY SA EMPREENDIME SPONS ADR EA REP 1 ORD NPV\n5.460\n+5.81%\n+0.300\n1.97B\n41.54K\n6.13\n33.43%\n20.99%\n9.62\n8\nSTRW\nStrawberry Fields REIT\n13.500\n+4.90%\n+0.630\n191.12M\n103.53K\n21.09\n32.41%\n50.04%\n4.81\n9\nBBSEY\nBB SEGURIDADE PARTICIPACOES SA SPON ADR EA REPR 1 ORD\n7.800\n+4.00%\n+0.300\n15.14B\n81.89K\n8.60\n24.94%\n89.81%\n11.22\n10\nVDMCY\nVODACOM GROUP LIMITED SPON ADR EA REPR 1 ORD ZAR0.00\n9.210\n+3.02%\n+0.270\n17.79B\n20.60K\n14.81\n19.21%\n22.37%\n4.23\n11\nCEVMY\nCTS EVENTIM AG & CO. KGAA UNSP ADS ECH REP 0.25 ORD SHS\n15.290\n+2.96%\n+0.440\n5.87B\n1.56K\n16.95\n23.78%\n26.30%\n2.67\n12\nKMT\nKennametal\n32.600\n+2.94%\n+0.930\n2.49B\n1.54M\n7.38\n19.82%\n24.00%\n2.45\n13\nAMIGY\nADMIRAL GROUP UNSP ADR EACH REPR 1 ORD\n48.750\n+2.78%\n+1.320\n14.57B\n22.95K\n16.92\n16.15%\n52.79%\n4.77\n14\nESEA\nEuroseas\n72.420\n+2.71%\n+1.910\n510.95M\n43.52K\n3.71\n7.03%\n33.15%\n4.97\n15\nAMX\nAmerica Movil SAB de CV\n21.290\n+2.70%\n+0.560\n63.63B\n3.01M\n13.11\n24.58%\n22.65%\n2.81\n16\nNNCHY\nNISSAN CHEMICAL CORPORATION UNSP ADR EA REPR 1 ORD SHS\n52.438\n+2.56%\n+1.308\n7.00B\n165.00\n22.51\n5.10%\n20.35%\n2.37\n17\nSUZ\nSuzano\n8.500\n+2.41%\n+0.200\n10.47B\n1.93M\n6.69\n19.24%\n35.24%\n2.66\n18\nITRN\nIturan Location & Control\n52.530\n+2.36%\n+1.210\n1.04B\n100.89K\n16.26\n6.77%\n28.78%\n5.71\n19\nGBOOY\nGrupo Financiero Banorte SAB de CV Sponsored ADR Class O\n52.380\n+2.34%\n+1.200\n29.07B\n292.30K\n9.23\n29.44%\n23.59%\n9.43\n20\nSBHGF\nSBI HOLDINGS INC\n20.250\n+2.30%\n+0.455\n13.09B\n41.98K\n5.13\n24.14%\n27.98%\n2.96\n21\nSBS\nSabesp\n5.380\n+2.28%\n+0.120\n18.92B\n9.29M\n11.82\n18.86%\n21.33%\n2.71\n22\nKRT\nKarat Packaging\n54.570\n+2.25%\n+1.200\n1.09B\n250.45K\n21.83\n10.67%\n20.39%\n3.30\n23\nCNI\nCanadian National Railway\n119.770\n+2.23%\n+2.610\n72.35B\n831.30K\n21.87\n6.38%\n22.15%\n2.12\n24\nHVRRY\nHANNOVER RUECK SE ADR (EACH REP 0.166 COM SHS) (SPONS)\n48.090\n+2.21%\n+1.040\n34.80B\n22.32K\n11.33\n13.40%\n21.37%\n4.99\n25\nKSPI\nKaspi.kz\n94.050\n+2.21%\n+2.030\n17.87B\n438.67K\n7.47\n66.83%\n53.54%\n3.85\n26\nPAC\nPacific Airport\n200.900\n+2.18%\n+4.290\n11.95B\n221.58K\n19.94\n41.36%\n42.69%\n2.41\n27\nCABGY\nCarlsberg A/S Sponsored ADR Class B\n25.810\n+2.18%\n+0.550\n17.06B\n38.15K\n17.80\n33.93%\n21.43%\n3.43\n28\nCOHN\nCohen\n9.780\n+2.09%\n+0.200\n31.58M\n7.29K\n2.08\n246.19%\n31.12%\n10.22\n29\nTLTZY\nTELE2 AB UNSP ADR EACH REP 0.50 'B' ORD\n7.950\n+2.05%\n+0.160\n11.03B\n114.79K\n11.03\n21.20%\n20.68%\n5.41\n30\nEVMNY\nEVOLUTION MINING LTD ADR EACH REPR 10 ORD SHS UNSP\n91.200\n+2.00%\n+1.789\n18.65B\n5.44K\n18.08\n33.01%\n27.35%\n2.46\n31\nKTB\nKontoor Brands\n64.710\n+1.87%\n+1.190\n3.54B\n664.20K\n13.51\n20.90%\n47.14%\n3.26\n32\nGASNY\nNATURGY ENERGY GROUP SA UNSPON ADR EACH REPR 0.20 ORD SHS\n6.570\n+1.86%\n+0.120\n30.43B\n63.97K\n13.49\n14.00%\n21.50%\n6.16\n33\nANYYY\nAENA SME S.A. UNSP ADR EACH REPR 0.1 ORD SHS\n14.340\n+1.85%\n+0.260\n43.02B\n51.47K\n17.11\n22.98%\n24.05%\n4.36\n34\nHLTOY\nOTE(HELLENIC TELECOM ORGANIZATION) LVL III ADS EACH REP 1/2 ORD EUR2.83\n10.786\n+1.81%\n+0.192\n8.87B\n3.90K\n9.90\n17.31%\n24.59%\n4.77\n35\nKCDMY\nKIMBERLY-CLARK DE MEXICO SAB DE CV ADR-REPR 5 ORD'A'NPV\n10.449\n+1.74%\n+0.179\n6.24B\n30.38K\n14.49\n15.99%\n103.55%\n5.80\n36\nATDRY\nAUTOTRADER GROUP PLC UNSP ADR EA REPR 0.25 ORD\n1.495\n+1.70%\n+0.025\n4.59B\n2.82M\n13.35\n6.34%\n60.19%\n2.41\n37\nITUB\nItau Unibanco\n8.590\n+1.70%\n+0.143\n94.68B\n44.95M\n10.67\n12.60%\n21.59%\n6.97\n38\nBHP\nBHP Group Ltd\n86.070\n+1.68%\n+1.420\n218.74B\n3.20M\n22.27\n14.63%\n20.56%\n3.09\n39\nAMADY\nAMADEUS IT GROUP SA UNSP ADS EA REPR 1 ORD SH\n59.570\n+1.60%\n+0.940\n25.02B\n49.61K\n17.49\n19.80%\n26.94%\n2.93\n40\nDRI\nDarden Restaurants\n200.330\n+1.48%\n+2.920\n22.75B\n1.10M\n19.58\n9.39%\n53.41%\n3.05\n41\nAKBTY\nAKBANK TURK ANONIM SIRKETI ADR REP 2 ORD TRY1\n2.770\n+1.47%\n+0.040\n7.20B\n2.78K\n5.30\n18.17%\n20.80%\n3.39\n42\nUUGRY\nUNITED UTILITIES GROUP PLC ADR EACH REPR 2 ORD\n37.520\n+1.46%\n+0.540\n13.94B\n110.81K\n16.57\n24.88%\n27.67%\n3.62\n43\nCNQ\nCanadian Natural Resources\n48.440\n+1.36%\n+0.650\n99.86B\n4.33M\n12.26\n11.51%\n25.81%\n3.53\n44\nCCHGY\nCOCA-COLA HBC AG UNSPON ADR EACH REP 1 ORD\n56.270\n+1.32%\n+0.735\n20.51B\n6.90K\n18.33\n21.82%\n26.68%\n2.41\n45\nASR\nGrupo Aeroportuario del Sureste SAB de CV\n234.410\n+1.31%\n+3.020\n7.20B\n70.51K\n12.96\n36.38%\n22.38%\n2.42\n46\nRMVEY\nRIGHTMOVE ADR\n12.160\n+1.25%\n+0.150\n4.41B\n2.36K\n16.11\n17.02%\n266.08%\n2.30\n47\nBOLSY\nB3 SA - BRASIL BOLSA BALCAO UNSPN EACH ADS REP 3 ORD SHS\n10.750\n+1.13%\n+0.120\n17.85B\n499.74K\n18.70\n19.36%\n25.61%\n5.36\n48\nORKLY\nORKLA ASA SPON ADR EACH REP 1 COM SHS CL A\n9.533\n+1.09%\n+0.103\n9.15B\n243.37K\n13.37\n16.82%\n23.73%\n6.38\n49\nCMCL\nCaledonia Mining\n24.010\n+1.01%\n+0.240\n464.24M\n160.29K\n6.88\n46.25%\n23.06%\n2.33\n50\nNRIM\nNorthrim BanCorp\n24.760\n+0.90%\n+0.220\n550.78M\n159.19K\n8.14\n37.10%\n21.77%\n2.58\n1\n2\n3\n4\n5\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBest Long Term High Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nLow P/E Ratio Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBelow 30 RSI Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nJunk Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nSmall Cap Stocks with Huge Growth Potential\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\n1\n2"
+}
