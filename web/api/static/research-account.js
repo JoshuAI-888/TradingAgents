@@ -36,6 +36,7 @@ function researchPrivateClear(close=true) {
  const previousOwner=window.__researchSession?.user.id;
  if(close || previousOwner){try{sessionStorage.removeItem('researchListNavigationV1');const origin=JSON.parse(sessionStorage.getItem('researchOriginV1'));if(origin?.owner)sessionStorage.removeItem('researchOriginV1');}catch(e){}}
  window.__researchNavigationOwner=null;
+ window.__researchChangeSelection=null;window.__researchChangeBulk=null;
  window.__researchPairDrafts={};window.__researchPairDraftKey=null;window.__changeGen=(window.__changeGen || 0)+1;
  if(window.__changePayload?.review_scope==='private_capture_pair'){window.__changePayload=null;researchCloseInspector(false);const changes=document.getElementById('research-change-results');if(changes){changes.innerHTML='Private review cleared. Reloading comparison…';researchChangeState().review_status='all';}}
  for(const url of window.__researchExportURLs || [])URL.revokeObjectURL(url);window.__researchExportURLs=new Set();
@@ -43,10 +44,10 @@ function researchPrivateClear(close=true) {
  window.__researchSession=null;window.__researchLists=[];window.__researchListItems=[];window.__researchCurrentList=null;window.__researchListID=null;
  window.__researchListOffset=0;window.__researchListsArchived=false;window.__researchUndo=null;window.__researchReviewDraft=null;window.__researchNoteDrafts={};window.__researchPendingAdd=null;
  window.__researchListSearch='';window.__researchListStatus='all';window.__researchReviewCursor=null;clearTimeout(window.__researchListSearchTimer);
- if(window.__researchContext?.kind==='shortlists')window.__researchContext=null;
+ if(window.__researchContext?.kind==='shortlists' || window.__researchContext?.kind==='changes' && window.__researchContext.private)window.__researchContext=null;
  if(window.__researchPrivateInspect){researchCloseInspector(false);document.getElementById('research-inspector')?.replaceChildren();window.__researchPrivateInspect=false;}
  if(typeof state!=='undefined' && state.page==='shortlists'){const page=document.getElementById('page');if(page)page.innerHTML='<section class="panel"><h2>Private research cleared</h2><button class="btn ghost" onclick="researchAccountOpen()">Sign in</button></section>';}
- if(close || window.__researchDialog?.querySelector('form[data-review]'))researchDialogClose(false);
+ if(close || window.__researchDialog?.querySelector('form[data-review]') || window.__researchDialog?.hasAttribute?.('data-change-bulk'))researchDialogClose(false);
  try{sessionStorage.removeItem('researchAuthSessionV1');}catch(e){}
  researchAccountButton();
  if(document.getElementById('research-change-results'))researchLoadChanges();

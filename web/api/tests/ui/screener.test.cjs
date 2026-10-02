@@ -797,7 +797,7 @@ test('normalizing an existing screener deep link does not push another browser h
 });
 
 test('navigation helpers are loaded through versioned browser assets',()=>{
- assert.match(html,/research-workspace\.js\?v=20261002-pair-review/);assert.match(html,/research-account\.js\?v=20261002-pair-review/);
+ assert.match(html,/research-workspace\.js\?v=20261002-pair-selection/);assert.match(html,/research-account\.js\?v=20261002-pair-selection/);
 });
 
 
@@ -919,4 +919,46 @@ test('reload saved pair review adopts the current revision without replacing the
  const form={isConnected:true,elements:{note:{value:'my draft'},review_status:{value:'in_review'}},querySelector:()=>status};let rendered;
  c.researchChangeInspect=code=>rendered=code;c.researchPrivateAPI=async path=>{const query=new URLSearchParams(path.split('?')[1]);assert.equal(query.get('code'),'US.A');assert.equal(query.get('review_status'),'all');return {rows:[{code:'US.A',review:{revision:3,note:'other edit',review_status:'reviewed'}}]};};
  await c.researchPairReload(form);const draft=c.__researchPairDrafts[key];assert.equal(draft.note,'my draft');assert.equal(draft.review_status,'in_review');assert.equal(draft.revision,3);assert.equal(draft.latest.note,'other edit');assert.equal(rendered,'US.A');
+});
+
+test('Changes selections persist across pages but clear on query, pair, revision or owner changes',()=>{
+ const c=harness(),pair={comparable:true,definition:{market:'US'},previous_id:'before',current_id:'after',review_scope:'private_capture_pair',review_revision_hash:'h1',rows:[{code:'US.A',symbol:'A'}]};
+ c.__researchSession={user:{id:'owner'}};c.__changePayload=pair;c.researchChangeSelectPage(true);
+ c.researchChangeState().offset=500;pair.rows=[{code:'US.B',symbol:'B'}];c.researchChangeSelectPage(true);
+ assert.deepEqual(Array.from(c.researchChangeSelection().rows,r=>r.code),['US.A','US.B']);c.researchChangeSelectPage(false);
+ assert.deepEqual(Array.from(c.researchChangeSelection().rows,r=>r.code),['US.A']);
+ for(const mutate of [()=>c.researchChangeState().q='B',()=>pair.current_id='later',()=>pair.review_revision_hash='h2',()=>c.__researchSession.user.id='other']){
+  c.researchChangeSelectPage(true);assert.ok(c.researchChangeSelection().rows.length);mutate();assert.equal(c.researchChangeSelection().rows.length,0);assert.match(c.researchChangeSelection().message,/cleared/);
+ }
+});
+
+test('selected comparison downloads retain server ordering and reject stale revision or missing identities',async()=>{
+ const c=harness(),pair={comparable:true,definition:{market:'US'},previous_id:'1',current_id:'2',review_scope:'private_capture_pair',review_revision_hash:'original',rows:[{code:'US.A'},{code:'US.C'}]};
+ c.__changePayload=pair;c.__researchSession={user:{id:'owner'}};c.researchChangeSelectPage(true);let blob,warning,clicks=0;
+ c.alert=m=>warning=m;c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){clicks++;},remove(){}});
+ let hash='original',rows=[{code:'US.C'},{code:'US.B'},{code:'US.A'}];c.researchPrivateAPI=async()=>({...pair,review_revision_hash:hash,matched:rows.length,rows});
+ await c.researchChangesExport('selected');const csv=await blob.text();assert.equal(clicks,1);assert.ok(csv.indexOf('US.C')<csv.indexOf('US.A'));assert.doesNotMatch(csv,/US.B/);assert.match(csv,/selected/);
+ hash='updated';await c.researchChangesExport('selected');assert.equal(clicks,1);assert.match(warning,/changed since selection/);
+ hash='original';rows=[{code:'US.A'}];await c.researchChangesExport('selected');assert.equal(clicks,1);assert.match(warning,/no longer in this review/);
+});
+
+test('Changes bulk retries only unconfirmed additions and rejects account changes or loading',async()=>{
+ const c=harness(),pair={comparable:true,definition:{market:'US'},previous_id:'1',current_id:'2',rows:[{code:'US.A'},{code:'US.B'},{code:'US.C'}]};
+ c.__changePayload=pair;c.__researchSession={user:{id:'owner'}};c.researchChangeSelectPage(true);
+ const bulk={owner:'owner',key:c.researchChangeSelection().key,codes:['US.A','US.B','US.C'],done:[],failures:[]};c.__researchChangeBulk=bulk;
+ const list={value:'00000000-0000-4000-8000-000000000003'},button={isConnected:true},status={},failures={};
+ c.__researchDialog={querySelector:s=>s==='select'?list:s==='button.primary'?button:s==='[role=status]'?status:failures};
+ let retry=false,calls=[];c.researchPrivateAPI=async(path,opts)=>{const body=JSON.parse(opts.body);assert.deepEqual(Object.keys(body),['code']);calls.push(body.code);if(body.code==='US.B' && !retry)throw Error('temporary outage');return {item:{code:body.code}};};
+ await c.researchChangeBulkAdd();assert.deepEqual(Array.from(bulk.done),['US.A','US.C']);assert.match(status.textContent,/2 of 3 additions confirmed/);assert.equal(bulk.failures.length,1);
+ retry=true;await c.researchChangeBulkAdd();assert.deepEqual(calls,['US.A','US.B','US.C','US.B']);assert.equal(bulk.done.length,3);
+ c.__researchSession.user.id='other';await c.researchChangeBulkAdd();assert.equal(calls.length,4);assert.match(status.textContent,/account changed/);
+ c.__changeLoading=true;await c.researchChangeBulkAdd();assert.equal(calls.length,4);assert.match(status.textContent,/finish loading/);
+});
+
+test('Changes origin rejects malformed private selection and restores only the matching owner',async()=>{
+ const c=harness();c.__researchSession={user:{id:'owner'}};c.__researchAccountReady=Promise.resolve();
+ const valid={kind:'changes',private:true,state:{presentation:'changes'},rows:[{code:'US.A'}],selected:['US.A'],scroll:0,changeState:{key:'query',status:'all',q:'',direction:2,offset:500,limit:500},changeSelection:{key:'selection',rows:[{code:'US.A'}]}};
+ let context=valid;c.sessionStorage.getItem=()=>JSON.stringify({version:1,owner:'owner',context});await c.researchOriginRestore();assert.equal(c.__researchContext.changeState.offset,500);
+ for(const bad of [{...valid,state:null},{...valid,private:'true'},{...valid,changeSelection:{key:'selection',rows:[{code:'US.A'},{code:'US.A'}]}},{...valid,changeState:{...valid.changeState,offset:-1}}]){context=bad;c.__researchContext=null;await c.researchOriginRestore();assert.equal(c.__researchContext,null);}
+ context=valid;c.__researchSession.user.id='other';await c.researchOriginRestore();assert.equal(c.__researchContext,null);
 });

@@ -1,0 +1,15 @@
+{
+  "file": "/Users/joshmini/Downloads/screen_comparison_fixture-before_fixture-after_selected.csv",
+  "rows": 2,
+  "codes": [
+    "US.S0001",
+    "US.S0103"
+  ],
+  "scope": "selected",
+  "pair": [
+    "fixture-before",
+    "fixture-after"
+  ],
+  "review_revision_hash": "bbc843cbcf0223730993979752e452285c9d317da58e6934a8fc50f2ebbf709a",
+  "qualification": "synthetic actual-route browser download; no live financial accuracy claim"
+}
