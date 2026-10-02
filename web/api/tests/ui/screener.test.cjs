@@ -474,3 +474,26 @@ test('display field provenance separates screening and hydration without asserti
  const c=harness(),html=c.researchQuoteProvenance({display_field_sources:{price:{source:'provider_screen',retrieved_at:'2026-10-02T06:00:00Z'},market_cap:{source:'stored_generation',generation_id:'<id>',cache_at:'2026-10-02T05:00:00Z'},stock_type:{source:'provider_basicinfo',retrieved_at:'2026-10-02T06:01:00Z'}}});assert.match(html,/Price: Provider screen/);assert.match(html,/Market Cap: Stored generation/);assert.match(html,/&lt;id&gt;/);assert.match(html,/Type: Provider classification/);assert.match(html,/different source times/);
  const desk=c.researchDeskHTML({st:c.__scr,scr:{server_side:true,rows:[],matched:0},table:'',allChips:'',msPanel:''});assert.match(desk,/financial basis requested: annual; reported period unverified/);assert.doesNotMatch(desk,/financial criteria: annual/);
 });
+
+test('opened expired preset retains all loaded pages during home rendering and intent warming',async()=>{
+ const c=harness(),rows=[stock('A',10,1,{code:'US.A'}),stock('B',9,2,{code:'US.B'})];Object.assign(c.__scr,{activePreset:'p',market:'US'});
+ const entry={ts:Date.now()-120000,retained:true,payload:{available:true,rows,filters:[],name:'Retained',retrieved_at:'2026-10-02T00:00:00Z'}};c.__presetCache={'p|US':entry};c.__panelCache={market:'US',rail:{presets:[{key:'p',name:'Retained',filters:[]}]}};c.scrStreamPanels=()=>{};c.api=()=>assert.fail('Navigation fetched a replacement cohort');
+ c.scrWarmPreset('p','US');assert.equal(c.__presetWarmQueue,undefined);
+ await vm.runInContext('pages.home()',c);assert.equal(c.__homeCtx.scr.matched,2);assert.equal(c.__homeCtx.execd,entry.payload);assert.equal(c.__presetCache['p|US'],entry);
+});
+test('explicit preset refresh replaces only on success and revalidates selection',async()=>{
+ const c=harness(),entry={ts:1,retained:true,payload:{available:true,rows:[{code:'US.A',stock_type:'STOCK'},{code:'US.OLD',stock_type:'STOCK'}],filters:[],next_key:'old-page'}};Object.assign(c.__scr,{activePreset:'p',market:'US',page:3});c.__presetCache={'p|US':entry};c.__researchSelected=['US.A','US.OLD'];let url,renders=0;c.showPage=async()=>{renders++;};c.api=async u=>{url=u;assert.equal(c.__presetCache['p|US'],entry);return {available:true,rows:[{code:'US.A',stock_type:'STOCK'}],filters:[],next_key:'new-page'};};
+ await c.researchRefreshPreset();assert.equal(new URLSearchParams(url.split('?')[1]).get('refresh'),'true');assert.equal(c.__scr.page,1);assert.equal(c.__researchSelected.join(','),'US.A');assert.equal(c.__presetCache['p|US'].retained,true);assert.equal(c.__presetCache['p|US'].payload.next_key,'new-page');assert.equal(c.__presetRefresh['p|US'],undefined);assert.equal(renders,2);
+});
+test('failed preset refresh retains cohort page and selections with an escaped failure disclosure',async()=>{
+ const c=harness(),entry={retained:true,payload:{available:true,rows:[{code:'US.A',stock_type:'STOCK'}]}};Object.assign(c.__scr,{activePreset:'p',market:'US',page:3});c.__presetCache={'p|US':entry};c.__researchSelected=['US.A'];c.api=async()=>({available:false,reason:'<provider failure>'});await c.researchRefreshPreset();assert.equal(c.__presetCache['p|US'],entry);assert.equal(c.__scr.page,3);assert.equal(c.__researchSelected.join(','),'US.A');const html=c.researchProviderScopeHTML(entry.payload,entry.payload.rows,c.__scr);assert.match(html,/Refresh failed; previous results retained/);assert.match(html,/&lt;provider failure&gt;/);
+});
+test('preset refresh is single flight and cannot overwrite a newer cache entry',async()=>{
+ const c=harness(),entry={retained:true,payload:{available:true,rows:[]}};Object.assign(c.__scr,{activePreset:'p',market:'US'});c.__presetCache={'p|US':entry};let resolve,requests=0;c.api=()=>{requests++;return new Promise(r=>resolve=r);};const pending=c.researchRefreshPreset();await Promise.resolve();await c.researchRefreshPreset();assert.equal(requests,1);const newer={retained:true,payload:{available:true,rows:[{code:'US.NEW'}]}};c.__presetCache['p|US']=newer;resolve({available:true,rows:[]});await pending;assert.equal(c.__presetCache['p|US'],newer);
+});
+test('provider paging and explicit refresh cannot run simultaneously',async()=>{
+ const c=harness(),entry={retained:true,payload:{available:true,rows:[],next_key:'p2'}};Object.assign(c.__scr,{activePreset:'p',market:'US'});c.__presetCache={'p|US':entry};let resolve,requests=0;c.api=()=>{requests++;return new Promise(r=>resolve=r);};const paging=c.researchLoadMore();await c.researchRefreshPreset();assert.equal(requests,1);resolve({available:true,rows:[{code:'US.A'}]});await paging;assert.equal(c.__presetPagePending.size,0);
+});
+test('provider scope appears before analytical rows and does not add content to default results',()=>{
+ const c=harness(),html=c.researchDeskHTML({st:c.__scr,scr:{rows:[],matched:0},table:'<table id="rows"></table>',allChips:'',msPanel:''});assert.ok(html.indexOf('id="research-provider-paging"')<html.indexOf('id="rows"'));assert.equal((html.match(/id="research-provider-paging"/g)||[]).length,1);
+});

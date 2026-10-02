@@ -1,5 +1,9 @@
 # Design QA — screener workspace
 
+Latest review: [fresh retained-build comparison](docs/investment-workspace-design-review-latest.md) captures Desk, Inspector, Explorer and Changes, corrects implemented versus missing foundations and defines the next D02–D04 packet. Investment-team acceptance remains unfinished.
+
+Latest implementation: [retained preset paging/explicit refresh](docs/screener-preset-retention.md), 379 API/worker and 81 JavaScript tests; controlled browser retains a multi-page cohort beyond 60 seconds through Explore/Changes/full-research return. Final release acceptance stays open.
+
 Latest implementation: [preset source/paging/capture checkpoint](docs/screener-preset-generation-hydration.md), 378 API/worker and 75 JavaScript tests. Four new saved/opened browser captures qualify controlled provider transport only; live/platform/release acceptance stays open.
 
 Latest review: [fresh Desk/inspector/Explorer/Changes comparison and build tickets](docs/investment-workspace-design-review-latest.md). Four captures were saved/opened at 1280 × 720; 368 API/worker and 70 JavaScript tests pass. Pending preset hydration is not browser-qualified. All final live-data/platform/device/release gates remain open; the historical checkpoints below do not override this status.

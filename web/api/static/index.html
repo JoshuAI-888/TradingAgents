@@ -1636,7 +1636,7 @@ function scrWarmPreset(key, market) {
   if (!key) return;
   const ck = key + "|" + market;
   const cached = window.__presetCache?.[ck];
-  if ((cached && Date.now() - cached.ts < 60000) || window.__presetInflight?.[ck]) return;
+  if ((cached && (cached.retained || Date.now() - cached.ts < 60000)) || window.__presetInflight?.[ck]) return;
   const queue = window.__presetWarmQueue || (window.__presetWarmQueue = []);
   if (!queue.some(item => item.ck === ck)) queue.push({key, market, ck});
   if (queue.length > 32) queue.shift();
@@ -1648,7 +1648,7 @@ function scrWarmNext() {
   const remaining = 3000 - (Date.now() - (window.__presetWarmStarted || 0));
   if (remaining > 0) { window.__presetWarmTimer = setTimeout(() => { window.__presetWarmTimer = null; scrWarmNext(); }, remaining); return; }
   const item = window.__presetWarmQueue.shift();
-  if (item.market !== window.__scr.market || window.__presetInflight?.[item.ck] || (window.__presetCache?.[item.ck] && Date.now() - window.__presetCache[item.ck].ts < 60000)) { scrWarmNext(); return; }
+  if (item.market !== window.__scr.market || window.__presetInflight?.[item.ck] || (window.__presetCache?.[item.ck] && (window.__presetCache[item.ck].retained || Date.now() - window.__presetCache[item.ck].ts < 60000))) { scrWarmNext(); return; }
   window.__presetWarmActive = true; window.__presetWarmStarted = Date.now();
   window.__presetInflight = window.__presetInflight || {};
   window.__presetInflight[item.ck] = api("/api/screener/execute?key=" + encodeURIComponent(item.key) + "&market=" + item.market + "&limit=300")
@@ -1727,14 +1727,16 @@ const pages = {
     let scr, execd = null;
     if (st.activePreset) {
       // A screener runs on moomoo's backend with explicit source and scope.
-      // Results are cached client-side (60s) and WARMED in the background, so
+      // Unopened results expire after 60s; opened results stay retained until
+      // explicit refresh so navigation does not drop loaded provider pages.
+      // Results are WARMED on intent, so
       // a click usually lands on an already-fetched exact result; a cold click
       // shows the overlay while moomoo answers.
       const pKey = st.activePreset;
       const ck = pKey + "|" + st.market;
       const cached = (window.__presetCache || {})[ck];
       execd = cached && cached.payload && cached.payload.available &&
-                  Date.now() - cached.ts < 60000 ? cached.payload : null;
+                  (cached.retained || Date.now() - cached.ts < 60000) ? cached.payload : null;
       if (!execd) {
         scrShowLoading("Running the screener across the whole market…");
         window.__presetInflight = window.__presetInflight || {};
@@ -1750,6 +1752,8 @@ const pages = {
       (window.__presetLastResult = window.__presetLastResult || {})[ck] = {ts:Date.now(),payload:execd};
       if (gen !== __homeGen) return "";
       if (execd && execd.available) {
+        const entry = window.__presetCache?.[ck];
+        if (entry?.payload === execd) entry.retained = true;
         // Preserve server membership and apply only additional user filters.
         const xrows = scrPresetRows(execd);
         scr = { available: true, ...scrPageRows(xrows),

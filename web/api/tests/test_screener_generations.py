@@ -306,3 +306,23 @@ def test_provider_capture_pins_later_hydration_and_refuses_changed_cohort(setup,
     assert error.value.status_code==409 and 'cohort changed' in error.value.detail
     assert calls==[('',{}),('page2',{'quote_generation_id':initial} if initial else {})]
     assert not setup[0]._t('screen_captures')
+
+
+def test_explicit_refresh_bypasses_provider_cache_but_preserves_quote_generation(setup,monkeypatch):
+    db,_=setup
+    gid=publish(db)
+    provider=ScreenProvider(('US.A',),price='1000')
+    calls=[]
+    original=provider.call
+    def counted(method,path,body):
+        calls.append(path)
+        return original(method,path,body)
+    provider.call=counted
+    monkeypatch.setattr(api,'_execute_cache',{})
+    monkeypatch.setattr(api,'_market_client',lambda:provider)
+    assert api.screener_execute('penny','US',300)['rows'][0]['price']==1
+    provider.price='2000'
+    assert api.screener_execute('penny','US',300)['rows'][0]['price']==1
+    fresh=api.screener_execute('penny','US',300,refresh=True)
+    assert fresh['rows'][0]['price']==2 and fresh['quote_generation_id']==gid
+    assert calls.count('/quote/stock-screen')==2

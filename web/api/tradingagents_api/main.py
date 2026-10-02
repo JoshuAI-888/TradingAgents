@@ -1233,7 +1233,7 @@ def _server_retrieves(fields: list[str]) -> list[dict]:
 
 @app.get("/api/screener/execute")
 def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_key: str = "",
-                     quote_generation_id: str | None = None):
+                     quote_generation_id: str | None = None, refresh: bool = False):
     """Execute provider-defined rules; hydrate display quotes from one cohort.
 
     Provider membership and retrieval time remain distinct from stored quote
@@ -1264,7 +1264,7 @@ def screener_execute(key: str = "", market: str = "US", limit: int = 60, next_ke
     quote_generation = cohort[0].get('generation_id') if cohort else None
     ck = json.dumps([key, market, min(limit,300), next_key, quote_generation, filters, sort, direction], sort_keys=True)
     hit = _execute_cache.get(ck)
-    if hit and time.time() - hit[0] < 60.0:
+    if not refresh and hit and time.time() - hit[0] < 60.0:
         return copy.deepcopy(hit[1])
     client = _market_client()
     if client is None:
