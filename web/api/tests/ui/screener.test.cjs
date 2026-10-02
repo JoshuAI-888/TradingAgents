@@ -673,3 +673,35 @@ test('inspector opening, section focus and connected or reconstructed row return
  c.researchChangeInspect('US.A',origin);assert.equal(c.document.activeElement,control);assert.equal(c.scrollY,220);
  c.researchCloseInspector();assert.equal(c.document.activeElement,origin);assert.equal(c.scrollY,220);
 });
+
+test('Explorer distinguishes Compare selection from region membership without repainting plot',()=>{
+ const c=harness(),rows=[stock('A',20,1,{code:'US.A',pe_ttm:8}),stock('B',10,3,{code:'US.B',pe_ttm:8})];
+ c.researchRows=()=>rows;c.__researchSelected=['US.A','US.B'];
+ const st=c.researchExploreState();st.bounds={x:{min:7,max:9},y:{min:0,max:2}};
+ const context={},button={};c.document.getElementById=id=>id==='explore-selection-context'?context:id==='explore-compare'?button:null;
+ c.researchExploreMount=()=>{throw Error('Selection must not repaint plot');};c.researchPlot=()=>{throw Error('Selection must not redraw plot');};
+ c.researchExploreSelectionMount();assert.match(context.textContent,/2 selected.*1 in this scope · 1 outside/);assert.equal(button.disabled,false);
+ c.researchExploreSelect('US.A',false);
+ // Normal mount includes the shared selection bar; exercise it with its existing element.
+ const bar={};c.document.getElementById=id=>id==='research-selection'?bar:id==='explore-selection-context'?context:id==='explore-compare'?button:null;
+ c.researchSelectionMount();assert.equal(button.disabled,true);assert.match(button.textContent,/\(1\)/);
+ assert.deepEqual(Array.from(c.__researchSelected),['US.B']);assert.match(context.textContent,/0 in this scope · 1 outside/);
+});
+
+test('Explorer action and preview scopes precede plot and exports retain all eligible rows',()=>{
+ const c=harness(),rows=[stock('A',20,1,{code:'US.A',pe_ttm:8}),stock('B',10,3,{code:'US.B',pe_ttm:8})];
+ let html=c.researchExploreHTML(rows);assert.match(html,/Export plottable results/);assert.match(html,/All 2 eligible loaded rows/);
+ assert.ok(html.indexOf('Explorer region actions')<html.indexOf('<canvas'));assert.ok(html.indexOf('Set region bounds')<html.indexOf('<canvas'));
+ const st=c.researchExploreState();st.bounds={x:{min:7,max:9},y:{min:0,max:2}};st.preview=true;
+ html=c.researchExploreHTML(rows);assert.match(html,/Export region results/);assert.match(html,/All 1 eligible loaded rows/);
+ assert.ok(html.indexOf('Apply filters to screen')<html.indexOf('<canvas'));assert.match(html,/Saved definitions stay unchanged/);
+ assert.match(html,/Missing\/nonfinite values are excluded/);assert.match(html,/currency is not inferred/);
+ assert.match(html,/scrExport\('csv','explore'\)/);assert.match(html,/scrExport\('xls','explore'\)/);
+});
+
+test('opening numeric bounds dismisses export menu without modifying region or selection',()=>{
+ const c=harness(),menu={open:true};c.document.querySelectorAll=()=>[menu];
+ c.__researchSelected=['US.A'];const st=c.researchExploreState();st.bounds={x:{min:7},y:{min:-1}};
+ const prior=JSON.stringify(st.bounds);c.researchExploreBoundsToggle({open:true});
+ assert.equal(menu.open,false);assert.equal(st.formOpen,true);assert.equal(JSON.stringify(st.bounds),prior);assert.deepEqual(Array.from(c.__researchSelected),['US.A']);
+});
