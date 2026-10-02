@@ -640,3 +640,36 @@ test('late company metadata cannot replace a newer inspector and cached fields a
  const pending=c.researchCompanyMount('US.A',1);c.__inspectGen=2;c.__researchInspectCode='US.B';resolve({code:'US.A',fields:{},origins:{}});await pending;assert.equal(markup,'');
  c.__researchInspectCode='US.A';await c.researchCompanyMount('US.A',2);assert.equal(calls,1);assert.match(markup,/Unavailable/);
 });
+
+test('company dates use each qualified field clock and never borrow another source date',()=>{
+ const c=harness(),now=Date.now(),sectorAt=new Date(now-86400000).toISOString(),industryAt=new Date(now-3600000).toISOString();
+ const p={code:'US.A',fields:{sector:'Technology',industry:'Software',website:'https://company.example/'},
+  origins:{sector:{source:'yfinance',cache_at:sectorAt},industry:{source:'yfinance',cache_at:industryAt},website:{source:'yfinance',cache_at:'2026-01-01'}}};
+ const html=c.researchCompanyContextHTML(p,'US.A',now);
+ assert.match(html,new RegExp('datetime="'+sectorAt+'"'));assert.match(html,new RegExp('datetime="'+industryAt+'"'));
+ assert.match(html,/Website: qualified source\/retrieval time unavailable/);assert.doesNotMatch(html,/href=|datetime="2026-01-01"/);
+ assert.match(html,/Retrieval time is not a financial reporting period/);
+ assert.doesNotMatch(c.researchCompanyContextHTML(p,'US.B',now),/<time/);
+ p.origins.sector.cache_at=new Date(now+86400000).toISOString();
+ assert.doesNotMatch(c.researchCompanyContextHTML(p,'US.A',now),/Sector · yfinance · retrieved/);
+});
+
+test('inspector opening, section focus and connected or reconstructed row return preserve page position',async()=>{
+ const c=harness();c.scrollY=220;
+ const control={focus(options){c.document.activeElement=this;if(!options?.preventScroll)c.scrollY=131;}};
+ const inspector={classList:{add(){},remove(){}},setAttribute(){},removeAttribute(){},querySelector:()=>control};
+ c.document.getElementById=id=>id==='research-inspector'?inspector:null;
+ const row={code:'US.A',symbol:'A'};
+ c.__researchInspectCode='US.A';c.__inspectTab='why';
+ for(const options of [{focus:true},{focusControl:'tab'},{focusControl:'range'}]){
+  await c.researchInspectRow(row,options);assert.equal(c.document.activeElement,control);assert.equal(c.scrollY,220);
+ }
+ const origin={...control,isConnected:true,getClientRects:()=>[{}]};c.__inspectOrigin=origin;
+ c.researchCloseInspector();assert.equal(c.document.activeElement,origin);assert.equal(c.scrollY,220);
+ const restored={...control,getAttribute:()=> 'Inspect A',getClientRects:()=>[{}]};
+ c.document.querySelectorAll=()=>[restored];c.__inspectOrigin={isConnected:false};
+ c.researchCloseInspector();assert.equal(c.document.activeElement,restored);assert.equal(c.scrollY,220);
+ c.matchMedia=()=>({matches:false});c.__changePayload={rows:[{code:'US.A',symbol:'A',evidence:[]}],definition:{filters:[]}};
+ c.researchChangeInspect('US.A',origin);assert.equal(c.document.activeElement,control);assert.equal(c.scrollY,220);
+ c.researchCloseInspector();assert.equal(c.document.activeElement,origin);assert.equal(c.scrollY,220);
+});

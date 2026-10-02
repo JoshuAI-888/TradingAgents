@@ -434,10 +434,11 @@ function researchEvidence(row,filter,preset) {
 }
 
 function researchCompanyContextHTML(payload,code,now=Date.now()) {
- const qualified=field=>{const value=payload?.fields?.[field],origin=payload?.origins?.[field],stamp=Date.parse(origin?.cache_at),age=now-stamp;return payload?.code===code && typeof value==='string' && value.trim() && origin?.source==='yfinance' && Number.isFinite(stamp) && age>=0 && age<=7*86400000?value.trim():null;};
+ const qualified=field=>{const value=payload?.fields?.[field],origin=payload?.origins?.[field],stamp=Date.parse(origin?.cache_at),age=now-stamp;return payload?.code===code && typeof value==='string' && value.trim() && origin?.source==='yfinance' && typeof origin.cache_at==='string' && /(Z|[+-]\d{2}:\d{2})$/.test(origin.cache_at) && Number.isFinite(stamp) && age>=0 && age<=7*86400000?value.trim():null;};
  const sector=qualified('sector'),industry=qualified('industry'),site=qualified('website');let url;
  try{const parsed=new URL(site);if(['http:','https:'].includes(parsed.protocol) && !parsed.username && !parsed.password && parsed.hostname)url=parsed;}catch(e){}
- return `<section class="inspector-company" aria-label="Company context"><h4>Company context</h4><dl><dt>Sector</dt><dd>${esc(sector || 'Unavailable')}</dd><dt>Industry</dt><dd>${esc(industry || 'Unavailable')}</dd><dt>Website</dt><dd>${url?`<a href="${esc(url.href)}" target="_blank" rel="noopener noreferrer">${esc(url.hostname)}</a>`:'Unavailable'}</dd></dl><p class="faint">Current cached yfinance classifications · retrieval time is not a financial reporting period. Provider lists are separate; this context is not pinned to quote generation.</p></section>`;
+ const dates=[['sector','Sector',sector],['industry','Industry',industry],['website','Website',url]].map(([field,label,value])=>value?`<p>${label} · yfinance · retrieved <time datetime="${esc(payload.origins[field].cache_at)}">${esc(researchCaptureTime(payload.origins[field].cache_at))}</time></p>`:`<p>${label}: qualified source/retrieval time unavailable</p>`).join('');
+ return `<section class="inspector-company" aria-label="Company context"><h4>Company context</h4><dl><dt>Sector</dt><dd>${esc(sector || 'Unavailable')}</dd><dt>Industry</dt><dd>${esc(industry || 'Unavailable')}</dd><dt>Website</dt><dd>${url?`<a href="${esc(url.href)}" target="_blank" rel="noopener noreferrer">${esc(url.hostname)}</a>`:'Unavailable'}</dd></dl><details class="company-source-details"><summary>Company source &amp; retrieval dates</summary>${dates}<p>Retrieval time is not a financial reporting period. These current cached classifications are separate from provider lists and the screen's quote generation.</p></details></section>`;
 }
 async function researchCompanyMount(code,gen) {
  const cache=window.__researchCompanyCache || (window.__researchCompanyCache=new Map());let entry=cache.get(code);
@@ -457,8 +458,8 @@ function researchCloseInspector(restore=true) {
  const changeCode=window.__researchChangeCode,changeRow=window.__changePayload?.rows?.find(r=>r.code===changeCode);
  researchDisposeInspector();window.__researchInspectCode=null;window.__researchChangeCode=null;
  document.getElementById('research-inspector')?.classList.remove('open');
- const origin=window.__inspectOrigin;if(restore && origin?.isConnected && origin.getClientRects().length)origin.focus();
- else if(restore){const label=changeCode?'Review '+(changeRow?.symbol || changeCode)+' snapshot evidence':'Inspect '+window.__inspectRow?.symbol;[...document.querySelectorAll('button[aria-label]')].find(b=>b.getAttribute('aria-label')===label && b.getClientRects().length)?.focus();}
+ const origin=window.__inspectOrigin;if(restore && origin?.isConnected && origin.getClientRects().length)origin.focus({preventScroll:true});
+ else if(restore){const label=changeCode?'Review '+(changeRow?.symbol || changeCode)+' snapshot evidence':'Inspect '+window.__inspectRow?.symbol;[...document.querySelectorAll('button[aria-label]')].find(b=>b.getAttribute('aria-label')===label && b.getClientRects().length)?.focus({preventScroll:true});}
 }
 function researchInspectorTab(tab) {
  if(!['overview','why','news'].includes(tab))return;
@@ -506,8 +507,8 @@ async function researchInspectRow(row,options={}) {
  el.onkeydown=researchInspectorKey;
  el.innerHTML=`<div class="inspector-heading"><div><h2>${esc(row.symbol)}</h2><p>${esc(row.name)}</p></div><button class="btn ghost inspector-close" onclick="researchCloseInspector()">Close preview</button></div><div class="inspector-price">${researchMoneyHTML(row,'price')}<small class="${Number(row.pct)>=0?'g':'r'}">${esc(researchValue('pct',row.pct))}</small></div><div class="inspector-tabs" role="group" aria-label="Inspector section">${tabs.map(([id,label])=>`<button class="btn ${tab===id?'primary':'ghost'}" aria-pressed="${tab===id}" onclick="researchInspectorTab('${id}')">${label}</button>`).join('')}</div><div class="inspector-scroll"><div id="inspector-content">${tab==='overview'?`<dl class="inspector-key-metrics" aria-label="Quote metrics">${['market_cap','pe_ttm','pb','volume','high52','low52'].map(k=>`<dt>${esc(SCR_COLS[k]?.[0] || k)}</dt><dd>${RESEARCH_CURRENCY_FIELDS.has(k)?researchMoneyHTML(row,k):esc(researchValue(k,row[k]))}</dd>`).join('')}</dl><div id="inspect-company" role="status">Loading cached company context…</div><div id="inspect-chart" aria-label="${esc(row.symbol)} price history" style="height:220px"></div><div class="inspector-ranges" role="group" aria-label="Chart range">${Object.keys(RESEARCH_RANGES).map(r=>`<button class="btn ${range===r?'primary':'ghost'}" aria-pressed="${range===r}" onclick="researchInspectorRange('${r}')">${r}</button>`).join('')}</div><p id="inspect-chart-status" role="status">Loading ${range} history…</p><h4>${privateItem?'List context':'Screen context'}</h4><p>${privateItem?'Research shortlist · see List context':filters.length?filters.length+' criteria · see Why it matches':'All stocks — no custom criteria'}</p>`:tab==='why'?why:'<div id="inspect-news" role="status">Loading recent news…</div>'}</div>${provenance}</div><div class="inspector-actions"><button class="btn ghost" onclick="researchShortlistPicker(${call(code)})">Add to shortlist</button><button class="btn ghost" onclick="toggleWatch(${call(row.symbol)})" ${window.__watchPending?.has(row.symbol)?'disabled':''}>${watched?'Remove from watchlist':'Add to watchlist'}</button><button class="btn primary" onclick="researchOpen(${call(code)})">Open full research</button></div><p class="faint">All stock tabs and KLine tools remain in full research.</p>`;
  if(window.matchMedia?.('(max-width:1350px)').matches)researchModalIsolate(el,'inspector');
- if(options.focus)el.querySelector('.inspector-close')?.focus();
- if(options.focusControl)el.querySelector(options.focusControl==='tab'?'.inspector-tabs [aria-pressed="true"]':'.inspector-ranges [aria-pressed="true"]')?.focus();
+ if(options.focus)el.querySelector('.inspector-close')?.focus({preventScroll:true});
+ if(options.focusControl)el.querySelector(options.focusControl==='tab'?'.inspector-tabs [aria-pressed="true"]':'.inspector-ranges [aria-pressed="true"]')?.focus({preventScroll:true});
  if(tab==='news'){
   try{
    const data=await api('/api/stock/'+encodeURIComponent(code)+'/news?type=news&limit=8');
@@ -646,7 +647,7 @@ function researchChangeInspect(code,origin,focus=true) {
  const modal=matchMedia('(max-width:1350px)').matches;el.classList.add('open');el.setAttribute('role',modal?'dialog':'complementary');el.setAttribute('aria-label',(r.symbol || code)+' snapshot evidence');if(modal){el.setAttribute('aria-modal','true');researchModalIsolate(el,'inspector');}else el.removeAttribute('aria-modal');
  const date=t=>t?fmtTs(t)+(TZ()==='nz'?' NZ time':''):'Time unavailable';
  el.innerHTML=`<div class="inspector-heading"><div><h2>${esc(r.symbol || code)}</h2><p>${esc(r.name || '')} · ${r.status==='new'?'Entered':r.status==='exited'?'Exited':'Unchanged'}</p></div><button class="btn ghost inspector-close" onclick="researchCloseInspector()">Close preview</button></div><div class="inspector-scroll"><h3>Snapshot evidence</h3><p>${esc(date(d.previous_at))} → ${esc(date(d.current_at))}</p><p>${esc(r.reason)}</p>${researchCriterionMatrix(d.definition?.filters || (r.evidence || []).map(e=>e.criterion || {field:e.field}),r.evidence || [],true)}<p class="faint">Eligible-universe captures retain nonmember observations. Legacy or missing observations cannot establish a numeric crossing; supplied values require compatible provenance. These are captured observations; full research loads the current stock view.</p></div><div class="inspector-actions"><button class="btn ghost" onclick="researchShortlistPicker(${esc(JSON.stringify(code))})">Add to shortlist</button><button class="btn primary" onclick="researchOpen(${esc(JSON.stringify(code))})">Open full research</button></div>`;
- el.onkeydown=e=>researchModalKey(e,el,()=>researchCloseInspector());if(focus)el.querySelector('.inspector-close')?.focus();
+ el.onkeydown=e=>researchModalKey(e,el,()=>researchCloseInspector());if(focus)el.querySelector('.inspector-close')?.focus({preventScroll:true});
 }
 function researchChangesCSV(d,rows) {
  const cell=v=>{const s=v==null?'':typeof v==='object'?JSON.stringify(v):String(v);return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
@@ -778,7 +779,7 @@ function researchResponsivePanels() {
  if(inspector?.classList.contains('open')){
   const modal=window.matchMedia('(max-width:1350px)').matches;
   inspector.setAttribute('role',modal?'dialog':'complementary');
-  if(modal){inspector.setAttribute('aria-modal','true');researchModalIsolate(inspector,'inspector');if(!inspector.contains(document.activeElement)){window.__inspectOrigin=window.__inspectOrigin || document.activeElement;inspector.querySelector('.inspector-close')?.focus();}}
+  if(modal){inspector.setAttribute('aria-modal','true');researchModalIsolate(inspector,'inspector');if(!inspector.contains(document.activeElement)){window.__inspectOrigin=window.__inspectOrigin || document.activeElement;inspector.querySelector('.inspector-close')?.focus({preventScroll:true});}}
   else{inspector.removeAttribute('aria-modal');researchModalRelease('inspector');}
  }
  if(window.matchMedia('(min-width:1001px)').matches && document.getElementById('research-library')?.classList.contains('library-open'))researchLibraryClose(false);
