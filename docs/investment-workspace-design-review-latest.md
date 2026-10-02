@@ -1,5 +1,7 @@
 # Design review: implementation, original mockups and delivery plan
 
+**Latest Groups implementation:** [coverage-labelled aggregates and source-correct drill-through](design-gap-audit/groups-integrity/README.md), with 393 API/worker and 89 JavaScript tests plus controlled current-route browser/phone checks. Unknown taxonomy and currency totals now fail closed; comparable peer ranks and full R02/R09 acceptance remain open.
+
 **Latest review:** [fresh four-step comparison and revised build checklist](design-gap-audit/updated-design-review/README.md), against `8b8a126` plus pending Groups work. The Desk/Inspector/Explorer/Changes architecture fits the original direction; qualified company evidence, advanced peer context and the Changes review queue remain incomplete. Region/save and collision/keyboard foundations are now built locally. The new review supersedes older “absent” wording below and adds currency-display consistency, inspector scroll/focus and laptop library-discoverability checks. All broader investment-team/release gates remain open.
 
 **Latest data integrity checkpoint:** [supplemental category replacement and source clocks](screener-supplemental-refresh-integrity.md) prevents disappeared fundamentals from inheriting fresh clocks, separates empty success from failed retrieval, preserves valid zero and rejects metadata/nonfinite values. 388 API/worker tests pass, including actual worker-output → screener filtering. Live field/currency/period/cohort qualification remains open; R02 is not closed.

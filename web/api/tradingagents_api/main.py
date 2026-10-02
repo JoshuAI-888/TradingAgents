@@ -826,8 +826,35 @@ def _cache():
 
 # Shared worker registry controls supplemental availability; derived LT debt
 # is also yfinance-only. Never accept metadata/identity keys as factor fields.
-_groups_cache = None  # lazy /api/groups TTL cache
+_groups_cache = None  # retained for old test/reset callers; Groups never reuses aggregates
 _YF_ONLY_FIELDS = YF_ONLY_FIELDS | {"lt_debt_eq"}
+
+
+def _fresh_supplemental(data, row_stamp, now=None):
+    """Registered finite fields with independent category retrieval clocks."""
+    if not isinstance(data, dict):
+        return {}, {}
+    meta = data.get('_meta') if isinstance(data.get('_meta'), dict) else {}
+    now = now or datetime.now(timezone.utc)
+    values, origins = {}, {}
+    for field, value in data.items():
+        if field not in _YF_ONLY_FIELDS and field not in TECH_FIELDS:
+            continue
+        technical = field in TECH_FIELDS
+        stamp = meta.get('technicals_at' if technical else 'fundamentals_at') or row_stamp
+        try:
+            age = (now - datetime.fromisoformat(str(stamp).replace('Z', '+00:00'))).total_seconds()
+        except (TypeError, ValueError):
+            continue
+        if not 0 <= age <= (86400 if technical else 7 * 86400):
+            continue
+        text = field in {'country', 'sector', 'industry', 'earnings_date', 'ex_div_date'}
+        if (text and not (isinstance(value, str) and value.strip())) or (not text and not numeric(value)):
+            continue
+        values[field] = value.strip() if text else value
+        origins[field] = {'source': 'computed_technicals' if technical else 'yfinance',
+                          'cache_at': stamp, 'timestamp_semantics': 'retrieval_or_computation_not_reporting_period'}
+    return values, origins
 
 
 @app.get("/api/screener")
@@ -907,28 +934,18 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
         for r in rows:
             data, row_stamp = emap.get(r.get("code")) or \
                 emap.get(f"{market}.{r.get('symbol')}") or ({}, None)
-            meta = data.get("_meta") or {}
-            for k, v in data.items():
-                if k not in _YF_ONLY_FIELDS and k not in TECH_FIELDS:
-                    continue
-                stamp = meta.get("technicals_at" if k in TECH_FIELDS else "fundamentals_at") or row_stamp
-                try:
-                    age = (datetime.now(timezone.utc) - datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))).total_seconds()
-                except (TypeError, ValueError):
-                    continue
-                if 0 <= age <= (86400 if k in TECH_FIELDS else 7 * 86400):
-                    if r.get(k) is None or r.get(k) == "":
-                        text_field = k in {"country", "sector", "industry", "earnings_date", "ex_div_date"}
-                        if (text_field and not (isinstance(v, str) and v.strip())) or (not text_field and not numeric(v)):
-                            continue
-                        r[k] = v
-                        origins = dict(r.get("display_field_sources") or {})
-                        origins[k] = {"source": "computed_technicals" if k in TECH_FIELDS else "yfinance",
-                                      "cache_at": stamp, "timestamp_semantics": "retrieval_or_computation_not_reporting_period"}
-                        r["display_field_sources"] = origins
-                        observations = dict(r.get("field_observations") or {})
-                        observations.pop(k, None)  # an absent quote observation is not supplemental evidence
-                        r["field_observations"] = observations
+            if not isinstance(data,dict):data = {}
+            meta = data.get("_meta") if isinstance(data.get("_meta"),dict) else {}
+            supplied, supplied_origins = _fresh_supplemental(data, row_stamp)
+            for k, v in supplied.items():
+                if r.get(k) is None or r.get(k) == "":
+                    r[k] = v
+                    origins = dict(r.get("display_field_sources") or {})
+                    origins[k] = supplied_origins[k]
+                    r["display_field_sources"] = origins
+                    observations = dict(r.get("field_observations") or {})
+                    observations.pop(k, None)
+                    r["field_observations"] = observations
             r["enrichment_dates"] = {"fundamentals": meta.get("fundamentals_at") or row_stamp,
                                      "technicals": meta.get("technicals_at") or row_stamp}
     deferred = []
@@ -2662,87 +2679,127 @@ def _cap_bucket(cap):
     return "micro (<300M)"
 
 
+def _group_cap_currency(row):
+    value = row.get('market_cap')
+    observations = row.get('field_observations')
+    observation = observations.get('market_cap') if isinstance(observations,dict) else None
+    if not numeric(value) or value <= 0 or not isinstance(observation,dict):
+        return None
+    currency = observation.get('currency')
+    code = row.get('code')
+    if (not isinstance(code,str) or not re.fullmatch(r'(US|HK)\.[A-Z0-9][A-Z0-9.\-]*',code)
+            or observation.get('code') != code or observation.get('field') != 'market_cap'
+            or not numeric(observation.get('value')) or observation.get('value') != value or observation.get('unit') != 'currency'
+            or not isinstance(currency,str) or not re.fullmatch(r'[A-Z]{3}',currency)):
+        return None
+    return currency
+
+
+def _group_sum(values):
+    """Finite inputs can overflow as an aggregate; never serialize Infinity."""
+    if not values:return None
+    try:
+        result = math.fsum(values)
+    except (OverflowError,ValueError):
+        return None
+    return round(result,4) if math.isfinite(result) else None
+
+
+def _group_mean(values):
+    # Divide before summing so a representable mean survives a sum overflow.
+    return _group_sum([v/len(values) for v in values]) if values else None
+
+
 @app.get("/api/groups")
 def groups(market: str = "US", group_by: str = "plate", order_by: str = "stocks",
-           direction: int = 2, stock_type: str = "STOCK"):
-    """Finviz-style group aggregates over stored data — zero vendor calls at
-    view time (spec §4c / Phase A). group_by: plate | sector | industry |
-    exchange | cap_bucket; sector/industry need yf enrichment rows."""
-    global _groups_cache
-    if _groups_cache is None:
-        from tradingagents_worker.ttl_cache import TtlCache  # noqa: E402
-        _groups_cache = TtlCache(root=os.path.join(tempfile.gettempdir(), "ta-ttl-groups"))
-    cohort, _published_at = _stored_universe(market)
-    generation = cohort[0].get('generation_id') if cohort else None
-    key = _groups_cache.key("other", "groups", market, group_by, order_by, direction, stock_type, generation)
-    cached = _groups_cache.get("other", key)
-    if cached is not None:
-        return cached
+           direction: int = 2, stock_type: str = "STOCK", cap_currency: str | None = None):
+    """Coverage-labelled aggregates of one stored quote cohort; no vendor calls.
+
+    Supplemental classification/factors use the screener's category freshness
+    contract. No classification fallback or cross-currency capitalization sum.
+    """
+    if market not in ('US','HK') or group_by not in ('plate','sector','industry','exchange','cap_bucket'):
+        raise HTTPException(400,'Invalid market or group classification')
+    if direction not in (1,2) or stock_type not in ('STOCK','ETF','') or order_by not in ('name','stocks','cap_sum','chg_avg','vol_sum',*_GROUPS_AVG_FIELDS):
+        raise HTTPException(400,'Invalid group ordering or instrument type')
+    if cap_currency is not None and not re.fullmatch(r'[A-Z]{3}',cap_currency):
+        raise HTTPException(400,'cap_currency must be an explicit three-letter currency')
+    cohort, published = _stored_universe(market)
     if not cohort:
-        return {"available": False, "reason": "no stored universe — run the loader", "rows": []}
-    stored = [{'code': r['code'], 'row': r, 'updated_at': r.get('quote_cache_at')} for r in cohort] if generation else db.select_all(
-        'screener_quotes', {'market': f'eq.{market}'}, 'code,row,updated_at')
-    meta = {r['code']: r for r in cohort} if generation else {r["code"]: r for r in db.select_all(
-        "screener_universe", {"market": f"eq.{market}"}, "code,plate,stock_type,exchange")}
-    enr = {r["code"]: (r.get("data") or {}) for r in
-           db.select_all("screener_enrichment", {"market": f"eq.{market}"}, "code,data")}
-    stamps = [r.get("updated_at") for r in stored if r.get("updated_at")]
-    acc: dict[str, dict] = {}
-    for s in stored:
-        row = s.get("row") or {}
-        code = s.get("code")
-        u = meta.get(code) or {}
-        if stock_type and u.get("stock_type") != stock_type:
-            continue  # mirror /api/screener: unclassified rows are excluded
-        en = enr.get(code) or {}
-        gkey = {"plate": u.get("plate") or "—",
-                "sector": en.get("sector") or "—",
-                "industry": en.get("industry") or u.get("plate") or "—",
-                "exchange": u.get("exchange") or "—",
-                "cap_bucket": _cap_bucket(row.get("market_cap"))}[group_by]
-        g = acc.setdefault(gkey, {"key": gkey, "stocks": 0, "cap_sum": 0.0, "chg_sum": 0.0,
-                                  "chg_n": 0, "adv": 0, "decl": 0, "vol_sum": 0.0,
-                                  "acc": {f: [0.0, 0] for f in _GROUPS_AVG_FIELDS}})
-        g["stocks"] += 1
-        g["cap_sum"] += row.get("market_cap") or 0
-        g["vol_sum"] += row.get("volume") or 0
-        pct = row.get("pct")
-        if pct is not None:
-            g["chg_sum"] += pct
-            g["chg_n"] += 1
-            g["adv"] += 1 if pct > 0 else 0
-            g["decl"] += 1 if pct < 0 else 0
-        for f in _GROUPS_AVG_FIELDS:
-            v = row.get(f, en.get(f))
-            try:
-                v = float(v)
-            except (TypeError, ValueError):
-                continue
-            g["acc"][f][0] += v
-            g["acc"][f][1] += 1
-    rows = []
+        return {'available':False,'reason':'no stored universe — run the loader','rows':[]}
+    cohort = _merge_universe_meta(cohort,market)
+    generation = cohort[0].get('generation_id')
+    enrichment = {r['code']:r for r in db.select_all('screener_enrichment',{'market':f'eq.{market}'},'code,data,as_of')}
+    acc, unclassified = {}, 0
+    now = datetime.now(timezone.utc)
+    for row in cohort:
+        if row.get('stock_type') not in ('STOCK','ETF'):
+            unclassified += 1
+            continue
+        if stock_type and row.get('stock_type') != stock_type:
+            continue
+        code = row.get('code') or f"{market}.{row.get('symbol')}"
+        entry = enrichment.get(code) or {}
+        supplemental,_ = _fresh_supplemental(entry.get('data'),entry.get('as_of'),now)
+        currency = _group_cap_currency(row)
+        cap = row.get('market_cap')
+        classification = {'plate':row.get('plate'),'sector':supplemental.get('sector'),
+                          'industry':supplemental.get('industry'),'exchange':row.get('exchange'),
+                          'cap_bucket':currency+' · '+_cap_bucket(cap) if currency else None}[group_by]
+        # Preserve provider filter values exactly; supplemental text was already
+        # normalized by the shared helper used by screener and Groups alike.
+        gkey = classification if isinstance(classification,str) and classification.strip() else 'Unknown'
+        g = acc.setdefault(gkey,{'key':gkey,'stocks':0,'changes':[],'adv':0,'decl':0,
+                                'volumes':[],'currencies':{},'cap_n':0,
+                                'acc':{f:[] for f in _GROUPS_AVG_FIELDS}})
+        g['stocks'] += 1
+        if currency:
+            g['currencies'].setdefault(currency,[]).append(cap)
+            g['cap_n'] += 1
+        volume = row.get('volume')
+        if numeric(volume) and volume >= 0:
+            g['volumes'].append(volume)
+        pct = row.get('pct')
+        if numeric(pct):
+            g['changes'].append(pct)
+            g['adv'] += int(pct>0);g['decl'] += int(pct<0)
+        for field in _GROUPS_AVG_FIELDS:
+            value = row.get(field)
+            if value is None or value == '':value = supplemental.get(field)
+            if not numeric(value):continue
+            if field in ('pe_ttm','pb','forward_pe','peg') and value <= 0:continue
+            if field in ('div_yield','short_float') and value < 0:continue
+            if field == 'analyst_recom' and not 1 <= value <= 5:continue
+            g['acc'][field].append(value)
+    rows=[]
     for g in acc.values():
-        avgs = {f: round(s / n, 4) for f, (s, n) in g["acc"].items() if n}
-        rows.append({"key": g["key"], "stocks": g["stocks"],
-                     "cap_sum": round(g["cap_sum"], 2), "vol_sum": round(g["vol_sum"], 2),
-                     "chg_avg": round(g["chg_sum"] / g["chg_n"], 4) if g["chg_n"] else None,
-                     "adv": g["adv"], "decl": g["decl"], "avgs": avgs})
-
-    def sort_key(r):
-        if order_by == "name":
-            return r["key"]
-        if order_by in ("stocks", "cap_sum", "chg_avg", "vol_sum"):
-            v = r.get(order_by)
-            return 0 if v is None else v
-        if order_by in _GROUPS_AVG_FIELDS:
-            return (r.get("avgs") or {}).get(order_by, 0)
-        return r["stocks"]
-
-    rows.sort(key=sort_key, reverse=direction == 2)
-    out = {"available": True, "group_by": group_by, "generation_id": generation,
-           "as_of": max(stamps) if stamps else None, "rows": rows}
-    _groups_cache.put("other", key, out)
-    return out
+        single = len(g['currencies'])==1 and g['cap_n']==g['stocks']
+        currency = next(iter(g['currencies'])) if single else None
+        rows.append({'key':g['key'],'stocks':g['stocks'],
+            'cap_sum':_group_sum(g['currencies'][currency]) if single else None,'cap_currency':currency,
+            'cap_by_currency':{c:_group_sum(v) for c,v in g['currencies'].items()},
+            'vol_sum':_group_sum(g['volumes']),
+            'chg_avg':_group_mean(g['changes']),
+            'adv':g['adv'],'decl':g['decl'],
+            'avgs':{f:_group_mean(values) for f,values in g['acc'].items() if values},
+            'coverage':{'market_cap':g['cap_n'],'volume':len(g['volumes']),'pct':len(g['changes']),
+                        **{f:len(values) for f,values in g['acc'].items()}},
+            'drillable':g['key']!='Unknown' and group_by!='cap_bucket'})
+    currencies = {r['cap_currency'] for r in rows if r['cap_sum'] is not None}
+    if order_by=='cap_sum' and cap_currency is None and len(currencies)>1:
+        raise HTTPException(400,'Market cap ordering requires cap_currency when groups use different currencies')
+    def sort_value(row):
+        if order_by=='cap_sum' and cap_currency and row['cap_currency']!=cap_currency:return None
+        return row['key'] if order_by=='name' else row.get(order_by) if order_by in ('stocks','cap_sum','chg_avg','vol_sum') else row['avgs'].get(order_by)
+    known=[r for r in rows if sort_value(r) is not None];missing=[r for r in rows if sort_value(r) is None]
+    known.sort(key=sort_value,reverse=direction==2);rows=known+missing
+    return {'available':True,'market':market,'group_by':group_by,'generation_id':generation,
+            'as_of':published,'rows':rows,'unclassified_count':unclassified,
+            'ordering':{'field':order_by,'direction':direction,'cap_currency':cap_currency,
+                        'missing_last':True},
+            'scope':'Eligible stored instruments; supplemental factors are current retrievals, not pinned to the quote generation',
+            'classification_source':'yfinance' if group_by in ('sector','industry') else 'provider_list' if group_by=='plate' else 'stored_quote_metadata',
+            'aggregation':'Descriptive unweighted means over finite eligible cached values; financial periods are not qualified for peer ranking. Coverage counts are per field. Market cap sum requires complete coverage and one identity-checked currency; bucket thresholds use that currency. Aggregate overflow is unavailable.'}
 
 
 @app.get("/stock/{rest:path}", include_in_schema=False)

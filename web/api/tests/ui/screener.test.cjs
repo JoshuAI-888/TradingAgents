@@ -554,3 +554,13 @@ test('Explorer coordinate picker revalidates plotted identities and pages all co
  c.researchExplorePointOpen({rows:[rows[1]]},{});assert.equal(inspected,'US.A1');assert.equal(markup,'');
  c.researchExplorePointClose();assert.equal(st.pointCodes,null);assert.ok(focus>=5);assert.equal(JSON.stringify(c.__scr),original);
 });
+
+test('group rendering labels field coverage and currency without an undefined formatter',async()=>{
+ const c=harness();c.api=async()=>({available:true,rows:[{key:'Known group',stocks:2,cap_sum:null,cap_currency:null,chg_avg:0,adv:0,decl:0,avgs:{pe_ttm:8},coverage:{pe_ttm:1},drillable:true},{key:'Unknown',stocks:1,cap_sum:100,cap_currency:'HKD',avgs:{},coverage:{market_cap:1},drillable:false}]});
+ const html=await c.groupsPage();assert.match(html,/Unavailable/);assert.match(html,/HKD 100/);assert.match(html,/1\/2/);assert.match(html,/Open Known group group in screener/);assert.doesNotMatch(html,/Open Unknown group/);
+});
+test('group drill opens its exact source cohort instead of retaining hidden preset or private scope',()=>{
+ const c=harness();Object.assign(c.__scr,{activePreset:'p',savedScreenId:'saved',filters:[{field:'price',min:100}],colFilters:{pb:{max:1}},watchlistOnly:true,etfs:true,page:5,presentation:'changes'});c.__researchSelected=['US.OLD'];
+ c.scrDrillTo('sector','Technology');assert.equal(c.__scr.src,'yf');assert.equal(c.__scr.activePreset,null);assert.equal(c.__scr.savedScreenId,null);assert.equal(c.__scr.page,1);assert.equal(c.__scr.presentation,'table');assert.equal(c.__scr.etfs,false);assert.equal(c.__scr.watchlistOnly,false);assert.equal(c.__researchSelected.length,0);assert.equal(JSON.stringify(c.__scr.filters),'[{"field":"sector","values":["Technology"]}]');
+ const before=JSON.stringify(c.__scr);c.scrDrillTo('cap_bucket','Unknown');assert.equal(JSON.stringify(c.__scr),before);
+});

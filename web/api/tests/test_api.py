@@ -618,11 +618,11 @@ def test_groups_cap_bucket_grouping(monkeypatch):
     _seed_enrichment_rows(fdb)
     for code, cap in (("US.AAPL", 3.0e12), ("US.MSFT", 3.0e12)):
         qrow = next(q for q in fdb._t("screener_quotes") if q["code"] == code)
-        qrow["row"]["market_cap"] = cap
+        qrow["row"].update(code=code,market_cap=cap,field_observations={'market_cap':{'code':code,'field':'market_cap','value':cap,'unit':'currency','currency':'USD'}})
         qrow["row"]["pct"] = 1.0 if code == "US.AAPL" else -1.0
     api.db = fdb
     r = client.get("/api/groups?group_by=cap_bucket").json()
-    assert r["rows"][0]["key"] == "mega (≥200B)" and r["rows"][0]["stocks"] == 2
+    assert r["rows"][0]["key"] == "USD · mega (≥200B)" and r["rows"][0]["stocks"] == 2
     assert r["rows"][0]["adv"] == 1 and r["rows"][0]["decl"] == 1
 
 

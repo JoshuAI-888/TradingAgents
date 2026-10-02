@@ -492,3 +492,93 @@ def test_supplemental_registry_matches_worker_and_does_not_infer_current_fundame
     technical=api.screener(watchlist_only=0,src='yf',filters='[{"field":"rsi14","max":30}]')
     assert len(technical['rows'])==2
     assert all('forward_pe' not in r and r['display_field_sources']['rsi14']['source']=='computed_technicals' for r in technical['rows'])
+
+
+def test_groups_exclude_stale_enrichment_and_keep_missing_industry_unknown(monkeypatch):
+    from datetime import timedelta
+    now=datetime.now(timezone.utc).isoformat();old=(datetime.now(timezone.utc)-timedelta(days=9)).isoformat()
+    rows=[{'code':'US.A','symbol':'A','stock_type':'STOCK','plate':'Provider banks','pe_ttm':8},
+          {'code':'US.B','symbol':'B','stock_type':'STOCK','plate':'Provider banks','pe_ttm':0},
+          {'code':'US.C','symbol':'C','stock_type':'STOCK','plate':'Provider banks','pe_ttm':float('inf')}]
+    monkeypatch.setattr(api,'_stored_universe',lambda *a,**k:(rows,now))
+    api.db._t('screener_enrichment').extend([
+        {'market':'US','code':'US.A','data':{'sector':'Technology','industry':'Software','forward_pe':12},'as_of':old},
+        {'market':'US','code':'US.B','data':{'sector':'Financial Services','forward_pe':16},'as_of':now}])
+    result=api.groups(group_by='industry');assert len(result['rows'])==1
+    group=result['rows'][0];assert group['key']=='Unknown' and group['stocks']==3 and not group['drillable']
+    assert group['avgs']=={'pe_ttm':8,'forward_pe':16}
+    assert group['coverage']['pe_ttm']==group['coverage']['forward_pe']==1
+    assert group['cap_sum'] is None and group['coverage']['market_cap']==0
+    # Read fresh classification after a successful update; no old aggregate cache.
+    api.db._t('screener_enrichment')[0]['as_of']=now
+    groups=api.groups(group_by='industry')['rows'];assert {r['key'] for r in groups}=={'Software','Unknown'}
+
+
+def test_groups_currency_coverage_does_not_sum_mixed_or_unqualified_caps(monkeypatch):
+    now=datetime.now(timezone.utc).isoformat()
+    def row(code,value,currency):
+        return {'code':code,'stock_type':'STOCK','plate':'P','market_cap':value,'pct':0,'volume':0,
+                'field_observations':{'market_cap':{'code':code,'field':'market_cap','value':value,'unit':'currency','currency':currency}}}
+    rows=[row('US.A',100,'USD'),row('US.B',200,'HKD'),row('US.C',300,None)]
+    monkeypatch.setattr(api,'_stored_universe',lambda *a,**k:(rows,now))
+    group=api.groups()['rows'][0]
+    assert group['cap_sum'] is None and group['cap_currency'] is None
+    assert group['cap_by_currency']=={'USD':100,'HKD':200} and group['coverage']['market_cap']==2
+    assert group['coverage']['pct']==3 and group['chg_avg']==0 and group['coverage']['volume']==3
+    rows[1]['field_observations']['market_cap']['currency']='USD'
+    rows[2]['field_observations']['market_cap']['currency']='USD'
+    group=api.groups()['rows'][0];assert group['cap_sum']==600 and group['cap_currency']=='USD'
+    rows[2]['field_observations']['market_cap']['code']='US.WRONG'
+    assert api.groups()['rows'][0]['cap_sum'] is None
+    assert api._group_cap_currency(row('US.A',1,'USD'))=='USD'
+    malformed=row('US.A',1,'USD');malformed['field_observations']['market_cap']['value']=True
+    assert api._group_cap_currency(malformed) is None
+    malformed=row(None,1,'USD');assert api._group_cap_currency(malformed) is None
+
+
+def test_group_inputs_and_missing_ordering_are_explicit(monkeypatch):
+    for kwargs in [{'group_by':'invalid'},{'stock_type':'WARRANT'},{'direction':3},{'market':'invalid'},{'order_by':'invalid'}]:
+        with pytest.raises(HTTPException) as error:api.groups(**kwargs)
+        assert error.value.status_code==400
+    rows=[{'code':'US.A','stock_type':'STOCK','plate':'Missing'},
+          {'code':'US.B','stock_type':'STOCK','plate':'Zero','pct':0},
+          {'code':'US.C','stock_type':'UNKNOWN','plate':'Unknown','pct':99}]
+    monkeypatch.setattr(api,'_stored_universe',lambda *a,**k:(rows,None))
+    for direction in [1,2]:
+        result=api.groups(order_by='chg_avg',direction=direction)
+        assert [r['key'] for r in result['rows']]==['Zero','Missing']
+        assert result['unclassified_count']==1
+
+
+def test_groups_do_not_rank_unlike_currencies_or_serialize_aggregate_overflow(monkeypatch):
+    import json
+    def row(code,plate,currency,cap):
+        return {'code':code,'stock_type':'STOCK','plate':plate,'market_cap':cap,'pct':1e308,'volume':1e308,
+                'pe_ttm':1e308,'field_observations':{'market_cap':{
+                    'code':code,'field':'market_cap','value':cap,'unit':'currency','currency':currency}}}
+    rows=[row('US.A','Dollars','USD',100),row('US.B','HK dollars','HKD',1000)]
+    monkeypatch.setattr(api,'_stored_universe',lambda *a,**k:(rows,None))
+    with pytest.raises(HTTPException) as error:api.groups(order_by='cap_sum')
+    assert error.value.status_code==400
+    result=api.groups(order_by='cap_sum',cap_currency='USD')
+    assert [r['key'] for r in result['rows']]==['Dollars','HK dollars']
+    assert result['ordering']['cap_currency']=='USD'
+    with pytest.raises(HTTPException):api.groups(cap_currency='usd')
+    rows[:]=[row('US.A','P','USD',1e308),row('US.B','P','USD',1e308)]
+    result=api.groups();group=result['rows'][0]
+    assert group['cap_sum'] is None and group['cap_by_currency']=={'USD':None}
+    assert group['vol_sum'] is None and group['coverage']['volume']==2
+    assert group['chg_avg']==group['avgs']['pe_ttm']==1e308
+    json.dumps(result,allow_nan=False)
+
+
+def test_malformed_supplemental_and_observations_fail_closed(monkeypatch):
+    from test_api import _seed_enrichment_rows, _fresh_caches
+    _fresh_caches(monkeypatch);_seed_enrichment_rows(api.db)
+    for quote in api.db._t('screener_quotes'):
+        quote['row']['stock_type']='STOCK';quote['row']['field_observations']='malformed'
+    for enr in api.db._t('screener_enrichment'):enr['data']=['not','a','field','map']
+    monkeypatch.setattr(api,'_market_client',lambda:object())
+    result=api.screener(watchlist_only=0,src='yf',filters='[{"field":"forward_pe","max":40}]')
+    assert result['rows']==[]
+    groups=api.groups();assert all(r['cap_sum'] is None for r in groups['rows'])

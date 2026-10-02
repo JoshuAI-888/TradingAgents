@@ -4043,40 +4043,43 @@ async function groupsPage() {
   const rows = r.rows.map(x => {
     const w = Math.min(50, Math.abs(x.chg_avg || 0) / maxAbs * 50);
     const bar = x.chg_avg != null ? `<span style="display:inline-block;width:${w.toFixed(1)}%;height:8px;border-radius:3px;background:${x.chg_avg >= 0 ? "var(--green)" : "var(--red)"}"></span>` : "";
-    const drill = `scrDrillTo('${gb}', ${JSON.stringify(x.key).replace(/"/g, "&quot;")})`;
-    return `<tr class="grow" onclick="${drill}" style="cursor:pointer" title="open in screener">
+    const drill = `scrDrillTo('${gb}', ${esc(JSON.stringify(x.key))})`;
+    return `<tr>
       <td class="mono dim">${x.stocks}</td>
-      <td><b>${esc(x.key)}</b></td>
-      <td class="mono dim">${cap(x.cap_sum)}</td>
-      <td class="mono ${x.chg_avg > 0 ? "g" : x.chg_avg < 0 ? "r" : ""}">${x.chg_avg != null ? (x.chg_avg > 0 ? "+" : "") + x.chg_avg.toFixed(2) + "%" : "—"}</td>
+      <td>${x.drillable?`<button class="btn ghost" style="min-height:44px" onclick="${drill}" aria-label="Open ${esc(x.key)} group in screener">${esc(x.key)}</button>`:`<b>${esc(x.key)}</b>`}</td>
+      <td class="mono dim">${x.cap_sum!=null && x.cap_currency?esc(x.cap_currency)+" "+fmtBig(x.cap_sum):"Unavailable"}<small class="faint"> · ${x.coverage?.market_cap || 0}/${x.stocks} qualified</small></td>
+      <td class="mono ${x.chg_avg > 0 ? "g" : x.chg_avg < 0 ? "r" : ""}">${x.chg_avg != null ? (x.chg_avg > 0 ? "+" : "") + x.chg_avg.toFixed(2) + "%" : "—"}<small class="faint"> · ${x.coverage?.pct || 0}/${x.stocks}</small></td>
       <td><span class="g">▲${x.adv}</span> <span class="r">▼${x.decl}</span> ${bar}</td>
-      ${GROUP_AVG_COLS.map(([f]) => `<td class="mono dim">${x.avgs && x.avgs[f] != null ? num(x.avgs[f], 2) : "—"}</td>`).join("")}
+      ${GROUP_AVG_COLS.map(([f]) => `<td class="mono dim">${x.avgs && x.avgs[f] != null ? Number(x.avgs[f]).toLocaleString("en-US",{maximumFractionDigits:2}) : "—"}<small class="faint"> · ${x.coverage?.[f] || 0}/${x.stocks}</small></td>`).join("")}
     </tr>`;
   }).join("");
   return `<div class="panel" style="margin-top:14px">
     <div class="scr-toolbar">
-      <h3 class="sec" style="margin:0">Groups <small>industry &amp; concept breakdowns over the stored universe — zero vendor calls</small></h3>
+      <h3 class="sec" style="margin:0">Groups <small>covered classifications over stored data — zero vendor calls</small></h3>
       <span style="flex:1"></span>
-      <label class="faint" style="font-size:11px">Group by</label>
-      <select onchange="window.__groupsBy=this.value;showPage('groups')">
-        ${[["plate", "Industry"], ["sector", "Sector (yf)"], ["industry", "Industry (yf)"], ["exchange", "Exchange"], ["cap_bucket", "Market Cap"]].map(([v, l]) =>
+      <label class="faint" style="font-size:14px" for="groups-classification">Group by</label>
+      <select id="groups-classification" onchange="window.__groupsBy=this.value;showPage('groups')">
+        ${[["plate", "Provider list"], ["sector", "Sector (yfinance)"], ["industry", "Industry (yfinance)"], ["exchange", "Exchange"], ["cap_bucket", "Market Cap"]].map(([v, l]) =>
           `<option value="${v}" ${gb === v ? "selected" : ""}>${l}</option>`).join("")}
       </select>
-      <span class="mono faint">${r.rows.length} groups · as of ${r.as_of ? fmtTs(r.as_of) : "—"}</span>
+      <span class="mono faint">${r.rows.length} groups · quote generation published ${r.as_of ? fmtTs(r.as_of) : "Unavailable"}</span>
     </div>
-    <table class="scr-table"><tr><th>Stocks</th><th>Group</th><th>Σ Market Cap</th><th>Avg Δ%</th><th>Breadth</th>
+    <div style="overflow-x:auto"><table class="scr-table"><tr><th>Stocks</th><th>Group</th><th>Σ Market Cap</th><th>Avg Δ%</th><th>Breadth</th>
       ${GROUP_AVG_COLS.map(([, l]) => `<th>${l}</th>`).join("")}</tr>
-    ${rows || '<tr><td colspan="12" class="empty">No groups.</td></tr>'}</table>
-    <div class="faint" style="font-size:10px;margin-top:6px">Click a group to open the screener pre-filtered to it. Sector/Industry (yf) need the nightly YFinance batch; Industry/Exchange work from moomoo data alone.</div>
+    ${rows || '<tr><td colspan="11" class="empty">No groups.</td></tr>'}</table></div>
+    <p class="faint" style="font-size:12px;margin-top:8px">${esc(r.scope || "Stored eligible instruments")} · ${r.unclassified_count || 0} unclassified excluded. ${esc(r.aggregation || "Coverage counts show eligible observations per field.")} Provider lists are vendor classifications; absent sector/industry remains Unknown. Known classification buttons open a fresh screen. Currency-qualified cap buckets are informational until a matching currency filter is available.</p>
   </div>`;
 }
 window.__groupsBy = "plate";
 pages.groups = groupsPage;  // register on the page router (nav data-page="groups")
 function scrDrillTo(groupBy, key) {
+  if(!['plate','sector','industry','exchange'].includes(groupBy) || !key || key==='Unknown')return;
   const st = window.__scr;
-  st.filters = st.filters.filter(f => f.field !== groupBy);
-  st.filters.push({ field: groupBy === "plate" ? "plate" : groupBy, values: [key] });
-  showPage("home");
+  Object.assign(st,{filters:[{field:groupBy,values:[key]}],colFilters:{},activePreset:null,savedScreenId:null,
+    presentation:'table',watchlistOnly:false,etfs:false,page:1,sort:'market_cap',dir:2,
+    src:['sector','industry'].includes(groupBy)?'yf':'moo'});
+  window.__researchSelected=[];window.__exploreState=null;window.__researchResetScroll=true;
+  scrPersist();showPage('home');
 }
 
 // ── STOCK PAGE (moomoo-style per-symbol detail; spec: web/STOCK_PAGE_FEASIBILITY.md) ──
