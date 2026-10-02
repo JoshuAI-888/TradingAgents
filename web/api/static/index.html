@@ -416,7 +416,7 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 ::-webkit-scrollbar-thumb:hover{background:#33445f}
 *{scrollbar-width:thin;scrollbar-color:#26344a var(--bg)}
 </style>
-<link rel="stylesheet" href="/research-workspace.css?v=20261002-explorer-actions">
+<link rel="stylesheet" href="/research-workspace.css?v=20261002-screen-values">
 </head>
 <body>
 <div class="wrap">
@@ -1431,7 +1431,7 @@ async function scrDeleteSaved(id) {
   scrTab = "screeners"; scrRenderModal();
 }
 </script>
-<script src="/research-workspace.js?v=20261002-navigation"></script>
+<script src="/research-workspace.js?v=20261002-screen-values"></script>
 <script src="/research-account.js?v=20261002-navigation"></script>
 <script>
 const $ = s => document.querySelector(s);
@@ -1923,7 +1923,7 @@ const pages = {
     };
     const body = viewRows.map((r, i) => `<tr>
       <td><label class="stock-select"><input type="checkbox" data-research-index="${i}" aria-label="Select ${esc(r.symbol)} for comparison" ${(window.__researchSelected || []).includes(r.code || r.symbol) ? "checked" : ""} onchange="researchSelect(${i},this.checked)"></label></td><td class="mono dim">${(scr.offset || 0) + i + 1}</td>
-      ${st.cols.map(k => `<td data-field="${k}">${(cellFmt[SCR_COLS[k][1]] || cellFmt.num)(r, k)}${k==='symbol'?`<button class="btn ghost row-inspect-icon" aria-label="Inspect ${esc(r.symbol)}" title="Inspect ${esc(r.symbol)} without leaving the screen" onclick="researchInspect(${i},this)"><img src="/vendor/bootstrap-icons/eye.svg" alt="" width="16" height="16"></button>`:''}</td>`).join("")}
+      ${st.cols.map(k => `<td data-field="${k}">${(cellFmt[SCR_COLS[k][1]] || cellFmt.num)(r, k)}${researchScreenValuesHTML(r,k,st)}${k==='symbol'?`<button class="btn ghost row-inspect-icon" aria-label="Inspect ${esc(r.symbol)}" title="Inspect ${esc(r.symbol)} without leaving the screen" onclick="researchInspect(${i},this)"><img src="/vendor/bootstrap-icons/eye.svg" alt="" width="16" height="16"></button>`:''}</td>`).join("")}
       <td class="row-actions">${!st.cols.includes('symbol')?`<button class="btn ghost inspect-btn" aria-label="Inspect ${esc(r.symbol)}" onclick="researchInspect(${i},this)">Inspect</button>`:''}<button class="starbtn ${stars.includes(r.symbol) ? "on" : ""}" title="watchlist" onclick="toggleWatch('${esc(r.symbol)}')">${stars.includes(r.symbol) ? "★" : "☆"}</button></td></tr>`).join("");
     const colChips = st.filters.map((f, i) => `<span class="chip-f">${esc(f._label || SCR_FIELDS[f.field] || FIELD_LABELS[f.field] || f.field)}
       ${f.days ? " (" + f.days + "-day average)" : ""} ${f.values ? "= " + f.values.join(", ") : ""}${f.min != null ? (f.excl_min ? "> " : "≥ ") + fmtMag(f.min) : ""}${f.min != null && f.max != null ? " · " : ""}${f.max != null ? (f.excl_max ? "< " : "≤ ") + fmtMag(f.max) : ""}

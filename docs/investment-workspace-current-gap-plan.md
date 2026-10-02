@@ -1,5 +1,7 @@
 # Build-to-design review and remaining delivery plan
 
+**Latest criterion presentation:** [visible screening observations](design-gap-audit/visible-screen-values/README.md) distinguishes provider screening values from quote/factor displays directly in original-criterion table cells and phone cards/details. 117 JavaScript tests pass; actual-route offline browser checks show display P/E 8 versus Screen 25, explicit unavailable evidence, phone containment and default Clear. No membership/source qualification is inferred; R02/R03/R11 and production remain open.
+
 **Latest navigation implementation:** [reload and research continuity](design-gap-audit/navigation-continuity/README.md) adds Settings/Compare/shortlist routes, validated owner-bound shortlist navigation, persisted research origins and versioned helper assets. 115 JavaScript tests pass; actual-route offline browser checks retain shortlist filters and screen sort/selection through research/Compare reload and return, with anonymous sign-out gating. Full R04/R05/R12 and financial/production acceptance remain open.
 
 **Latest recovery implementation:** [independent Settings panels and unknown pricing](design-gap-audit/settings-recovery/README.md) prevents catalog outages from hiding Data & coverage, guards obsolete responses, and retains active models absent from refreshed catalogs. 108 JavaScript tests pass; actual-route offline browser checks cover catalog failure/recovery and cadence save, with phone containment. Broader R12 and production/data acceptance remain open.

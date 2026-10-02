@@ -797,5 +797,25 @@ test('normalizing an existing screener deep link does not push another browser h
 });
 
 test('navigation helpers are loaded through versioned browser assets',()=>{
- assert.match(html,/research-workspace\.js\?v=20261002-navigation/);assert.match(html,/research-account\.js\?v=20261002-navigation/);
+ assert.match(html,/research-workspace\.js\?v=20261002-screen-values/);assert.match(html,/research-account\.js\?v=20261002-navigation/);
+});
+
+
+test('visible Screen values distinguish original provider rules from display and custom filters',()=>{
+ const c=harness(),a={field:'pe_ttm',min:20},b={field:'volume',min:100,days:30},custom={field:'pe_ttm',max:30};
+ c.__scrPresets=[{key:'p',filters:[a,b]}];Object.assign(c.__scr,{activePreset:'p',filters:[a,b,custom]});
+ const row={code:'US.A',pe_ttm:8,volume:9,criterion_evidence:[{code:'US.A',criterion:a,value:25},{code:'US.A',criterion:b,value:120}]};
+ const pe=c.researchScreenValuesHTML(row,'pe_ttm');assert.match(pe,/Screen: 25/);assert.equal((pe.match(/class="screen-value"/g)||[]).length,1);assert.doesNotMatch(pe,/Screen: 8/);
+ assert.match(c.researchScreenValuesHTML(row,'volume'),/Screen · 30-day: 120 shares/);
+ row.criterion_evidence[0].code='US.B';assert.match(c.researchScreenValuesHTML(row,'pe_ttm'),/Screen: Unavailable/);
+ c.__scr.activePreset=null;assert.equal(c.researchScreenValuesHTML(row,'pe_ttm'),'');
+});
+
+test('screen-value labels fail closed for ambiguous observations and preserve repeated windows',()=>{
+ const c=harness(),a={field:'volume',days:10,min:10},b={field:'volume',days:30,min:100};c.__scrPresets=[{key:'p',filters:[a,b]}];Object.assign(c.__scr,{activePreset:'p',filters:[a,b]});
+ const row={code:'US.A',criterion_evidence:[{code:'US.A',criterion:a,value:0},{code:'US.A',criterion:b,value:150}]};
+ assert.match(c.researchScreenValuesHTML(row,'volume'),/Screen · 10-day: 0 shares/);assert.match(c.researchScreenValuesHTML(row,'volume'),/Screen · 30-day: 150 shares/);
+ row.criterion_evidence.push({...row.criterion_evidence[0]});assert.match(c.researchScreenValuesHTML(row,'volume'),/Screen · 10-day: Unavailable/);
+ assert.match(c.researchProviderScopeHTML({rows:[]},[],c.__scr),/Sort and added filters use display values/);
+ assert.match(html,/researchScreenValuesHTML\(r,k,st\)/);assert.match(helper,/researchScreenValuesHTML\(r,'pe_ttm',st\)/);
 });
