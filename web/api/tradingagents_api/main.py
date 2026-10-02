@@ -31,6 +31,7 @@ import copy
 from tradingagents_worker.runner import demangle_debate
 from tradingagents_worker.screener_rows import snapshot_to_row as _snapshot_to_row
 from .screen_observations import capture_observation, paired_evidence, criterion_slots, numeric, validate_observation_capture
+from .export_values import export_row, csv_cell, xml_text, finite as export_finite
 
 _AS_OF_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
@@ -1012,15 +1013,14 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
         money_cols=[field for field in cols if field in CURRENCY_FIELDS]
         cols += [field+'_currency' for field in money_cols if field+'_currency' not in cols]
         rows=[{**row,**{field+'_currency':field_currency(row,field) or 'Unavailable' for field in money_cols}} for row in rows]
+        rows=[export_row(row,cols) for row in rows]
+        if any(row['export_value_issues'] for row in rows):cols.append('export_value_issues')
         from xml.sax.saxutils import escape as _x
         from fastapi.responses import Response
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
         fname = f"screener_{market}_{matched}rows_{stamp}"
         if export == "csv":
-            def cell(v):
-                s = "" if v is None else json.dumps(v,ensure_ascii=False,allow_nan=False) if isinstance(v,(dict,list)) else str(v)
-                if isinstance(v,str) and re.match(r'^[=+@\-\t\r]',s):s="'"+s
-                return '"' + s.replace('"', '""') + '"' if any(ch in s for ch in ',"\n') else s
+            cell=csv_cell
             lines = [",".join(cell(c) for c in cols)]
             lines += [",".join(cell(r.get(c)) for c in cols) for r in rows]
             return Response("\ufeff" + "\n".join(lines), media_type="text/csv; charset=utf-8",
@@ -1037,11 +1037,10 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
                 v = r.get(c)
                 if v is None:
                     cells.append("<Cell/>")
-                elif isinstance(v, (int, float)) and not isinstance(v, bool):
+                elif export_finite(v):
                     cells.append(f'<Cell><Data ss:Type="Number">{v}</Data></Cell>')
                 else:
-                    s=json.dumps(v,ensure_ascii=False,allow_nan=False) if isinstance(v,(dict,list)) else str(v)
-                    cells.append(f'<Cell><Data ss:Type="String">{_x(s)}</Data></Cell>')
+                    cells.append(f'<Cell><Data ss:Type="String">{xml_text(v)}</Data></Cell>')
             xml.append("<Row>" + "".join(cells) + "</Row>")
         xml.append("</Table></Worksheet></Workbook>")
         return Response("".join(xml), media_type="application/vnd.ms-excel",

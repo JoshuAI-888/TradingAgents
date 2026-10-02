@@ -797,7 +797,7 @@ test('normalizing an existing screener deep link does not push another browser h
 });
 
 test('navigation helpers are loaded through versioned browser assets',()=>{
- assert.match(html,/research-workspace\.js\?v=20261002-typed-values/);assert.match(html,/research-account\.js\?v=20261002-navigation/);
+ assert.match(html,/research-workspace\.js\?v=20261002-export-values/);assert.match(html,/research-account\.js\?v=20261002-export-values/);
 });
 
 
@@ -848,4 +848,28 @@ test('actual preset table rendering does not invent numeric values or Boolean fl
  for(const field of ['pe_ttm','volume','pct','new_high'])assert.match(result,new RegExp('data-field="'+field+'"><span[^>]*>Unavailable</span>'));
  assert.match(result,/data-field="new_high"><span[^>]*>No<\/span>/);
  assert.match(result,/data-field="volume"><span[^>]*>0\.00M<\/span>/);
+});
+
+test('export cells preserve typed numbers, invalid diagnostics and structured nonfinite evidence',()=>{
+ const c=harness(),raw={code:'US.BAD',price:true,pe_ttm:'8',volume:Infinity,new_high:2,field_observations:{price:{value:NaN}}};
+ const row=c.researchExportRow(raw,['price','pe_ttm','volume','new_high']);
+ for(const field of ['price','pe_ttm','volume','new_high'])assert.equal(row[field],'Unavailable');
+ assert.equal(row.export_value_issues.length,4);assert.equal(raw.price,true);assert.equal(raw.volume,Infinity);
+ const evidence=JSON.parse(c.researchExportJSON(row));assert.equal(evidence.field_observations.price.value.export_unavailable,'nonfinite_number');
+ assert.equal(evidence.export_value_issues[2].source_value.source_value,'Infinity');
+ assert.match(c.researchXMLCell(0),/ss:Type="Number">0</);assert.match(c.researchXMLCell(-2),/ss:Type="Number">-2</);
+ assert.match(c.researchXMLCell(Infinity),/ss:Type="String".*nonfinite_number/);assert.match(c.researchXMLCell('a\u0001<&'),/a\\u0001&lt;&amp;/);
+ assert.equal(c.researchCSVCell('  =1+1'),"'  =1+1");assert.equal(c.researchCSVCell(-2),'-2');
+ assert.match(c.researchCSVCell('\r=1+1'),/^"'\r/);
+});
+
+test('download blobs retain scope, typed Excel cells and invalid-source diagnostics',async()=>{
+ const c=harness(),rows=[stock('BAD',10,1,{code:'US.BAD',price:true,pe_ttm:'8',volume:Infinity,field_observations:{price:{value:NaN}}}),stock('ZERO',9,0,{code:'US.ZERO',price:0,pe_ttm:0,volume:0})];
+ c.scrClientRows=()=>rows;c.__scr.cols=['symbol','price','pe_ttm','volume'];let blob;
+ c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){},remove(){}});
+ c.scrExport('csv','loaded');const csv=await blob.text();assert.match(csv,/export_value_issues/);assert.match(csv,/1,BAD,Unavailable,Unavailable,Unavailable/);assert.match(csv,/2,ZERO,0,0,0/);assert.match(csv,/nonfinite_number/);
+ c.scrExport('xls','loaded');const xml=await blob.text();assert.match(xml,/ss:Type="Number">0</);assert.match(xml,/ss:Type="String">Unavailable</);assert.doesNotMatch(xml,/ss:Type="Number">(?:true|Infinity|NaN)</);
+ assert.equal(rows[0].price,true);assert.equal(rows[0].volume,Infinity);
+ const shortlist=c.researchListCSV({name:'Quality',revision:4},[{code:'US.BAD',quote:rows[0],note:'  =1+1'},{code:'US.ZERO',quote:rows[1]}]);
+ assert.match(shortlist,/export_value_issues/);assert.match(shortlist,/Unavailable/);assert.match(shortlist,/'  =1\+1/);assert.match(shortlist,/invalid_numeric/);
 });

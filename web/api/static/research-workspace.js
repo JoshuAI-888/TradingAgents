@@ -1,5 +1,31 @@
 /* Research workspace: presentation and navigation over the existing screener.
    Existing preset membership, columns, exports and KLine engine remain authoritative. */
+function researchExportJSON(value) {
+ return JSON.stringify(value,(_key,v)=>typeof v==='number' && !Number.isFinite(v)?{export_unavailable:'nonfinite_number',source_value:String(v)}:v);
+}
+function researchCSVCell(value) {
+ let s=value==null?'':typeof value==='object'?researchExportJSON(value):typeof value==='number' && !Number.isFinite(value)?researchExportJSON({export_unavailable:'nonfinite_number',source_value:String(value)}):String(value);
+ if(typeof value==='string' && (/^\s*[=+@-]/.test(s) || /^[\t\r\n]/.test(s)))s="'"+s;
+ return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;
+}
+function researchExportRow(row,columns) {
+ const result={...row},issues=[];
+ for(const field of columns){const value=row[field],kind=SCR_COLS[field]?.[1];
+  if(kind==='num' || RESEARCH_CURRENCY_FIELDS.has(field)){
+   if(typeof value==='number' && Number.isFinite(value))continue;
+   result[field]='Unavailable';if(value!=null)issues.push({field,reason:'invalid_numeric',source_value:value});
+  }else if(kind==='bool'){
+   result[field]=researchDisplayField(field,value);if(value!=null && result[field]==='Unavailable')issues.push({field,reason:'invalid_flag',source_value:value});
+  }
+ }
+ result.export_value_issues=issues;return result;
+}
+function researchXMLCell(value) {
+ const number=typeof value==='number' && Number.isFinite(value);
+ const text=value==null?'':typeof value==='object'?researchExportJSON(value):typeof value==='number' && !Number.isFinite(value)?researchExportJSON({export_unavailable:'nonfinite_number',source_value:String(value)}):String(value);
+ const safe=text.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0')).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+ return '<Cell><Data ss:Type="'+(number?'Number':'String')+'">'+safe+'</Data></Cell>';
+}
 function researchRows() { return scrClientRows() || []; }
 function researchVisibleRows() { return window.__homeCtx?.scr?.rows || []; }
 function researchKey(r) { return r.code || r.symbol; }
@@ -701,7 +727,7 @@ function researchChangeInspect(code,origin,focus=true) {
  el.onkeydown=e=>researchModalKey(e,el,()=>researchCloseInspector());if(focus)el.querySelector('.inspector-close')?.focus({preventScroll:true});
 }
 function researchChangesCSV(d,rows) {
- const cell=v=>{const s=v==null?'':typeof v==='object'?JSON.stringify(v):String(v);return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+ const cell=researchCSVCell;
  const header=['definition_json','previous_id','current_id','previous_at','current_at','previous_source_at','current_source_at','code','symbol','name','status','reason','previous_metrics','current_metrics','criterion_evidence','previous_source_clock','current_source_clock','capture_scope','observation_scope','previous_eligible_observations','current_eligible_observations','previous_generation_id','current_generation_id'];
  return '\ufeff'+[header.map(cell).join(','),...rows.map(r=>[d.definition,d.previous_id,d.current_id,d.previous_at,d.current_at,d.previous_source_at,d.current_source_at,r.code,r.symbol,r.name,r.status,r.reason,r.previous?.metrics,r.current?.metrics,r.evidence,d.previous_source_clock || 'unverified',d.current_source_clock || 'unverified',d.scope || 'unverified',d.observation_coverage?.scope || 'unverified',d.observation_coverage?.previous,d.observation_coverage?.current,d.previous_generation_id,d.current_generation_id].map(cell).join(','))].join('\n');
 }

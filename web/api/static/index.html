@@ -692,25 +692,25 @@ function scrExport(kind, scope) {
   if(list.some(r=>r.field_observations))cols.push('field_observations');
   if(list.some(r=>r.display_field_sources))cols.push('display_field_sources');
   for(const key of ['criterion_values','criterion_evidence','criterion_retrieved_at'])if(list.some(r=>r[key]!=null))cols.push(key);
+  const prepared=list.map(r=>researchExportRow(r,cols));
+  if(prepared.some(r=>r.export_value_issues.length))cols.push('export_value_issues');
   const exportValue=(r,k)=>moneyCols.some(f=>k===f+'_currency')?researchFieldCurrency(r,k.slice(0,-9)) || 'Unavailable':r[k];
   const headers = ["No.", ...cols.map(k => (SCR_COLS[k] || [k])[0])];
-  const ccell = v => { let s = v == null ? "" : typeof v==='object'?JSON.stringify(v):String(v); if(typeof v === "string" && /^[=+@\-\t\r]/.test(s)) s="'"+s; return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const ccell = researchCSVCell;
   const stamp = new Date().toISOString().slice(0, 10);
   const fname = "screener_" + st.market + "_" + list.length + "rows_" + stamp + (scope === "selected" ? "_selected" : scope === "explore" ? "_region" : "");
   let blob, ext;
   if (kind === "csv") {
     const lines = [headers.map(ccell).join(",")];
-    list.forEach((r, i) => lines.push([String(rowNumber(r, i)), ...cols.map(k => ccell(exportValue(r,k)))].join(",")));
+    prepared.forEach((r, i) => lines.push([String(rowNumber(list[i], i)), ...cols.map(k => ccell(exportValue(r,k)))].join(",")));
     blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
     ext = "csv";
   } else {
-    const x = v => String(v == null ? "" : typeof v==='object'?JSON.stringify(v):v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const xml = ['<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>',
       '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" '
       + 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Screener"><Table>',
-      "<Row>" + headers.map(h => '<Cell><Data ss:Type="String">' + x(h) + "</Data></Cell>").join("") + "</Row>"];
-    list.forEach((r, i) => xml.push("<Row>" + [String(rowNumber(r, i)), ...cols.map(k => x(exportValue(r,k)))]
-      .map(v => '<Cell><Data ss:Type="String">' + v + "</Data></Cell>").join("") + "</Row>"));
+      "<Row>" + headers.map(researchXMLCell).join("") + "</Row>"];
+    prepared.forEach((r,i)=>xml.push('<Row>'+[rowNumber(list[i],i),...cols.map(k=>exportValue(r,k))].map(researchXMLCell).join('')+'</Row>'));
     xml.push("</Table></Worksheet></Workbook>");
     blob = new Blob([xml.join("")], { type: "application/vnd.ms-excel" });
     ext = "xls";
@@ -1431,8 +1431,8 @@ async function scrDeleteSaved(id) {
   scrTab = "screeners"; scrRenderModal();
 }
 </script>
-<script src="/research-workspace.js?v=20261002-typed-values"></script>
-<script src="/research-account.js?v=20261002-navigation"></script>
+<script src="/research-workspace.js?v=20261002-export-values"></script>
+<script src="/research-account.js?v=20261002-export-values"></script>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));

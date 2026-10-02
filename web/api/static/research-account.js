@@ -262,8 +262,13 @@ function researchListOpenStock(code) {
   rows:window.__researchListItems.map(r=>({code:r.code,symbol:researchListQuote(r).symbol})),selected:[]};researchListNavigationPersist();researchOriginPersist();openStock(code);
 }
 function researchListCSV(list,items) {
- const cell=v=>{let s=v==null?'':String(v);if(typeof v==='string' && (/^\s*[=+\-@]/.test(s) || /^[\t\r\n]/.test(s)))s="'"+s;return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;};
- return '\ufeff'+[['list_name','list_revision','code','symbol','name','price','currency','quote_cache_at','review_status','note'],...items.map(item=>{const r=researchListQuote(item);return [list.name,list.revision,item.code,r.symbol,r.name,r.price,r.currency,item.quote_cache_at,item.review_status,item.note];})].map(row=>row.map(cell).join(',')).join('\n');
+ const cell=researchCSVCell,issues=[];
+ const rows=items.map(item=>{const r=researchListQuote(item),bad=r.price!=null && !(typeof r.price==='number' && Number.isFinite(r.price));
+  const issue=bad?[{field:'price',reason:'invalid_numeric',source_value:r.price}]:[];issues.push(issue);
+  return [list.name,list.revision,item.code,r.symbol,r.name,bad?'Unavailable':r.price,r.currency,item.quote_cache_at,item.review_status,item.note];});
+ const headers=['list_name','list_revision','code','symbol','name','price','currency','quote_cache_at','review_status','note'];
+ if(issues.some(issue=>issue.length)){headers.push('export_value_issues');rows.forEach((row,i)=>row.push(issues[i]));}
+ return '\ufeff'+[headers,...rows].map(row=>row.map(cell).join(',')).join('\n');
 }
 async function researchListExport() {
  const id=window.__researchListID,gen=window.__researchAuthGen || 0,status=document.getElementById('research-list-status');if(!id)return;

@@ -728,3 +728,28 @@ def test_actual_screener_filter_and_download_exclude_coerced_factor_rows(monkeyp
     root=ET.fromstring(response.body)
     cells=root.findall('.//{urn:schemas-microsoft-com:office:spreadsheet}Data')
     assert any(c.text=='US.ZERO' for c in cells) and not any(c.text and c.text.startswith('US.BAD') for c in cells)
+
+
+def test_server_downloads_reconcile_invalid_values_without_excel_numeric_coercion(monkeypatch):
+    import csv,io,json,xml.etree.ElementTree as ET
+    rows=[{'code':'US.BAD','symbol':'BAD','stock_type':'STOCK','name':'  =1+1','market_cap':100,'price':True,'pe_ttm':'8','volume':float('inf'),
+           'field_observations':{'price':{'value':float('nan')}},'note':'a\x01<&'},
+          {'code':'US.ZERO','symbol':'ZERO','stock_type':'STOCK','market_cap':90,'price':0,'pe_ttm':0,'volume':0}]
+    monkeypatch.setattr(api,'_stored_universe',lambda *a,**k:(rows,None))
+    monkeypatch.setattr(api,'_market_client',lambda:object())
+    csv_rows=list(csv.DictReader(io.StringIO(api.screener(watchlist_only=0,export='csv').body.decode('utf-8-sig'))))
+    assert [row['code'] for row in csv_rows]==['US.BAD','US.ZERO']
+    assert csv_rows[0]['name']=="'  =1+1"
+    assert all(csv_rows[0][field]=='Unavailable' for field in ['price','pe_ttm','volume'])
+    assert csv_rows[1]['price']=='0'
+    assert json.loads(csv_rows[0]['field_observations'])['price']['value']['export_unavailable']=='nonfinite_number'
+    assert {issue['field'] for issue in json.loads(csv_rows[0]['export_value_issues'])}=={'price','pe_ttm','volume'}
+    root=ET.fromstring(api.screener(watchlist_only=0,export='xls').body)
+    ns={'s':'urn:schemas-microsoft-com:office:spreadsheet'}
+    records=root.findall('.//s:Row',ns)
+    headers=[cell.find('s:Data',ns).text for cell in records[0]]
+    def data(index,field):return records[index][headers.index(field)].find('s:Data',ns)
+    assert data(1,'price').text=='Unavailable' and data(1,'price').attrib['{'+ns['s']+'}Type']=='String'
+    assert data(2,'price').text=='0' and data(2,'price').attrib['{'+ns['s']+'}Type']=='Number'
+    assert data(1,'note').text=='a\\u0001<&'
+    assert rows[0]['price'] is True
