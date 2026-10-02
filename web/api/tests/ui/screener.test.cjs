@@ -119,3 +119,13 @@ test('drawings survive chart teardown and restore under their instrument scope',
  c.klineTeardown(h);assert.equal(disposed,'chart-a');assert.equal(c.__chartDrawings['scope-a'][0].points[1].value,110);
  assert.equal(h.chart,null);assert.equal(h.drawingIds.length,0);
 });
+
+test('screener ticker links enter full research with return context',()=>{
+ const c=harness();c.scrClientRows=()=>[stock('BRK.B',1e11,2,{code:'US.BRK.B'})];
+ Object.assign(c.__scr,{sort:'price',page:3,filters:[{field:'price',min:1}]});
+ let opened;c.openStock=s=>opened=s;c.researchOpen('US.BRK.B');
+ assert.equal(opened,'US.BRK.B');assert.equal(c.__researchContext.state.page,3);
+ assert.equal(c.__researchContext.rows[0].code,'US.BRK.B');
+ c.__scr.page=1;assert.equal(c.__researchContext.state.page,3);
+ assert.match(html,/event.preventDefault\(\);researchOpen\('\$\{esc\(r.code \|\| r.symbol\)\}'\)/);
+});

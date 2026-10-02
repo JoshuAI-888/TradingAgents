@@ -1879,7 +1879,7 @@ const pages = {
     const cap = v => v == null ? "—" : "$" + fmtBig(v);
     const cellFmt = {
       text: (r, k) => k === "symbol"
-        ? `<a href="#" onclick="event.preventDefault();openStock('${esc(r.symbol)}')" class="mono sym" title="open stock page">${esc(r.symbol)}</a>`
+        ? `<a href="#" onclick="event.preventDefault();researchOpen('${esc(r.code || r.symbol)}')" class="mono sym" title="open stock page">${esc(r.symbol)}</a>`
         : `<span class="dim" title="${esc(r[k])}">${esc(String(r[k] || "").slice(0, 26))}</span>`,
       num: (r, k) => k === "market_cap" || k === "float_cap" ? `<span class="mono">${cap(r[k])}</span>`
         : k === "volume" || k === "turnover" || k === "shares" || k === "avg_vol3m" ? `<span class="mono">${r[k] != null ? (r[k] / 1e6).toFixed(2) + "M" : "—"}</span>`

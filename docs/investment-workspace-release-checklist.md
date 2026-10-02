@@ -18,7 +18,7 @@
 ## Verification completed before release
 
 - [x] 196 API/worker tests pass, including all-preset preservation, exclusive boundaries, missing evidence, provider scaling, pagination, saved-state compatibility and snapshot safeguards.
-- [x] 15 JavaScript UI-state tests pass, including reset, toggles, saved screens, deep links, pagination, missing sorts, stale-render protection, Explore and drawing restoration.
+- [x] 16 JavaScript UI-state tests pass, including reset, toggles, saved screens, deep links, pagination, missing sorts, stale-render protection, Explore and drawing restoration.
 - [x] Browser: click each of the 22 preset cards and click again; each selection returns to All stocks. Fixture verification is recorded in `research-workspace-evidence/preset-ui-checks.json`.
 - [x] Browser: Inspect → full stock research → Analysis/Financials → Back to screen; selected two-stock Compare and return; baseline and no-change snapshots; save a screen without filters.
 - [x] Browser/export: all four downloads open and parse. CSV and SpreadsheetML Excel exports contain 500 page rows or 1,176 available fixture matches, exclude all 24 fixture ETFs and use the table's market-cap order.
