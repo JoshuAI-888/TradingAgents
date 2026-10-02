@@ -75,3 +75,22 @@ def test_lt_debt_staging_combines_with_equity():
 def test_hk_symbol_mapping():
     assert ye.to_yahoo_symbol("HK.00700", "HK") == "0700.HK"
     assert ye.to_yahoo_symbol("US.AAPL", "US") == "AAPL"
+
+
+def test_info_calls_are_paced_not_hammered():
+    # Unpaced .info at ~16 req/s got the batch 401-walled by Yahoo mid-run
+    # (Invalid Crumb / "User is unable to access this feature", 2026-10-02).
+    yf = FakeYfModule({"AAPL": INFO_A, "MSFT": INFO_B, "NVDA": INFO_B})
+    pauses: list[float] = []
+    ye.fetch_yf_enrichment(["US.AAPL", "US.MSFT", "US.NVDA"], prices={},
+                           yf_module=yf, pause_s=0.5, sleep_fn=pauses.append)
+    assert pauses == [0.5, 0.5, 0.5]
+
+
+def test_pace_defaults_from_env(monkeypatch):
+    monkeypatch.setenv("YF_PAUSE_S", "0.7")
+    yf = FakeYfModule({"AAPL": INFO_A, "MSFT": INFO_B})
+    pauses: list[float] = []
+    ye.fetch_yf_enrichment(["US.AAPL", "US.MSFT"], prices={},
+                           yf_module=yf, sleep_fn=pauses.append)
+    assert pauses == [0.7, 0.7]

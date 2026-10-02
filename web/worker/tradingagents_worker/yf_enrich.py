@@ -8,6 +8,8 @@ HK branch is here so the mapping rule lives in exactly one place).
 """
 from __future__ import annotations
 
+import os
+import time
 from datetime import datetime, timezone
 
 from .enrich_fields import YF_FIELDS, apply_transform
@@ -31,13 +33,18 @@ def _default_import():
 
 def fetch_yf_enrichment(codes: list[str], prices: dict[str, float],
                         market: str = "US", yf_module=None,
-                        import_fn=_default_import) -> list[dict]:
+                        import_fn=_default_import, pause_s: float | None = None,
+                        sleep_fn=time.sleep) -> list[dict]:
     yf = yf_module
     if yf is None:
         try:
             yf = import_fn()
         except ImportError as e:
             raise EnrichUnavailable(f"yfinance not installed: {e}") from e
+    if pause_s is None:
+        # Unpaced .info calls (~16 req/s) got the batch 401-walled by Yahoo
+        # mid-run; ~5 req/s keeps the same 6k-code batch to ~20 extra minutes.
+        pause_s = float(os.getenv("YF_PAUSE_S", "0.2"))
     as_of = datetime.now(timezone.utc).isoformat()
     rows: list[dict] = []
     sym_of = {c: to_yahoo_symbol(c, market) for c in codes}
@@ -50,6 +57,7 @@ def fetch_yf_enrichment(codes: list[str], prices: dict[str, float],
         except Exception:
             continue  # a dead batch must not kill the nightly run
         for code in chunk:
+            sleep_fn(pause_s)  # pace before every .info — hammering invites the 401 wall
             try:
                 info = tk.tickers[sym_of[code]].info
             except Exception:
