@@ -827,6 +827,8 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
         cache.put("quotes", universe_key, rows)
     if rows:
         rows = _merge_universe_meta(rows, market)
+    unknown_classifications = sum(not r.get("stock_type") or str(r.get("stock_type")).upper() in
+                                  ("UNKNOWN", "UNKNOW", "UNCLASSIFIED", "N/A") for r in rows)
     # Classify explicitly; the public Moomoo universe can differ by venue/session.
     # Our stored universe also holds ETFs/indices/warrants (for stock pages);
     # whole-market mode restricts to STOCK unless the user filters Type.
@@ -926,7 +928,8 @@ def screener(market: str = "US", watchlist_only: int = 1, filters: str = "[]",
             "offset": max(0, offset),
             "skipped_filters": skipped,
             "enrich_as_of": enrich_as_of,
-            "universe_loaded": universe_loaded or bool(rows), "universe_as_of": universe_as_of,
+            "universe_loaded": universe_loaded, "universe_as_of": universe_as_of,
+            "unclassified_count": unknown_classifications,
             "presets": PRESET_SCREENERS,
             "watchlist": _watchlist_symbols()}
 
@@ -1476,6 +1479,9 @@ def capture_screen_snapshot(inp: ScreenDefinition):
             combined.extend(result.get("rows") or [])
         if not result.get("available") or result.get("possibly_truncated") or result.get("pending"):
             raise HTTPException(409, "Provider results are unavailable, incomplete or have unapplied criteria; no snapshot captured")
+        if any(not r.get("stock_type") or str(r.get("stock_type")).upper() in
+               ("UNKNOWN", "UNKNOW", "UNCLASSIFIED", "N/A") for r in combined):
+            raise HTTPException(409, "Instrument classification is incomplete; no snapshot captured")
         filters = inp.filters
         original = result.get("filters") or []
         extra = [f for f in filters if f not in original]
@@ -1491,46 +1497,153 @@ def capture_screen_snapshot(inp: ScreenDefinition):
                           filters=json.dumps(inp.filters), sort="market_cap", direction=2,
                           limit=20000, offset=0, src=inp.src)
         if (not result.get("available") or not result.get("universe_loaded")
-                or result.get("skipped_filters") or result.get("matched", 0) > len(result.get("rows") or [])):
+                or result.get("skipped_filters") or result.get("unclassified_count", 0) or result.get("matched", 0) > len(result.get("rows") or [])):
             raise HTTPException(409, "Stored universe is unavailable, incomplete or lacks criterion data; no snapshot captured")
         rows = result.get("rows") or []
         source_at = result.get("universe_as_of")
+    if not inp.etfs:
+        rows = [r for r in rows if r.get("stock_type") == "STOCK"]
     codes = [r.get("code") for r in rows]
     if any(not c for c in codes) or len(codes) != len(set(codes)):
         raise HTTPException(409, "Result identities are incomplete or duplicated; no snapshot captured")
     if not source_at:
         raise HTTPException(409, "Source timestamp is unavailable; no comparable snapshot captured")
-    source_age = (datetime.now(timezone.utc) - datetime.fromisoformat(source_at.replace("Z", "+00:00"))).total_seconds()
-    if source_age > 86400:
-        raise HTTPException(409, "Source data is older than 24 hours; refresh before capturing changes")
-    snapshot = {"at": datetime.now(timezone.utc).isoformat(), "source_at": source_at,
+    try:
+        source_time = datetime.fromisoformat(source_at.replace("Z", "+00:00"))
+        if source_time.tzinfo is None:
+            raise ValueError("timezone missing")
+        source_age = (datetime.now(timezone.utc) - source_time).total_seconds()
+    except (TypeError, ValueError):
+        raise HTTPException(409, "Source timestamp is invalid or lacks a timezone; no snapshot captured")
+    if source_age > 86400 or source_age < -300:
+        raise HTTPException(409, "Source time is older than 24 hours or in the future; refresh before capturing changes")
+    snapshot = {"id": str(uuid.uuid4()), "version": 2,
+                "at": datetime.now(timezone.utc).isoformat(), "source_at": source_at,
+                "source_clock": "provider_retrieval" if inp.preset else "stored_universe",
+                "definition": inp.model_dump(),
                 "members": [{"code": r["code"], "symbol": r.get("symbol"), "name": r.get("name"),
-                             "evidence": {f.get("field"): (r.get("criterion_values") or {}).get(f.get("field"), r.get(f.get("field")))
+                             "metrics": {k: r.get(k) for k in ("price", "pct", "market_cap", "pe_ttm")},
+                             "evidence": {f.get("field"): (r.get("criterion_values") or {}).get(f.get("field"))
+                                          if inp.preset else r.get(f.get("field"))
                                           for f in inp.filters}}
                             for r in rows], "complete": True}
     history = _snapshot_history(key)
     history = (history + [snapshot])[-2:]
     db.upsert("app_settings", "key", {"key": key, "value": {"snapshots": history}})
-    return {"captured": True, "members": len(rows), "at": snapshot["at"], "baseline": len(history) == 1}
+    return {"captured": True, "id": snapshot["id"], "members": len(rows), "at": snapshot["at"], "baseline": len(history) == 1}
+
+
+def _snapshot_id(snapshot: dict) -> str:
+    return snapshot.get("id") or "legacy-" + hashlib.sha256(
+        json.dumps(snapshot, sort_keys=True).encode()).hexdigest()[:24]
+
+
+def _snapshot_meta(snapshot: dict) -> dict:
+    return {"id": _snapshot_id(snapshot), "at": snapshot.get("at"),
+            "source_at": snapshot.get("source_at"), "source_clock": snapshot.get("source_clock", "unverified"),
+            "complete": bool(snapshot.get("complete")), "members": len(snapshot.get("members") or []),
+            "version": snapshot.get("version", 1)}
+
+
+@app.get("/api/screener/snapshot-history")
+def screen_snapshot_history(definition: str):
+    try:
+        inp = ScreenDefinition.model_validate_json(definition)
+    except ValueError:
+        raise HTTPException(400, "Invalid screen definition")
+    return {"snapshots": [_snapshot_meta(s) for s in _snapshot_history(_snapshot_key(inp))],
+            "retained_limit": 2, "scope": "deployment_owner"}
+
+
+def _change_evidence(before: dict | None, after: dict | None, inp: ScreenDefinition) -> list[dict]:
+    evidence = []
+    for criterion in inp.filters:
+        field = criterion.get("field")
+        prior = (before or {}).get("evidence", {}).get(field)
+        current = (after or {}).get("evidence", {}).get(field)
+        period = (str(criterion["days"]) + "-day window") if criterion.get("days") else (
+            "TTM" if field == "pe_ttm" else "Annual provider financial criterion" if inp.preset and
+            field in ("revenue_growth", "net_profit_growth", "roe", "roe_yoy", "debt_ratio", "eps_growth") else "Period not supplied")
+        evidence.append({"field": field, "previous": prior, "current": current,
+                         "criterion": criterion, "period": period,
+                         "source": "provider criterion" if inp.preset else "stored screener field",
+                         "status": "paired" if prior is not None and current is not None else "unavailable_pair"})
+    return evidence
 
 
 @app.get("/api/screener/changes")
-def screen_changes(definition: str):
+def screen_changes(definition: str, previous_id: str | None = None, current_id: str | None = None,
+                   status: str = "all", q: str = "", sort: str = "symbol", direction: int = 1,
+                   limit: int = 100, offset: int = 0):
+    if status not in ("new", "exited", "all") or sort not in ("symbol", "name", "status", "market_cap"):
+        raise HTTPException(400, "Invalid review filter or sort")
+    if direction not in (1, 2) or not 1 <= limit <= 500 or not 0 <= offset <= 40000 or len(q) > 100:
+        raise HTTPException(400, "Invalid review pagination")
     try:
         inp = ScreenDefinition.model_validate_json(definition)
     except ValueError:
         raise HTTPException(400, "Invalid screen definition")
     history = _snapshot_history(_snapshot_key(inp))
+    metadata = [_snapshot_meta(s) for s in history]
     if len(history) < 2:
-        return {"comparable": False, "reason": "Baseline captured. Capture another complete snapshot to compare." if history else
+        return {"comparable": False, "history": metadata, "reason":
+                "Baseline captured. Capture another complete snapshot to compare." if history else
                 "No baseline yet. Capture a complete snapshot to start."}
-    previous, current = history[-2:]
+    by_id = {_snapshot_id(s): s for s in history}
+    previous = by_id.get(previous_id) if previous_id else history[-2]
+    current = by_id.get(current_id) if current_id else history[-1]
+    if not previous or not current:
+        raise HTTPException(404, "Snapshot pair not retained for this screen")
+    try:
+        times = [datetime.fromisoformat(s["at"].replace("Z", "+00:00")) for s in (previous, current)]
+        if any(t.tzinfo is None for t in times):
+            raise ValueError("timezone missing")
+    except (KeyError, TypeError, ValueError):
+        return {"comparable": False, "history": metadata, "reason": "Snapshot capture times are invalid; no changes inferred."}
+    if _snapshot_id(previous) == _snapshot_id(current) or times[0] >= times[1]:
+        raise HTTPException(400, "Choose distinct snapshots in chronological order")
     if not previous.get("complete") or not current.get("complete"):
-        return {"comparable": False, "reason": "Incomplete snapshots cannot establish entries or exits."}
+        return {"comparable": False, "history": metadata, "reason": "Incomplete snapshots cannot establish entries or exits."}
+    if previous.get("version", 1) != current.get("version", 1):
+        return {"comparable": False, "history": metadata, "reason": "Snapshot evidence contract changed. Capture another matching baseline."}
+    for snapshot in (previous, current):
+        members = snapshot.get("members")
+        if not isinstance(members, list) or any(not isinstance(r, dict) or not isinstance(r.get("code"), str) or not r.get("code") for r in members):
+            return {"comparable": False, "history": metadata, "reason": "Snapshot identities are incomplete; no changes inferred."}
+        if len({r["code"] for r in members}) != len(members):
+            return {"comparable": False, "history": metadata, "reason": "Snapshot identities are duplicated; no changes inferred."}
     a = {r["code"]: r for r in previous["members"]}
     b = {r["code"]: r for r in current["members"]}
-    return {"comparable": True, "previous_at": previous["at"], "current_at": current["at"],
-            "added": [b[k] for k in sorted(b.keys() - a.keys())],
+    changes = []
+    for code in sorted(a.keys() | b.keys()):
+        before, after = a.get(code), b.get(code)
+        member_status = "new" if before is None else "exited" if after is None else "unchanged"
+        member = after or before
+        changes.append({"code": code, "symbol": member.get("symbol"), "name": member.get("name"),
+                        "status": member_status, "previous": before, "current": after,
+                        "reason": "Membership retained" if member_status == "unchanged" else
+                        "Membership changed; numeric cause unavailable"})
+    counts = {"new": len(b.keys() - a.keys()), "exited": len(a.keys() - b.keys()), "all": len(a.keys() | b.keys()), "unchanged": len(a.keys() & b.keys())}
+    needle = q.strip().casefold()
+    filtered = [r for r in changes if (status == "all" or r["status"] == status) and
+                (not needle or needle in str(r.get("symbol") or "").casefold() or needle in str(r.get("name") or "").casefold())]
+    def sort_value(row):
+        if sort == "market_cap":
+            value = ((row.get("current") or row.get("previous") or {}).get("metrics") or {}).get("market_cap")
+            return float(value) if isinstance(value, (int, float)) and math.isfinite(value) else None
+        return str(row.get(sort) or "").casefold()
+    known = [r for r in filtered if sort_value(r) is not None]
+    missing = [r for r in filtered if sort_value(r) is None]
+    known.sort(key=lambda r: (sort_value(r), r["code"]), reverse=direction == 2)
+    selected = (known + missing)[offset:offset + limit]
+    for row in selected:
+        row["evidence"] = _change_evidence(row["previous"], row["current"], inp)
+    return {"comparable": True, "history": metadata,
+            "previous_id": _snapshot_id(previous), "current_id": _snapshot_id(current),
+            "previous_at": previous["at"], "current_at": current["at"],
+            "previous_source_at": previous.get("source_at"), "current_source_at": current.get("source_at"),
+            "rows": selected, "counts": counts, "matched": len(filtered), "offset": offset, "limit": limit,
+            "definition": inp.model_dump(), "added": [b[k] for k in sorted(b.keys() - a.keys())],
             "exited": [a[k] for k in sorted(a.keys() - b.keys())], "unchanged": len(a.keys() & b.keys())}
 
 

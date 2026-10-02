@@ -147,3 +147,18 @@ Current QA result is **blocked by remaining implementation and qualification wor
 Core C now supports labeled linear/log axes, outlier-view disclosure, numeric/pointer region selection, zoom/clear, a linked results table, shared selection/inspection and explicit region CSV/Excel exports. Advanced forward-P/E/growth/ROIC/sector comparison remains gated on E; C acceptance is not closed. Numeric workflow, linked selection and Clear reset were browser-verified. Pointer dragging and full real-cohort/device qualification remain open.
 
 A/B status work adds no-match library recovery, per-export counts, retained-column labels and Modified saved-screen relationships. Applying saved settings now clones nested arrays/objects so UI edits cannot mutate the saved definition in memory. **37 JavaScript tests pass**; evidence and remaining findings are in [design QA](../design-qa.md). This is a local, unmerged, undeployed checkpoint.
+
+
+### Local Change Monitor D1 checkpoint — 2 October 2026
+
+Basic D1 is implemented locally: New/Exited/All queues, search, sort, pagination, explicit capture pairs, unavailable/paired evidence inspection and complete filtered comparison CSV. Snapshot safeguards reject incomplete/classification-unknown cohorts, incompatible versions, invalid dates and identities; provider financial evidence cannot borrow unrelated quote fields. Current-screen and review counts/exports are labeled separately. **208 API/worker tests and 43 JavaScript tests pass.** Desktop/phone fixture evidence and remaining fidelity gaps are recorded in [design QA](../design-qa.md). This is unmerged and undeployed, with no production capture writes or fresh financial reconciliation.
+
+D1/D2 are not complete: criterion-specific table fields/sorting, selection, Next unreviewed, notes/shortlists, authenticated ownership, concurrency-safe durable history and scheduling remain open. Storage currently keeps only two captures. Entering/exiting records often lack an observation on the other side, so numeric causes are explicitly unavailable. Do not infer a threshold crossing from absent membership.
+
+- [x] D1 date-pair queue/search/pagination, invalid-pair recovery and phone dialog focus checked against synthetic captures.
+- [x] Comparison export pagination/immutable pair and incomplete/duplicate rejection verified in automated tests.
+- [ ] Contextual Changes toolbar and compact criterion matrix meet paired visual acceptance.
+- [ ] Authenticated independent lists/review ownership, durable concurrent history and schedules qualified.
+- [ ] Criterion row selection/sorts and Next unreviewed checked end to end.
+- [ ] Numeric causes supported by compatible before/after observations; no missing-member inference.
+- [ ] Downloaded comparison files reconciled with actual review scope and production data.

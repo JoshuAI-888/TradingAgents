@@ -4,7 +4,7 @@ No live service calls or production writes; saved screens/history live in memory
 """
 import os,sys,importlib.util,tempfile
 from pathlib import Path
-from datetime import datetime,timezone
+from datetime import datetime,timezone,timedelta
 os.environ.update(DEFAULT_USER_ID='offline-review',TA_STOCK_FIXTURES='1',SUPABASE_URL='https://example.supabase.co',SUPABASE_SERVICE_KEY='test',PORTAL_STATIC_DIR=str(Path(__file__).resolve().parents[2]/'static'))
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from test_api import FakeDb
@@ -16,6 +16,20 @@ now=datetime.now(timezone.utc).isoformat()
 for row in fixture.ROWS:
     api.db._t('screener_quotes').append({'market':'US','code':row['code'],'row':row.copy(),'updated_at':now})
     api.db._t('screener_universe').append({'market':'US',**row})
+# Controlled historical membership fixture: one exit, one entry, others retained.
+# This is interaction evidence only, never a live data/count reconciliation.
+change_definition=api.ScreenDefinition(filters=[{'field':'stock_type','values':['STOCK']}])
+def change_member(row):
+    return {'code':row['code'],'symbol':row['symbol'],'name':row['name'],
+            'metrics':{k:row.get(k) for k in ('price','pct','market_cap','pe_ttm')},
+            'evidence':{'stock_type':'STOCK'}}
+before_members=[change_member(r) for r in fixture.ROWS if r['stock_type']=='STOCK']
+after_members=before_members[1:]+[{'code':'US.S2001','symbol':'S2001','name':'Fixture New Company','metrics':{'price':20,'pct':1,'market_cap':2500000000,'pe_ttm':20},'evidence':{'stock_type':'STOCK'}}]
+before_time=(datetime.now(timezone.utc)-timedelta(hours=20)).isoformat()
+after_time=(datetime.now(timezone.utc)-timedelta(hours=1)).isoformat()
+api.db._t('app_settings').append({'key':api._snapshot_key(change_definition),'value':{'snapshots':[
+    {'id':'fixture-before','version':2,'at':before_time,'source_at':before_time,'source_clock':'stored_universe','definition':change_definition.model_dump(),'members':before_members,'complete':True},
+    {'id':'fixture-after','version':2,'at':after_time,'source_at':after_time,'source_clock':'stored_universe','definition':change_definition.model_dump(),'members':after_members,'complete':True}]}})
 api.db._t('saved_screeners').append({'id':'saved','user_id':'offline-review','name':'Saved Price Ascending','filters':[{'field':'price','max':10}],'sort':'price','direction':1,'market':'US','settings':{}})
 class MemoryCache:
     def key(self,*args):return str(args)

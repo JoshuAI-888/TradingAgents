@@ -143,3 +143,62 @@ def test_read_only_provider_probe_preserves_explicit_cursor(monkeypatch):
             return {'items':[]}
     monkeypatch.setattr(api, '_market_client', lambda:Provider())
     assert api.screener_probe({'next_key':'cursor', 'limit':1})['data']=={'items':[]}
+
+def test_provider_snapshot_does_not_substitute_snapshot_volume_for_average_evidence(monkeypatch):
+    now=datetime.now(timezone.utc).isoformat()
+    monkeypatch.setattr(api,'screener_execute',lambda *args:{'available':True,'retrieved_at':now,'filters':api.PRESET_SCREENERS[0]['filters'],'rows':[{'code':'US.A','symbol':'A','stock_type':'STOCK','volume':123,'revenue_growth':99}]})
+    api.capture_screen_snapshot(api.ScreenDefinition(preset='penny',filters=api.PRESET_SCREENERS[0]['filters']))
+    member=api.db._t('app_settings')[0]['value']['snapshots'][0]['members'][0]
+    assert member['evidence']['volume'] is None and member['evidence']['revenue_growth'] is None
+
+@pytest.mark.parametrize('stamp',['not-a-date','2026-10-02T01:00:00','2099-01-01T00:00:00Z'])
+def test_snapshot_rejects_invalid_naive_and_future_source_without_writing(monkeypatch,stamp):
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'rows':[],'universe_as_of':stamp})
+    with pytest.raises(HTTPException) as err:api.capture_screen_snapshot(api.ScreenDefinition())
+    assert err.value.status_code==409 and not api.db._t('app_settings')
+
+def test_change_pair_ids_history_and_unavailable_exit_evidence(monkeypatch):
+    now=datetime.now(timezone.utc).isoformat();members=[{'code':'US.A','symbol':'A','stock_type':'STOCK','price':3}]
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':members.copy(),'matched':len(members)})
+    spec=api.ScreenDefinition(filters=[{'field':'price','max':5}]);first=api.capture_screen_snapshot(spec)
+    members[:]=[{'code':'US.B','symbol':'B','stock_type':'STOCK','price':4}];second=api.capture_screen_snapshot(spec)
+    assert first['id']!=second['id'];history=api.screen_snapshot_history(spec.model_dump_json());assert len(history['snapshots'])==2
+    pair=api.screen_changes(spec.model_dump_json(),first['id'],second['id']);assert pair['previous_id']==first['id'] and pair['current_id']==second['id']
+    exit_row=next(r for r in pair['rows'] if r['status']=='exited');assert exit_row['evidence'][0]['previous']==3 and exit_row['evidence'][0]['current'] is None
+    assert exit_row['evidence'][0]['status']=='unavailable_pair' and 'unavailable' in exit_row['reason']
+    with pytest.raises(HTTPException) as err:api.screen_changes(spec.model_dump_json(),second['id'],first['id'])
+    assert err.value.status_code==400
+    with pytest.raises(HTTPException) as err:api.screen_changes(spec.model_dump_json(),'other-owner-id',second['id'])
+    assert err.value.status_code==404
+
+def test_snapshot_stock_only_scope_excludes_etfs_and_unknown_types(monkeypatch):
+    now=datetime.now(timezone.utc).isoformat();rows=[{'code':'US.A','stock_type':'STOCK'},{'code':'US.B','stock_type':'ETF'},{'code':'US.C'}]
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':rows,'matched':3})
+    assert api.capture_screen_snapshot(api.ScreenDefinition())['members']==1
+
+def test_review_pages_search_and_sorts_missing_caps_last_in_both_directions(monkeypatch):
+    now=datetime.now(timezone.utc).isoformat();spec=api.ScreenDefinition()
+    previous={'id':'before','version':2,'at':'2026-10-01T00:00:00Z','complete':True,'members':[{'code':'US.A','symbol':'A','name':'Alpha','metrics':{'market_cap':10}},{'code':'US.B','symbol':'B','name':'Beta'}]}
+    current={'id':'after','version':2,'at':'2026-10-02T00:00:00Z','complete':True,'members':[{'code':'US.A','symbol':'A','name':'Alpha','metrics':{'market_cap':20}},{'code':'US.C','symbol':'C','name':'Gamma','metrics':{'market_cap':5}}]}
+    monkeypatch.setattr(api,'_snapshot_history',lambda key:[previous,current])
+    result=api.screen_changes(spec.model_dump_json(),status='all',limit=1,offset=1,sort='market_cap',direction=2)
+    assert result['counts']=={'new':1,'exited':1,'all':3,'unchanged':1} and result['matched']==3 and result['rows'][0]['code']=='US.C'
+    for direction in (1,2):assert api.screen_changes(spec.model_dump_json(),sort='market_cap',direction=direction)['rows'][-1]['code']=='US.B'
+    result=api.screen_changes(spec.model_dump_json(),q='gAmMa',status='new');assert result['matched']==1 and result['rows'][0]['symbol']=='C'
+    with pytest.raises(HTTPException):api.screen_changes(spec.model_dump_json(),limit=0)
+
+
+def test_corrupt_or_changed_contract_history_does_not_infer_false_exits(monkeypatch):
+    spec=api.ScreenDefinition();before={'id':'a','at':'2026-10-01T00:00:00Z','version':2,'complete':True,'members':[{'code':'US.A'}]}
+    after={'id':'b','at':'2026-10-02T00:00:00Z','version':2,'complete':True,'members':[{'code':'US.B'},{'code':'US.B'}]}
+    monkeypatch.setattr(api,'_snapshot_history',lambda key:[before,after]);assert not api.screen_changes(spec.model_dump_json())['comparable']
+    after['members']=[{'code':'US.B'}];after['version']=1;assert not api.screen_changes(spec.model_dump_json())['comparable']
+    after['version']=2;after['at']='invalid';assert not api.screen_changes(spec.model_dump_json())['comparable']
+
+def test_snapshot_rejects_missing_instrument_classification_before_inference(monkeypatch):
+    now=datetime.now(timezone.utc).isoformat()
+    monkeypatch.setattr(api,'screener',lambda **kw:{'available':True,'universe_loaded':True,'universe_as_of':now,'rows':[],'unclassified_count':1})
+    with pytest.raises(HTTPException):api.capture_screen_snapshot(api.ScreenDefinition())
+    monkeypatch.setattr(api,'screener_execute',lambda *a:{'available':True,'retrieved_at':now,'rows':[{'code':'US.A'}]})
+    with pytest.raises(HTTPException):api.capture_screen_snapshot(api.ScreenDefinition(preset='penny'))
+    assert not api.db._t('app_settings')

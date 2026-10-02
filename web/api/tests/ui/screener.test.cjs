@@ -271,3 +271,35 @@ test('Clear discards the Explorer region and zoom as well as defaulting the quer
  const c=harness();const st=c.researchExploreState();st.bounds={x:{min:10,max:20},y:{min:0,max:1}};st.zoom=true;st.x='market_cap';st.ys='log';
  c.scrResetAll();const next=c.researchExploreState();assert.equal(next.bounds,null);assert.equal(next.zoom,false);assert.equal(next.x,'pe_ttm');assert.equal(next.ys,'linear');assert.equal(c.__scr.presentation,'table');
 });
+test('comparison CSV carries immutable pair IDs, times, definition and unavailable paired evidence',()=>{
+ const c=harness(),d={definition:{market:'US',filters:[{field:'price',max:5}]},previous_id:'a',current_id:'b',previous_at:'2026-10-01',current_at:'2026-10-02',previous_source_at:'one',current_source_at:'two'};
+ const csv=c.researchChangesCSV(d,[{code:'US.BRK.B',symbol:'BRK.B',name:'Berkshire, Inc.',status:'exited',reason:'numeric cause unavailable',previous:{metrics:{price:4}},current:null,evidence:[{field:'price',previous:4,current:null,status:'unavailable_pair'}]}]);
+ assert.match(csv,/^\ufeffdefinition_json,previous_id,current_id/);assert.match(csv,/,a,b,2026-10-01,2026-10-02,one,two,US.BRK.B,BRK.B,"Berkshire, Inc."/);assert.match(csv,/unavailable_pair/);assert.match(csv,/filters/);
+});
+test('a late change-review response cannot replace a newer cohort',async()=>{
+ const c=harness();const el={innerHTML:''};c.document.getElementById=id=>id==='research-change-results'?el:null;const pending=[];c.api=()=>new Promise(resolve=>pending.push(resolve));c.researchChangesRender=(_el,d)=>_el.innerHTML=d.tag;
+ const old=c.researchLoadChanges();c.researchChangeState().status='exited';const latest=c.researchLoadChanges();pending[1]({tag:'exited'});await latest;pending[0]({tag:'new'});await old;assert.equal(el.innerHTML,'exited');
+});
+test('comparison errors show user-readable validation details instead of JSON',()=>{
+ const c=harness();assert.equal(c.researchErrorMessage({message:'{"detail":"Choose distinct snapshots"}'}),'Choose distinct snapshots');assert.equal(c.researchErrorMessage({message:'{"detail":[{"field":"id"}]}'}),'Please check the requested inputs.');assert.equal(c.researchErrorMessage({message:'Network unavailable'}),'Network unavailable');
+});
+test('comparison export waits for pending review changes instead of exporting an old pair',async()=>{
+ const c=harness();let message,called=0;c.__changeLoading=true;c.alert=m=>message=m;c.api=async()=>{called++;};await c.researchChangesExport();assert.equal(called,0);assert.match(message,/finish loading/);
+});
+
+test('comparison export retrieves every page for one immutable filtered pair',async()=>{
+ const c=harness();c.__changePayload={comparable:true,previous_id:'before',current_id:'after',definition:{market:'US'}};const st=c.researchChangeState();st.status='all';st.q='Test';st.sort='market_cap';st.direction=2;
+ const rows=Array.from({length:501},(_,i)=>({code:'US.T'+i,symbol:'T'+i,name:'Test',status:'unchanged'}));let blob,clicks=0;const calls=[];
+ c.Blob=Blob;c.URL={createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}};c.document.createElement=()=>({click(){clicks++;},remove(){}});c.alert=m=>assert.fail(m);
+ c.api=async url=>{const qs=new URLSearchParams(url.split('?')[1]);calls.push(qs);return {comparable:true,previous_id:'before',current_id:'after',matched:501,rows:rows.slice(Number(qs.get('offset')),Number(qs.get('offset'))+500)};};
+ await c.researchChangesExport();assert.equal(clicks,1);assert.equal(calls.length,2);assert.equal(calls[1].get('offset'),'500');for(const q of calls){assert.equal(q.get('previous_id'),'before');assert.equal(q.get('current_id'),'after');assert.equal(q.get('status'),'all');assert.equal(q.get('q'),'Test');assert.equal(q.get('direction'),'2');}
+ assert.equal((await blob.text()).split('\n').length,502);
+});
+test('comparison export rejects missing, changed and duplicate memberships without a partial file',async()=>{
+ for(const fault of ['missing','pair','count','duplicate']){
+ const c=harness();c.__changePayload={comparable:true,previous_id:'a',current_id:'b',definition:{market:'US'}};let calls=0,clicks=0,message;const first=Array.from({length:500},(_,i)=>({code:'US.T'+i}));
+ c.Blob=Blob;c.URL={createObjectURL:()=>{throw Error('Partial file created');}};c.document.createElement=()=>({click(){clicks++;},remove(){}});c.alert=m=>message=m;
+ c.api=async()=>{calls++;return {comparable:true,previous_id: fault==='pair' && calls===2?'different':'a',current_id:'b',matched:fault==='count' && calls===2?502:501,rows:calls===1?first:fault==='missing'?[]:[{code:fault==='duplicate'?'US.T0':'US.T500'}]};};
+ await c.researchChangesExport();assert.equal(clicks,0);assert.match(message,/unavailable/);
+ }
+});

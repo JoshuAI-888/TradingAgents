@@ -780,7 +780,7 @@ function scrRemoveCol(k) {
 }
 function scrResetAll() {
   window.__researchResetScroll=true;
-  window.__researchSelected=[];window.__researchInspectCode=null;
+  window.__researchSelected=[];window.__researchInspectCode=null;window.__researchChangeCode=null;window.__changeState=null;
   window.__exploreState=null;window.__researchAxisX=null;window.__researchAxisY=null;
   const st = window.__scr;
   Object.assign(st, { filters: [], colFilters: {}, sort: "market_cap", dir: 2,
