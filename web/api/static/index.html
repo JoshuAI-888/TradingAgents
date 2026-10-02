@@ -1829,7 +1829,9 @@ const pages = {
     const fmtPct = v => v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(2) + "%";
     window.__scrPresets = rail.presets || [];
     window.__scr.watchlistSyms = scr.watchlist || st.watchlistSyms;
-    const c = (cands.candidates || []).map(x => `
+    const candidateLimit = window.__candidateLimit || 12;
+    const candidateCount = (cands.candidates || []).length;
+    const c = (cands.candidates || []).slice(0, candidateLimit).map(x => `
       <div class="cand"><div class="h"><span class="pill pd"><i></i>${esc(x.trigger_type)}</span> <b>${esc(x.title)}</b>
         <span class="score mono">score ${esc(x.score)}</span></div>
         <div class="why">${esc(x.reason)}</div>
@@ -2016,6 +2018,7 @@ const pages = {
     </div>
     <div class="panel"><h3 class="sec">Market Pulse <small>trigger feed → analysis → audited decision</small></h3>
       <div id="cand-list">${c || '<div class="empty">No open candidates. Use ↻ Refresh now, or wait for the next scheduled sweep (every 15 min in US market hours).</div>'}</div>
+      ${candidateCount > 12 ? `<div class="actions"><span class="faint">Showing ${Math.min(candidateLimit,candidateCount)} of ${candidateCount} open signals · score ranked</span>${candidateLimit < candidateCount ? `<button class="btn ghost" onclick="window.__candidateLimit=${candidateLimit+12};showPage('home')">Show 12 more signals</button>` : ''}${candidateLimit > 12 ? `<button class="btn ghost" onclick="window.__candidateLimit=12;showPage('home')">Show fewer signals</button>` : ''}</div>` : ''}
       <div class="actions"><button class="btn ghost" id="cand-refresh" onclick="refreshCandidates(this)">↻ Refresh now</button>
       <span class="faint" style="font-size:10.5px">sweep = moomoo screens / news / earnings calendar (when connected) + watchlist</span></div></div>
       <div class="panel"><h3 class="sec">Recent decisions <small>settlements accrue at +5d / +30d vs SPY</small></h3>
