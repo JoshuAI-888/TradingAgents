@@ -103,4 +103,10 @@ The approved Change Monitor date workflow now retains append-only history locall
 
 239 API/worker and 62 JavaScript tests pass; isolated PostgreSQL immutability/grants/idempotency/atomicity plus an observed concurrent append race pass. [Retained-history evidence and recovery contract](docs/durable-screen-history.md) records limitations. Production migration is unapplied; capture scope is still deployment-shared, nonmember paired observations/review ownership/schedules remain open. Real Auth/team ACLs, fresh coverage/Moomoo reconciliation, complete research/export preservation, device/accessibility/performance and production recovery remain release gates. This advances D2 locally without closing the full mockup acceptance or claiming an investment-ready release.
 
+## Search and responsive shortlist follow-through
+
+Verified-owner company search now filters the complete shortlist before paging, joining only canonical matching stored names; literal wildcard characters remain literal and private notes are not searched. Native 1,200-item SQL/grant/cursor/owner contracts pass. At 390 × 844 the default card's 44 px actions end at y=773.5, closing the measured first-fold gap. At 768 × 1024 the chooser replaces the sidebar, expanding the table from 446 to 678 px without overflow; the review dialog fits and Escape restores origin focus. Three saved screenshots were opened in the mockup review. One actual synthetic shortlist CSV was downloaded and parsed; browser event waits timed out, so filesystem time/hash plus parsed fields support that narrow claim. Prepared links now persist five minutes and are revoked on private clearing. 240 API/worker and 65 JavaScript tests pass.
+
+Company search and these two layout states are locally qualified. Production Auth/PostgREST/migration, team roles, long-content/200%-zoom/assistive technology, large-list downloaded exports/performance, historical paired evidence/review/schedules, provider coverage/Moomoo reconciliation and full preservation/release remain open. No investment-ready, merge or deployment claim.
+
 Final result: blocked

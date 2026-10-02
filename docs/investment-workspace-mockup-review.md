@@ -132,3 +132,22 @@ At 1487 × 1058, scrollY 0, provenance collapsed, the first review row remains *
 ![Retained capture selection and compact review](design-gap-audit/history-checkpoint/04-compact-retained-history.jpg)
 
 Package 4 remains open: storage is implemented locally, but capture ownership is still deployment-shared, version-2 snapshots still lack full nonmember observations, and pair review/schedules are unfinished. Production PostgreSQL/PostgREST, legacy cutover/rollback, large-cohort performance and real financial reconciliation remain required. Packages 1–7 retain the acceptance gates in the mapping above. No deployment or investment-readiness claim is made.
+
+## Follow-through checkpoint: searchable and responsive shortlists
+
+Company-name search now runs over the verified owner's complete list before pagination. It uses literal substrings in canonical tickers or matching canonical stored quote names; missing/mismatched quotes do not hide ticker matches or supply another instrument's name. It does not search note content. Status and Next unreviewed retain the company query and cursor semantics. A 1,200-item native PostgreSQL fixture qualifies matching, second-page membership, cursor, private scope and RPC grants; production Auth/PostgREST and large-list latency remain open.
+
+At 390 × 844, scrollY 0, card Inspect/Review/Remove are 44 px tall and span y=729.5–773.5, improving the earlier below-fold Review at y=839.5. Edit/Export remain reachable under List actions; list management stays in its disclosure beside the chooser. At 768 × 1024, the compact library gives the table 678 px (previously 446 px); table client/scroll widths agree and document width equals 768. Tablet review dialog is x=104, width=560, y=240.9–783.1; Escape restores Review S0001 notes focus. These are two tested layouts with synthetic names, not long-content/200%-zoom or screen-reader acceptance. Three screenshots were saved/opened.
+
+1. Company search + status filter: healthy in the fixture; matching and empty reviewed state verified.
+2. Phone review actions: visible on first screen in the tested default state; grouped actions remain accessible.
+3. Full shortlist export: an actual downloaded CSV was parsed for one synthetic item, canonical identity/name, note/status/revision and BOM. Browser download-event waits timed out despite the file arriving in Downloads; `download-check.json` records file time/hash and this limitation. A prepared download link now remains for five minutes and private URLs are revoked on sign-out. 501-item export scope/revision protections have automated evidence, not newly downloaded large-cohort evidence.
+4. Tablet review dialog + Escape: fits and restores origin focus; final warning/error check empty.
+
+![Phone first-screen shortlist actions](design-gap-audit/shortlist-search-checkpoint/01-phone-first-fold.jpg)
+
+![Full-width tablet shortlist](design-gap-audit/shortlist-search-checkpoint/02-tablet-full-width.jpg)
+
+![Retained phone edit and export actions](design-gap-audit/shortlist-search-checkpoint/03-phone-list-actions.jpg)
+
+Fresh regressions: **240 API/worker and 65 JavaScript tests pass**, including company punctuation/caret continuity, private download revocation and late-error suppression after account change. The additive company-search migration is unapplied to production. This advances package 1; real ownership/team roles, paired historical observations/review/schedules, richer provider coverage, complete original-feature/export verification, accessibility/performance and release qualification remain open.

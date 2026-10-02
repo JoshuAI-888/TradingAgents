@@ -16,7 +16,7 @@ db = Db()
 def _call(method, path, **kwargs):
     try:
         return db._call(method, path, **kwargs)
-    except RuntimeError as exc:
+    except (RuntimeError, OSError) as exc:
         # Never return raw PostgREST records, notes or auth details in error text.
         if '-> 409:' in str(exc):
             raise HTTPException(409, 'A shortlist with this name already exists.') from None
@@ -124,7 +124,7 @@ def edit(sid: UUID, inp: ListEdit, owner: ResearchOwner = Depends(require_resear
 @router.get('/lists/{sid}/items')
 def items(sid: UUID, offset: int = Query(default=0, ge=0, le=40000),
           limit: int = Query(default=100, ge=1, le=500), include_removed: bool = False,
-          q: str = Query(default='', max_length=34, pattern=r'^[A-Za-z0-9._-]*$'),
+          q: str = Query(default='', max_length=80, pattern=r'^[^\x00-\x1f\x7f]*$'),
           review_status: Literal['all', 'unreviewed', 'in_review', 'reviewed'] = 'all',
           after_code: str = '',
           owner: ResearchOwner = Depends(require_research_owner)):
@@ -135,11 +135,6 @@ def items(sid: UUID, offset: int = Query(default=0, ge=0, le=40000),
         query['active'] = 'eq.true'
     if review_status != 'all':
         query['review_status'] = f'eq.{review_status}'
-    if q:
-        # Restricted alphabet prevents wildcard/operator injection. This searches
-        # canonical ticker identities, not incomplete company-name quote caches.
-        literal = q.upper().replace('_', r'\_')
-        query['code'] = f'ilike.*{literal}*'
     if after_code:
         try:
             ItemIn(code=after_code)
@@ -147,11 +142,18 @@ def items(sid: UUID, offset: int = Query(default=0, ge=0, le=40000),
             raise HTTPException(422, 'Invalid canonical instrument code.') from None
         # PostgREST AND supports a second predicate on code alongside ticker search.
         query['and'] = f'(code.gt.{after_code})'
-    rows = _call('GET', 'research_list_items', query=query) or []
+    if q.strip():
+        rows = _call('POST', 'rpc/research_list_search', body={
+            'p_list': str(sid), 'p_owner': owner.id, 'p_query': q,
+            'p_status': review_status, 'p_removed': include_removed,
+            'p_after': after_code, 'p_offset': offset, 'p_limit': limit + 1}) or []
+    else:
+        rows = _call('GET', 'research_list_items', query=query) or []
     has_more = len(rows) > limit
     rows = _with_quotes(rows[:limit])
     return {'list': shortlist, 'items': rows, 'has_more': has_more,
-            'offset': offset, 'limit': limit, 'q': q, 'review_status': review_status}
+            'offset': offset, 'limit': limit, 'q': q, 'review_status': review_status,
+            'search_scope': 'ticker_and_cached_company_name'}
 
 
 def _with_quotes(rows):

@@ -395,3 +395,19 @@ test('history paging keeps its disclosure open and moves focus to the usable pag
  const c=harness(),disclosure={open:true};let focused=false;const el={innerHTML:'',querySelector:s=>s==='.change-provenance'?disclosure:s==='[data-history-page="older"]'?{disabled:true}:s==='[data-history-page]:not([disabled])'?{focus(){focused=true;}}:null};
  c.document.activeElement={getAttribute:n=>n==='data-history-page'?'older':null};c.researchChangesRender(el,{comparable:true,history:[],history_offset:100,history_has_more:false,scope:'deployment_owner',counts:{new:0,exited:0,all:0,unchanged:0},matched:0,rows:[],definition:{filters:[]}});assert.equal(disclosure.open,true);assert.equal(focused,true);assert.match(el.innerHTML,/Retained capture page 2/);assert.match(el.innerHTML,/deployment-shared history/);
 });
+
+
+test('company shortlist search preserves punctuation, caret and review context through debounce',async()=>{
+ const c=harness();let run,shows=0,focused=false,range;c.__researchListID='list';c.__researchListGen=2;c.__researchListStatus='reviewed';c.__researchListOffset=100;c.__researchReviewCursor='US.OLD';vm.runInContext("state.page='shortlists'",c);
+ c.setTimeout=fn=>{run=fn;return 1;};c.showPage=async()=>{shows++;};c.document.getElementById=id=>id==='research-list-search'?{focus(){focused=true;},setSelectionRange(a,b){range=[a,b];}}:{textContent:''};
+ const name="O'Reilly & Sons";c.researchListSearch({value:name,selectionStart:8});await run();
+ assert.equal(shows,1);assert.equal(c.__researchListOffset,0);assert.equal(c.__researchReviewCursor,null);assert.equal(c.__researchListStatus,'reviewed');assert.equal(new URLSearchParams(c.researchListQuery()).get('q'),name);assert.equal(focused,true);assert.deepEqual(range,[8,8]);
+});
+
+
+test('prepared private download URLs are revoked when the research account clears',()=>{
+ const c=harness(),revoked=[];c.URL={revokeObjectURL:url=>revoked.push(url)};c.__researchExportURLs=new Set(['blob:private-a','blob:private-b']);c.researchPrivateClear();assert.deepEqual(revoked,['blob:private-a','blob:private-b']);assert.equal(c.__researchExportURLs.size,0);
+});
+test('late export errors cannot surface private activity after an account change',async()=>{
+ const c=harness();c.researchSessionSet(privateSession());c.__researchListID='list';let reject,writes=[];const status={isConnected:true,set textContent(v){writes.push(v);}};c.document.getElementById=id=>id==='research-list-status'?status:null;c.researchPrivateAPI=()=>new Promise((_,r)=>reject=r);const pending=c.researchListExport();c.researchPrivateClear();reject(Error('Old owner private list failure'));await pending;assert.deepEqual(writes,['Preparing full shortlist CSV…']);
+});

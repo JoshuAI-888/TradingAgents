@@ -30,6 +30,13 @@ research_auth._auth_user=lambda token:{'id':PREVIEW_OWNER,'is_anonymous':False}
 research_auth._session_active=lambda owner,session:True
 class PreviewResearchDb:
     def _call(self,method,path,body=None,query=None,prefer=None):
+        if path=='rpc/research_list_search':
+            text=body['p_query'].strip().casefold()
+            names={r['code']:r['row'].get('name','') for r in api.db._t('screener_quotes') if isinstance(r.get('row'),dict) and r['row'].get('code')==r['code'] and isinstance(r['row'].get('name'),str)}
+            matches=[r for r in api.db._t('research_list_items') if r['list_id']==body['p_list'] and r['owner_id']==body['p_owner']
+                and (body['p_removed'] or r['active']) and (body['p_status']=='all' or r['review_status']==body['p_status'])
+                and (not body['p_after'] or r['code']>body['p_after']) and (text in r['code'].casefold() or text in names.get(r['code'],'').casefold())]
+            matches.sort(key=lambda r:r['code']);start=body['p_offset'];return [dict(r) for r in matches[start:start+body['p_limit']]]
         if path.startswith('rpc/'):
             parent=next((r for r in api.db._t('research_lists') if r['id']==body['p_list'] and r['owner_id']==body['p_owner'] and r['active']),None)
             if not parent:return []

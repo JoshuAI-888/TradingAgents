@@ -20,8 +20,19 @@ class Store:
         self.records = [{'id':SID,'owner_id':OWNER,'name':'Quality','description':'','active':True,'revision':1}]
         self.members=[]
         self.calls=[]
+        self.quotes=[]
     def _call(self, method, path, body=None, query=None, prefer=None):
         self.calls.append((method,path,body,query))
+        if path == 'rpc/research_list_search':
+            text=body['p_query'].strip().casefold()
+            names={r['code']:r['row']['name'] for r in self.quotes if isinstance(r.get('row'),dict) and r['row'].get('code')==r['code'] and isinstance(r['row'].get('name'),str)}
+            matching=[r for r in self.members if r['list_id']==body['p_list'] and r['owner_id']==body['p_owner'] and any(l['id']==r['list_id'] and l['owner_id']==r['owner_id'] for l in self.records)
+                and (body['p_removed'] or r['active']) and (body['p_status']=='all' or r['review_status']==body['p_status'])
+                and (not body['p_after'] or r['code']>body['p_after']) and (text in r['code'].casefold() or text in names.get(r['code'],'').casefold())]
+            matching.sort(key=lambda r:r['code']);start=body['p_offset']
+            return [dict(r) for r in matching[start:start+body['p_limit']]]
+        if path == 'screener_quotes':
+            return [dict(r) for r in self.quotes if r['code'] in query['code'][4:-1].split(',')]
         if path == 'screener_universe':
             return [{'code':'US.BRK.B'}] if query['code']=='eq.US.BRK.B' else []
         if path == 'rpc/research_list_add':
@@ -235,10 +246,12 @@ def test_review_filter_ticker_search_and_cursor_are_owner_scoped_before_paging(c
     assert [r['code'] for r in d['items']]==['US.BRK_X'];assert not d['has_more']
     d=c.get(base,headers=headers(),params={'q':'BRK_','review_status':'unreviewed'}).json()
     assert [r['code'] for r in d['items']]==['US.BRK_X']
-    item_queries=[x[3] for x in store.calls if x[0]=='GET' and x[1]=='research_list_items']
-    assert all(q['owner_id']=='eq.'+OWNER and q['list_id']=='eq.'+SID for q in item_queries)
-    assert item_queries[-1]['code']==r'ilike.*BRK\_*'
-    for params in [{'q':'A*'},{'q':'%,owner_id.eq.other'},{'review_status':'all,owner_id.eq.other'},{'after_code':'US.A,owner_id.eq.other'}]:
+    searches=[x[2] for x in store.calls if x[1]=='rpc/research_list_search']
+    assert all(q['p_owner']==OWNER and q['p_list']==SID for q in searches)
+    assert searches[-1]['p_query']=='BRK_'
+    for text in ['A*','%,owner_id.eq.other']:
+        r=c.get(base,headers=headers(),params={'q':text});assert r.status_code==200;assert r.json()['items']==[]
+    for params in [{'q':'bad\nquery'},{'review_status':'all,owner_id.eq.other'},{'after_code':'US.A,owner_id.eq.other'}]:
         assert c.get(base,headers=headers(),params=params).status_code==422
 
 
@@ -251,3 +264,23 @@ def test_review_filter_pages_complete_large_private_cohort(client):
     codes=[r['code'] for d in (first,second) for r in d['items']]
     assert first['has_more'] and not second['has_more'];assert len(codes)==600==len(set(codes))
     assert codes==[f'US.T{i:04d}' for i in range(1200) if i%2]
+
+
+def test_company_search_is_canonical_literal_owner_scoped_and_before_paging(client):
+    c,store=client
+    for i in range(1200):
+        code=f'US.T{i:04d}'
+        store.members.append({'list_id':SID,'owner_id':OWNER,'code':code,'review_status':'unreviewed','note':'','active':True,'revision':1})
+        store.quotes.append({'code':code,'row':{'code':code,'name':"O'Reilly & Sons" if i%2 else 'Other company'},'updated_at':'2026-10-02T00:00:00Z'})
+    store.members.extend([{'list_id':SID,'owner_id':OWNER,'code':'US.WRONG','review_status':'unreviewed','note':'','active':True,'revision':1},
+        {'list_id':SID,'owner_id':OTHER,'code':'US.SECRET','review_status':'unreviewed','note':'secret','active':True,'revision':1}])
+    store.quotes.extend([{'code':'US.WRONG','row':{'code':'US.OTHER', 'name':"O'Reilly & Sons"}},
+        {'code':'US.SECRET','row':{'code':'US.SECRET','name':"O'Reilly & Sons"}}])
+    base=f'/api/research/lists/{SID}/items'
+    pages=[c.get(base,headers=headers(),params={'q':"o'reilly & sons",'limit':500,'offset':offset}).json() for offset in (0,500)]
+    codes=[r['code'] for p in pages for r in p['items']]
+    assert codes==[f'US.T{i:04d}' for i in range(1200) if i%2]
+    assert pages[0]['has_more'] and not pages[1]['has_more']
+    d=c.get(base,headers=headers(),params={'q':'US.WRONG'}).json();assert d['items'][0]['quote'] is None
+    assert c.get(base,headers=headers(),params={'q':'%'}).json()['items']==[]
+    assert c.get(base,headers=headers(),params={'q':'x'*81}).status_code==422

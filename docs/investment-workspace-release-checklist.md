@@ -180,3 +180,13 @@ This supersedes historical statements above that storage currently retains only 
 - [ ] Large-history/device/accessibility/performance, completed downloads, fresh Moomoo/data reconciliation and qualified cutover/rollback.
 
 The shortlist UI is wired locally; older backend-only statements above are historical. This checkpoint is unmerged/undeployed and does not close full-design acceptance.
+
+## Latest shortlist search/responsive checkpoint
+
+- [x] Company/ticker search applies before pagination using matching canonical stored names; 1,200-item native SQL contract passes.
+- [x] Phone card actions fit the first screen at 390 × 844; tablet library collapses and review/Escape fits at 768 × 1024.
+- [x] Actual one-item synthetic shortlist CSV downloaded and parsed; file metadata/hash and browser event timeout are recorded in `design-gap-audit/shortlist-search-checkpoint/download-check.json`. Prepared links are recoverable and revoked on private-account clearing.
+- [x] 240 API/worker and 65 JavaScript regressions pass.
+- [ ] Production migration/Auth/PostgREST, large-list browser downloads/latency, 200% zoom, assistive technology and all remaining design/data/release gates.
+
+[Updated mockup review](investment-workspace-mockup-review.md) records screenshots and measured bounds. This is local, unmerged and undeployed.
