@@ -770,3 +770,36 @@ def test_watchlist_star_can_be_removed_without_deleting_the_ticker(monkeypatch):
     monkeypatch.setattr(api.db, "upsert", lambda table, conflict, row: captured.append(row))
     assert client.post("/api/watchlist/STARFIX?active=false").status_code == 200
     assert captured[-1] == {"watchlist_id": "star-wl", "ticker_id": "star-ticker", "active": False}
+
+
+def test_schedule_state_is_per_market_with_shared_cadence():
+    from copy import deepcopy
+    previous=deepcopy(api.db.tables)
+    try:
+        api.db.upsert('app_settings','key',{'key':'universe_state','value':{'interval_h':4,'last_quotes':'legacy-unqualified'}})
+        api.db.upsert('app_settings','key',{'key':'universe_state_US','value':{'last_quotes':'us-success','last_attempt':{'status':'failed','reason':'Quote batch 1: 1 requested identities missing'}}})
+        api.db.upsert('app_settings','key',{'key':'universe_state_HK','value':{'last_quotes':'hk-success','last_attempt':{'status':'succeeded'}}})
+        api.db._t('screener_universe').append({'market':'HK','code':'HK.00700','stock_type':'STOCK'})
+        us=client.get('/api/screener/schedule').json()
+        hk=client.get('/api/screener/schedule?market=HK').json()
+        assert us['market']=='US' and hk['market']=='HK'
+        assert us['last_quotes']=='us-success' and hk['last_quotes']=='hk-success'
+        assert us['last_attempt']['status']=='failed' and hk['last_attempt']['status']=='succeeded'
+        assert hk['stock_rows']==1 and us['interval_h']==hk['interval_h']==4
+        assert client.get('/api/screener/schedule?market=XX').status_code==400
+        saved=client.put('/api/screener/schedule',json={'interval_h':8})
+        assert saved.status_code==200,saved.text
+        assert client.get('/api/screener/schedule?market=HK').json()['interval_h']==8
+        assert client.get('/api/screener/schedule').json()['last_quotes']=='us-success'
+    finally:api.db.tables=previous
+
+
+def test_schedule_does_not_label_legacy_shared_clock_as_verified_market_success():
+    from copy import deepcopy
+    previous=deepcopy(api.db.tables)
+    try:
+        api.db.tables['app_settings']=[{'key':'universe_state','value':{'interval_h':2,'last_quotes':'old-shared','last_enum':'old-shared'}}]
+        result=client.get('/api/screener/schedule').json()
+        assert result['last_quotes'] is None and result['last_enum'] is None
+        assert result['last_attempt'] is None and result['interval_h']==2
+    finally:api.db.tables=previous

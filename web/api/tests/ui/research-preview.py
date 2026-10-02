@@ -73,6 +73,11 @@ research_lists.db=PreviewResearchDb()
 api.db._t('research_lists').append({'id':'00000000-0000-4000-8000-000000000003','owner_id':PREVIEW_OWNER,'name':'Investment review fixture','description':'Synthetic UI verification only','active':True,'revision':1,'updated_at':datetime.now(timezone.utc).isoformat()})
 api.db._t('research_list_items').append({'list_id':'00000000-0000-4000-8000-000000000003','owner_id':PREVIEW_OWNER,'code':'US.S0001','note':'Review balance sheet quality','review_status':'unreviewed','active':True,'revision':1})
 now=datetime.now(timezone.utc).isoformat()
+if os.getenv('RESEARCH_REFRESH_FAILURE_FIXTURE'):
+    api.db._t('app_settings').extend([
+        {'key':'universe_state','value':{'interval_h':4}},
+        {'key':'universe_state_US','value':{'last_quotes':(datetime.now(timezone.utc)-timedelta(hours=5)).isoformat(),
+            'last_attempt':{'status':'failed','stage':'quotes','reason':'Quote batch 2: 1 requested identities missing'}}}])
 for row in fixture.ROWS:
     api.db._t('screener_quotes').append({'market':'US','code':row['code'],'row':row.copy(),'updated_at':now})
     api.db._t('screener_universe').append({'market':'US',**row})

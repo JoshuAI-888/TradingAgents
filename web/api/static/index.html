@@ -416,7 +416,7 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 ::-webkit-scrollbar-thumb:hover{background:#33445f}
 *{scrollbar-width:thin;scrollbar-color:#26344a var(--bg)}
 </style>
-<link rel="stylesheet" href="/research-workspace.css">
+<link rel="stylesheet" href="/research-workspace.css?v=20261002-refresh-integrity">
 </head>
 <body>
 <div class="wrap">
@@ -2002,7 +2002,7 @@ const pages = {
     const opt = (m, sel) => `<option value="${esc(m.id)}" ${sel === m.id ? "selected" : ""}>${esc(m.id)} — $${m.in_per_m}/M in · $${m.out_per_m}/M out · est $${m.est_per_run}/run${m.free ? " · FREE" : ""}${m.recommended ? " · ★ recommended" : ""}</option>`;
     const a = state.models || {};
     const selOpts = (role) => cat.models.map(m => opt(m, a[role])).join("");
-    return `<div class="panel"><h3 class="sec">Models — which model does what
+    return `<div class="research-settings"><div class="panel"><h3 class="sec">Models — which model does what
         <span class="pill ${cat.stale ? "pa" : "pd"}"><i></i>${cat.count} models ${cat.stale ? "(stale cache)" : "from OpenRouter"}</span></h3>
       <p class="faint" style="font-size:11px;margin-bottom:8px">Sorted recommended-first: intelligence per dollar (curated tiers ÷ analysis-mix cost). Cost shown as $/1M tokens in+out and estimated per typical analysis (${esc(cat.est_run_basis)}).</p>
       <div class="frow" style="margin-top:6px"><span style="width:110px" class="dim">Quick model</span>
@@ -2036,7 +2036,7 @@ const pages = {
           <input type="radio" name="tzmode" ${TZ() === "utc" ? "checked" : ""} onchange="setTZ('utc')" style="margin-top:2px">
           <span><b>UTC</b> — the exchange-agnostic default the API stores (shown with a Z suffix).</span></label>
         <div class="faint" style="font-size:10.5px;margin-top:6px">Now: ${fmtTs(new Date().toISOString())}</div></div>
-      <div class="panel"><h3 class="sec">System</h3><div id="sysmeta" class="empty">loading…</div></div>`;
+      <div class="panel"><h3 class="sec">System</h3><div id="sysmeta" class="empty">loading…</div></div></div>`;
   },
 
   async info() {
@@ -5050,14 +5050,17 @@ async function showPage(p) {
         el.className = "";
         el.innerHTML = `<div class="trow"><span>Universe</span><b>${s.universe_rows.toLocaleString()} listings</b></div>
           <div class="trow"><span>Common stocks</span><b>${(s.stock_rows ?? 0).toLocaleString()}${s.other_rows ? ` · ${(s.other_rows).toLocaleString()} ETF/warrant/other stored, hidden from the screener` : ""}</b></div>
-          <div class="trow"><span>Quote rows</span><b>${s.quote_rows.toLocaleString()} · as of ${last}</b></div>
+          <div class="trow"><span>Stored quote rows</span><b>${s.quote_rows.toLocaleString()}</b></div>
+          <div class="trow"><span>Last complete US refresh</span><b>${last}</b></div>
+          <div class="trow"><span>Latest attempt</span><b>${s.last_attempt?.status === 'failed' ? 'Failed · prior data retained' : s.last_attempt?.status === 'succeeded' ? 'Completed' : 'Not verified'}</b></div>
+          ${s.last_attempt?.status === 'failed' ? `<p class="faint" role="status">${esc(s.last_attempt.reason || 'Refresh failed')}. Last complete refresh has not advanced.</p>` : ''}
           <div class="trow"><span>Refresh cadence</span>
             <select id="scr-interval" style="background:var(--panel2);color:#dbe6f3;border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:11.5px">
               ${[1, 2, 4, 8, 12, 24].map(h => `<option value="${h}" ${s.interval_h === h ? "selected" : ""}>every ${h}h during US market hours</option>`).join("")}
             </select></div>
           <div class="actions" style="margin-top:8px"><button class="btn" onclick="saveSchedule()">Save cadence</button>
           <span id="scr-sched-out" class="faint" style="font-size:11px"></span></div>
-          <div class="faint" style="font-size:10.5px;margin-top:6px">The loader runs hourly (cron, US market hours) and skips itself when quotes are fresher than this cadence. Full re-enumeration of listings runs daily.</div>`;
+          <div class="faint" style="font-size:10.5px;margin-top:6px">The loader runs hourly (cron, US market hours). A successful refresh covers every requested stored identity; source times and field coverage vary. Plate and screen-slice enumeration runs daily and does not establish a complete exchange universe. Failed attempts remain eligible for retry.</div>`;
       }).catch(() => {});
     }
     if (p === "home" && window.__scrRefreshJob && !window.__scrPollActive) {

@@ -1009,18 +1009,27 @@ def screener_presets(market: str = "US", universe: str = "auto", definitions_onl
     _presets_cache[f"{market}|{universe}"] = (time.time(), out_payload)
     return out_payload
 
+class ScheduleIn(BaseModel):
+    interval_h: int
+
+
 @app.get("/api/screener/schedule")
-def screener_schedule_get():
+def screener_schedule_get(market: str = 'US'):
     """Universe-refresh cadence + current loader state (settings page + cron).
     stock_rows/other_rows explain the count gap vs moomoo's app total: the app
     counts every instrument type; the screener serves common stocks by default."""
-    state = _universe_state()
-    rows = db.select_all("screener_quotes", {"market": "eq.US"}, "code")
-    urows = db.select_all("screener_universe", {"market": "eq.US"}, "code,stock_type")
+    if market not in ('US', 'HK'):
+        raise HTTPException(400, 'market must be US or HK')
+    config = _universe_state()
+    states = db.select('app_settings', {'key': f'eq.universe_state_{market}'}, 'value')
+    state = (states[0].get('value') or {}) if states else {}
+    rows = db.select_all("screener_quotes", {"market": f"eq.{market}"}, "code")
+    urows = db.select_all("screener_universe", {"market": f"eq.{market}"}, "code,stock_type")
     stock_rows = sum(1 for r in urows if r.get("stock_type") == "STOCK")
-    return {"interval_h": float(state.get("interval_h") or 1),
+    return {"market": market, "interval_h": float(config.get("interval_h") or 1),
             "last_quotes": state.get("last_quotes"), "last_enum": state.get("last_enum"),
             "last_result": state.get("last_result") or {},
+            "last_attempt": state.get('last_attempt'),
             "quote_rows": len(rows), "universe_rows": len(urows),
             "stock_rows": stock_rows, "other_rows": len(urows) - stock_rows}
 
@@ -1835,10 +1844,6 @@ class ModelPairIn(BaseModel):
     provider: str = Field(default="openrouter", min_length=2, max_length=32)
     quick: str = Field(min_length=2, max_length=120)
     deep: str = Field(min_length=2, max_length=120)
-
-
-class ScheduleIn(BaseModel):
-    interval_h: int
 
 
 class SettingsIn(BaseModel):
