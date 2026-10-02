@@ -524,3 +524,33 @@ test('saved metadata arrival restores the title after reload without changing sc
  const c=harness({filters:[{field:'pct',min:-1,max:1}],savedScreenId:'region'}),heading={textContent:'Saved screen'},library={innerHTML:''};c.document.getElementById=id=>id==='research-saved'?library:null;c.document.querySelector=q=>q==='.desk-title h2'?heading:null;c.researchLibrarySearch=()=>{};
  c.__savedScreeners=[{id:'region',name:'<Region>',market:'US',filters:[{field:'pct',min:-1,max:1}],sort:'market_cap',direction:2,settings:{}}];c.researchSavedMount();assert.equal(heading.textContent,'<Region>');assert.equal(c.__scr.filters.length,1);
 });
+
+test('Explorer coordinate groups preserve collisions and screen sort without jitter or merging nearby values',()=>{
+ const c=harness();const rows=[stock('BRK.B',100,0,{code:'US.BRK.B',pe_ttm:8}),stock('BRK.A',90,0,{code:'US.BRK.A',pe_ttm:'8'}),stock('C',80,0,{code:'US.C',pe_ttm:8.000001}),stock('D',70,0,{code:'US.D',pe_ttm:null})];
+ const st={x:'pe_ttm',y:'pct',xs:'linear',ys:'linear',trim:false,bounds:null,zoom:false};
+ const groups=c.researchExplorePointGroups(rows,st);
+ assert.deepEqual(Array.from(groups,g=>Array.from(g.rows,r=>r.code)),[['US.BRK.B','US.BRK.A'],['US.C']]);
+ assert.equal(groups[0].x,8);assert.equal(groups[0].y,0);assert.equal(rows[2].pe_ttm,8.000001);
+ assert.equal(c.researchExploreKeyboard(groups,st,'ArrowRight'),groups[0]);
+ assert.equal(c.researchExploreKeyboard(groups,st,'Enter'),groups[0]);
+ assert.equal(c.researchExploreKeyboard(groups,st,'ArrowDown'),groups[1]);
+ assert.equal(c.researchExploreKeyboard(groups,st,'ArrowRight'),groups[1]);
+ assert.equal(c.researchExploreKeyboard(groups,st,'Home'),groups[0]);
+ assert.equal(c.researchExploreKeyboard(groups,st,'End'),groups[1]);
+ assert.equal(c.researchExploreKeyboard(groups,st,'Tab'),null);
+ st.xs='log';st.ys='log';assert.equal(c.researchExplorePointGroups(rows,st).length,0);
+});
+test('Explorer coordinate picker revalidates plotted identities and pages all collisions without changing rules',()=>{
+ const c=harness();const rows=Array.from({length:121},(_,i)=>stock('A'+i,200-i,1,{code:'US.A'+i,pe_ttm:8}));
+ c.researchRows=()=>rows;const st=c.researchExploreState();let markup='',focus=0,inspected;
+ c.document.getElementById=id=>id==='explore-point-picker'?{set innerHTML(v){markup=v;}}:id==='research-scatter'?{focus(){focus++;}}:null;
+ c.document.querySelector=()=>({focus(){focus++;}});c.researchInspectRow=(r)=>{inspected=r.code;};
+ const original=JSON.stringify(c.__scr);const group=c.researchExplorePointGroups(rows,st)[0];
+ c.researchExplorePointOpen(group,{});assert.equal(st.pointCodes.length,121);assert.match(markup,/1–50 of 121/);assert.match(markup,/Inspect A49 at coordinate/);assert.doesNotMatch(markup,/Inspect A50 at coordinate/);
+ c.researchExplorePointPage(1);assert.match(markup,/51–100 of 121/);
+ c.researchExplorePointPage(1);assert.match(markup,/101–121 of 121/);
+ c.researchExplorePointPage(1);assert.match(markup,/101–121 of 121/);
+ rows[0].pct=null;assert.equal(c.researchExplorePointRows().length,120);rows[2].pct=2;assert.equal(c.researchExplorePointRows().length,119);
+ c.researchExplorePointOpen({rows:[rows[1]]},{});assert.equal(inspected,'US.A1');assert.equal(markup,'');
+ c.researchExplorePointClose();assert.equal(st.pointCodes,null);assert.ok(focus>=5);assert.equal(JSON.stringify(c.__scr),original);
+});
