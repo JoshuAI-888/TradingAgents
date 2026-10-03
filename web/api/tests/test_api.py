@@ -1387,3 +1387,158 @@ def test_schedule_does_not_label_legacy_shared_clock_as_verified_market_success(
         assert result["last_attempt"] is None and result["interval_h"] == 2
     finally:
         api.db.tables = previous
+
+
+def seed_original_generation_evidence():
+    import copy
+    import uuid
+
+    generation = str(uuid.uuid4())
+    stamp = "2026-10-03T00:01:00+00:00"
+    observation = {
+        "code": "US.AAPL",
+        "field": "pct",
+        "value": 2.5,
+        "source": "moomoo_cloud_snapshot",
+        "unit": "percentage_points",
+        "currency": None,
+        "period": None,
+        "observed_at": stamp,
+        "clock": "quote_source",
+    }
+    api.db._t("screener_generations").append(
+        {
+            "id": generation,
+            "market": "US",
+            "row_count": 1,
+            "started_at": "2026-10-03T00:00:00+00:00",
+            "published_at": "2026-10-03T00:02:00+00:00",
+        }
+    )
+    api.db._t("screener_generation_rows").append(
+        {
+            "generation_id": generation,
+            "code": "US.AAPL",
+            "row": {
+                "code": "US.AAPL",
+                "pct": 2.5,
+                "price": 10,
+                "field_observations": {"pct": copy.deepcopy(observation)},
+            },
+            "metadata": {"code": "US.AAPL", "market": "US"},
+            "quote_cache_at": stamp,
+        }
+    )
+    return generation, observation
+
+
+def test_pinned_original_observation_read_retains_null_currency_provenance(monkeypatch):
+    monkeypatch.setattr(
+        api, "_market_client", lambda: pytest.fail("Evidence must not call provider")
+    )
+    generation, observation = seed_original_generation_evidence()
+    response = client.get(
+        "/api/screener/observations", params={"code": "US.AAPL", "generation_id": generation}
+    )
+    assert response.status_code == 200
+    assert response.json()["field_observations"] == {"pct": observation}
+    assert response.json()["values"] == {"pct": 2.5}
+    assert (
+        client.get(
+            "/api/screener/observations", params={"code": "US.MISSING", "generation_id": generation}
+        ).status_code
+        == 404
+    )
+    assert (
+        client.get(
+            "/api/screener/observations", params={"code": "HK.00001", "generation_id": generation}
+        ).status_code
+        == 503
+    )
+    assert (
+        client.get(
+            "/api/screener/observations",
+            params={"code": "US..INVALID", "generation_id": generation},
+        ).status_code
+        == 400
+    )
+    assert (
+        client.get(
+            "/api/screener/observations", params={"code": "US.AAPL", "generation_id": "bad"}
+        ).status_code
+        == 400
+    )
+
+
+@pytest.mark.parametrize("mutation", ["code", "value", "clock", "member"])
+def test_original_observation_read_rejects_attribution_corruption(mutation):
+    generation, _ = seed_original_generation_evidence()
+    record = api.db._t("screener_generation_rows")[-1]
+    if mutation == "code":
+        record["row"]["field_observations"]["pct"]["code"] = "US.OTHER"
+    elif mutation == "value":
+        record["row"]["field_observations"]["pct"]["value"] = 99
+    elif mutation == "clock":
+        record["row"]["field_observations"]["pct"]["observed_at"] = "2026-10-03T00:00:00"
+    else:
+        record["metadata"]["code"] = "US.OTHER"
+    assert (
+        client.get(
+            "/api/screener/observations", params={"code": "US.AAPL", "generation_id": generation}
+        ).status_code
+        == 503
+    )
+
+
+def test_capture_hydration_reads_bounded_members_and_rejects_changed_values():
+    generation, observation = seed_original_generation_evidence()
+    rows = [
+        {
+            "code": "US.AAPL",
+            "generation_id": generation,
+            "pct": 2.5,
+            "price": 10,
+            "field_observations": {},
+        }
+    ]
+    api._hydrate_capture_observations(rows, [{"field": "pct", "min": 1}])
+    captured = api.capture_observation(rows[0], [{"field": "pct", "min": 1}])
+    actual = next(iter(captured["criterion_observations"].values()))
+    assert (
+        actual["source"] == observation["source"]
+        and actual["observed_at"] == observation["observed_at"]
+    )
+    changed = [
+        {"code": "US.AAPL", "generation_id": generation, "pct": 99, "field_observations": {}}
+    ]
+    api._hydrate_capture_observations(changed, [{"field": "pct", "min": 1}])
+    assert changed[0]["field_observations"] == {}
+
+
+def test_capture_original_evidence_hydration_is_bounded_to_100_rows(monkeypatch):
+    import copy
+
+    generation, _ = seed_original_generation_evidence()
+    header = api.db._t("screener_generations")[-1]
+    source = api.db._t("screener_generation_rows")[-1]
+    rows = []
+    for index in range(101):
+        code = f"US.B{index}"
+        record = copy.deepcopy(source)
+        record["code"] = record["row"]["code"] = record["metadata"]["code"] = code
+        record["row"]["field_observations"]["pct"]["code"] = code
+        api.db._t("screener_generation_rows").append(record)
+        rows.append({"code": code, "generation_id": generation, "pct": 2.5})
+    header["row_count"] = 102
+    original = api.db.select
+    reads = []
+
+    def track(table, query=None, columns="*"):
+        if table == "screener_generation_rows":
+            reads.append(query)
+        return original(table, query, columns)
+
+    monkeypatch.setattr(api.db, "select", track)
+    api._hydrate_capture_observations(rows, [{"field": "pct", "min": 1}])
+    assert [int(query["limit"]) for query in reads] == [101, 2]
+    assert all(row["field_observations"]["pct"]["code"] == row["code"] for row in rows)

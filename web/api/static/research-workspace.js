@@ -616,6 +616,32 @@ function researchInspectorKey(event) {
  if(window.matchMedia?.('(max-width:1350px)').matches)researchModalKey(event,document.getElementById('research-inspector'),()=>researchCloseInspector());
  else if(event.key==='Escape'){event.preventDefault();researchCloseInspector();}
 }
+function researchWhyEvidenceHTML(row,filters,preset) {
+ const evidence=filters.map(f=>researchEvidence(row,f,preset));
+ return filters.length?`<div class="inspector-evidence">${evidence.map(e=>`<section><h4>${esc(e.label)}</h4><strong>${esc(e.value)}</strong>${e.display_value!==null?`<p>Table display: ${esc(e.display_value)}. This is separate from the screen criterion observation.</p>`:''}<p>Rule: ${esc(e.threshold || 'Provider definition')}<br>${esc(e.basis)}<br>${esc(e.period)}<br>${esc(e.source)} · ${esc(e.timestamp)}</p><small>${esc(e.status)}</small></section>`).join('')}</div>`:'<p>All stocks — no custom criteria. This stock is in the current stock-only universe.</p>';
+}
+function researchMergeObservations(row,payload) {
+ if(!row || payload?.code!==row.code || payload.generation_id!==row.generation_id || !payload.field_observations || typeof payload.field_observations!=='object')return row;
+ const observations={...(row.field_observations || {})};
+ for(const [field,o] of Object.entries(payload.field_observations)){
+  if(o && o.code===row.code && o.field===field && typeof o.value==='number' && Number.isFinite(o.value) && o.value===row[field] && payload.values?.[field]===row[field])observations[field]=o;
+ }
+ return {...row,field_observations:observations};
+}
+async function researchObservationMount(row,gen) {
+ const code=row.code,generation=row.generation_id;
+ if(typeof code!=='string' || !/^(US|HK)\.[A-Z0-9][A-Z0-9._-]{0,30}$/.test(code) || typeof generation!=='string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(generation))return;
+ const cache=window.__researchObservationCache || (window.__researchObservationCache=new Map()),key=generation+'|'+code;
+ try{
+  let payload=cache.get(key);
+  if(!payload){payload=await api('/api/screener/observations?code='+encodeURIComponent(code)+'&generation_id='+encodeURIComponent(generation));if(payload?.code===code && payload.generation_id===generation){if(cache.size>=32 && !cache.has(key))cache.delete(cache.keys().next().value);cache.set(key,payload);}}
+  if(gen!==window.__inspectGen || window.__researchInspectCode!==code || window.__inspectRow?.generation_id!==generation || window.__inspectTab!=='why')return;
+  const rows=researchRows(),found=rows.find(r=>r.code===code);if((found && found.generation_id!==generation) || (!found && rows.length))return;
+  const current=found || window.__inspectRow;
+  const merged=researchMergeObservations(current,payload);window.__inspectRow=merged;
+  const target=document.getElementById('inspector-content');if(target)target.innerHTML=researchWhyEvidenceHTML(merged,scrEffFilters(false),window.__scr.activePreset);
+ }catch(e){if(gen===window.__inspectGen && window.__researchInspectCode===code){const status=document.getElementById('inspect-observation-status');if(status)status.textContent='Original field evidence unavailable. Reopen Why it matches to retry.';}}
+}
 async function researchInspectRow(row,options={}) {
  const el=document.getElementById('research-inspector');if(!el || !row)return;
  const code=researchKey(row),changed=window.__researchInspectCode!==code;
@@ -627,13 +653,12 @@ async function researchInspectRow(row,options={}) {
  const filters=privateItem?[]:scrEffFilters(false),watched=(window.__scr.watchlistSyms || []).includes(row.symbol);
  const call=value=>esc(JSON.stringify(value));
  const tabs=[['overview','Overview'],['why',privateItem?'List context':'Why it matches'],['news','News']];
- const evidence=filters.map(f=>researchEvidence(row,f,window.__scr.activePreset));
  const provenance=researchQuoteProvenance(row);
- const why=privateItem?`<h4>Research shortlist</h4><p>${esc(privateItem.review_status.replaceAll('_',' '))}</p><p>${esc(privateItem.note || 'No note')}</p><p>List membership does not establish qualification for the current screener criteria.</p>`:filters.length?`<div class="inspector-evidence">${evidence.map(e=>`<section><h4>${esc(e.label)}</h4><strong>${esc(e.value)}</strong>${e.display_value!==null?`<p>Table display: ${esc(e.display_value)}. This is separate from the screen criterion observation.</p>`:''}<p>Rule: ${esc(e.threshold || 'Provider definition')}<br>${esc(e.basis)}<br>${esc(e.period)}<br>${esc(e.source)} · ${esc(e.timestamp)}</p><small>${esc(e.status)}</small></section>`).join('')}</div>`:'<p>All stocks — no custom criteria. This stock is in the current stock-only universe.</p>';
+ const why=privateItem?`<h4>Research shortlist</h4><p>${esc(privateItem.review_status.replaceAll('_',' '))}</p><p>${esc(privateItem.note || 'No note')}</p><p>List membership does not establish qualification for the current screener criteria.</p>`:researchWhyEvidenceHTML(row,filters,window.__scr.activePreset);
  el.classList.add('open');el.setAttribute('role',window.matchMedia?.('(max-width:1350px)').matches?'dialog':'complementary');el.setAttribute('aria-label',row.symbol+' stock inspector');
  if(window.matchMedia?.('(max-width:1350px)').matches)el.setAttribute('aria-modal','true');else el.removeAttribute('aria-modal');
  el.onkeydown=researchInspectorKey;
- el.innerHTML=`<div class="inspector-heading"><div><h2>${esc(row.symbol)}</h2><p>${esc(row.name)}</p></div><button class="btn ghost inspector-close" onclick="researchCloseInspector()">Close preview</button></div><div class="inspector-price">${researchMoneyHTML(row,'price')}<small class="${Number(row.pct)>=0?'g':'r'}">${esc(researchValue('pct',row.pct))}</small></div><div class="inspector-tabs" role="group" aria-label="Inspector section">${tabs.map(([id,label])=>`<button class="btn ${tab===id?'primary':'ghost'}" aria-pressed="${tab===id}" onclick="researchInspectorTab('${id}')">${label}</button>`).join('')}</div><div class="inspector-scroll"><div id="inspector-content">${tab==='overview'?`<dl class="inspector-key-metrics" aria-label="Quote metrics">${['market_cap','pe_ttm','pb','volume','high52','low52'].map(k=>`<dt>${esc(SCR_COLS[k]?.[0] || k)}</dt><dd>${RESEARCH_CURRENCY_FIELDS.has(k)?researchMoneyHTML(row,k):esc(researchValue(k,row[k]))}</dd>`).join('')}</dl><div id="inspect-company" role="status">Loading cached company context…</div><div id="inspect-chart" aria-label="${esc(row.symbol)} price history" style="height:220px"></div><div class="inspector-ranges" role="group" aria-label="Chart range">${Object.keys(RESEARCH_RANGES).map(r=>`<button class="btn ${range===r?'primary':'ghost'}" aria-pressed="${range===r}" onclick="researchInspectorRange('${r}')">${r}</button>`).join('')}</div><p id="inspect-chart-status" role="status">Loading ${range} history…</p><h4>${privateItem?'List context':'Screen context'}</h4><p>${privateItem?'Research shortlist · see List context':filters.length?filters.length+' criteria · see Why it matches':'All stocks — no custom criteria'}</p>`:tab==='why'?why:'<div id="inspect-news" role="status">Loading recent news…</div>'}</div>${provenance}</div><div class="inspector-actions">${researchExtendedWorkspaceEnabled()?`<button class="btn ghost" onclick="researchShortlistPicker(${call(code)})">Add to shortlist</button>`:''}<button class="btn ghost" onclick="toggleWatch(${call(row.symbol)})" ${window.__watchPending?.has(row.symbol)?'disabled':''}>${watched?'Remove from watchlist':'Add to watchlist'}</button><button class="btn primary" onclick="researchOpen(${call(code)})">Open full research</button></div><p class="faint">All stock tabs and KLine tools remain in full research.</p>`;
+ el.innerHTML=`<div class="inspector-heading"><div><h2>${esc(row.symbol)}</h2><p>${esc(row.name)}</p></div><button class="btn ghost inspector-close" onclick="researchCloseInspector()">Close preview</button></div><div class="inspector-price">${researchMoneyHTML(row,'price')}<small class="${Number(row.pct)>=0?'g':'r'}">${esc(researchValue('pct',row.pct))}</small></div><div class="inspector-tabs" role="group" aria-label="Inspector section">${tabs.map(([id,label])=>`<button class="btn ${tab===id?'primary':'ghost'}" aria-pressed="${tab===id}" onclick="researchInspectorTab('${id}')">${label}</button>`).join('')}</div><div class="inspector-scroll"><div id="inspector-content">${tab==='overview'?`<dl class="inspector-key-metrics" aria-label="Quote metrics">${['market_cap','pe_ttm','pb','volume','high52','low52'].map(k=>`<dt>${esc(SCR_COLS[k]?.[0] || k)}</dt><dd>${RESEARCH_CURRENCY_FIELDS.has(k)?researchMoneyHTML(row,k):esc(researchValue(k,row[k]))}</dd>`).join('')}</dl><div id="inspect-company" role="status">Loading cached company context…</div><div id="inspect-chart" aria-label="${esc(row.symbol)} price history" style="height:220px"></div><div class="inspector-ranges" role="group" aria-label="Chart range">${Object.keys(RESEARCH_RANGES).map(r=>`<button class="btn ${range===r?'primary':'ghost'}" aria-pressed="${range===r}" onclick="researchInspectorRange('${r}')">${r}</button>`).join('')}</div><p id="inspect-chart-status" role="status">Loading ${range} history…</p><h4>${privateItem?'List context':'Screen context'}</h4><p>${privateItem?'Research shortlist · see List context':filters.length?filters.length+' criteria · see Why it matches':'All stocks — no custom criteria'}</p>`:tab==='why'?why+(row.generation_id && !options.observationsLoaded?'<p id="inspect-observation-status" role="status">Loading original field evidence…</p>':''):'<div id="inspect-news" role="status">Loading recent news…</div>'}</div>${provenance}</div><div class="inspector-actions">${researchExtendedWorkspaceEnabled()?`<button class="btn ghost" onclick="researchShortlistPicker(${call(code)})">Add to shortlist</button>`:''}<button class="btn ghost" onclick="toggleWatch(${call(row.symbol)})" ${window.__watchPending?.has(row.symbol)?'disabled':''}>${watched?'Remove from watchlist':'Add to watchlist'}</button><button class="btn primary" onclick="researchOpen(${call(code)})">Open full research</button></div><p class="faint">All stock tabs and KLine tools remain in full research.</p>`;
  if(window.matchMedia?.('(max-width:1350px)').matches)researchModalIsolate(el,'inspector');
  if(options.focus)el.querySelector('.inspector-close')?.focus({preventScroll:true});
  if(options.focusControl)el.querySelector(options.focusControl==='tab'?'.inspector-tabs [aria-pressed="true"]':'.inspector-ranges [aria-pressed="true"]')?.focus({preventScroll:true});
@@ -650,6 +675,7 @@ async function researchInspectRow(row,options={}) {
   }catch(e){if(gen===window.__inspectGen)document.getElementById('inspect-news').textContent='News unavailable. Retry by reopening News.';}
   return;
  }
+ if(tab==='why' && !privateItem && !options.observationsLoaded){researchObservationMount(row,gen);return;}
  if(tab!=='overview')return;
  researchCompanyMount(code,gen);
  const config=RESEARCH_RANGES[range];

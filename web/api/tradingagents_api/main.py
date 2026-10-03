@@ -1051,6 +1051,131 @@ def _generation_pointer(market: str):
         raise HTTPException(503, str(error)) from error
 
 
+def _generation_evidence_rows(market: str, generation_id: str, codes: list[str]):
+    """Bounded immutable evidence reads; never fetch or infer provider context."""
+    try:
+        canonical_generation(generation_id)
+    except GenerationError as error:
+        raise HTTPException(400, str(error)) from error
+    if (
+        market not in ("US", "HK")
+        or not 1 <= len(codes) <= 100
+        or len(set(codes)) != len(codes)
+        or any(
+            not isinstance(code, str)
+            or not re.fullmatch(market + r"\.[A-Z0-9][A-Z0-9._-]{0,30}", code)
+            for code in codes
+        )
+    ):
+        raise HTTPException(400, "Invalid generation evidence identities")
+    headers = db.select("screener_generations", {"id": "eq." + generation_id, "limit": "2"})
+    if not headers:
+        raise HTTPException(404, "Generation evidence not found")
+    try:
+        if (
+            len(headers) != 1
+            or headers[0].get("id") != generation_id
+            or headers[0].get("market") != market
+        ):
+            raise GenerationError("Generation evidence market or identity differs")
+        header = headers[0]
+        started, published = (
+            aware_time(header.get("started_at")),
+            aware_time(header.get("published_at")),
+        )
+        if (
+            published < started
+            or type(header.get("row_count")) is not int
+            or not 1 <= header["row_count"] <= 20000
+        ):
+            raise GenerationError("Invalid generation evidence header")
+        records = db.select(
+            "screener_generation_rows",
+            {
+                "generation_id": "eq." + generation_id,
+                "code": "in.(" + ",".join(codes) + ")",
+                "limit": str(len(codes) + 1),
+            },
+        )
+        if len(records) != len(codes) or {r.get("code") for r in records} != set(codes):
+            raise HTTPException(404, "Requested identity is not in the pinned generation")
+        result = {}
+        for record in records:
+            code, row, meta = record["code"], record.get("row"), record.get("metadata")
+            if (
+                record.get("generation_id") != generation_id
+                or not isinstance(row, dict)
+                or row.get("code") != code
+                or not isinstance(meta, dict)
+                or meta.get("code") != code
+                or meta.get("market") != market
+                or not started <= aware_time(record.get("quote_cache_at")) <= published
+            ):
+                raise GenerationError("Invalid generation evidence row")
+            observations = row.get("field_observations", {})
+            if not isinstance(observations, dict):
+                raise GenerationError("Invalid generation field evidence")
+            for field, observation in observations.items():
+                if (
+                    not isinstance(observation, dict)
+                    or observation.get("code") != code
+                    or observation.get("field") != field
+                    or field not in row
+                    or not numeric(observation.get("value"))
+                    or not numeric(row[field])
+                    or observation["value"] != row[field]
+                ):
+                    raise GenerationError(
+                        "Generation observation attribution differs from its value"
+                    )
+                for key in ("source", "unit", "currency", "period", "clock", "timestamp_semantics"):
+                    if observation.get(key) is not None and not isinstance(observation[key], str):
+                        raise GenerationError("Invalid generation observation context")
+                if observation.get("observed_at") is not None:
+                    aware_time(observation["observed_at"])
+            result[code] = {
+                "code": code,
+                "generation_id": generation_id,
+                "quote_cache_at": record["quote_cache_at"],
+                "values": {field: row[field] for field in observations},
+                "field_observations": observations,
+            }
+        return result
+    except GenerationError as error:
+        raise HTTPException(503, str(error)) from error
+    except (RuntimeError, OSError) as error:
+        raise HTTPException(503, "Generation evidence storage unavailable") from error
+
+
+@app.get("/api/screener/observations")
+def screener_observations(code: str, generation_id: str):
+    """One pinned row's original field evidence; no provider requests."""
+    market = code.split(".", 1)[0]
+    return _generation_evidence_rows(market, generation_id, [code])[code]
+
+
+def _hydrate_capture_observations(rows, filters):
+    # Captures retain only their criteria and monetary metric evidence, reading
+    # at most 100 original rows at a time instead of expanding the bulk cache.
+    fields = {f.get("field") for f in filters} | {"price", "market_cap"}
+    groups = {}
+    for row in rows:
+        if row.get("generation_id"):
+            groups.setdefault(row["generation_id"], []).append(row)
+    for generation, group in groups.items():
+        for offset in range(0, len(group), 100):
+            batch = group[offset : offset + 100]
+            evidence = _generation_evidence_rows(
+                batch[0]["code"].split(".", 1)[0], generation, [r["code"] for r in batch]
+            )
+            for row in batch:
+                supplied = dict(row.get("field_observations") or {})
+                for field, observation in evidence[row["code"]]["field_observations"].items():
+                    if field in fields and observation["value"] == row.get(field):
+                        supplied[field] = observation
+                row["field_observations"] = supplied
+
+
 def _stored_universe(market: str, max_age: float = 60.0, generation_id: str | None = None):
     """Return one validated immutable cohort, or legacy rows before migration.
 
@@ -2881,6 +3006,7 @@ def build_screen_capture(
                     409,
                     "An eligible quote cache is stale or has no valid timestamp; no snapshot captured",
                 ) from None
+        _hydrate_capture_observations(eligible, inp.filters)
         try:
             observations = [capture_observation(r, inp.filters) for r in eligible]
         except ValueError:

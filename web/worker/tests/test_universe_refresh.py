@@ -718,7 +718,14 @@ def test_staging_failure_retains_published_generation(fake_db, monkeypatch, fail
 
 def test_bounded_staging_and_small_atomic_publication(fake_db):
     seed_cohort(fake_db, 801)
-    result = UniverseRefresher(fake_db, FakeMoomoo()).run()
+    events = []
+
+    def emit(stage, status, message):
+        assert status in {"pending", "running", "progress", "done", "error"}
+        events.append((stage, status, message))
+
+    result = UniverseRefresher(fake_db, FakeMoomoo(), emit=emit).run()
+    assert len([e for e in events if e[2].startswith("staged ")]) == 3
     batches = [body for name, body in fake_db.rpc_calls if name == "screener_refresh_stage"]
     finals = [body for name, body in fake_db.rpc_calls if name == "screener_refresh_publish_staged"]
     assert [len(body["p_rows"]) for body in batches] == [400, 400, 1]

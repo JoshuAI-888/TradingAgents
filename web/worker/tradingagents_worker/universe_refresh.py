@@ -687,7 +687,7 @@ class UniverseRefresher:
                     raise UniverseRefreshError("Invalid generation staging acknowledgement")
                 self.emit(
                     "universe",
-                    "publication",
+                    "progress",
                     f"staged {offset + len(batch)}/{len(prepared)} quotes",
                 )
             self._renew()

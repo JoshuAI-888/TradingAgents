@@ -1908,6 +1908,13 @@ def test_capture_builder_is_independent_of_history_and_publication(monkeypatch):
         }
 
     monkeypatch.setattr(api, "screener", screen)
+    evidence_reads = []
+
+    def original_evidence(market, generation, codes):
+        evidence_reads.append((market, generation, codes))
+        return {code: {"field_observations": {}} for code in codes}
+
+    monkeypatch.setattr(api, "_generation_evidence_rows", original_evidence)
 
     def forbidden(*args, **kwargs):
         pytest.fail("Evidence builder accessed capture history or publication")
@@ -1925,6 +1932,7 @@ def test_capture_builder_is_independent_of_history_and_publication(monkeypatch):
     assert [r["code"] for r in capture["observations"]] == ["US.A", "US.B"]
     assert calls[0]["generation_id"] == gid and capture["eligible_count"] == 2
     assert capture["source_at"] == now and capture["at"] != now
+    assert evidence_reads == [("US", gid, ["US.A", "US.B"])]
 
 
 @pytest.mark.parametrize("code", ["HK.00700", "US.A,owner_id.eq.other", "A", None, 123])

@@ -140,3 +140,54 @@ for (const market of ['US', 'HK']) {
     assert.match(c.location.hash, /p=3/);
   });
 }
+
+test('Why evidence merges pinned source observations only onto unchanged attributed values', () => {
+  const {context: c} = harness();
+  const row = {code:'US.AAPL',generation_id:'11111111-1111-4111-8111-111111111111',pct:2.5,price:10};
+  const o = {code:row.code,field:'pct',value:2.5,source:'moomoo_cloud_snapshot',unit:'percentage_points',currency:null,observed_at:'2026-10-03T00:01:00Z'};
+  const payload = {code:row.code,generation_id:row.generation_id,values:{pct:2.5},field_observations:{pct:o}};
+  const merged = c.researchMergeObservations(row,payload);
+  assert.equal(merged.field_observations.pct.source,o.source);
+  assert.equal(c.researchEvidence(merged,{field:'pct',min:1},null).source,o.source);
+  assert.equal(c.researchMergeObservations({...row,pct:99},payload).field_observations.pct,undefined);
+  assert.equal(c.researchMergeObservations(row,{...payload,generation_id:'other'}),row);
+  assert.equal(row.field_observations,undefined);
+});
+
+test('Why asynchronous evidence ignores closed inspectors and changed generation responses', async () => {
+  const {context: c} = harness();
+  const row = {code:'US.AAPL',generation_id:'11111111-1111-4111-8111-111111111111',pct:2.5};
+  let resolve; c.api = () => new Promise(done => {resolve=done;});
+  c.__inspectGen=1;c.__researchInspectCode=row.code;c.__inspectRow=row;c.__inspectTab='why';
+  const target={innerHTML:'original'};c.document.getElementById=id=>id==='inspector-content'?target:null;
+  const pending=c.researchObservationMount(row,1);c.__inspectGen=2;
+  resolve({code:row.code,generation_id:row.generation_id,values:{pct:2.5},field_observations:{pct:{code:row.code,field:'pct',value:2.5}}});
+  await pending;assert.equal(target.innerHTML,'original');
+  c.__researchObservationCache.clear();c.__inspectGen=3;
+  const second=c.researchObservationMount(row,3);
+  c.__scrDataset={rows:[{...row,generation_id:'22222222-2222-4222-8222-222222222222'}]};
+  c.researchRows=()=>c.__scrDataset.rows;
+  resolve({code:row.code,generation_id:row.generation_id,values:{pct:2.5},field_observations:{}});
+  await second;assert.equal(target.innerHTML,'original');
+});
+
+test('Why hydrates original evidence without replacing inspector controls and bounds its cache', async () => {
+  const {context: c} = harness(), target={innerHTML:'loading'}, generation='11111111-1111-4111-8111-111111111111';
+  c.document.getElementById=id=>id==='inspector-content'?target:null;
+  c.scrEffFilters=()=>[{field:'pct',min:1}];c.researchRows=()=>[];
+  let requests=0;
+  c.api=async url=>{requests++;const code=new URL('https://example.test'+url).searchParams.get('code');return {code,generation_id:generation,values:{pct:2.5},field_observations:{pct:{code,field:'pct',value:2.5,source:'moomoo_cloud_snapshot',currency:null,observed_at:'2026-10-03T00:01:00Z'}}};};
+  for(let i=0;i<35;i++){
+    const row={code:'US.S'+i,generation_id:generation,pct:2.5};
+    c.__inspectGen=i;c.__researchInspectCode=row.code;c.__inspectRow=row;c.__inspectTab='why';
+    await c.researchObservationMount(row,i);
+  }
+  assert.equal(c.__researchObservationCache.size,32);
+  assert.match(target.innerHTML,/moomoo_cloud_snapshot/);
+  const last=c.__inspectRow;c.__inspectRow={...last,pct:99,field_observations:{}};
+  await c.researchObservationMount(c.__inspectRow,34);
+  assert.equal(requests,35);
+  assert.equal(c.__inspectRow.pct,99);
+  assert.equal(c.__inspectRow.field_observations.pct,undefined);
+  assert.doesNotMatch(target.innerHTML,/moomoo_cloud_snapshot/);
+});
