@@ -12,7 +12,7 @@ Read-only connected Supabase inspection, 3 October 2026. Project `tradingagents`
 
 ## Prepared local migration
 
-CLI generated `20261002142613_server_owned_data_access.sql`: enable RLS on all 12 tables, revoke PUBLIC/anon/authenticated table privileges, preserve service CRUD, make both analytics views security-invoker, revoke browser access to the two views and vendor_health, preserve service SELECT. No data/policy/ownership deletion and no credentials included. This is not applied in production.
+CLI generated `20261002142613_server_owned_data_access.sql`: enable RLS on all 12 tables, revoke PUBLIC/anon/authenticated table privileges, preserve service CRUD, make both analytics views security-invoker, revoke browser access to the two views and vendor_health, preserve service SELECT. No data/policy/ownership deletion and no credentials included. Applied on 3 October as `20261003103407_server_owned_data_access.sql` with identical bytes; verified target RLS/grants, service reads and advisor remediation. See the MVP cutover runbook for remaining gates.
 
 Rollback-only native PostgreSQL 16 contract (`web/api/tests/server-owned-data-access-db-contract.sql`) applies the migration twice, preserves existing content, exercises service read/insert/update/delete on all 12 targets, reads all analytics objects, and executes 96 denied browser table statements plus six denied analytics reads. A deliberate later anon SELECT grant still yields no table or nested-view rows through RLS/invoker semantics. Contract passes and rolls back. This uses synthetic table shapes and actual roles; PostgreSQL 17/PostgREST production checks remain required.
 

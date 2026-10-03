@@ -22,7 +22,7 @@ BASE = [
 ]
 MIGRATIONS = [
     "20261002060206_screener_generation_publication.sql",
-    "20261002142613_server_owned_data_access.sql",
+    "20261003103407_server_owned_data_access.sql",
     "20261002131807_instrument_subtype_cache.sql",
     "20261002132749_instrument_subtype_leases.sql",
 ]

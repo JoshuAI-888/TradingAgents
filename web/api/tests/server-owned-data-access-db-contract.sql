@@ -15,9 +15,9 @@ create view public.v_decision_ledger as select * from public.backtest_runs;
 create view public.v_equity_curve as select * from public.v_decision_ledger;
 create materialized view public.vendor_health as select * from public.data_fetch_log;
 grant all on public.v_decision_ledger,public.v_equity_curve,public.vendor_health to anon,authenticated,service_role;
-\ir ../../../supabase/migrations/20261002142613_server_owned_data_access.sql
+\ir ../../../supabase/migrations/20261003103407_server_owned_data_access.sql
 -- Idempotent migration application must preserve content and grants.
-\ir ../../../supabase/migrations/20261002142613_server_owned_data_access.sql
+\ir ../../../supabase/migrations/20261003103407_server_owned_data_access.sql
 set local role service_role;
 do $$ declare name text; n integer; begin
  foreach name in array array['corporate_actions','company_profiles','fundamentals',
