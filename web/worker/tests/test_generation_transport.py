@@ -75,3 +75,22 @@ def test_partial_publication_response_retries_same_identity(monkeypatch):
     monkeypatch.setattr(db, "_call", call)
     assert db.generation_rpc("screener_refresh_publish", body)["generation_id"] == "same-token"
     assert calls == [body, body]
+
+
+def test_publication_receipt_timeout_exceeds_database_budget(monkeypatch):
+    import io
+
+    from tradingagents_worker import db as db_module
+
+    observed = []
+
+    def open_request(request, timeout):
+        observed.append((request.full_url, timeout))
+        return io.BytesIO(b"{}")
+
+    monkeypatch.setattr(db_module._rq, "urlopen", open_request)
+    db = Db(url="https://unused.invalid", key="test-only")
+    db.generation_rpc("screener_refresh_publish", {})
+    db.generation_rpc("screener_refresh_begin", {})
+    db.select("screener_quotes", {}, "code")
+    assert [seconds for _, seconds in observed] == [55, 30, 30]

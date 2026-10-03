@@ -65,3 +65,12 @@ A controlled rollout race left a refresh claimed by the retiring worker. Its spe
 The library's initial render now says `Loading…` instead of `0 screens`. Failed definition retrieval preserves existing definitions and offers `Retry screen library`, which bypasses the failed panel cache. The updated asset has a distinct cache version.
 
 Daily subtype collection now shares the existing US/HK enrichment router, preceding its factor acquisition for the same explicit market. Its own default-off collection flag, deadline, attempt budget, child process isolation and market lease are retained. Enable `INSTRUMENT_SUBTYPE_COLLECTION_ENABLED=1` on that service only after live qualification. No separate subtype cron resource is needed. Worker acquisition uses normalized classes and the installed subtype cache for new generations; initial unresolved trust/fund subtypes remain `UNKNOWN` until acquired and republished.
+
+
+### Screen publication correction (3 October 2026)
+
+Paced HK traversal returned all 2,825 members and all quote batches. Publication exposed the target authenticator's eight-second default statement timeout and the original database receipt's plate-only scope restriction. Additive migration `20261003114454_screener_screen_publication.sql` preserves the service-only invoker function, locks, exact cohort checks, immutable rows, replay fingerprints and atomic pointer publication. It accepts the exhausted-screen receipt only with matching provider total and bounded page count. A function-specific 45-second statement budget leaves interactive queries unchanged; the worker allows 55 seconds for that RPC receipt only. Target catalog checks confirm the function's timeout, empty search path, invoker security and denied browser execution.
+
+The isolated PostgreSQL rehearsal publishes 9,421 synthetic rows, verifies exact replay and browser denial (1.06 seconds locally); this is not a production performance claim. Failed HK attempts published no generation. The corrected production acquisition remains under qualification.
+
+The existing paused universe cron is prepared with explicit command environment overrides for US/HK screen enumeration, two-second spacing and normalized/cache classification. Resume remains gated on successful first generations.

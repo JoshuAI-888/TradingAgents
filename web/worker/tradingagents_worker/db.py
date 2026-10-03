@@ -39,7 +39,9 @@ class Db:
             },
         )
         try:
-            with _rq.urlopen(req, timeout=30) as resp:
+            # Publication has a 45-second database budget; allow time for its receipt.
+            timeout = 55 if path == "rpc/screener_refresh_publish" else 30
+            with _rq.urlopen(req, timeout=timeout) as resp:
                 raw = resp.read()
                 return json.loads(raw) if raw else None
         except _err.HTTPError as e:
