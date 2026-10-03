@@ -1870,14 +1870,13 @@ const pages = {
         if (saved) { ds = { key: saved.key, ts: saved.ts, asOf: saved.asOf, generationId: saved.generationId || null, watchlist: saved.watchlist, rows: saved.rows }; fromCache = true; }
       }
       if (!ds) {
-        // Cold first-ever load: dataset and panels fetch in parallel.
-        const [raw, panels] = await Promise.all([
-          api("/api/screener?" + dataQs).catch(() => null), scrPanelFetch(st.market)]);
+        // Quote results must not wait for unrelated side panels. The stream
+        // started above updates them independently when their requests finish.
+        const raw = await api("/api/screener?" + dataQs).catch(() => null);
         if (gen !== __homeGen) return "";
         ds = scrDatasetResult(raw,dsKey);
         window.__scrDataset = ds;
         scrPersistDataset(ds);
-        window.__panelCache = { ...panels, ts: Date.now() };
       } else {
         if (fromCache || Date.now() - ds.ts > 60000) {
           // paint the saved copy now; refresh in the background, update once

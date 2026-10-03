@@ -1,28 +1,32 @@
-# Desktop screener MVP review candidate
+# US/HK desktop screener MVP acceptance
 
-3 October 2026. Review scope: US/HK Research Desk → full analysis/KLine → return to the same screen → existing CSV/Excel exports. All 22 preset contracts remain; two RSI presets are visibly unavailable. The candidate is a draft and is not live-data release acceptance.
+3 October 2026 UTC / 4 October New Zealand. Scope: Research Desk → full analysis/KLine → Back → existing CSV/Excel exports. All 22 original preset definitions remain: 20 supported and two RSI definitions visible as unavailable. Explorer, Changes, scheduled captures and new team features remain deferred.
 
-## Review order
+## Verified production data
 
-1. Enabled user journey: `web/api/static/index.html`, `research-workspace.js`, `research-workspace.css`, `research-account.js`, plus `desk-mvp.test.cjs` and `screener.test.cjs`. Check permanent Clear, preset second-click reset, market scope, state/scroll retention, loading/recovery, paging and export scope.
-2. Source truth: `main.py`, shared quote/context/classification/generation modules, and their tests. Check exact canonical identity, quote sentinel/timezone/color fixes, authoritative provider membership versus display snapshots, normalized outside-cohort classifications, pagination metadata validation and generation fencing.
-3. Operations: the new portal/worker CI job, `render.yaml`, required migration files and [ordered cutover](mvp-cutover.md). Blueprint changes and migrations are prepared, not activated. Do not apply the full historical migration directory.
-4. Evidence: [lint/runtime regressions](lint-release-check.md), [source chart/header](responsiveness/public-quote-header-check.md), [actual fixture downloads](downloads/README.md), [representative public-cohort responsiveness](responsiveness/real-cohort-check.md), [public market recheck](public-market-release-recheck.json).
+| Market | Raw Moomoo screen cohort | Qualified stocks | Excluded ETFs | Unresolved | Published generation |
+|---|---:|---:|---:|---:|---|
+| US | 9,421 | 9,420 | 1 | 0 | `4165c77d-f6f6-4213-bff9-4095557ebe51` |
+| HK | 2,825 | 2,825 | 0 | 0 | `67d0e784-6c0f-41e3-a282-095185e7370e` |
 
-The branch also preserves earlier Explorer/Changes/private capture/review/schedule foundations. They remain deferred and hidden by the default MVP flag. Their existence in the source or candidate is not a claim that these flows are enabled, qualified, or required for MVP acceptance. Historical evidence and migration files are retained for recoverability; the migration runbook distinguishes required and conditional dependencies.
+The source scope is an exhausted provider market screen, not a complete exchange/ETF catalog. Fresh Moomoo website aggregate counts agree; the top 12 cap-descending rows in each market match symbol, name, price, change and rounded cap. No complete website membership equality is claimed. All 171 ambiguous trust/fund subtypes have same-response Yahoo evidence: US 159 equities / one ETF (SCOP), HK 11 equities. Prologis is retained; US Blue Chip shows 39 qualified members, matching 39 provider members.
 
-Strict lint cleanup is broad because the committed portal/worker baseline also failed the existing gate. Use whitespace-ignoring diffs for formatted Python, then review import, callback/fixture and control-flow changes against the regression evidence. The original preset catalog is independently compared against captured definitions. Static layout and public provider values are not changed by lint cleanup.
+Actual production CSV and SpreadsheetML `.xls` downloads passed for page 500, all available (US 9,420 / HK 2,825) and selected 2. Every CSV/Excel field agrees; identities, order and numeric price/change/cap/PE/volume agree with the pinned API cohort. Existing formula escaping and scope controls remain covered by regression tests. Native XLSX remains optional.
 
-## Current acceptance
+Currency attribution is unavailable in these quote rows, including HK RMB counters. UI `cur?` and export `Unavailable` are intentional. Cache publication is separate from provider snapshot updates; a fresh weekend cache is not fresh trading. Financial periods, delay/session/adjustment and missing advanced factors remain unverified instead of inferred.
 
-Local checks pass: strict Ruff, clean Python 3.12 engine/CLI imports, 787 API/worker tests, 1,008 root tests plus 91 subtests (two documented skips), 190 UI contracts, preset definition equality and diff whitespace. Native combined migration rehearsal passes against synthetic PostgreSQL 16 tables.
+## Verified analyst journey
 
-The required remaining gates are live US/HK raw/normalized classification and source coverage; all 20 supported preset membership/sorts; bounded like-for-like Moomoo sanity checks; target-platform migration/advisor/history reconciliation; exact candidate deployment, actual production downloads, analyst-journey timing and rollback smoke checks. The latest public HK full-market response still has zero rows and no clock. These gaps prevent a ready-for-investment-team or safe-to-merge claim.
+All 20 preset buttons in each market apply their declared sorting, keep Clear reachable and toggle back to stock-only market-cap descending. Two RSI presets remain disabled. The all-stocks reset works. HK page 2 → ticker 01783 → full research / 3M KLine → Back restores page 2, selected tickers and the Type column. US NVDA / HK Tencent full research retains seven research tabs, six financial subtabs and existing KLine periods, studies, drawing tools and fullscreen. The column chooser retains every column and saved layout, and discloses supplied counts in loaded results; field presence does not qualify currency or period.
 
-Newer [live Moomoo source evidence](moomoo-browser/README.md) verifies complete raw provider membership and order for 17/20 working US presets. All four large provider cursor chains terminate with stable totals and no duplicate identities after one explicit rate-limit retry. Three website traversals change declared totals and duplicate boundary rows, so they remain unqualified as immutable source snapshots despite all captured identities occurring in the API chains. Website US total 12,141 versus stored default 12,045 and HK website 2,825 versus empty stored HK remain unresolved. This narrows the source gate; it does not close classification, HK, quote precision/freshness or candidate-hosted UX acceptance.
+Cold market switching exposed a ready-table wait on unrelated side panels. A regression reproduces HK→US→HK with a held panel request; the correction lets quote results render independently and ignores late other-market responses. Immutable generation contents now retain a bounded process cache; every request still resolves its current pointer and new generations revalidate. Final served-candidate browser/timing checks must confirm these corrections after deployment.
 
-No production database mutation, writer/collector flag activation, merge or deployment is authorized by this artifact itself. Existing human authorization to merge/deploy remains subject to completing these release checks.
+## Operations and release
 
-[Provider page recovery](responsiveness/provider-page-recovery/README.md) now rejects overlapping or inconsistent continuation pages and retains rows/cursors on failure. Synthetic browser retries, both default-reset paths and actual retained-match CSV downloads pass. This is an enabled Desk correction, not an optional feature activation or a live-data gate closure.
+Seven focused migrations are applied; service access and browser denials are verified. Uploads are bounded 400-row batches, final publication is atomic, and stale owners are fenced. A fixed 500 MiB admission budget stops new refreshes before provider acquisition when generation/staging storage reaches its threshold. It preserves all evidence and the last good cohort; it is not a hard quota or retention policy.
 
-Initial preset request failures now show Data unavailable rather than a false zero count, offer Retry screen and disable exports. The local browser recovery and preserved-state contract pass; see the same recovery evidence folder.
+MVP cadence is daily HK/US after close on existing services; subtype collection shares the post-close enrichment router. A bounded streaming backup includes generation, staging, lease and subtype dependencies. REST backups are explicitly nontransactional; consistent recovery requires coordinating writers. Archive and retention is a follow-up before indefinite growth or hourly cadence. Do not delete immutable evidence as an unreviewed cleanup.
+
+Local integrated checks: 862 backend tests, 197 UI tests, strict Ruff and native PostgreSQL publication, role, replay and capacity contracts passed before the final cache correction. Exact-candidate CI, merge and built cron/runtime acceptance remain to be recorded after final integration. Historical evidence under this folder stays dated; older empty-HK and legacy counts do not describe current production.
+
+Private receipts live outside Git in the workspace release-cutover directory. [Ordered migration/recovery runbook](mvp-cutover.md), [MVP checklist](../../../screener-mvp-delivery-plan.md), [Capacity limitations](../../../screener-refresh-capacity-guard.md).

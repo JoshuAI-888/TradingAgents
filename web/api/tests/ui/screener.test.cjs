@@ -1535,3 +1535,36 @@ test('column chooser computes loaded coverage once per opening and preserves it 
  c.scrColDraftCheck('price',false);assert.equal(draft.textContent,'');assert.equal(coverage.textContent,'1/2 supplied');
  c.scrColDraftCheck('rsi14',true);assert.equal(c.__scr.cols.join(','),before);assert.equal(reads,1);
 });
+
+test('HK to US cold market switch paints ready quotes before unrelated side panels finish',async()=>{
+ const c=harness();c.__researchExtendedWorkspace=false;
+ const payload=market=>({available:true,rows:[stock(market==='HK'?'00700':'AAPL',10,1,{code:market==='HK'?'HK.00700':'US.AAPL'})],universe_as_of:'2026-10-03T00:00:00Z'});
+ Object.assign(c.__scr,{market:'HK',activePreset:null});
+ c.__scrDataset={key:'HK|0|moo',ts:Date.now(),available:true,rows:payload('HK').rows};
+ c.__panelCache={market:'HK',ts:Date.now(),rail:{presets:[]}};
+ c.scrLoadDataset=async()=>null;c.scrPersistDataset=()=>{};c.scrLoadTaxonomy=c.scrLoadMyPresets=()=>{};
+ let resolvePanel;const slowPanel=new Promise(resolve=>{resolvePanel=resolve;});
+ const quoteCalls=[];
+ c.api=async url=>{
+  if(url==='/api/candidates')return slowPanel;
+  if(url.startsWith('/api/screener?')){const market=new URLSearchParams(url.split('?')[1]).get('market');quoteCalls.push(market);return payload(market);}
+  if(url.startsWith('/api/decisions'))return {decisions:[]};
+  if(url.startsWith('/api/screener/presets'))return {presets:[]};
+  return {available:false};
+ };
+ await c.render('home');assert.match(c.document.querySelector('#page').innerHTML,/HK\.00700/);
+ let pending;c.showPage=page=>pending=c.render(page);c.scrSet('market','US');
+ let completed=false;pending.then(()=>{completed=true;});
+ for(let i=0;i<20;i++)await Promise.resolve();
+ assert.equal(completed,true,'An unrelated pending panel must not block the new market');
+ const html=c.document.querySelector('#page').innerHTML;
+ assert.match(html,/US\.AAPL/);assert.doesNotMatch(html,/HK\.00700/);
+ assert.equal(c.__homeCtx.scr.rows[0].code,'US.AAPL');assert.equal(c.__scrDataset.key,'US|0|moo');
+ assert.match(c.location.hash,/m=US/);assert.deepEqual(quoteCalls,['US']);
+ // A late US panel cannot restore US quotes after switching back to HK.
+ c.scrSet('market','HK');for(let i=0;i<20;i++)await Promise.resolve();
+ resolvePanel({candidates:[]});for(let i=0;i<20;i++)await Promise.resolve();
+ assert.match(c.document.querySelector('#page').innerHTML,/HK\.00700/);
+ assert.doesNotMatch(c.document.querySelector('#page').innerHTML,/US\.AAPL/);
+ assert.equal(c.__scrDataset.key,'HK|0|moo');assert.equal(c.__scr.market,'HK');
+});

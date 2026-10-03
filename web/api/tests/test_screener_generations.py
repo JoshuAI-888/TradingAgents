@@ -112,6 +112,102 @@ def test_metadata_and_mutation_do_not_mix_generations(setup):
     assert api._merge_universe_meta(b, "US")[0]["generation_id"] == gid
 
 
+def test_immutable_cache_survives_legacy_expiry_but_reads_pointer_on_each_request(setup, monkeypatch):
+    db, _ = setup
+    gid = publish(db)
+    reads, pointers = [], []
+    read_generation, generation_pointer = api.read_generation, api._generation_pointer
+
+    def read(*args, **kwargs):
+        reads.append(args[2])
+        return read_generation(*args, **kwargs)
+
+    def pointer(market):
+        pointers.append(market)
+        return generation_pointer(market)
+
+    monkeypatch.setattr(api, "read_generation", read)
+    monkeypatch.setattr(api, "_generation_pointer", pointer)
+    first, _ = api._stored_universe("US")
+    key = f"US|{gid}"
+    _, cached_rows, header = api._stored_universe_cache[key]
+    api._stored_universe_cache[key] = (api.time.time() - 86400, cached_rows, header)
+    first[0]["price"] = 999
+    repeated, _ = api._stored_universe("US", max_age=0)
+    pinned, _ = api._stored_universe("US", generation_id=gid)
+    assert reads == [gid]
+    assert pointers == ["US", "US", "US"]
+    assert repeated[0]["price"] == pinned[0]["price"] == 10
+
+
+def test_new_pointer_revalidates_and_invalid_generation_cannot_reuse_warm_rows(setup, monkeypatch):
+    db, _ = setup
+    first = publish(db)
+    original_read = api.read_generation
+    reads = []
+
+    def read(*args, **kwargs):
+        reads.append(args[2])
+        return original_read(*args, **kwargs)
+
+    monkeypatch.setattr(api, "read_generation", read)
+    api._stored_universe("US")
+    second = publish(db, ("US.C", "US.D"), price=20)
+    rows, _ = api._stored_universe("US")
+    assert [row["code"] for row in rows] == ["US.C", "US.D"]
+    assert reads == [first, second]
+    invalid = publish(db, ("US.E", "US.F"), price=30)
+    db.tables["screener_generation_rows"].pop()
+    with pytest.raises(HTTPException) as error:
+        api._stored_universe("US")
+    assert error.value.status_code == 503
+    assert reads == [first, second, invalid]
+    assert f"US|{invalid}" not in api._stored_universe_cache
+    retained, _ = api._stored_universe("US", generation_id=first)
+    assert retained[0]["code"] == "US.A"
+
+
+def test_immutable_cache_is_bounded_and_evicted_generation_is_revalidated(setup, monkeypatch):
+    db, _ = setup
+    original_read = api.read_generation
+    reads = []
+
+    def read(*args, **kwargs):
+        reads.append(args[2])
+        return original_read(*args, **kwargs)
+
+    monkeypatch.setattr(api, "read_generation", read)
+    generations = []
+    for index in range(6):
+        generations.append(publish(db, (f"US.A{index}",), price=index + 1))
+        api._stored_universe("US")
+        assert len(api._stored_universe_cache) <= 4
+    assert list(api._stored_universe_cache) == [f"US|{gid}" for gid in generations[-4:]]
+    retained, _ = api._stored_universe("US", generation_id=generations[0])
+    assert retained[0]["code"] == "US.A0"
+    assert reads == generations + [generations[0]]
+    assert len(api._stored_universe_cache) == 4
+
+
+@pytest.mark.parametrize("damage", ["pointer", "clock", "counts"])
+def test_warm_immutable_cache_does_not_mask_invalid_current_success_state(setup, damage):
+    db, _ = setup
+    gid = publish(db)
+    api._stored_universe("US")
+    assert f"US|{gid}" in api._stored_universe_cache
+    state = db.tables["app_settings"][0]["value"]
+    if damage == "pointer":
+        state["generation_id"] = None
+    elif damage == "clock":
+        state["last_quotes"] = "2026-01-01T00:00:00Z"
+    else:
+        state["last_result"] = copy.deepcopy(state["last_result"])
+        state["last_result"]["quotes"]["quotes"] = 999
+    with pytest.raises(HTTPException) as error:
+        api._stored_universe("US")
+    assert error.value.status_code == 503
+
+
 @pytest.mark.parametrize(
     "damage", ["null_pointer", "missing_header", "missing_row", "fingerprint", "clock", "metadata"]
 )

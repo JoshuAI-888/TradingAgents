@@ -1179,8 +1179,9 @@ def _hydrate_capture_observations(rows, filters):
 def _stored_universe(market: str, max_age: float = 60.0, generation_id: str | None = None):
     """Return one validated immutable cohort, or legacy rows before migration.
 
-    Resolve the pointer on every request. Cache immutable contents by identity,
-    never market alone, and return copies so consumers cannot change the cache.
+    Resolve the pointer on every request. Retain validated immutable contents by
+    identity in a bounded process cache, never market alone, and return copies
+    so consumers cannot change the cache. Only legacy mutable rows use max_age.
     Explicit generations let a caller keep paging/exporting the original cohort.
     """
     pointer, state = _generation_pointer(market)
@@ -1191,7 +1192,7 @@ def _stored_universe(market: str, max_age: float = 60.0, generation_id: str | No
             canonical_generation(target)
             key = f"{market}|{target}"
             hit = _stored_universe_cache.get(key)
-            if hit and now - hit[0] < max_age:
+            if hit:
                 rows, header = hit[1], hit[2]
             else:
                 header, records = read_generation(db, market, target, compact=True)
