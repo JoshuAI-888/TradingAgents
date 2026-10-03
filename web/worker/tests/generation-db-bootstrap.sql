@@ -11,4 +11,4 @@ alter table public.screener_universe enable row level security;
 alter table public.screener_quotes enable row level security;
 revoke all on public.app_settings,public.screener_universe,public.screener_quotes from public,anon,authenticated;
 grant select,insert,update on public.app_settings,public.screener_universe,public.screener_quotes to service_role;
-\ir ../../../supabase/migrations/20261002060206_screener_generation_publication.sql
+\ir ../../../supabase/migrations/20261003105144_screener_generation_publication.sql

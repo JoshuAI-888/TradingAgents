@@ -66,8 +66,8 @@ report = {}
 query("create database " + DATABASE, database="postgres")
 try:
     for name in (
-        "20261002131807_instrument_subtype_cache.sql",
-        "20261002132749_instrument_subtype_leases.sql",
+        "20261003105155_instrument_subtype_cache.sql",
+        "20261003105208_instrument_subtype_leases.sql",
     ):
         query((ROOT / "supabase/migrations" / name).read_text())
     first = start(

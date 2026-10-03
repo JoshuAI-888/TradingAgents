@@ -1,6 +1,6 @@
 \set ON_ERROR_STOP on
 begin;
-\ir ../../../supabase/migrations/20261002131807_instrument_subtype_cache.sql
+\ir ../../../supabase/migrations/20261003105155_instrument_subtype_cache.sql
 set local role service_role;
 do $$
 declare a text:=to_char((clock_timestamp()-interval '20 seconds') at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US')||'+00:00';

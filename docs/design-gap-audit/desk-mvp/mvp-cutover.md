@@ -6,10 +6,10 @@
 
 | Migration | Enabled-path dependency | Release position |
 | --- | --- | --- |
-| `20261002060206_screener_generation_publication.sql` | Universe refresh fencing, immutable reader/export cohort | Required before current universe writers run |
+| `20261003105144_screener_generation_publication.sql` | Universe refresh fencing, immutable reader/export cohort | Required before current universe writers run |
 | `20261003103407_server_owned_data_access.sql` | Existing provider caches, operational data and server analytics | Required remediation; preserve service access |
-| `20261002131807_instrument_subtype_cache.sql` | Separate same-response subtype storage | Required if subtype cache/collector is enabled |
-| `20261002132749_instrument_subtype_leases.sql` | Current subtype collector's fenced claim/save/release | Required with collector; cache migration alone is insufficient |
+| `20261003105155_instrument_subtype_cache.sql` | Separate same-response subtype storage | Required if subtype cache/collector is enabled |
+| `20261003105208_instrument_subtype_leases.sql` | Current subtype collector's fenced claim/save/release | Required with collector; cache migration alone is insufficient |
 
 Normalized classification uses existing enrichment contexts when the separate subtype cache is disabled. That does not establish sufficient coverage: current nightly stock-only enrichment does not acquire every ambiguous trust/fund instrument. Do not omit subtype dependencies merely to avoid resolving ETF/REIT coverage. Choose the classification acquisition route only after fresh evidence shows it meets the US/HK contract. Unknown trust/fund categories must remain disclosed, rather than becoming inferred stocks or ETFs.
 
@@ -41,3 +41,5 @@ The local combined rehearsal reduces migration-interaction uncertainty. Target-p
 The access migration was applied through Supabase MCP as `20261003103407`; its SQL bytes are unchanged from the rehearsed `20261002142613` file (SHA-256 `4f773b1d4c9c3b85ec5592448d896cbc89d8aec68ac156cbe100ddef238215e8`). Local filenames and executable contract references now match production history; the historical rehearsal receipt retains its original name. Target checks verified RLS and denied anon/authenticated SELECT on all 12 tables, retained service CRUD grants, denied browser SELECT on all three views, retained service SELECT, and security-invoker on both regular views. Actual service-role count reads succeeded. Security advisors no longer report the 12 RLS-disabled tables, two definer views, or public materialized view. Existing unrelated warnings remain outside this cutover.
 
 Automatic approval review rejected suspension of the shared worker because of possible analysis interruption. It is still running; no queued/running universe job was present at preflight, but that does not prevent a future request. Explicit interruption approval has been requested. Do not bypass this rejection or run generation publication until the legacy queue consumer is fenced. Portal and worker are still on the previous release. Both cron schedules remain suspended pending continuation.
+
+User explicitly approved the shared-worker interruption on 3 October. Worker suspension is verified. Generation publication and both subtype migrations are applied with unchanged rehearsed SQL, recorded respectively as `20261003105144`, `20261003105155`, and `20261003105208`. Production service-role generation begin/abort and HK subtype claim/release succeeded inside rolled-back verification transactions. Runtime deployment and source/data acceptance are next.

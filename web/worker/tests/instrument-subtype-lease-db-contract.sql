@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 begin;
-\ir ../../../supabase/migrations/20261002131807_instrument_subtype_cache.sql
-\ir ../../../supabase/migrations/20261002132749_instrument_subtype_leases.sql
+\ir ../../../supabase/migrations/20261003105155_instrument_subtype_cache.sql
+\ir ../../../supabase/migrations/20261003105208_instrument_subtype_leases.sql
 set local role service_role;
 do $$
 declare a uuid:='10000000-0000-0000-0000-000000000001';b uuid:='10000000-0000-0000-0000-000000000002';x jsonb;y jsonb;
