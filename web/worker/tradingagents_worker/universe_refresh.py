@@ -626,6 +626,48 @@ class UniverseRefresher:
                 "skipped": skipped,
                 "generation_id": state["generation_id"],
             }
+        # Check before acquiring a run/lease or requesting provider data. At
+        # capacity, repeated hourly attempts only emit an operational error;
+        # the last-good pointer and all stored evidence remain untouched.
+        try:
+            capacity = self.db.generation_rpc(
+                "screener_refresh_capacity", {"p_market": self.market}
+            )
+            sizes = capacity.get("relation_bytes") if isinstance(capacity, dict) else None
+            if (
+                not isinstance(capacity, dict)
+                or capacity.get("version") != "screener_capacity_v1"
+                or capacity.get("market") != self.market
+                or type(capacity.get("used_bytes")) is not int
+                or capacity["used_bytes"] < 0
+                or type(capacity.get("limit_bytes")) is not int
+                or capacity["limit_bytes"] != 500 * 1024 * 1024
+                or type(capacity.get("allowed")) is not bool
+                or capacity["allowed"] != (capacity["used_bytes"] < capacity["limit_bytes"])
+                or not isinstance(sizes, dict)
+                or set(sizes) != {"generation_rows", "staged_rows", "generations"}
+                or any(type(value) is not int or value < 0 for value in sizes.values())
+                or sum(sizes.values()) != capacity["used_bytes"]
+            ):
+                raise UniverseRefreshError(
+                    "Invalid screener capacity acknowledgement; refresh stopped"
+                )
+            if not capacity["allowed"]:
+                raise UniverseRefreshError(
+                    f"Screener storage capacity reached ({capacity['used_bytes']} bytes / "
+                    f"{capacity['limit_bytes']} bytes, 500 MiB admission budget); "
+                    "refresh stopped and last-good generation retained. Operational retention review required."
+                )
+        except Exception as error:
+            reason = (
+                str(error)
+                if isinstance(error, UniverseRefreshError)
+                else "Screener capacity check unavailable; refresh stopped"
+            )
+            self.emit("universe", "failed", reason)
+            if isinstance(error, UniverseRefreshError):
+                raise
+            raise UniverseRefreshError(reason) from error
         token = str(uuid.uuid4())
         stage = "cohort_validation"
         self._run_id = token

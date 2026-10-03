@@ -17,6 +17,15 @@ class GenerationDb(FakeSupa):
 
     def generation_rpc(self, name, body):
         self.rpc_calls.append((name, copy.deepcopy(body)))
+        if name == "screener_refresh_capacity":
+            return {
+                "version": "screener_capacity_v1",
+                "market": body["p_market"],
+                "used_bytes": 0,
+                "limit_bytes": 524288000,
+                "allowed": True,
+                "relation_bytes": {"generation_rows": 0, "staged_rows": 0, "generations": 0},
+            }
         market, token = body["p_market"], body["p_run"]
         now = datetime.now(timezone.utc).isoformat()
         state_rows = self.select("app_settings", {"key": f"eq.universe_state_{market}"})

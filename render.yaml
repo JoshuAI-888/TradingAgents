@@ -130,7 +130,7 @@ services:
     plan: starter
     region: virginia
     buildCommand: pip install -r web/worker/requirements.txt && pip install -e .
-    schedule: "0 1-8,13-21 * * 1-5"  # HK 09–16 HKT and US 13–21 UTC; one existing service
+    schedule: "0 8,21 * * 1-5"       # Daily HK/US close; bounded MVP storage growth
     startCommand: cd web/worker && python -m tradingagents_worker.market_cron universe
     envVars:
       - key: UNIVERSE_ENUMERATION_MODE_US

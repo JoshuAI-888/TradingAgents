@@ -96,6 +96,7 @@ class Db:
         retried here; the job retry path may start a new fenced attempt.
         """
         if name not in {
+            "screener_refresh_capacity",
             "screener_refresh_begin",
             "screener_refresh_renew",
             "screener_refresh_publish",

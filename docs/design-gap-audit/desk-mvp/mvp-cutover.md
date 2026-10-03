@@ -1,6 +1,6 @@
 # Enabled MVP migration and cutover sequence
 
-3 October 2026. This is a release dependency/runbook artifact, not permission to skip source or production acceptance. Cutover has started. Legacy universe and enrichment cron jobs are suspended. All four required migrations and service-role access checks are verified. Portal and worker are live on the reviewed release; data and end-to-end acceptance remain pending.
+3 October 2026. This is a release dependency/runbook artifact, not permission to skip source or production acceptance. Cutover has started. Legacy universe and enrichment cron jobs are suspended. The seven required migration functions/tables and service-role access checks are verified. Portal and worker are live on the reviewed release; data and end-to-end acceptance remain pending.
 
 ## Migration set
 
@@ -10,6 +10,9 @@
 | `20261003103407_server_owned_data_access.sql` | Existing provider caches, operational data and server analytics | Required remediation; preserve service access |
 | `20261003105155_instrument_subtype_cache.sql` | Separate same-response subtype storage | Required if subtype cache/collector is enabled |
 | `20261003105208_instrument_subtype_leases.sql` | Current subtype collector's fenced claim/save/release | Required with collector; cache migration alone is insufficient |
+| `20261003114454_screener_screen_publication.sql` | Exhausted-screen receipt validation | Applied and verified |
+| `20261003120913_screener_bounded_staging.sql` | Bounded upload and compact immutable read | Applied and verified |
+| `20261003124611_screener_refresh_capacity_guard.sql` | Fixed 500 MiB storage admission budget | Applied; browser denied, service allowed |
 
 Normalized classification uses existing enrichment contexts when the separate subtype cache is disabled. That does not establish sufficient coverage: current nightly stock-only enrichment does not acquire every ambiguous trust/fund instrument. Do not omit subtype dependencies merely to avoid resolving ETF/REIT coverage. Choose the classification acquisition route only after fresh evidence shows it meets the US/HK contract. Unknown trust/fund categories must remain disclosed, rather than becoming inferred stocks or ETFs.
 
@@ -28,7 +31,7 @@ The private-list/history/review/capture/schedule/alias migrations are excluded f
 5. Deploy the same candidate to portal and worker. Acquire qualified classification evidence and publish complete successful US/HK generations. Verify canonical IDs, raw/normalized classes, stock eligibility, unclassified counts, provider clocks and generation identity before turning recurring writers back on. An empty HK cohort cannot satisfy this gate.
 6. Qualify the 20 provider presets against source requests/results and declared sorting; preserve the two unavailable RSI definitions. Check any outside-cohort membership and classification separately. Perform bounded like-for-like Moomoo checks without equating unmatched session/filter scopes.
 7. Run production default/Clear/preset toggle, ticker/analysis/KLine/Back and actual page/all-loaded/selected CSV/Excel downloads. Reconcile rows/order/currencies/source times/generation and measure core desktop interaction latency. Verify served assets match the frozen candidate.
-8. Enable reviewed US/HK schedules only after the first successful qualification. The blueprint's subtype schedule currently targets US and is disabled; HK acquisition requires its own qualified execution/configuration if using that route. Do not assume one market's collector covers both.
+8. Enable reviewed US/HK schedules only after the first successful qualification. The existing enrichment router collects subtypes for HK at 08:45 UTC and US at 21:45 UTC. The existing universe cron uses daily 08:00/21:00 UTC MVP refreshes; hourly retention remains a follow-up. Verify the built commit before resuming.
 
 ## Recovery
 
@@ -48,7 +51,7 @@ Portal and worker successfully deployed `b8223b1f6f92c77b743ed0ed1866023386fb6d0
 
 ### Existing-resource US/HK scheduling
 
-`market_cron` routes the existing universe and enrichment services by UTC session; it ignores the legacy fixed US market environment variables. Configure universe command `cd web/worker && python -m tradingagents_worker.market_cron universe` with schedule `0 1-8,13-21 * * 1-5`, and enrichment command `cd web/worker && python -m tradingagents_worker.market_cron enrich` with schedule `45 8,21 * * 1-5`. Off-window/weekend manual runs fail closed unless an explicit `--market US|HK` override is provided. This replaces the proposed separate HK cron resources. Enable only after both first generations qualify, and verify deployed cron artifacts before resuming.
+`market_cron` routes the existing universe and enrichment services by UTC session; it ignores the legacy fixed US market environment variables. Configure universe command `cd web/worker && python -m tradingagents_worker.market_cron universe` with MVP schedule `0 8,21 * * 1-5`, and enrichment command `cd web/worker && python -m tradingagents_worker.market_cron enrich` with schedule `45 8,21 * * 1-5`. Off-window/weekend manual runs fail closed unless an explicit `--market US|HK` override is provided. This replaces the proposed separate HK cron resources. Enable only after both first generations qualify, and verify deployed cron artifacts before resuming.
 
 Worker auto-deploy is temporarily disabled to avoid interrupting an active refresh while preparing its recovery patch. Restore the recorded setting after controlled deployment and acceptance.
 
