@@ -44,6 +44,75 @@ class FakeMoomoo:
         }
 
 
+class WholeMarketMoomoo(FakeMoomoo):
+    def __init__(self, market="US", failure=None):
+        self.market, self.failure = market, failure
+
+    def call(self, method, path, body=None, query=None, retries=2):
+        if path.startswith("/quote/plate-"):
+            raise AssertionError("alternate source must not depend on plate traversal")
+        if path != "/quote/stock-screen":
+            return super().call(method, path, body, query, retries)
+        assert body["screen_queries"][0]["simple_field_query"]["screen_value_list"] == [
+            2 if self.market == "US" else 1
+        ]
+        second = "next_key" in body
+        if second and self.failure == "provider":
+            raise RuntimeError("provider unavailable")
+        code = self.market + (".B" if second else ".A")
+        total, more, cursor = 2, not second, "page2" if not second else None
+        if second:
+            if self.failure == "duplicate":
+                code = self.market + ".A"
+            elif self.failure == "total":
+                total = 3
+            elif self.failure == "cursor":
+                more, cursor = True, "page2"
+            elif self.failure == "identity":
+                code = "US..VIX"
+        elif self.failure == "early":
+            more, cursor = False, None
+        elif self.failure == "flag":
+            more = 1
+        return {
+            "items": [{"code": code}],
+            "pagination": {"total": total, "has_more": more, "next_key": cursor},
+        }
+
+
+@pytest.mark.parametrize("market", ["US", "HK"])
+def test_whole_market_source_exhaustion_publishes_exact_cohort(fake_db, monkeypatch, market):
+    monkeypatch.setenv(f"UNIVERSE_ENUMERATION_MODE_{market}", "screen")
+    result = UniverseRefresher(fake_db, WholeMarketMoomoo(market), market).run(force_enum=True)
+    assert result["enum"] == {
+        "plates": 0,
+        "slices": 0,
+        "pages": 2,
+        "codes": 2,
+        "provider_total": 2,
+        "scope": "exhausted_provider_market_screen",
+    }
+    _, rows = read_generation(fake_db, market, result["generation_id"])
+    assert {r["code"] for r in rows} == {
+        market + ".A",
+        market + ".B",
+    }
+
+
+@pytest.mark.parametrize(
+    "failure", ["provider", "duplicate", "total", "cursor", "identity", "early", "flag"]
+)
+def test_incomplete_alternate_source_preserves_previous_generation(fake_db, monkeypatch, failure):
+    original = UniverseRefresher(fake_db, FakeMoomoo()).run()
+    monkeypatch.setenv("UNIVERSE_ENUMERATION_MODE_US", "screen")
+    with pytest.raises((UniverseRefreshError, RuntimeError)):
+        UniverseRefresher(fake_db, WholeMarketMoomoo(failure=failure)).run(force_enum=True)
+    state = UniverseRefresher(fake_db, FakeMoomoo())._universe_state()
+    assert state["generation_id"] == original["generation_id"]
+    _, rows = read_generation(fake_db, "US", state["generation_id"])
+    assert {r["code"] for r in rows} == {"US.NVDA", "US.PLTR"}
+
+
 def test_refresh_enumerates_then_quotes(fake_db):
     r = UniverseRefresher(fake_db, FakeMoomoo(), "US").run()
     assert r["enum"]["plates"] == 6 and r["enum"]["codes"] == 2  # 3 classes x 2 fake plates
@@ -70,9 +139,7 @@ def test_force_enum_reenumerates(fake_db):
 
 
 def test_force_first_generation_rebuilds_invalid_legacy_membership(fake_db):
-    fake_db._t("screener_universe").append(
-        {"market": "US", "code": "US..VIX", "stock_type": "IDX"}
-    )
+    fake_db._t("screener_universe").append({"market": "US", "code": "US..VIX", "stock_type": "IDX"})
     ref = UniverseRefresher(fake_db, FakeMoomoo(), "US")
     with pytest.raises(UniverseRefreshError, match="identities"):
         ref.run()

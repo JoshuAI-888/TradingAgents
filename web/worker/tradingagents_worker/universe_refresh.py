@@ -158,7 +158,104 @@ class UniverseRefresher:
     # 2301=market_cap, 2201=price, 2210=pct_change (values x1000)
     SLICES = [(2301, 2), (2301, 1), (2201, 2), (2201, 1), (2210, 2), (2210, 1)]
 
+    def _screen_universe(self):
+        """Traverse the provider's whole-market screener, with explicit exhaustion.
+
+        This is an alternate, opt-in source scope when plate traversal cannot
+        complete. It proves the reported screening cohort, not exchange coverage
+        or an ETF catalog. No failed plate traversal is reused as a success.
+        """
+        rows, codes_seen, cursors, cursor, total = [], set(), set(), "", None
+        for page in range(1, UNIVERSE_CAP // 300 + 2):
+            body = {
+                "limit": 300,
+                "screen_queries": [
+                    {
+                        "simple_field_query": {
+                            "simple_field": 1,
+                            "screen_value_list": [2 if self.market == "US" else 1],
+                        }
+                    }
+                ],
+                "sort": {"direction": 2, "simple_property": {"name": 2301}},
+            }
+            if cursor:
+                body["next_key"] = cursor
+            out = self._provider(self.client.call, "POST", "/quote/stock-screen", body=body)
+            items = out.get("items") if isinstance(out, dict) else None
+            pagination = out.get("pagination") if isinstance(out, dict) else None
+            if (
+                not isinstance(items, list)
+                or len(items) > 300
+                or not isinstance(pagination, dict)
+                or type(pagination.get("total")) is not int
+                or not 0 < pagination["total"] <= UNIVERSE_CAP
+                or type(pagination.get("has_more")) is not bool
+            ):
+                raise UniverseRefreshError("Whole-market screening pagination is unqualified")
+            if total is None:
+                total = pagination["total"]
+            if total != pagination["total"]:
+                raise UniverseRefreshError("Whole-market screening total changed during traversal")
+            for item in items:
+                code = item.get("code") if isinstance(item, dict) else None
+                if (
+                    not isinstance(code, str)
+                    or not re.fullmatch(self.market + r"\.[A-Z0-9][A-Z0-9._-]{0,30}", code)
+                    or code in codes_seen
+                ):
+                    raise UniverseRefreshError(
+                        "Whole-market screening identities are invalid or repeated"
+                    )
+                codes_seen.add(code)
+                rows.append(
+                    {
+                        "market": self.market,
+                        "code": code,
+                        "name": item.get("name"),
+                        "plate": None,
+                        "plates": [],
+                    }
+                )
+            next_key = pagination.get("next_key")
+            if len(rows) > total:
+                raise UniverseRefreshError("Whole-market screening cursor or total is invalid")
+            self.emit("universe", "progress", f"market screen page {page} · {len(rows)}/{total}")
+            if not pagination["has_more"]:
+                if next_key not in (None, "", "-1") or len(rows) != total:
+                    raise UniverseRefreshError(
+                        "Whole-market screening ended without the reported cohort"
+                    )
+                return self._classify_enum(
+                    rows,
+                    {
+                        "plates": 0,
+                        "slices": 0,
+                        "pages": page,
+                        "codes": len(rows),
+                        "provider_total": total,
+                        "scope": "exhausted_provider_market_screen",
+                    },
+                )
+            if (
+                not isinstance(next_key, str)
+                or len(next_key) > 4096
+                or any(ord(ch) < 32 for ch in next_key)
+                or not items
+                or next_key in ("", "-1", cursor)
+                or next_key in cursors
+            ):
+                raise UniverseRefreshError("Whole-market screening cursor did not advance")
+            cursors.add(next_key)
+            cursor = next_key
+        raise UniverseRefreshError("Whole-market screening exceeded the qualified page bound")
+
     def enumerate_universe(self) -> tuple[dict, list[dict]]:
+        mode = os.getenv(f"UNIVERSE_ENUMERATION_MODE_{self.market}", "plates")
+        if mode == "screen":
+            return self._screen_universe()
+        if mode != "plates":
+            raise UniverseRefreshError("Unsupported universe enumeration mode")
         seen: dict[str, list[str]] = {}
         plate_total = 0
         for cls in ("INDUSTRY", "CONCEPT", "OTHER"):
@@ -244,6 +341,17 @@ class UniverseRefresher:
             not re.fullmatch(self.market + r"\.[A-Z0-9][A-Z0-9._-]{0,30}", r["code"]) for r in rows
         ):
             raise UniverseRefreshError("Enumerated universe contains invalid identities")
+        return self._classify_enum(
+            rows,
+            {
+                "plates": plate_total,
+                "slices": len(self.SLICES),
+                "codes": len(rows),
+                "scope": "observed_plate_and_screen_slice_union",
+            },
+        )
+
+    def _classify_enum(self, rows, report):
         # security classification for the multi-select filters (stock_type/exchange):
         # /quote/stock-basicinfo, 400 codes per call, rate-budgeted
         codes = [r["code"] for r in rows]
@@ -281,15 +389,7 @@ class UniverseRefresher:
                     "progress",
                     f"classification {min(i + 400, len(codes))}/{len(codes)}",
                 )
-        return (
-            {
-                "plates": plate_total,
-                "slices": len(self.SLICES),
-                "codes": len(rows),
-                "scope": "observed_plate_and_screen_slice_union",
-            },
-            rows,
-        )
+        return report, rows
 
     # ── quotes ────────────────────────────────────────────────────────────
     def _stored_metadata(self, state=None) -> list[dict]:
