@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from generation_fakes import GenerationDb
-from tradingagents_worker.screener_generations import GenerationError
+from tradingagents_worker.screener_generations import GenerationError, read_generation
 from tradingagents_worker.universe_refresh import UniverseRefresher, UniverseRefreshError
 
 
@@ -67,6 +67,19 @@ def test_force_enum_reenumerates(fake_db):
     UniverseRefresher(fake_db, FakeMoomoo(), "US").run()
     r2 = UniverseRefresher(fake_db, FakeMoomoo(), "US").run(force_enum=True)
     assert r2["enum"]["codes"] == 2
+
+
+def test_force_first_generation_rebuilds_invalid_legacy_membership(fake_db):
+    fake_db._t("screener_universe").append(
+        {"market": "US", "code": "US..VIX", "stock_type": "IDX"}
+    )
+    ref = UniverseRefresher(fake_db, FakeMoomoo(), "US")
+    with pytest.raises(UniverseRefreshError, match="identities"):
+        ref.run()
+    result = ref.run(force_enum=True)
+    assert result["enum"]["codes"] == 2
+    _, rows = read_generation(fake_db, "US", result["generation_id"])
+    assert {r["code"] for r in rows} == {"US.PLTR", "US.NVDA"}
 
 
 def test_progress_events_emitted(fake_db):

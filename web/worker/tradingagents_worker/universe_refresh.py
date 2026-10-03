@@ -532,7 +532,10 @@ class UniverseRefresher:
                 validation_error = None
                 if state.get("generation_id") != lease.get("base_generation_id"):
                     raise UniverseRefreshError("Refresh base generation changed before collection")
-            if validation_error:
+            # A forced first publication rebuilds legacy membership from the
+            # provider. Invalid legacy mirrors must not prevent that recovery;
+            # an invalid published generation still fails its integrity check.
+            if validation_error and (not force_enum or state.get("generation_id")):
                 raise validation_error
             need_enum = (
                 force_enum

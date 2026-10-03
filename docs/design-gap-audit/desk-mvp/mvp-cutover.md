@@ -1,6 +1,6 @@
 # Enabled MVP migration and cutover sequence
 
-3 October 2026. This is a release dependency/runbook artifact, not permission to skip source or production acceptance. Cutover has started. Legacy universe and enrichment cron jobs are suspended. The server-owned access migration is applied and verified; generation/runtime/data acceptance remain pending.
+3 October 2026. This is a release dependency/runbook artifact, not permission to skip source or production acceptance. Cutover has started. Legacy universe and enrichment cron jobs are suspended. All four required migrations and service-role access checks are verified. Portal and worker are live on the reviewed release; data and end-to-end acceptance remain pending.
 
 ## Migration set
 
@@ -40,6 +40,14 @@ The local combined rehearsal reduces migration-interaction uncertainty. Target-p
 
 The access migration was applied through Supabase MCP as `20261003103407`; its SQL bytes are unchanged from the rehearsed `20261002142613` file (SHA-256 `4f773b1d4c9c3b85ec5592448d896cbc89d8aec68ac156cbe100ddef238215e8`). Local filenames and executable contract references now match production history; the historical rehearsal receipt retains its original name. Target checks verified RLS and denied anon/authenticated SELECT on all 12 tables, retained service CRUD grants, denied browser SELECT on all three views, retained service SELECT, and security-invoker on both regular views. Actual service-role count reads succeeded. Security advisors no longer report the 12 RLS-disabled tables, two definer views, or public materialized view. Existing unrelated warnings remain outside this cutover.
 
-Automatic approval review rejected suspension of the shared worker because of possible analysis interruption. It is still running; no queued/running universe job was present at preflight, but that does not prevent a future request. Explicit interruption approval has been requested. Do not bypass this rejection or run generation publication until the legacy queue consumer is fenced. Portal and worker are still on the previous release. Both cron schedules remain suspended pending continuation.
+Automatic approval review initially rejected suspension of the shared worker because of possible analysis interruption. The user subsequently explicitly authorized that interruption. Suspension and replacement of the legacy consumer were verified; both recurring screener services remain suspended pending source qualification.
 
 User explicitly approved the shared-worker interruption on 3 October. Worker suspension is verified. Generation publication and both subtype migrations are applied with unchanged rehearsed SQL, recorded respectively as `20261003105144`, `20261003105155`, and `20261003105208`. Production service-role generation begin/abort and HK subtype claim/release succeeded inside rolled-back verification transactions. Runtime deployment and source/data acceptance are next.
+
+Portal and worker successfully deployed `b8223b1f6f92c77b743ed0ed1866023386fb6d08`. All seven exact-candidate CI jobs passed. The first US generation refresh found invalid legacy index IDs and correctly refused publication. A forced **first** generation can now rebuild membership from the provider without trusting invalid legacy mirrors; existing published generations still require intact metadata. Regression coverage proves normal refresh refusal and fresh canonical publication. HK initial enumeration is underway. Neither a queued refresh nor provider traversal progress establishes a qualified published generation.
+
+### Existing-resource US/HK scheduling
+
+`market_cron` routes the existing universe and enrichment services by UTC session; it ignores the legacy fixed US market environment variables. Configure universe command `cd web/worker && python -m tradingagents_worker.market_cron universe` with schedule `0 1-8,13-21 * * 1-5`, and enrichment command `cd web/worker && python -m tradingagents_worker.market_cron enrich` with schedule `45 8,21 * * 1-5`. Off-window/weekend manual runs fail closed unless an explicit `--market US|HK` override is provided. This replaces the proposed separate HK cron resources. Enable only after both first generations qualify, and verify deployed cron artifacts before resuming.
+
+Worker auto-deploy is temporarily disabled to avoid interrupting an active refresh while preparing its recovery patch. Restore the recorded setting after controlled deployment and acceptance.
