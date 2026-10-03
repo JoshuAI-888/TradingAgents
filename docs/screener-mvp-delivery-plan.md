@@ -10,16 +10,17 @@ Implementation inventory: `research-workspace.js` currently exposes Table/Explor
 
 ## Must-have checklist
 
-- [ ] Initial load, Clear and second click on the active preset restore the selected market's stock-only default, excluding ETFs and sorting market cap descending. Clear remains reachable in every filter state.
-- [ ] Each supported preset applies its original criteria and declared sort. Preserve all 22 definitions and saved-screen compatibility; never silently substitute a different rule.
-- [ ] Filters, sorting, search and paging agree. Slow/obsolete responses cannot overwrite a newer choice. Explain loading, failure, unavailable and stale states; retain usable previous data where appropriate.
-- [ ] Confirm canonical ticker/market identity, ETF exclusion, REIT handling, currency and dates for fields shown and used in filters. Missing data stays unknown. Counts distinguish provider total, retrieved cohort and excluded/unclassified instruments. Do not claim a complete exchange universe without evidence.
-- [ ] Screen paging and exports use a consistent data generation. A partial refresh cannot replace the previous successful dataset.
-- [ ] Ticker opens the existing analysis page. Check the original seven research tabs, six financial subtabs and KLine controls for regression; Back restores filters, preset, sort, page and scroll. Retain existing Compare functionality without adding new modes.
-- [ ] Actual CSV and existing SpreadsheetML Excel downloads match the chosen scope, row IDs, order and displayed values, including datasets larger than one page. Guard formula injection and avoid silent truncation.
-- [ ] Main analyst journey works on desktop and narrow layouts with reachable controls, keyboard focus and no blocking overflow. Measure core interactions with representative data; fix material regressions rather than undertaking a broad optimization project.
-- [ ] Address the known public database write exposure, validate only the migrations needed by enabled MVP paths, and preserve server/API access. No new login, team roles or legacy-owner migration project.
+- [x] Initial load, Clear and second click on the active preset restore the selected market's stock-only default, excluding ETFs and sorting market cap descending. Clear remains reachable in every filter state.
+- [x] Each supported preset applies its original criteria and declared sort. Preserve all 22 definitions and saved-screen compatibility; never silently substitute a different rule.
+- [x] Filters, sorting, search and paging agree. Slow/obsolete responses cannot overwrite a newer choice. Explain loading, failure, unavailable and stale states; retain usable previous data where appropriate.
+- [x] Confirm canonical ticker/market identity, ETF exclusion, REIT handling, currency and dates for fields shown and used in filters. Missing data stays unknown. Counts distinguish provider total, retrieved cohort and excluded/unclassified instruments. Do not claim a complete exchange universe without evidence.
+- [x] Screen paging and exports use a consistent data generation. A partial refresh cannot replace the previous successful dataset.
+- [x] Ticker opens the existing analysis page. Check the original seven research tabs, six financial subtabs and KLine controls for regression; Back restores filters, preset, sort, page and scroll. Retain existing Compare functionality without adding new modes.
+- [x] Actual CSV and existing SpreadsheetML Excel downloads match the chosen scope, row IDs, order and displayed values, including datasets larger than one page. Guard formula injection and avoid silent truncation.
+- [x] Main analyst journey works on desktop and narrow layouts with reachable controls, keyboard focus and no blocking overflow. Measure core interactions with representative data; fix material regressions rather than undertaking a broad optimization project.
+- [x] Address the known public database write exposure, validate only the migrations needed by enabled MVP paths, and preserve server/API access. No new login, team roles or legacy-owner migration project.
 - [ ] Run existing regression suites and a focused live/browser acceptance pass. Deploy the exact reviewed commit, verify assets/data/downloads in production and retain a practical rollback path.
+
 
 ## Independent workstreams
 
@@ -67,4 +68,4 @@ Requiring every historical review variant, team permission, automatic-monitoring
 
 No calendar promise is made from local test counts. The remaining critical-path unknowns are live classification/preset coverage, required migration compatibility and final live qualification. Report blockers or unavailable fields explicitly instead of treating advanced features as compulsory.
 
-Latest checkpoints: 787 API/worker tests and 190 JavaScript UI tests passed. Source-backed chart-date and quote-header browser evidence is recorded under `design-gap-audit/desk-mvp/responsiveness/`; `design-gap-audit/desk-mvp/preset-preview-check.md` records removal of approximate preset previews and full captured-cohort evidence limits. `design-gap-audit/desk-mvp/provider-pagination-check.md` records validation of provider count/completion metadata. `design-gap-audit/desk-mvp/outside-cohort-classification-check.md` records normalization of fresh outside-cohort basic-info; the dated public market recheck still finds HK empty. These are local regression and captured-source rendering checks, not current production acceptance. The richer build remains local and unreleased.
+Latest acceptance: 868 API/worker tests, 197 UI tests and strict Ruff pass. Current production generations contain US 9,420 eligible stocks plus one ETF and HK 2,825 eligible stocks, with zero unresolved classifications. Both Moomoo aggregate counts and top-12 cap-descending samples match. Actual page, all-available and selected CSV/Excel downloads reconcile in both markets. All 22 preset definitions are preserved, with 20 supported and two visibly unavailable. [Current acceptance record](design-gap-audit/desk-mvp/review-candidate.md) supersedes dated legacy empty-HK evidence. Final merge/runtime/cron restoration is the remaining release gate.
