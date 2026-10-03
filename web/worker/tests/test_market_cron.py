@@ -51,3 +51,17 @@ def test_manual_override_dispatches_only_requested_market(monkeypatch, kind, mod
     monkeypatch.setattr(f"tradingagents_worker.{module}.main", called.append)
     main([kind, "--market", "HK"])
     assert called == ["HK"]
+
+
+def test_enrichment_qualifies_subtypes_for_the_same_market_before_factors(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "tradingagents_worker.instrument_subtype_job.main",
+        lambda market=None: calls.append(("subtypes", market)),
+    )
+    monkeypatch.setattr(
+        "tradingagents_worker.enrich_nightly.main", lambda market: calls.append(("factors", market))
+    )
+    for market in ["HK", "US"]:
+        main(["enrich", "--market", market])
+    assert calls == [("subtypes", "HK"), ("factors", "HK"), ("subtypes", "US"), ("factors", "US")]

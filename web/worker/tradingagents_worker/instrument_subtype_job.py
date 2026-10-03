@@ -180,11 +180,11 @@ def _job_child(conn, market):
         conn.close()
 
 
-def main():
+def main(market: str | None = None):
     if os.getenv("INSTRUMENT_SUBTYPE_COLLECTION_ENABLED") != "1":
         print(json.dumps({"status": "disabled"}), flush=True)
         return
-    market = os.getenv("INSTRUMENT_SUBTYPE_MARKET", "US")
+    market = market or os.getenv("INSTRUMENT_SUBTYPE_MARKET", "US")
     if market not in ("US", "HK"):
         raise ValueError("Unsupported subtype market")
     ctx = mp.get_context("spawn")

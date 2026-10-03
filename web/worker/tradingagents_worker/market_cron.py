@@ -35,6 +35,11 @@ def main(argv: list[str] | None = None):
         from .universe_refresh import main as refresh
     else:
         from .enrich_nightly import main as refresh
+        from .instrument_subtype_job import main as collect_subtypes
+
+        # The collector keeps its own default-off gate and bounded process/lease.
+        # Share the existing post-close service so HK evidence is refreshed too.
+        collect_subtypes(market=market)
     refresh(market)
 
 

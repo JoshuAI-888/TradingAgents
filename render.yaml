@@ -49,6 +49,16 @@ services:
     startCommand: cd web/worker && python -m tradingagents_worker.service
     healthCheckPath: /healthz
     envVars:
+      - key: UNIVERSE_ENUMERATION_MODE_US
+        value: screen
+      - key: UNIVERSE_ENUMERATION_MODE_HK
+        value: screen
+      - key: UNIVERSE_REQUEST_SPACING_SECONDS
+        value: "2"
+      - key: NORMALIZED_INSTRUMENT_CLASSES_ENABLED
+        sync: false
+      - key: INSTRUMENT_SUBTYPE_CACHE_ENABLED
+        sync: false
       - key: PYTHON_VERSION
         value: "3.12.8"
       - key: TRADINGAGENTS_CACHE_DIR
@@ -123,6 +133,16 @@ services:
     schedule: "0 1-8,13-21 * * 1-5"  # HK 09–16 HKT and US 13–21 UTC; one existing service
     startCommand: cd web/worker && python -m tradingagents_worker.market_cron universe
     envVars:
+      - key: UNIVERSE_ENUMERATION_MODE_US
+        value: screen
+      - key: UNIVERSE_ENUMERATION_MODE_HK
+        value: screen
+      - key: UNIVERSE_REQUEST_SPACING_SECONDS
+        value: "2"
+      - key: NORMALIZED_INSTRUMENT_CLASSES_ENABLED
+        sync: false
+      - key: INSTRUMENT_SUBTYPE_CACHE_ENABLED
+        sync: false
       - key: PYTHON_VERSION
         value: "3.12.8"
       - key: UNIVERSE_MARKET
@@ -147,6 +167,8 @@ services:
     schedule: "45 8,21 * * 1-5"  # HK 16:45 HKT / US 21:45 UTC
     startCommand: cd web/worker && python -m tradingagents_worker.market_cron enrich
     envVars:
+      - key: INSTRUMENT_SUBTYPE_COLLECTION_ENABLED
+        value: "0"  # enable only after first US/HK qualification
       - key: PYTHON_VERSION
         value: "3.12.8"
       - key: TRADINGAGENTS_CACHE_DIR
@@ -164,26 +186,7 @@ services:
 
   # HK shares the two screener cron services above. Routing uses UTC, not host timezone.
 
-  # Separate classification acquisition; remains inert until release qualification.
-  - type: cron
-    name: tradingagents-instrument-subtypes
-    runtime: python
-    plan: starter
-    region: virginia
-    buildCommand: pip install -r web/worker/requirements.txt && pip install -e .
-    schedule: "20 * * * *"
-    startCommand: cd web/worker && python -m tradingagents_worker.instrument_subtype_job
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.12.8"
-      - key: INSTRUMENT_SUBTYPE_COLLECTION_ENABLED
-        value: "0"
-      - key: INSTRUMENT_SUBTYPE_MARKET
-        value: US
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_SERVICE_KEY
-        sync: false
+  # Subtype acquisition shares the post-close enrichment services, default-off.
 
   - type: cron
     name: tradingagents-backup
