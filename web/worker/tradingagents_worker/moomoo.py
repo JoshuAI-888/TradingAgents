@@ -6,6 +6,7 @@ Implements: snapshot (batch 400), stock-screen (server-side sort), history-kline
 budget ledger keyed by PATH TEMPLATE (30/min shared across symbols), and the
 HTTP-200 rate_limited handling. Ed25519 via cryptography; never logs key material.
 """
+
 from __future__ import annotations
 
 import base64
@@ -13,11 +14,11 @@ import hashlib
 import json
 import time
 import uuid
-
-from .net import urlopen
 from datetime import datetime, timezone
 from urllib import error as _err, request as _rq
 from urllib.parse import urlencode
+
+from .net import urlopen
 
 REST = "https://webapi.moomoo.com"
 API = "/api/v1.0"  # part of the signed path — omitting it fails auth (-12006)
@@ -52,7 +53,13 @@ class Budget:
 
 
 class MoomooClient:
-    def __init__(self, appkey: str, private_key_pem: str, budget: Budget | None = None, clock_offset_ms: int = 0):
+    def __init__(
+        self,
+        appkey: str,
+        private_key_pem: str,
+        budget: Budget | None = None,
+        clock_offset_ms: int = 0,
+    ):
         self.appkey = appkey
         self._key = private_key_pem
         self.budget = budget or Budget()
@@ -67,6 +74,7 @@ class MoomooClient:
             load_der_private_key,
             load_pem_private_key,
         )
+
         raw = self._key.strip()
         if "-----BEGIN" in raw:
             key = load_pem_private_key(raw.encode(), password=None)
@@ -83,7 +91,8 @@ class MoomooClient:
                 key = None
         if not isinstance(key, Ed25519PrivateKey):
             raise MoomooError(
-                "MOOMOO_PRIVATE_KEY must be an Ed25519 key: PEM, base64 PKCS#8 DER, or raw 32-byte seed")
+                "MOOMOO_PRIVATE_KEY must be an Ed25519 key: PEM, base64 PKCS#8 DER, or raw 32-byte seed"
+            )
         return key
 
     # ── signing (Ed25519, per HB §3.2) ────────────────────────────────────
@@ -95,8 +104,14 @@ class MoomooClient:
         payload = f"{ts_ms}\n{method}\n{path}\n{query}\n{body_part}"
         return base64.b64encode(key.sign(payload.encode())).decode()
 
-    def call(self, method: str, path: str, body: dict | None = None,
-             query: dict | None = None, retries: int = 2) -> dict:
+    def call(
+        self,
+        method: str,
+        path: str,
+        body: dict | None = None,
+        query: dict | None = None,
+        retries: int = 2,
+    ) -> dict:
         qs = urlencode(query) if query else ""
         sign_path = API + path
         full_path = sign_path + (f"?{qs}" if qs else "")
@@ -114,21 +129,28 @@ class MoomooClient:
                 "Authorization": self._sign(ts, method, sign_path, qs, payload),
                 "Content-Type": "application/json",
             }
-            req = _rq.Request(f"{REST}{full_path}", data=payload or None, method=method, headers=headers)
+            req = _rq.Request(
+                f"{REST}{full_path}", data=payload or None, method=method, headers=headers
+            )
             try:
                 with urlopen(req, timeout=20) as resp:
                     out = json.loads(resp.read())
             except _err.HTTPError as e:
                 raise MoomooError(f"{method} {path} -> HTTP {e.code}: {e.read()[:200]!r}") from e
             # Refusals ride HTTP 200: ret_code -11 + error.code rate_limited (HB §17.8)
-            if out.get("ret_code") == -11 and (out.get("error") or {}).get("code") == "rate_limited":
+            if (
+                out.get("ret_code") == -11
+                and (out.get("error") or {}).get("code") == "rate_limited"
+            ):
                 retry_after = float((out.get("error") or {}).get("retry_after") or 5)
                 if attempt >= retries:
                     raise RateLimited(retry_after, template)
                 time.sleep(retry_after)
                 continue
             if out.get("ret_code") != 0:
-                raise MoomooError(f"{method} {path} -> ret_code {out.get('ret_code')}: {str(out.get('ret_msg'))[:200]}")
+                raise MoomooError(
+                    f"{method} {path} -> ret_code {out.get('ret_code')}: {str(out.get('ret_msg'))[:200]}"
+                )
             data = out.get("data", {})
             # Screening pagination is a sibling of data, not part of data.items.
             # Retaining it enables complete cohorts without fabricating totals.
@@ -138,12 +160,19 @@ class MoomooClient:
         raise MoomooError("unreachable")
 
     # ── read-only quote operations ────────────────────────────────────────
-    def snapshot(self, symbols: list[str]) -> dict:
+    def snapshot(self, symbols: list[str], retries: int = 2) -> dict:
         """Batch market snapshot: up to 400 codes/call. Denied codes → data.skipped."""
-        return self.call("POST", "/quote/snapshot", body={"code_list": symbols[:400]})
+        return self.call(
+            "POST", "/quote/snapshot", body={"code_list": symbols[:400]}, retries=retries
+        )
 
-    def screen(self, screen_queries: list, retrieve_queries: list | None = None,
-               sort: dict | None = None, limit: int = 50) -> list:
+    def screen(
+        self,
+        screen_queries: list,
+        retrieve_queries: list | None = None,
+        sort: dict | None = None,
+        limit: int = 50,
+    ) -> list:
         """Server-side screen. Body is structured query objects (HB: screen_queries
         is mandatory; the response's matching rows are in `items`)."""
         body: dict = {"screen_queries": screen_queries, "limit": min(limit, 300)}
@@ -154,8 +183,15 @@ class MoomooClient:
         out = self.call("POST", "/quote/stock-screen", body=body)
         return (out.get("items") or []) if isinstance(out, dict) else []
 
-    def history_kline(self, symbol: str, start: str, end: str, ktype: int = 2, autype: int = 1,
-                      extended_time: int | None = None) -> list:
+    def history_kline(
+        self,
+        symbol: str,
+        start: str,
+        end: str,
+        ktype: int = 2,
+        autype: int = 1,
+        extended_time: int | None = None,
+    ) -> list:
         """Date-windowed bars (ktype 1..9 = 1m/D/W/M/Y/5/15/30/60m). NOTE: has_more
         is unreliable — page by date windows. extended_time (US 1-min only):
         1 = include pre/after market, 2 = include overnight."""
@@ -165,8 +201,14 @@ class MoomooClient:
         out = self.call("GET", f"/quote/{symbol}/history-kline", query=q)
         return out.get("kline_list", []) if isinstance(out, dict) else []
 
-    def find_news(self, keyword: str, sort_type: int = 2, limit: int = 20,
-                  news_type: int | None = None, lang: str | None = None) -> list:
+    def find_news(
+        self,
+        keyword: str,
+        sort_type: int = 2,
+        limit: int = 20,
+        news_type: int | None = None,
+        lang: str | None = None,
+    ) -> list:
         """Keyword search. The required param is confusingly named `symbol`; page
         size is `size`; `sort_type` 2 = latest (HB §17.13: empty without sort_type).
         `news_type` 1=News(POST) 2=Announcement(NOTICE) 3=Report(REPORT).
@@ -220,20 +262,32 @@ class MoomooClient:
         """Static contracts (≤20 expiries/call); prices come from snapshot on the codes."""
         return self._get(f"/quote/{symbol}/option-chain", start=start, end=end)
 
-    def statements(self, symbol: str, statement_type: int, financial_type: int | None = None,
-                   limit: int | None = None) -> dict:
+    def statements(
+        self,
+        symbol: str,
+        statement_type: int,
+        financial_type: int | None = None,
+        limit: int | None = None,
+    ) -> dict:
         """F10 statements: statement_type 1/2/3/4; financial_type per naming
         dictionary (1=Q1 2=H1 3=Q3 4=Q4 5=cumH1 6=cum3Q 7=annual) — omit for the
         server default. Live rejects 102 despite docs; container is `report_list`."""
-        return self._get(f"/quote/{symbol}/financials/statements",
-                         statement_type=statement_type, financial_type=financial_type,
-                         limit=limit)
+        return self._get(
+            f"/quote/{symbol}/financials/statements",
+            statement_type=statement_type,
+            financial_type=financial_type,
+            limit=limit,
+        )
 
-    def revenue_breakdown(self, symbol: str, date: int | None = None,
-                          financial_type: int | None = None) -> dict:
+    def revenue_breakdown(
+        self, symbol: str, date: int | None = None, financial_type: int | None = None
+    ) -> dict:
         """Period picker = screen_date_list entries {date (s), financial_type}."""
-        return self._get(f"/quote/{symbol}/financials/revenue-breakdown",
-                         date=date, financial_type=financial_type)
+        return self._get(
+            f"/quote/{symbol}/financials/revenue-breakdown",
+            date=date,
+            financial_type=financial_type,
+        )
 
     def earnings_price_history(self, symbol: str) -> dict:
         return self._get(f"/quote/{symbol}/financials/earnings-price-history")
@@ -258,13 +312,23 @@ class MoomooClient:
     def company_executives(self, symbol: str) -> dict:
         return self._get(f"/quote/{symbol}/company/executives")
 
-    def find_community(self, keyword: str, community_type: int = 1,
-                       sort_type: int = 2, size: int = 20, lang: str | None = None) -> list:
+    def find_community(
+        self,
+        keyword: str,
+        community_type: int = 1,
+        sort_type: int = 2,
+        size: int = 20,
+        lang: str | None = None,
+    ) -> list:
         """Community search (FEED/TOPIC/LIVE); no pagination — latest N only.
         `lang` en/zh-CN/zh-HK/ja (results come provider-localized without it).
         Live data is a BARE LIST (no container key)."""
-        q = {"symbol": keyword, "community_type": community_type,
-             "sort_type": sort_type, "size": min(size, 50)}
+        q = {
+            "symbol": keyword,
+            "community_type": community_type,
+            "sort_type": sort_type,
+            "size": min(size, 50),
+        }
         if lang:
             q["lang"] = lang
         out = self.call("GET", "/quote/find-community", query=q)
@@ -277,17 +341,24 @@ class MoomooClient:
     def plate_list(self, market: str, plate_class: str = "INDUSTRY") -> list:
         """Sector/plate list for a market (class: ALL/INDUSTRY/REGION/CONCEPT/OTHER;
         REGION is SH/SZ only). Live container: plate_list."""
-        out = self.call("GET", "/quote/plate-list",
-                        query={"market": market, "plate_class": plate_class})
+        out = self.call(
+            "GET", "/quote/plate-list", query={"market": market, "plate_class": plate_class}
+        )
         return (out or {}).get("plate_list") or [] if isinstance(out, dict) else []
 
     def plate_stocks(self, plate_code: str, limit: int = 60) -> list:
         """Members of a plate, market-cap desc. Live sort_field enum: MARKET_VAL
         ('MarketCapital' is rejected). Live container: stock_list."""
-        out = self.call("GET", "/quote/plate-stock",
-                        query={"plate_code": plate_code,
-                               "sort_field": "MARKET_VAL",
-                               "ascend": "false", "limit": min(limit, 1000)})
+        out = self.call(
+            "GET",
+            "/quote/plate-stock",
+            query={
+                "plate_code": plate_code,
+                "sort_field": "MARKET_VAL",
+                "ascend": "false",
+                "limit": min(limit, 1000),
+            },
+        )
         return (out or {}).get("stock_list") or [] if isinstance(out, dict) else []
 
     @staticmethod
@@ -322,19 +393,41 @@ class MoomooClient:
 def probe(client: MoomooClient) -> dict:
     """Read-only Phase-0 probe: verify tier, markets, live-ness. No secrets echoed."""
     out: dict = {"checked_at": datetime.now(timezone.utc).isoformat(), "checks": []}
+
     def check(name, fn):
         try:
             v = fn()
             out["checks"].append({"name": name, "ok": True, "summary": v})
         except Exception as e:
             out["checks"].append({"name": name, "ok": False, "error": str(e)[:200]})
+
     check("server-time", lambda: f"offset {client.server_clock_offset_ms()}ms")
-    check("US snapshot (SPY,QQQ,NVDA)", lambda: len((client.snapshot(["US.SPY", "US.QQQ", "US.NVDA"]) or {}).get("snapshot_list", [])))
-    check("HK snapshot (00700)", lambda: len((client.snapshot(["HK.00700"]) or {}).get("snapshot_list", [])))
-    check("AU snapshot real-time? (CBA.AX)", lambda: len((client.snapshot(["AU.CBA"]) or {}).get("snapshot_list", [])))
-    check("stock-screen (verified HK query)", lambda: len(client.screen(
-        [{"simple_field_query": {"simple_field": 1, "screen_value_list": [1]}}], limit=3)))
-    check("history-kline SPY 5y window", lambda: len(client.history_kline("US.SPY", "2021-01-01", "2021-01-31")))
+    check(
+        "US snapshot (SPY,QQQ,NVDA)",
+        lambda: len(
+            (client.snapshot(["US.SPY", "US.QQQ", "US.NVDA"]) or {}).get("snapshot_list", [])
+        ),
+    )
+    check(
+        "HK snapshot (00700)",
+        lambda: len((client.snapshot(["HK.00700"]) or {}).get("snapshot_list", [])),
+    )
+    check(
+        "AU snapshot real-time? (CBA.AX)",
+        lambda: len((client.snapshot(["AU.CBA"]) or {}).get("snapshot_list", [])),
+    )
+    check(
+        "stock-screen (verified HK query)",
+        lambda: len(
+            client.screen(
+                [{"simple_field_query": {"simple_field": 1, "screen_value_list": [1]}}], limit=3
+            )
+        ),
+    )
+    check(
+        "history-kline SPY 5y window",
+        lambda: len(client.history_kline("US.SPY", "2021-01-01", "2021-01-31")),
+    )
     check("find-news NVDA", lambda: len(client.find_news("NVDA")))
     check("economic calendar", lambda: len(client.econ_calendar_hot()))
     return out

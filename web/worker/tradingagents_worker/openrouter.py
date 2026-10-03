@@ -5,6 +5,7 @@ attaches a curated intelligence tier (manually updatable — edit INTELLIGENCE_T
 computes an estimated cost per analysis using the observed run token mix
 (~1.8M input / 140k output), and sorts: recommended (best value) first.
 """
+
 from __future__ import annotations
 
 import json
@@ -21,7 +22,7 @@ EST_OUT_TOKENS = 140_000
 # Manually-updatable intelligence tiers (0–100, higher = smarter). Substring match,
 # first hit wins; anything unmatched defaults to 50. Edit this table to re-rank.
 INTELLIGENCE_TIERS: list[tuple[str, int]] = [
-    ("gpt-6-astra", 100),          # flagship reasoning
+    ("gpt-6-astra", 100),  # flagship reasoning
     ("gpt-6-sol-pro", 96),
     ("gpt-6-sol", 94),
     ("claude-opus-5.5", 93),
@@ -87,7 +88,11 @@ def _fmt(m: dict) -> dict:
 
 def build_catalog(raw: list[dict]) -> dict:
     """Pure transform: OpenRouter raw → sorted, cost-annotated, recommended-pinned."""
-    models = [_fmt(m) for m in raw if not any(t in m["id"] for t in (":batch", ":floor")) and not m["id"].startswith("~")]
+    models = [
+        _fmt(m)
+        for m in raw
+        if not any(t in m["id"] for t in (":batch", ":floor")) and not m["id"].startswith("~")
+    ]
     models.sort(key=lambda x: (-x["value_score"], x["est_per_run"], x["id"]))
     rest, pinned = list(models), []
     for mid in RECOMMENDED:
@@ -98,9 +103,13 @@ def build_catalog(raw: list[dict]) -> dict:
                 pinned.append(m)
                 break
     models = pinned + rest
-    return {"models": models, "count": len(models), "fetched_at": time.time(),
-            "sorted_by": "recommended (intelligence per $) first · curated picks pinned top",
-            "est_run_basis": f"{EST_IN_TOKENS/1e6:.1f}M in / {EST_OUT_TOKENS/1e3:.0f}k out"}
+    return {
+        "models": models,
+        "count": len(models),
+        "fetched_at": time.time(),
+        "sorted_by": "recommended (intelligence per $) first · curated picks pinned top",
+        "est_run_basis": f"{EST_IN_TOKENS / 1e6:.1f}M in / {EST_OUT_TOKENS / 1e3:.0f}k out",
+    }
 
 
 def fetch_models(timeout: int = 20) -> dict:

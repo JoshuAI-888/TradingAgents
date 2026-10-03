@@ -1,0 +1,1404 @@
+{
+  "checked_at": "2026-10-02T19:40:14.256712+00:00",
+  "scope": "Public deployed screener responses; no authentication or refresh",
+  "US": {
+    "url": "https://tradingagents-portal.onrender.com/api/screener?market=US&watchlist_only=0&filters=%5B%7B%22field%22%3A+%22stock_type%22%2C+%22values%22%3A+%5B%22STOCK%22%5D%7D%5D&sort=market_cap&direction=2&limit=2&offset=0&src=moo",
+    "payload": {
+      "available": true,
+      "universe": "US",
+      "rows": [
+        {
+          "pb": 24.684,
+          "pe": 47.863,
+          "chg": 3.67,
+          "eps": 4.9,
+          "low": 234.19,
+          "pct": 1.59,
+          "code": "US.NVDA",
+          "high": 237.87,
+          "name": "NVIDIA",
+          "open": 236,
+          "low52": 163.895371915,
+          "price": 234.53,
+          "high52": 237.87,
+          "pe_ttm": 29.649,
+          "shares": 23330891375,
+          "symbol": "NVDA",
+          "volume": 103143980,
+          "div_ttm": 0.28,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 24332586944.017,
+          "amplitude": 1.594,
+          "div_yield": 0.12,
+          "float_cap": 5471793954178.75,
+          "market_cap": 5652173000000,
+          "volume_ratio": 1.094,
+          "bid_ask_ratio": 28.293,
+          "turnover_rate": 0.442,
+          "plate": "Semiconductors",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Robotics",
+            "Natixis Investment Managers Holdings",
+            "Duan Yongping chicang gainian",
+            "T. Rowe Price Holdings",
+            "BlackRock Holdings",
+            "Digitization of financial services",
+            "Morgan Stanley Holdings",
+            "Legal & General Group Holdings",
+            "Invesco Holdings",
+            "Physical AI",
+            "Credit Suisse Holdings",
+            "Metaverse",
+            "Nuveen Asset Management Holdings",
+            "Baillie Gifford Holdings",
+            "JPMorgan Chase & Co. Holdings",
+            "Blockchain",
+            "Vanguard Group Holdings",
+            "Amundi Holdings",
+            "Nancy Pelosi Portfolio",
+            "Wells Fargo Holdings",
+            "Data Center",
+            "AXA Group Holdings",
+            "Northern Trust Corp Holdings",
+            "Autonomous Driving",
+            "Brain-Computer Interface",
+            "UBS Holdings",
+            "HSBC Holdings",
+            "Coatue Management Holdings",
+            "BNY Mellon Holdings",
+            "Temasek Holdings",
+            "AI Chip",
+            "Sumitomo Mitsui Trust Holdings",
+            "Goldman Sachs Holdings",
+            "AI glasses concept stocks",
+            "Aegon Group Holdings",
+            "Artificial Intelligence",
+            "Star Tech Companies",
+            "CPU Concept",
+            "Trump Holdings Concept",
+            "Fed Rate Cut Beneficiaries",
+            "State Street Global Holdings",
+            "Robot concept stock",
+            "Intelligent driving concept stocks",
+            "BATMMAAN",
+            "Prudential Financial Holdings",
+            "Franklin Templeton Holdings",
+            "Softbank Holdings",
+            "ARK Portfolio",
+            "BNP Paribas Holdings",
+            "AI PC",
+            "Stargate Concept Stocks",
+            "CA Night Market list",
+            "Star Stocks",
+            "Fractional Shares JP",
+            "Magnificent 7 Stocks",
+            "Shariah Compliant",
+            "Options-Tradable Stocks",
+            "U.S Tech Companies",
+            "Stocks reporting earnings this month",
+            "Top 10 S&P 500 companies by weight \u6cd5:Les 10 principaux titres composant le S&P 500",
+            "AU\u5238\u5546\u7f8e\u80a1\u5b9a\u6295",
+            "Overnight",
+            "Major tech companies",
+            "Earnings Season Spotlight: Top Reports to Watch",
+            "Top 10 S&P 500 companies by weight",
+            "AirStar suisuigu",
+            "moomoo jp",
+            "US suisuigu",
+            "AI semiconductor",
+            "Star Technology Stocks",
+            "NASDAQ",
+            "HK suisuigu",
+            "\u884c\u60c5\u591c\u76d8\u5217\u8868",
+            "Global list",
+            "HK\u5238\u5546\u7f8e\u80a1\u5b9a\u6295",
+            "Regular Savings Plan",
+            "AU suisuigu",
+            "Overnight Tradable List AirStar",
+            "Crypto Related Stocks",
+            "Moomoo Top-Traded Stocks",
+            "Popular US Stocks",
+            "screen-slice"
+          ]
+        },
+        {
+          "pb": 45.295,
+          "pe": 44.73,
+          "chg": 3.37,
+          "eps": 7.46,
+          "low": 330.61,
+          "pct": 1.02,
+          "code": "US.AAPL",
+          "high": 334.54,
+          "name": "Apple",
+          "open": 333.21,
+          "low52": 242.759212068,
+          "price": 333.69,
+          "high52": 345.34,
+          "pe_ttm": 38.267,
+          "shares": 14583939691,
+          "symbol": "AAPL",
+          "volume": 19907183,
+          "div_ttm": 1.05,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 6626029177.931,
+          "amplitude": 1.19,
+          "div_yield": 0.31,
+          "float_cap": 4866514835489.79,
+          "market_cap": 4869931924200,
+          "volume_ratio": 0.624,
+          "bid_ask_ratio": -60,
+          "turnover_rate": 0.137,
+          "plate": "Consumer Electronics",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Facial Recognition",
+            "Duan Yongping chicang gainian",
+            "T. Rowe Price Holdings",
+            "BlackRock Holdings",
+            "Renaissance Technologies Holdings",
+            "Morgan Stanley Holdings",
+            "U.S. Politician Stock Trading Concept",
+            "Legal & General Group Holdings",
+            "Invesco Holdings",
+            "Credit Suisse Holdings",
+            "Capital Research Global Investors",
+            "Metaverse",
+            "Nuveen Asset Management Holdings",
+            "AQR Capital Holdings",
+            "JPMorgan Chase & Co. Holdings",
+            "Himalaya Capital Holdings",
+            "DeepSeek Beneficiaries",
+            "Virtual Reality",
+            "Smart Home",
+            "Vanguard Group Holdings",
+            "5G",
+            "Amundi Holdings",
+            "Nancy Pelosi Portfolio",
+            "Wells Fargo Holdings",
+            "Warren Buffett Portfolio",
+            "ESG Investing",
+            "AXA Group Holdings",
+            "Wireless Charging",
+            "Northern Trust Corp Holdings",
+            "Autonomous Driving",
+            "UBS Holdings",
+            "HSBC Holdings",
+            "BNY Mellon Holdings",
+            "Sumitomo Mitsui Trust Holdings",
+            "Goldman Sachs Holdings",
+            "AI glasses concept stocks",
+            "Aegon Group Holdings",
+            "Streaming Services",
+            "Star Tech Companies",
+            "Trump Holdings Concept",
+            "Fed Rate Cut Beneficiaries",
+            "State Street Global Holdings",
+            "Wellington Mgmt. Holdings",
+            "Greenwoods Holdings",
+            "Sequoia Capital Holdings",
+            "Digital Music",
+            "BATMMAAN",
+            "Prudential Financial Holdings",
+            "Franklin Templeton Holdings",
+            "ARK Portfolio",
+            "Smart Clothing",
+            "BNP Paribas Holdings",
+            "AI PC",
+            "CA Night Market list",
+            "Star Stocks",
+            "Quantum Computer",
+            "Fractional Shares JP",
+            "Magnificent 7 Stocks",
+            "Shariah Compliant",
+            "Options-Tradable Stocks",
+            "U.S Tech Companies",
+            "Stocks reporting earnings this month",
+            "Top 10 S&P 500 companies by weight \u6cd5:Les 10 principaux titres composant le S&P 500",
+            "AU\u5238\u5546\u7f8e\u80a1\u5b9a\u6295",
+            "moomoo JP Special",
+            "Overnight",
+            "Top Gainers",
+            "Major tech companies",
+            "Earnings Season Spotlight: Top Reports to Watch",
+            "Buffett's holdings",
+            "Top 10 S&P 500 companies by weight",
+            "moomoo jp",
+            "NASDAQ",
+            "HK suisuigu",
+            "Overnight Tradable List us",
+            "Global list",
+            "HK\u5238\u5546\u7f8e\u80a1\u5b9a\u6295",
+            "buffett",
+            "Regular Savings Plan",
+            "AU suisuigu",
+            "test",
+            "MY suisuigu",
+            "MY\u5238\u5546\u7f8e\u80a1\u5b9a\u6295",
+            "Popular US Stocks",
+            "screen-slice"
+          ]
+        }
+      ],
+      "count": 12045,
+      "matched": 12045,
+      "shown": 2,
+      "offset": 0,
+      "skipped_filters": [],
+      "enrich_as_of": null,
+      "universe_loaded": true,
+      "universe_as_of": "2026-10-02T19:01:44.494347+00:00",
+      "presets": [
+        {
+          "key": "penny",
+          "page": 1,
+          "name": "Penny Stocks",
+          "description": "Spot undervalued, low-priced stocks for substantial returns.",
+          "filters": [
+            {
+              "field": "price",
+              "max": 5
+            },
+            {
+              "field": "market_cap",
+              "max": 300000000.0
+            },
+            {
+              "field": "volume",
+              "min": 100000.0,
+              "days": 30
+            },
+            {
+              "field": "revenue_growth",
+              "min": 10
+            },
+            {
+              "field": "net_profit_growth",
+              "min": 5,
+              "excl_min": 1
+            },
+            {
+              "field": "debt_ratio",
+              "max": 40
+            }
+          ]
+        },
+        {
+          "key": "high-div",
+          "page": 1,
+          "name": "High Dividend Stocks",
+          "description": "Spot high-yield, stable dividend stocks for reliable income.",
+          "filters": [
+            {
+              "field": "market_cap",
+              "min": 2000000000.0,
+              "excl_min": 1
+            },
+            {
+              "field": "pe_ttm",
+              "max": 12
+            },
+            {
+              "field": "div_yield",
+              "min": 8
+            },
+            {
+              "field": "debt_ratio",
+              "max": 30
+            },
+            {
+              "field": "revenue_growth",
+              "min": 5,
+              "excl_min": 1
+            }
+          ]
+        },
+        {
+          "key": "blue-chip",
+          "page": 1,
+          "name": "Blue Chip Stocks",
+          "description": "Spot blue-chip stocks from well-established companies for reliable returns and low volatility.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 50
+            },
+            {
+              "field": "market_cap",
+              "min": 100000000000.0
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            },
+            {
+              "field": "revenue_growth",
+              "min": 5
+            }
+          ]
+        },
+        {
+          "key": "buffett",
+          "page": 1,
+          "name": "Warren Buffett Strategy",
+          "description": "Spot stocks with strong earnings, growth potential, and recognized value for strategic long-term investment.",
+          "filters": [
+            {
+              "field": "float_cap",
+              "min": 500000000.0
+            },
+            {
+              "field": "net_profit_growth",
+              "min": 10
+            },
+            {
+              "field": "gross_margin",
+              "min": 50
+            },
+            {
+              "field": "op_ebt",
+              "min": 70
+            },
+            {
+              "field": "roe",
+              "min": 15
+            },
+            {
+              "field": "roe_yoy",
+              "min": 20
+            }
+          ]
+        },
+        {
+          "key": "undervalued",
+          "page": 1,
+          "name": "Undervalued Stocks",
+          "description": "Spot stable, undervalued stocks for long-term growth.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "max": 15
+            },
+            {
+              "field": "pb",
+              "max": 1.5
+            },
+            {
+              "field": "div_yield",
+              "min": 4
+            },
+            {
+              "field": "debt_ratio",
+              "max": 30
+            },
+            {
+              "field": "roe",
+              "min": 15,
+              "excl_min": 1
+            },
+            {
+              "field": "revenue_growth",
+              "min": 3,
+              "excl_min": 1
+            }
+          ]
+        },
+        {
+          "key": "growth",
+          "page": 1,
+          "name": "Best Growth Stocks",
+          "description": "Spot stocks with growth potential and solid financial standing.",
+          "filters": [
+            {
+              "field": "float_cap",
+              "min": 500000000.0
+            },
+            {
+              "field": "net_profit_growth",
+              "min": 15
+            },
+            {
+              "field": "gross_margin",
+              "min": 50
+            },
+            {
+              "field": "roe",
+              "min": 15
+            },
+            {
+              "field": "roe_yoy",
+              "min": 50,
+              "excl_min": 1
+            }
+          ]
+        },
+        {
+          "key": "pb-lt-1",
+          "page": 1,
+          "name": "P/B Ratio Less Than 1",
+          "description": "Spot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.",
+          "filters": [
+            {
+              "field": "pb",
+              "max": 1
+            }
+          ]
+        },
+        {
+          "key": "best-lt-high-div",
+          "page": 2,
+          "name": "Best Long Term High Dividend Stocks",
+          "description": "Spot stocks with reliable dividends and steady growth for secure long-term returns.",
+          "filters": [
+            {
+              "field": "div_yield",
+              "min": 4
+            },
+            {
+              "field": "pe_ttm",
+              "max": 20
+            },
+            {
+              "field": "pb",
+              "max": 1.5
+            },
+            {
+              "field": "debt_ratio",
+              "max": 40
+            },
+            {
+              "field": "revenue_growth",
+              "min": 3
+            }
+          ]
+        },
+        {
+          "key": "high-pe",
+          "page": 2,
+          "name": "High P/E Ratio Stocks",
+          "description": "Spot stocks with high P/E ratios, which suggest a profitable and sustainable business.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "min": 25
+            },
+            {
+              "field": "op_profit_growth",
+              "min": 30,
+              "excl_min": 1
+            }
+          ]
+        },
+        {
+          "key": "good-pe",
+          "page": 2,
+          "name": "Good P/E Ratio Stocks",
+          "description": "Spot stocks with solid fundamentals and high P/E ratios for consistent profitability and returns.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "min": 20
+            },
+            {
+              "field": "eps_growth",
+              "min": 5
+            },
+            {
+              "field": "div_yield",
+              "min": 2
+            },
+            {
+              "field": "net_margin",
+              "min": 10
+            }
+          ]
+        },
+        {
+          "key": "low-pe",
+          "page": 2,
+          "name": "Low P/E Ratio Stocks",
+          "description": "Spot stocks with low P/E ratios, which are potentially undervalued for stable gains and reduced risk.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "max": 5,
+              "excl_max": 1
+            },
+            {
+              "field": "pb",
+              "max": 3,
+              "excl_max": 1
+            },
+            {
+              "field": "debt_ratio",
+              "max": 60,
+              "excl_max": 1
+            }
+          ]
+        },
+        {
+          "key": "rsi-30",
+          "page": 2,
+          "name": "Below 30 RSI Stocks",
+          "description": "Spot stocks with an RSI value under 30, which may indicate a rebound from negative market sentiment.",
+          "filters": [
+            {
+              "field": "rsi14",
+              "max": 30
+            }
+          ]
+        },
+        {
+          "key": "junk",
+          "page": 2,
+          "name": "Junk Stocks",
+          "description": "Spot small, high-risk, yet undervalued stocks with the potential for significant returns.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "min": 0
+            },
+            {
+              "field": "price",
+              "max": 5
+            },
+            {
+              "field": "market_cap",
+              "max": 100000000.0
+            }
+          ]
+        },
+        {
+          "key": "small-growth",
+          "page": 2,
+          "name": "Small Cap Stocks with Huge Growth Potential",
+          "description": "Spot small-cap stocks with significant growth potential.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 1
+            },
+            {
+              "field": "market_cap",
+              "min": 250000000.0,
+              "max": 2000000000.0
+            },
+            {
+              "field": "revenue_growth",
+              "min": 20
+            },
+            {
+              "field": "rsi14",
+              "min": 50
+            }
+          ]
+        },
+        {
+          "key": "blue-chip-div",
+          "page": 2,
+          "name": "Blue Chip Dividend Stocks",
+          "description": "Spot familiar blue-chip stocks with high dividends for dependable income and value investment.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 50
+            },
+            {
+              "field": "market_cap",
+              "min": 100000000000.0
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            },
+            {
+              "field": "div_yield",
+              "min": 4
+            }
+          ]
+        },
+        {
+          "key": "speculative",
+          "page": 3,
+          "name": "Speculative Stocks",
+          "description": "Spot high-risk, high-return stocks, including those at their recent 10-day low that may be undervalued and ready to rebound.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 5
+            },
+            {
+              "field": "market_cap",
+              "min": 100000000.0
+            },
+            {
+              "field": "net_margin",
+              "min": 10
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            },
+            {
+              "field": "new_low_10d",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "key": "high-roe",
+          "page": 3,
+          "name": "High Return On Equity Stocks",
+          "description": "Spot high-quality stocks with solid profitability, growth, and attractive dividends for long-term stability.",
+          "filters": [
+            {
+              "field": "roe",
+              "min": 20
+            },
+            {
+              "field": "revenue_growth",
+              "min": 5
+            },
+            {
+              "field": "div_yield",
+              "min": 2
+            },
+            {
+              "field": "pe_ttm",
+              "max": 25
+            }
+          ]
+        },
+        {
+          "key": "lt-high-div",
+          "page": 3,
+          "name": "Low P/E High Dividend Stocks",
+          "description": "Spot financially stable, consistently growing stocks for secure and steady long-term returns.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "max": 15
+            },
+            {
+              "field": "div_yield",
+              "min": 4
+            },
+            {
+              "field": "revenue_growth",
+              "min": 3
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            }
+          ]
+        },
+        {
+          "key": "undervalued-semi",
+          "page": 3,
+          "name": "Undervalued Semiconductor Stocks",
+          "description": "Spot semiconductor sector stocks that are well-valued, financially robust, and profitable for attractive long-term returns.",
+          "filters": [
+            {
+              "field": "sector",
+              "plate_ids": [
+                10002016,
+                10002015
+              ]
+            },
+            {
+              "field": "pe_ttm",
+              "max": 18
+            },
+            {
+              "field": "pb",
+              "max": 5
+            },
+            {
+              "field": "roe",
+              "min": 10
+            }
+          ]
+        },
+        {
+          "key": "undervalued-tech",
+          "page": 3,
+          "name": "Undervalued Tech Stocks",
+          "description": "Spot tech stocks that are undervalued by the market.",
+          "filters": [
+            {
+              "field": "sector",
+              "plate_ids": [
+                10002016,
+                10002072,
+                10002492,
+                10002470,
+                10002508,
+                10002252,
+                10002098,
+                10002004
+              ]
+            },
+            {
+              "field": "pe_ttm",
+              "max": 15
+            },
+            {
+              "field": "pb",
+              "max": 5
+            },
+            {
+              "field": "roe",
+              "min": 10
+            }
+          ]
+        },
+        {
+          "key": "undervalued-banks",
+          "page": 3,
+          "name": "Undervalued Bank Stocks",
+          "description": "Spot bank stocks that are financially sound, reasonably valued, and highly profitable.",
+          "filters": [
+            {
+              "field": "sector",
+              "plate_ids": [
+                10002481,
+                10002456
+              ]
+            },
+            {
+              "field": "pe_ttm",
+              "max": 10
+            },
+            {
+              "field": "pb",
+              "max": 1
+            },
+            {
+              "field": "roe",
+              "min": 12
+            }
+          ]
+        },
+        {
+          "key": "high-eps",
+          "page": 3,
+          "name": "High EPS Stocks",
+          "description": "Spot stocks with favorable financial footing and high profitability for investment.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 5
+            },
+            {
+              "field": "market_cap",
+              "min": 100000000.0
+            },
+            {
+              "field": "eps",
+              "min": 10
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            }
+          ]
+        }
+      ],
+      "watchlist": [
+        "AAPL",
+        "AMD",
+        "META",
+        "NVDA",
+        "RKLB",
+        "TSLA"
+      ]
+    }
+  },
+  "HK": {
+    "url": "https://tradingagents-portal.onrender.com/api/screener?market=HK&watchlist_only=0&filters=%5B%7B%22field%22%3A+%22stock_type%22%2C+%22values%22%3A+%5B%22STOCK%22%5D%7D%5D&sort=market_cap&direction=2&limit=2&offset=0&src=moo",
+    "payload": {
+      "available": true,
+      "universe": "HK",
+      "rows": [],
+      "count": 0,
+      "matched": 0,
+      "shown": 0,
+      "offset": 0,
+      "skipped_filters": [],
+      "enrich_as_of": null,
+      "universe_loaded": false,
+      "universe_as_of": null,
+      "presets": [
+        {
+          "key": "penny",
+          "page": 1,
+          "name": "Penny Stocks",
+          "description": "Spot undervalued, low-priced stocks for substantial returns.",
+          "filters": [
+            {
+              "field": "price",
+              "max": 5
+            },
+            {
+              "field": "market_cap",
+              "max": 300000000.0
+            },
+            {
+              "field": "volume",
+              "min": 100000.0,
+              "days": 30
+            },
+            {
+              "field": "revenue_growth",
+              "min": 10
+            },
+            {
+              "field": "net_profit_growth",
+              "min": 5,
+              "excl_min": 1
+            },
+            {
+              "field": "debt_ratio",
+              "max": 40
+            }
+          ]
+        },
+        {
+          "key": "high-div",
+          "page": 1,
+          "name": "High Dividend Stocks",
+          "description": "Spot high-yield, stable dividend stocks for reliable income.",
+          "filters": [
+            {
+              "field": "market_cap",
+              "min": 2000000000.0,
+              "excl_min": 1
+            },
+            {
+              "field": "pe_ttm",
+              "max": 12
+            },
+            {
+              "field": "div_yield",
+              "min": 8
+            },
+            {
+              "field": "debt_ratio",
+              "max": 30
+            },
+            {
+              "field": "revenue_growth",
+              "min": 5,
+              "excl_min": 1
+            }
+          ]
+        },
+        {
+          "key": "blue-chip",
+          "page": 1,
+          "name": "Blue Chip Stocks",
+          "description": "Spot blue-chip stocks from well-established companies for reliable returns and low volatility.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 50
+            },
+            {
+              "field": "market_cap",
+              "min": 100000000000.0
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            },
+            {
+              "field": "revenue_growth",
+              "min": 5
+            }
+          ]
+        },
+        {
+          "key": "buffett",
+          "page": 1,
+          "name": "Warren Buffett Strategy",
+          "description": "Spot stocks with strong earnings, growth potential, and recognized value for strategic long-term investment.",
+          "filters": [
+            {
+              "field": "float_cap",
+              "min": 500000000.0
+            },
+            {
+              "field": "net_profit_growth",
+              "min": 10
+            },
+            {
+              "field": "gross_margin",
+              "min": 50
+            },
+            {
+              "field": "op_ebt",
+              "min": 70
+            },
+            {
+              "field": "roe",
+              "min": 15
+            },
+            {
+              "field": "roe_yoy",
+              "min": 20
+            }
+          ]
+        },
+        {
+          "key": "undervalued",
+          "page": 1,
+          "name": "Undervalued Stocks",
+          "description": "Spot stable, undervalued stocks for long-term growth.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "max": 15
+            },
+            {
+              "field": "pb",
+              "max": 1.5
+            },
+            {
+              "field": "div_yield",
+              "min": 4
+            },
+            {
+              "field": "debt_ratio",
+              "max": 30
+            },
+            {
+              "field": "roe",
+              "min": 15,
+              "excl_min": 1
+            },
+            {
+              "field": "revenue_growth",
+              "min": 3,
+              "excl_min": 1
+            }
+          ]
+        },
+        {
+          "key": "growth",
+          "page": 1,
+          "name": "Best Growth Stocks",
+          "description": "Spot stocks with growth potential and solid financial standing.",
+          "filters": [
+            {
+              "field": "float_cap",
+              "min": 500000000.0
+            },
+            {
+              "field": "net_profit_growth",
+              "min": 15
+            },
+            {
+              "field": "gross_margin",
+              "min": 50
+            },
+            {
+              "field": "roe",
+              "min": 15
+            },
+            {
+              "field": "roe_yoy",
+              "min": 50,
+              "excl_min": 1
+            }
+          ]
+        },
+        {
+          "key": "pb-lt-1",
+          "page": 1,
+          "name": "P/B Ratio Less Than 1",
+          "description": "Spot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.",
+          "filters": [
+            {
+              "field": "pb",
+              "max": 1
+            }
+          ]
+        },
+        {
+          "key": "best-lt-high-div",
+          "page": 2,
+          "name": "Best Long Term High Dividend Stocks",
+          "description": "Spot stocks with reliable dividends and steady growth for secure long-term returns.",
+          "filters": [
+            {
+              "field": "div_yield",
+              "min": 4
+            },
+            {
+              "field": "pe_ttm",
+              "max": 20
+            },
+            {
+              "field": "pb",
+              "max": 1.5
+            },
+            {
+              "field": "debt_ratio",
+              "max": 40
+            },
+            {
+              "field": "revenue_growth",
+              "min": 3
+            }
+          ]
+        },
+        {
+          "key": "high-pe",
+          "page": 2,
+          "name": "High P/E Ratio Stocks",
+          "description": "Spot stocks with high P/E ratios, which suggest a profitable and sustainable business.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "min": 25
+            },
+            {
+              "field": "op_profit_growth",
+              "min": 30,
+              "excl_min": 1
+            }
+          ]
+        },
+        {
+          "key": "good-pe",
+          "page": 2,
+          "name": "Good P/E Ratio Stocks",
+          "description": "Spot stocks with solid fundamentals and high P/E ratios for consistent profitability and returns.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "min": 20
+            },
+            {
+              "field": "eps_growth",
+              "min": 5
+            },
+            {
+              "field": "div_yield",
+              "min": 2
+            },
+            {
+              "field": "net_margin",
+              "min": 10
+            }
+          ]
+        },
+        {
+          "key": "low-pe",
+          "page": 2,
+          "name": "Low P/E Ratio Stocks",
+          "description": "Spot stocks with low P/E ratios, which are potentially undervalued for stable gains and reduced risk.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "max": 5,
+              "excl_max": 1
+            },
+            {
+              "field": "pb",
+              "max": 3,
+              "excl_max": 1
+            },
+            {
+              "field": "debt_ratio",
+              "max": 60,
+              "excl_max": 1
+            }
+          ]
+        },
+        {
+          "key": "rsi-30",
+          "page": 2,
+          "name": "Below 30 RSI Stocks",
+          "description": "Spot stocks with an RSI value under 30, which may indicate a rebound from negative market sentiment.",
+          "filters": [
+            {
+              "field": "rsi14",
+              "max": 30
+            }
+          ]
+        },
+        {
+          "key": "junk",
+          "page": 2,
+          "name": "Junk Stocks",
+          "description": "Spot small, high-risk, yet undervalued stocks with the potential for significant returns.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "min": 0
+            },
+            {
+              "field": "price",
+              "max": 5
+            },
+            {
+              "field": "market_cap",
+              "max": 100000000.0
+            }
+          ]
+        },
+        {
+          "key": "small-growth",
+          "page": 2,
+          "name": "Small Cap Stocks with Huge Growth Potential",
+          "description": "Spot small-cap stocks with significant growth potential.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 1
+            },
+            {
+              "field": "market_cap",
+              "min": 250000000.0,
+              "max": 2000000000.0
+            },
+            {
+              "field": "revenue_growth",
+              "min": 20
+            },
+            {
+              "field": "rsi14",
+              "min": 50
+            }
+          ]
+        },
+        {
+          "key": "blue-chip-div",
+          "page": 2,
+          "name": "Blue Chip Dividend Stocks",
+          "description": "Spot familiar blue-chip stocks with high dividends for dependable income and value investment.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 50
+            },
+            {
+              "field": "market_cap",
+              "min": 100000000000.0
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            },
+            {
+              "field": "div_yield",
+              "min": 4
+            }
+          ]
+        },
+        {
+          "key": "speculative",
+          "page": 3,
+          "name": "Speculative Stocks",
+          "description": "Spot high-risk, high-return stocks, including those at their recent 10-day low that may be undervalued and ready to rebound.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 5
+            },
+            {
+              "field": "market_cap",
+              "min": 100000000.0
+            },
+            {
+              "field": "net_margin",
+              "min": 10
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            },
+            {
+              "field": "new_low_10d",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "key": "high-roe",
+          "page": 3,
+          "name": "High Return On Equity Stocks",
+          "description": "Spot high-quality stocks with solid profitability, growth, and attractive dividends for long-term stability.",
+          "filters": [
+            {
+              "field": "roe",
+              "min": 20
+            },
+            {
+              "field": "revenue_growth",
+              "min": 5
+            },
+            {
+              "field": "div_yield",
+              "min": 2
+            },
+            {
+              "field": "pe_ttm",
+              "max": 25
+            }
+          ]
+        },
+        {
+          "key": "lt-high-div",
+          "page": 3,
+          "name": "Low P/E High Dividend Stocks",
+          "description": "Spot financially stable, consistently growing stocks for secure and steady long-term returns.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "max": 15
+            },
+            {
+              "field": "div_yield",
+              "min": 4
+            },
+            {
+              "field": "revenue_growth",
+              "min": 3
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            }
+          ]
+        },
+        {
+          "key": "undervalued-semi",
+          "page": 3,
+          "name": "Undervalued Semiconductor Stocks",
+          "description": "Spot semiconductor sector stocks that are well-valued, financially robust, and profitable for attractive long-term returns.",
+          "filters": [
+            {
+              "field": "sector",
+              "plate_ids": [
+                10002016,
+                10002015
+              ]
+            },
+            {
+              "field": "pe_ttm",
+              "max": 18
+            },
+            {
+              "field": "pb",
+              "max": 5
+            },
+            {
+              "field": "roe",
+              "min": 10
+            }
+          ]
+        },
+        {
+          "key": "undervalued-tech",
+          "page": 3,
+          "name": "Undervalued Tech Stocks",
+          "description": "Spot tech stocks that are undervalued by the market.",
+          "filters": [
+            {
+              "field": "sector",
+              "plate_ids": [
+                10002016,
+                10002072,
+                10002492,
+                10002470,
+                10002508,
+                10002252,
+                10002098,
+                10002004
+              ]
+            },
+            {
+              "field": "pe_ttm",
+              "max": 15
+            },
+            {
+              "field": "pb",
+              "max": 5
+            },
+            {
+              "field": "roe",
+              "min": 10
+            }
+          ]
+        },
+        {
+          "key": "undervalued-banks",
+          "page": 3,
+          "name": "Undervalued Bank Stocks",
+          "description": "Spot bank stocks that are financially sound, reasonably valued, and highly profitable.",
+          "filters": [
+            {
+              "field": "sector",
+              "plate_ids": [
+                10002481,
+                10002456
+              ]
+            },
+            {
+              "field": "pe_ttm",
+              "max": 10
+            },
+            {
+              "field": "pb",
+              "max": 1
+            },
+            {
+              "field": "roe",
+              "min": 12
+            }
+          ]
+        },
+        {
+          "key": "high-eps",
+          "page": 3,
+          "name": "High EPS Stocks",
+          "description": "Spot stocks with favorable financial footing and high profitability for investment.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 5
+            },
+            {
+              "field": "market_cap",
+              "min": 100000000.0
+            },
+            {
+              "field": "eps",
+              "min": 10
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            }
+          ]
+        }
+      ],
+      "watchlist": [
+        "AAPL",
+        "AMD",
+        "META",
+        "NVDA",
+        "RKLB",
+        "TSLA"
+      ]
+    }
+  }
+}

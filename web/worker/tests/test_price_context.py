@@ -4,13 +4,12 @@ Offline-first: the engine's snapshot module is faked via sys.modules so no
 test reaches yfinance; a sys.modules None-entry proves the graceful fallback
 when the engine is not installed.
 """
+
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 from types import SimpleNamespace
-
-import pytest
 
 from tradingagents_worker import digest
 from tradingagents_worker.price_context import build_price_context
@@ -23,8 +22,16 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 SNAP_TEXT = "## Verified market data snapshot for NVDA\n\n| Close | 178.05 |"
-SNAP_ROWS = [{"date": "2026-09-26", "open": 176.0, "high": 179.0, "low": 175.0,
-              "close": 178.05, "volume": 123456}]
+SNAP_ROWS = [
+    {
+        "date": "2026-09-26",
+        "open": 176.0,
+        "high": 179.0,
+        "low": 175.0,
+        "close": 178.05,
+        "volume": 123456,
+    }
+]
 
 
 def _fake_snapshot_module(monkeypatch, fn):
@@ -33,8 +40,10 @@ def _fake_snapshot_module(monkeypatch, fn):
 
 
 def test_build_price_context_returns_text_rows_and_latest(monkeypatch):
-    _fake_snapshot_module(monkeypatch, lambda sym, date: {
-        "text": SNAP_TEXT, "rows": SNAP_ROWS, "latest_date": "2026-09-26"})
+    _fake_snapshot_module(
+        monkeypatch,
+        lambda sym, date: {"text": SNAP_TEXT, "rows": SNAP_ROWS, "latest_date": "2026-09-26"},
+    )
     out = build_price_context("NVDA", "2026-09-26")
     assert out == {"text": SNAP_TEXT, "rows": SNAP_ROWS, "latest_date": "2026-09-26"}
 
@@ -42,6 +51,7 @@ def test_build_price_context_returns_text_rows_and_latest(monkeypatch):
 def test_build_price_context_survives_vendor_errors(monkeypatch):
     def boom(sym, date):
         raise RuntimeError("yfinance down")
+
     _fake_snapshot_module(monkeypatch, boom)
     assert build_price_context("NVDA", "2026-09-26") is None
 
@@ -66,8 +76,9 @@ def test_stub_runner_accepts_and_ignores_price_context():
     from tradingagents_worker.events import Emitter
     from tradingagents_worker.runner import StubRunner
 
-    out = StubRunner().run("NVDA", "2026-09-26", "standard", None,
-                           Emitter(_RecorderDb(), "j"), price_context=SNAP_TEXT)
+    out = StubRunner().run(
+        "NVDA", "2026-09-26", "standard", None, Emitter(_RecorderDb(), "j"), price_context=SNAP_TEXT
+    )
     assert out["signal"] == "buy" and "verified_snapshot" not in (out.get("reports") or {})
 
 
@@ -79,16 +90,25 @@ def test_engine_runner_forwards_price_context_to_propagate(monkeypatch):
 
     def fake_propagate(ticker, trade_date, on_node=None, price_context=""):
         captured["price_context"] = price_context
-        return {"market_report": "m", "sentiment_report": "", "news_report": "",
-                "fundamentals_report": "", "trader_investment_plan": "t",
-                "investment_debate_state": {"history": ""},
-                "risk_debate_state": {"history": ""},
-                "final_trade_decision": "d"}, "Buy"
+        return {
+            "market_report": "m",
+            "sentiment_report": "",
+            "news_report": "",
+            "fundamentals_report": "",
+            "trader_investment_plan": "t",
+            "investment_debate_state": {"history": ""},
+            "risk_debate_state": {"history": ""},
+            "final_trade_decision": "d",
+        }, "Buy"
 
-    monkeypatch.setattr(EngineRunner, "_ensure_graph",
-                        lambda self, depth: SimpleNamespace(propagate=fake_propagate))
-    monkeypatch.setattr(llm_usage, "reconcile",
-                        lambda totals, handler_totals, model: {"prompt": 0, "completion": 0, "cost_usd": 0.0})
+    monkeypatch.setattr(
+        EngineRunner, "_ensure_graph", lambda self, depth: SimpleNamespace(propagate=fake_propagate)
+    )
+    monkeypatch.setattr(
+        llm_usage,
+        "reconcile",
+        lambda totals, handler_totals, model: {"prompt": 0, "completion": 0, "cost_usd": 0.0},
+    )
     monkeypatch.setattr(llm_usage, "install", lambda: None)
     emitted = []
 
@@ -111,9 +131,21 @@ def test_digest_stores_the_verified_snapshot(monkeypatch):
             self.upserts = []
 
         def select(self, table, query=None, columns="*"):
-            return [{"id": "run-1", "ticker_id": "t", "quick_model": "m", "deep_model": "x",
-                     "prompt_tokens": 0, "completion_tokens": 0, "cost_usd": 0.0}] \
-                if table == "runs" else []
+            return (
+                [
+                    {
+                        "id": "run-1",
+                        "ticker_id": "t",
+                        "quick_model": "m",
+                        "deep_model": "x",
+                        "prompt_tokens": 0,
+                        "completion_tokens": 0,
+                        "cost_usd": 0.0,
+                    }
+                ]
+                if table == "runs"
+                else []
+            )
 
         def upsert(self, table, on_conflict, row):
             self.upserts.append((table, row))
@@ -123,10 +155,12 @@ def test_digest_stores_the_verified_snapshot(monkeypatch):
 
     db = FakeDb()
     resp = SimpleNamespace(
-        choices=[SimpleNamespace(message=SimpleNamespace(
-            content='{"debate_summary": "s"}'))],
-        usage=SimpleNamespace(prompt_tokens=1, completion_tokens=1, cost=0.0))
-    client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=lambda **kw: resp)))
+        choices=[SimpleNamespace(message=SimpleNamespace(content='{"debate_summary": "s"}'))],
+        usage=SimpleNamespace(prompt_tokens=1, completion_tokens=1, cost=0.0),
+    )
+    client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=lambda **kw: resp))
+    )
     monkeypatch.setattr(digest, "_client", lambda: client)
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
 
@@ -166,14 +200,21 @@ def _backfill_db(missing_ids):
     db = BackfillDb()
     for i, (rid, missing) in enumerate([("run-keep", False), ("run-missing", True)]):
         db.t_("tickers").append({"id": f"tick-{i}", "symbol": "NVDA"})
-        db.t_("runs").append({"id": rid, "ticker_id": f"tick-{i}",
-                             "trade_date": "2026-09-30", "status": "succeeded"})
+        db.t_("runs").append(
+            {"id": rid, "ticker_id": f"tick-{i}", "trade_date": "2026-09-30", "status": "succeeded"}
+        )
         if not missing:
             db.t_("run_digest").append({"run_id": rid, "digest": {"evidence": []}})
     # a seeded-only row (no evidence key) counts as incomplete
     db.t_("run_digest").append({"run_id": "run-seedonly", "digest": {"verified_snapshot": "S"}})
-    db.t_("runs").append({"id": "run-seedonly", "ticker_id": "tick-0",
-                          "trade_date": "2026-09-30", "status": "succeeded"})
+    db.t_("runs").append(
+        {
+            "id": "run-seedonly",
+            "ticker_id": "tick-0",
+            "trade_date": "2026-09-30",
+            "status": "succeeded",
+        }
+    )
     return db
 
 
@@ -181,8 +222,10 @@ def test_backfill_digests_rebuilds_missing_with_snapshot(monkeypatch):
     from tradingagents_worker import digest as dg
 
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
-    _fake_snapshot_module(monkeypatch, lambda sym, date: {
-        "text": SNAP_TEXT, "rows": SNAP_ROWS, "latest_date": "2026-09-26"})
+    _fake_snapshot_module(
+        monkeypatch,
+        lambda sym, date: {"text": SNAP_TEXT, "rows": SNAP_ROWS, "latest_date": "2026-09-26"},
+    )
     called = {}
 
     def fake_build(db_, run_id, ticker, verified_snapshot=None):

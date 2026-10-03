@@ -1,0 +1,14 @@
+{
+  "claim_overlap": {
+    "actual_blocking_observed": true,
+    "contender_acquired": false
+  },
+  "publication_release_overlap": {
+    "actual_blocking_observed": true,
+    "revision": 1,
+    "successor_acquired": true,
+    "stale_publisher_rejected": true,
+    "prior_record_exact": true
+  },
+  "database_removed": true
+}

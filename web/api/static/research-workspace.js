@@ -1,5 +1,39 @@
 /* Research workspace: presentation and navigation over the existing screener.
    Existing preset membership, columns, exports and KLine engine remain authoritative. */
+// The first release exposes Desk + full research. Deferred workflows remain intact.
+function researchExtendedWorkspaceEnabled() { return window.__researchExtendedWorkspace === true; }
+function researchPresetUnavailable(preset) {
+ return (preset?.filters || []).some(f=>f.field==='rsi14') ? 'RSI provider unsupported' : '';
+}
+function researchPresentationMode(mode) {
+ return researchExtendedWorkspaceEnabled() && ['explore','changes'].includes(mode) ? mode : 'table';
+}
+function researchExportJSON(value) {
+ return JSON.stringify(value,(_key,v)=>typeof v==='number' && !Number.isFinite(v)?{export_unavailable:'nonfinite_number',source_value:String(v)}:v);
+}
+function researchCSVCell(value) {
+ let s=value==null?'':typeof value==='object'?researchExportJSON(value):typeof value==='number' && !Number.isFinite(value)?researchExportJSON({export_unavailable:'nonfinite_number',source_value:String(value)}):String(value);
+ if(typeof value==='string' && (/^\s*[=+@-]/.test(s) || /^[\t\r\n]/.test(s)))s="'"+s;
+ return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;
+}
+function researchExportRow(row,columns) {
+ const result={...row},issues=[];
+ for(const field of columns){const value=row[field],kind=SCR_COLS[field]?.[1];
+  if(kind==='num' || RESEARCH_CURRENCY_FIELDS.has(field)){
+   if(typeof value==='number' && Number.isFinite(value))continue;
+   result[field]='Unavailable';if(value!=null)issues.push({field,reason:'invalid_numeric',source_value:value});
+  }else if(kind==='bool'){
+   result[field]=researchDisplayField(field,value);if(value!=null && result[field]==='Unavailable')issues.push({field,reason:'invalid_flag',source_value:value});
+  }
+ }
+ result.export_value_issues=issues;return result;
+}
+function researchXMLCell(value) {
+ const number=typeof value==='number' && Number.isFinite(value);
+ const text=value==null?'':typeof value==='object'?researchExportJSON(value):typeof value==='number' && !Number.isFinite(value)?researchExportJSON({export_unavailable:'nonfinite_number',source_value:String(value)}):String(value);
+ const safe=text.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0')).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+ return '<Cell><Data ss:Type="'+(number?'Number':'String')+'">'+safe+'</Data></Cell>';
+}
 function researchRows() { return scrClientRows() || []; }
 function researchVisibleRows() { return window.__homeCtx?.scr?.rows || []; }
 function researchKey(r) { return r.code || r.symbol; }
@@ -9,32 +43,79 @@ function researchSelect(i, on) {
   on ? set.add(researchKey(row)) : set.delete(researchKey(row));
   window.__researchSelected = [...set]; researchSelectionMount();
 }
+function researchRemoveSelection(code) {
+ window.__researchSelected=(window.__researchSelected || []).filter(k=>k!==code);
+ researchSelectionMount();
+}
+function researchSelectedRows(rows, selected) {
+ const keys=new Set(selected || []);
+ return rows.filter(r=>keys.has(researchKey(r)));
+}
 function researchSelectionMount() {
-  const el = document.getElementById('research-selection'); if (!el) return;
-  const selected = window.__researchSelected || [];
-  el.innerHTML = `<span>${selected.length} selected</span><button class="btn primary" onclick="researchCompare()" ${selected.length < 2 || selected.length > 4 ? 'disabled' : ''}>Compare selected</button><button class="btn ghost" onclick="window.__researchSelected=[];showPage('home')">Clear selection</button><span class="faint">Choose 2–4 stocks</span>`;
-  el.hidden = !selected.length;
+ const el=document.getElementById('research-selection');if(!el)return;
+ const selected=window.__researchSelected || [],rows=researchRows();
+ const byKey=new Map(rows.map(r=>[researchKey(r),r]));
+ el.innerHTML=`<span role="status">${selected.length} selected</span><div class="selection-chips">${selected.map(code=>`<button class="btn ghost selection-chip" aria-label="Remove ${esc(byKey.get(code)?.symbol || code)} from selection" onclick="researchRemoveSelection(${esc(JSON.stringify(code))})">${esc(byKey.get(code)?.symbol || code)} <small>Remove</small></button>`).join('')}</div><button class="btn primary" onclick="researchCompare()" ${selected.length<2 || selected.length>4?'disabled':''}>Compare selected (${selected.length})</button><details class="research-export"><summary class="btn ghost">Export selected</summary><div class="export-options"><button class="btn ghost" onclick="scrExport('csv','selected')">CSV · selected stocks</button><button class="btn ghost" onclick="scrExport('xls','selected')">Excel · selected stocks</button><small>Current loaded cohort and sort · Excel-compatible .xls</small></div></details><button class="btn ghost" onclick="window.__researchSelected=[];researchSelectionMount()">Clear selection</button><span class="faint">Compare 2–4; export any selection</span>`;
+ el.hidden=!selected.length;
+ researchExploreSelectionMount();
+ document.querySelectorAll('.scr-table tr,.mobile-stock,.explore-linked tr').forEach(tr=>{
+  const checkbox=tr.querySelector('input[type=checkbox]');if(!checkbox)return;
+  const index=Number(checkbox.dataset.researchIndex);const row=checkbox.dataset.researchCode?byKey.get(checkbox.dataset.researchCode):researchVisibleRows()[index];
+  const checked=!!row && selected.includes(researchKey(row));checkbox.checked=checked;tr.classList.toggle('research-selected',checked);
+ });
+}
+function researchOriginPersist() {
+ const ctx=window.__researchContext;if(!ctx)return;
+ const owner=ctx.kind==='shortlists' || ctx.kind==='changes' && ctx.private?window.__researchSession?.user.id:null;
+ if((ctx.kind==='shortlists' || ctx.kind==='changes' && ctx.private) && !owner)return;
+ try{sessionStorage.setItem('researchOriginV1',JSON.stringify({version:1,owner,context:ctx}));}catch(e){}
+}
+async function researchOriginRestore() {
+ let saved;try{saved=JSON.parse(sessionStorage.getItem('researchOriginV1'));}catch(e){return;}
+ if(saved?.version!==1 || !saved.context || typeof saved.context!=='object')return;
+ const ctx=saved.context;
+ if(ctx.kind==='shortlists' || ctx.kind==='changes' && ctx.private){
+  await window.__researchAccountReady;
+  if(!saved.owner || saved.owner!==window.__researchSession?.user.id)return;
+ }else if(ctx.kind!=null && ctx.kind!=='changes' || saved.owner || !ctx.state || typeof ctx.state!=='object' || Array.isArray(ctx.state))return;
+ if(!Array.isArray(ctx.rows) || ctx.rows.length>(ctx.kind==='changes'?40000:20000) || !ctx.rows.every(r=>r && typeof r.code==='string' && /^(US|HK)\.[A-Za-z0-9._-]{1,32}$/.test(r.code)))return;
+ const codes=new Set(ctx.rows.map(r=>r.code));
+ if(codes.size!==ctx.rows.length || !Array.isArray(ctx.selected) || ctx.selected.length>codes.size || new Set(ctx.selected).size!==ctx.selected.length || !ctx.selected.every(k=>typeof k==='string' && codes.has(k)))return;
+ if(ctx.kind==='shortlists'){if(!researchListIDValid(ctx.listID))return;ctx.q=typeof ctx.q==='string'?ctx.q.slice(0,80):'';ctx.offset=Number.isSafeInteger(ctx.offset) && ctx.offset>=0 && ctx.offset<=10000000?ctx.offset:0;ctx.review_status=['all','unreviewed','in_review','reviewed'].includes(ctx.review_status)?ctx.review_status:'all';}
+ if(ctx.kind==='changes'){
+  if(typeof ctx.private!=='boolean' || !ctx.state || typeof ctx.state!=='object' || Array.isArray(ctx.state) || ctx.state.presentation!=='changes')return;
+  const change=ctx.changeState,selection=ctx.changeSelection,selectedCodes=new Set(ctx.selected);
+  if(!change || typeof change.key!=='string' || !['new','exited','all'].includes(change.status) || typeof change.q!=='string' || change.q.length>100 || ![1,2].includes(change.direction) || !Number.isSafeInteger(change.offset) || change.offset<0 || change.offset>40000 || !Number.isSafeInteger(change.limit) || change.limit<1 || change.limit>500)return;
+  if(change.source!=null && !['manual','private'].includes(change.source) || change.source==='private' && (!ctx.private || !researchListIDValid(change.schedule_id)))return;
+  if(!selection || typeof selection.key!=='string' || !Array.isArray(selection.rows) || selection.rows.length!==ctx.selected.length || new Set(selection.rows.map(r=>r?.code)).size!==selection.rows.length || !selection.rows.every(r=>r && codes.has(r.code) && selectedCodes.has(r.code)))return;
+ }
+ if(!Number.isFinite(ctx.scroll) || ctx.scroll<0)return;
+ window.__researchContext=ctx;
 }
 function researchCaptureContext() {
   window.__researchContext = {state:JSON.parse(JSON.stringify(window.__scr)),hash:location.hash,
-    scroll:window.scrollY || 0,tableScroll:document.querySelector('.scr-scroll')?.scrollTop || 0,
+    scroll:window.scrollY || 0,tableScroll:document.querySelector('.scr-scroll')?.scrollTop || 0,tableScrollLeft:document.querySelector('.scr-scroll')?.scrollLeft || 0,
     rows:researchRows().map(r=>({code:researchKey(r),symbol:r.symbol})),selected:[...(window.__researchSelected || [])]};
+  if(window.__scr.presentation==='changes' && window.__changePayload?.comparable){const d=window.__changePayload,sel=researchChangeSelection(d,researchChangeState());window.__researchContext={...window.__researchContext,kind:'changes',private:researchPairPrivate(d),changeState:JSON.parse(JSON.stringify(researchChangeState())),changeSelection:JSON.parse(JSON.stringify(sel)),rows:[...new Map([...d.rows,...sel.rows].map(r=>[r.code,{code:r.code,symbol:r.symbol}])).values()],selected:sel.rows.map(r=>r.code)};}
+  researchOriginPersist();
 }
 function researchOpen(code) {
   if (state.page === 'home') researchCaptureContext();
+  if(state.page==='shortlists'){researchListOpenStock(code);return;}
   openStock(code);
 }
 async function researchReturn() {
   const ctx=window.__researchContext;
-  if(ctx) {window.__scr=JSON.parse(JSON.stringify(ctx.state));window.__researchSelected=[...ctx.selected];}
+  if(ctx?.kind==='shortlists'){window.__researchListID=ctx.listID;window.__researchListOffset=ctx.offset;window.__researchListSearch=ctx.q || '';window.__researchListStatus=ctx.review_status || 'all';await showPage('shortlists');window.scrollTo(0,ctx.scroll || 0);return;}
+  if(ctx) {window.__scr=JSON.parse(JSON.stringify(ctx.state));if(ctx.kind==='changes'){window.__changeState=JSON.parse(JSON.stringify(ctx.changeState));window.__researchChangeSelection=JSON.parse(JSON.stringify(ctx.changeSelection));}else window.__researchSelected=[...ctx.selected];}
   scrPersist(); await showPage('home');
   window.scrollTo(0,ctx?.scroll || 0);
-  const table=document.querySelector('.scr-scroll');if(table)table.scrollTop=ctx?.tableScroll || 0;
+  const table=document.querySelector('.scr-scroll');if(table){table.scrollTop=ctx?.tableScroll || 0;table.scrollLeft=ctx?.tableScrollLeft || 0;}
 }
 function researchBreadcrumb() {
   const ctx=window.__researchContext; if(!ctx)return '';
   const index=ctx.rows.findIndex(r=>r.code===stkState().sym || r.symbol===stkState().sym);
-  return `<div class="research-breadcrumb"><button class="btn ghost" onclick="researchReturn()">← Back to screen</button><span class="faint">${esc(ctx.state.market)} · ${ctx.rows.length.toLocaleString()} available matches</span><button class="btn ghost" onclick="researchAdjacent(-1)" ${index<=0?'disabled':''}>Previous stock</button><button class="btn ghost" onclick="researchAdjacent(1)" ${index<0 || index>=ctx.rows.length-1?'disabled':''}>Next stock</button></div>`;
+  return `<div class="research-breadcrumb"><button class="btn ghost" onclick="researchReturn()">← Back to ${ctx.kind==='shortlists'?'shortlist':'screen'}</button><span class="faint">${ctx.kind==='shortlists'?'Private research list':esc(ctx.state.market)} · ${ctx.rows.length.toLocaleString()} available matches</span><button class="btn ghost" onclick="researchAdjacent(-1)" ${index<=0?'disabled':''}>Previous stock</button><button class="btn ghost" onclick="researchAdjacent(1)" ${index<0 || index>=ctx.rows.length-1?'disabled':''}>Next stock</button></div>`;
 }
 function researchAdjacent(delta) {
  const rows=window.__researchContext?.rows || [],i=rows.findIndex(r=>r.code===stkState().sym || r.symbol===stkState().sym);
@@ -46,106 +127,1166 @@ function researchCompare() {
   const st=cmpState();st.cells=selected.map(code=>({...JSON.parse(JSON.stringify(CMP_DEFAULT.cells[0])),sym:code.replace(/^US\./,'')}));
   st.layout=selected.length===2?'2h':selected.length===3?'1+2':'2x2';st.active=0;st.sync.ticker=false;cmpSave();showPage('compare');
 }
-function researchMode(mode) {window.__scr.presentation=mode;scrPersist();showPage('home');}
+function researchMode(mode) {window.__scr.presentation=researchPresentationMode(mode);scrPersist();showPage('home');}
 function researchSave() {openFilterModal();scrModalTab('screeners');}
-function researchLibrarySearch(q) {
- q=q.toLowerCase();document.querySelectorAll('.research-library .preset').forEach(el=>el.hidden=!el.textContent.toLowerCase().includes(q));
+function researchStable(value) {
+ if(Array.isArray(value))return value.map(researchStable);
+ if(value && typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(k=>[k,researchStable(value[k])]));
+ return value;
+}
+function researchSavedModified(saved,st) {
+ if(!saved)return false;
+ const defaults={src:'moo',etfs:false,cols:[...VIEW_PRESETS.overview],view:'overview',presentation:'table',preset:null,colFilters:{}};
+ const settings={...defaults,...saved.settings};
+ const expected={market:saved.market || st.market,watchlistOnly:!!saved.watchlist_only,filters:saved.filters || [],sort:saved.sort || 'market_cap',dir:saved.direction || 2,src:settings.src,etfs:settings.etfs,cols:settings.cols,view:settings.view,presentation:researchPresentationMode(settings.presentation),activePreset:settings.preset || null,colFilters:settings.colFilters || {}};
+ const actual=Object.fromEntries(Object.keys(expected).map(k=>[k,st[k] ?? (k==='presentation'?'table':k==='view'?'overview':k==='colFilters'?{}:null)]));
+ actual.presentation=researchPresentationMode(actual.presentation);
+ return JSON.stringify(researchStable(expected))!==JSON.stringify(researchStable(actual));
+}
+function researchViewLabel(view,st) {
+ const name=view[0].toUpperCase()+view.slice(1);
+ return view===st.view && VIEW_PRESETS[view] && JSON.stringify(st.cols)!==JSON.stringify(VIEW_PRESETS[view])?name+' · retained columns':name;
+}
+function researchScreenTitle(st=window.__scr) {
+ const saved=(window.__savedScreeners || []).find(s=>s.id===st.savedScreenId),preset=(window.__scrPresets || []).find(p=>p.key===st.activePreset);
+ if(st.savedScreenId)return (saved?.name || 'Saved screen')+(saved && researchSavedModified(saved,st)?' · Modified':'');
+ if(preset){const modified=st.filters.some(f=>!(preset.filters || []).some(p=>JSON.stringify(p)===JSON.stringify(f))) || Object.keys(st.colFilters || {}).length>0;return preset.name+(modified?' · Modified':'');}
+ return st.activePreset?'Screen results':st.filters.length || Object.keys(st.colFilters).length?'Custom screen':'All stocks';
 }
 function researchSavedMount() {
  const el=document.getElementById('research-saved');if(!el)return;
- el.innerHTML=(window.__savedScreeners || []).map(s=>`<button class="btn ghost saved-screen ${window.__scr.savedScreenId===s.id?'on':''}" onclick="scrApplySaved('${esc(s.id)}')">${esc(s.name)}<small>${esc(s.sort)} ${s.direction===1?'↑':'↓'}</small></button>`).join('') || '<p class="faint">Save your criteria to revisit them.</p>';
+ el.innerHTML=(window.__savedScreeners || []).map(s=>`<button class="btn ghost saved-screen ${window.__scr.savedScreenId===s.id?'on':''}" onclick="researchLibraryClose(false);scrApplySaved('${esc(s.id)}')">${esc(s.name)}${window.__scr.savedScreenId===s.id && researchSavedModified(s,window.__scr)?' <span class="saved-modified">Modified</span>':''}<small>${esc(s.sort)} ${s.direction===1?'↑':'↓'}</small></button>`).join('') || '<p class="faint saved-empty">Save your criteria to revisit them.</p>';
+ researchLibrarySearch(window.__researchLibraryQuery || '');
+ const heading=document.querySelector('.desk-title h2') || document.querySelector('.change-context h2');if(heading)heading.textContent=(window.__scr.presentation==='changes'?'Changes in ':'')+researchScreenTitle();
+}
+function researchSortSet(field, direction) {
+ if(!SCR_COLS[field] || ![1,2].includes(Number(direction)))return;
+ Object.assign(window.__scr,{sort:field,dir:Number(direction),page:1});scrPersist();showPage('home');
+}
+function researchLibraryGroups(presets) {
+ const groups=[['Value & quality',['buffett','undervalued','pb-lt-1','good-pe','low-pe','high-roe','undervalued-semi','undervalued-tech','undervalued-banks']],['Income',['high-div','best-lt-high-div','blue-chip-div','lt-high-div']],['Growth & established',['blue-chip','growth','high-pe','high-eps']],['Price & technical',['penny','rsi-30','junk','small-growth','speculative']]];
+ const used=new Set();const result=groups.map(([name,keys])=>({name,presets:presets.filter(p=>keys.includes(p.key) && !used.has(p.key) && used.add(p.key))})).filter(g=>g.presets.length);
+ const other=presets.filter(p=>!used.has(p.key));if(other.length)result.push({name:'Other screens',presets:other});return result;
+}
+function researchLibraryHTML(st,presets) {
+ const call=x=>esc(JSON.stringify(x));
+ const card=p=>{const ck=p.key+'|'+st.market,success=window.__presetCache?.[ck],last=window.__presetLastResult?.[ck],cached=last && (!success || last.ts>success.ts)?last:success,payload=cached?.payload;
+  const unavailable=researchPresetUnavailable(p);
+  const label=unavailable?'Unavailable — '+unavailable:payload?.available===false?'Unavailable':payload?.available?payload.rows.length.toLocaleString()+' loaded':'Not loaded';
+  return `<button class="preset ${st.activePreset===p.key?'on':''}" data-screen-key="${esc(p.key)}" ${unavailable?'disabled':''} aria-pressed="${st.activePreset===p.key}" onclick="researchLibraryClose(false);scrApplyPreset(${call(p.key)})" onmouseenter="scrWarmPreset(${call(p.key)},${call(st.market)})" onfocus="scrWarmPreset(${call(p.key)},${call(st.market)})" title="${esc(p.description || p.name)}"><span class="pname">${esc(p.name)}</span><small>${(p.filters || []).length} criteria · ${esc(SCR_COLS[p.sort || 'pct']?.[0] || p.sort || 'Day change')} ${p.direction===1?'ascending':'descending'}</small><span class="library-count" title="Loaded provider results; before additional stock/ETF and custom exclusions. ${cached?.ts?'Retrieved '+new Date(cached.ts).toISOString():'No cached execution'}">${esc(label)}</span></button>`;
+ };
+ return `<aside class="panel scr-rail research-library" id="research-library" aria-label="Screen library"><div class="library-heading"><h2>Screen library</h2><button class="btn ghost library-close" onclick="researchLibraryClose()">Close screens</button></div><input id="research-library-search" aria-label="Search screens" placeholder="Search all screens…" value="${esc(window.__researchLibraryQuery || '')}" oninput="researchLibrarySearch(this.value)"><button class="btn library-default ${!st.activePreset && !st.savedScreenId && !st.filters.length && !Object.keys(st.colFilters).length?'primary':'ghost'}" onclick="researchLibraryClose(false);scrResetAll()">All stocks<small>${esc(st.market)} · ETFs excluded · Market cap descending</small></button><section class="saved-library">${researchExtendedWorkspaceEnabled()?`<button class="btn ghost" onclick="researchLibraryClose(false);showPage('shortlists')">Research shortlists</button>`:''}<h3>My saved screens</h3><div id="research-saved"></div><button class="btn ghost" onclick="researchLibraryClose(false);researchSave()">Manage / save screen</button></section><h3 class="library-recommended-title">Recommended <small>${presets.length?presets.length+' screens':window.__scrPresetLibraryStatus==='loading'?'Loading…':'Unavailable'}</small></h3>${window.__scrPresetLibraryStatus==='unavailable'?'<p role="status">Screen library could not be refreshed. <button class="btn ghost" onclick="scrRetryPresetLibrary()">Retry screen library</button></p>':''}${researchLibraryGroups(presets).map(g=>`<details class="library-group" open ontoggle="researchLibraryGroupToggle(this)"><summary>${esc(g.name)} <small>${g.presets.length}</small></summary><div>${g.presets.map(card).join('')}</div></details>`).join('')}<div id="research-library-empty" hidden role="status"><p>No screens match your search.</p><button class="btn ghost" onclick="document.getElementById('research-library-search').value='';researchLibrarySearch('')">Clear search</button></div><p class="library-help">Counts describe cached provider executions, not a live market total. Open a screen for qualified results and coverage.</p></aside>`;
+}
+function researchLibraryGroupToggle(el) {
+ if(window.__researchLibraryQuery)return;
+ window.__researchLibraryCollapsed=window.__researchLibraryCollapsed || new Set();
+ const name=el.querySelector('summary')?.firstChild?.textContent?.trim();if(!name)return;
+ el.open?window.__researchLibraryCollapsed.delete(name):window.__researchLibraryCollapsed.add(name);
+}
+function researchLibrarySearch(q) {
+ window.__researchLibraryQuery=String(q || '');const query=window.__researchLibraryQuery.toLowerCase().trim();
+ document.querySelectorAll('.research-library .preset,.research-library .saved-screen').forEach(el=>el.hidden=!!query && !el.textContent.toLowerCase().includes(query));
+ document.querySelectorAll('.research-library .library-group').forEach(group=>{const matched=[...group.querySelectorAll('.preset')].some(el=>!el.hidden);group.hidden=!matched;if(query && matched)group.open=true;else if(!query){const name=group.querySelector('summary').firstChild.textContent.trim();group.open=!window.__researchLibraryCollapsed?.has(name);}});
+ const empty=document.getElementById('research-library-empty');if(empty)empty.hidden=!query || [...document.querySelectorAll('.research-library .preset,.research-library .saved-screen')].some(el=>!el.hidden);
+ const saved=document.getElementById('research-saved');if(saved){const cards=[...saved.querySelectorAll('.saved-screen')];const message=saved.querySelector('.saved-empty');if(message)message.hidden=cards.length>0;}
+}
+function researchLibraryClose(restore=true) {
+ const el=document.getElementById('research-library');el?.classList.remove('library-open');el?.removeAttribute('aria-modal');el?.removeAttribute('role');
+ researchModalRelease('library');if(restore && window.__libraryOrigin?.isConnected)window.__libraryOrigin.focus();
+}
+function researchLibraryOpen() {
+ const el=document.getElementById('research-library');if(!el)return;
+ window.__libraryOrigin=document.activeElement;el.classList.add('library-open');el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');researchModalIsolate(el,'library');
+ el.onkeydown=e=>researchModalKey(e,el,()=>researchLibraryClose());el.querySelector('input')?.focus();
+}
+function researchModalRelease(key) {
+ for(const [el,previous] of window.__researchModalInert?.[key] || [])el.inert=previous;
+ if(window.__researchModalInert)delete window.__researchModalInert[key];
+}
+function researchModalIsolate(el,key) {
+ researchModalRelease(key);const changed=[];
+ for(let current=el;current?.parentElement;current=current.parentElement){for(const sibling of current.parentElement.children){if(sibling!==current && !['SCRIPT','STYLE','LINK'].includes(sibling.tagName)){changed.push([sibling,sibling.inert]);sibling.inert=true;}}if(current.parentElement===document.body)break;}
+ window.__researchModalInert=window.__researchModalInert || {};window.__researchModalInert[key]=changed;
+}
+function researchModalKey(e,el,close) {
+ if(e.key==='Escape'){e.preventDefault();close();return;}
+ if(e.key!=='Tab')return;const controls=[...el.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),a[href],summary,[tabindex="0"]')].filter(x=>x.getClientRects().length),first=controls[0],last=controls.at(-1);
+ if(e.shiftKey && document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey && document.activeElement===last){e.preventDefault();first?.focus();}
+}
+function researchMarketHTML(ms,full) {
+ const labels={SPY:'S&P 500 proxy',QQQ:'Nasdaq-100 proxy',IWM:'Russell 2000 proxy',VIXY:'VIX futures ETF proxy'};
+ const summary=(ms?.indices || []).slice(0,5).map(x=>{const symbol=String(x.symbol || x.code || '').replace(/^US\./,'');const name=labels[symbol] || x.name || symbol;
+  return `<span class="market-proxy"><strong>${esc(symbol || x.name)} ${esc(labels[symbol] || '')}</strong><span>${x.last==null?'Unavailable':esc(fmtAuto(x.last))}</span><span class="${x.pct>=0?'g':'r'}">${x.pct==null?'—':esc(researchValue('pct',x.pct))}</span></span>`;
+ }).join('');
+ return `<details class="research-market"><summary><span>Market context</span>${summary || '<span class="faint">Unavailable</span>'}<small>${ms?.as_of?'As of '+esc(fmtTs(ms.as_of)):'Source time unavailable'}</small></summary><div>${full || '<p>Market context is unavailable. Screen results remain independently available.</p>'}<p class="faint">ETF proxies are context instruments and do not enter stock-only results. VIXY is a futures ETF, not the spot VIX level.</p></div></details>`;
+}
+function researchDeskHTML({st,scr,execd,ms,msPanel,table,allChips,prog,progPct}) {
+ const presets=window.__scrPresets || [],mode=researchPresentationMode(st.presentation);
+ st.presentation=mode;
+ const title=researchScreenTitle(st);
+ const source=scr.available===false?'Market data unavailable':scr.server_side?'Provider screen · financial basis requested: annual; reported period unverified':scr.universe_loaded?'Stored '+st.market+' universe'+(scr.universe_as_of?(scr.generation_id?' · generation published ':' · cache updated ')+fmtTs(scr.universe_as_of):' · source time unavailable'):'Live fallback slices · universe incomplete';
+ const matched=scr.matched ?? (scr.rows || []).length;
+ const exportMenu=`<details class="research-export"><summary class="btn ghost">Export</summary><div class="export-options">${[['csv','CSV'],['xls','Excel']].map(([kind,label])=>['page','all'].map(scope=>`<button class="btn ghost" ${scr.available===false?'disabled':''} onclick="scrExport('${kind}','${scope}')">${label} · ${scope==='page'?'this page':'available matches'}<small>${scr.available===false?'Data unavailable':Number(scope==='page'?(scr.shown ?? (scr.rows || []).length):matched).toLocaleString()+' '+(st.etfs?'instruments':'stocks')} · current columns and sort</small></button>`).join('')).join('')}<small>Current columns and sort · Excel-compatible .xls · available matches means loaded qualified results</small></div></details>`;
+ const marketSelector=`<label>Market<select id="scr-market" aria-label="Market" onchange="scrSet('market',this.value)">${['US','HK'].map(m=>`<option ${st.market===m?'selected':''}>${m}</option>`).join('')}</select></label>`;
+ const universe=`<details class="research-universe"><summary class="btn ghost">Universe & data</summary><div class="universe-options"><label>Data<select aria-label="Data source" onchange="scrSet('src',this.value)"><option value="moo" ${st.src!=='yf'?'selected':''}>Moomoo</option><option value="yf" ${st.src==='yf'?'selected':''}>Supplemental factors</option></select></label><label>Provider list<select id="scr-industry" aria-label="Provider list" onchange="scrTaxonomy('plate',this.value)"><option value="">Provider list: All</option></select></label><label>Provider theme<select id="scr-concepts" aria-label="Provider theme" onchange="scrTaxonomy('concepts',this.value)"><option value="">Theme: All</option></select></label><label>Exchange<select id="scr-exchange" aria-label="Exchange" onchange="scrTaxonomy('exchange',this.value)"><option value="">Exchange: All</option></select></label><label>Symbols<input id="scr-tickers" placeholder="NVDA, AAPL" value="${esc((st.filters.find(f=>f.field==='symbol')?.values || []).join(', '))}" onchange="scrTickers(this.value)"></label><label><input type="checkbox" id="scr-wl" ${st.watchlistOnly?'checked':''} onchange="scrSet('watchlistOnly',this.checked)"> Watchlist only</label><label><input type="checkbox" ${st.etfs?'checked':''} onchange="scrSet('etfs',this.checked)"> Include ETFs</label><button class="btn ghost" onclick="scrLoadUniverse(this)" ${window.__scrRefreshJob?'disabled':''}>${scr.universe_loaded?'Refresh full market':'Load full market'}</button><p>Provider lists and themes are vendor classifications. They are not normalized industry or sector classifications. Supplemental factor availability varies by stock; missing fields cannot qualify a filter.</p></div></details>`;
+ const pager=(matched>(scr.shown || 0) || st.page>1)?`<div class="pager"><button class="btn ghost" ${st.page<=1?'disabled':''} onclick="scrSet('page',1)">First</button><button class="btn ghost" ${st.page<=1?'disabled':''} onclick="scrPage(-1)">Previous</button><span>Page ${st.page || 1} of ${Math.max(1,Math.ceil(matched/(st.pageSize || 500)))}</span><button class="btn ghost" ${(scr.offset || 0)+(scr.shown || 0)>=matched?'disabled':''} onclick="scrPage(1)">Next</button><button class="btn ghost" ${(scr.offset || 0)+(scr.shown || 0)>=matched?'disabled':''} onclick="scrSet('page',999999)">Last</button><select aria-label="Rows per page" onchange="scrSet('pageSize',Number(this.value))">${[100,250,500,1000,2000].map(n=>`<option value="${n}" ${(st.pageSize || 500)===n?'selected':''}>${n} / page</option>`).join('')}</select></div>`:'';
+ return `${researchMarketHTML(ms,msPanel)}<div class="scr-grid research-grid research-desk ${mode==='changes'?'changes-mode':''}">${researchLibraryHTML(st,presets)}<main class="panel scr-main">${mode==='changes'?researchChangeHeader(title,st):`<div class="desk-query"><div class="desk-title"><div><h2>${esc(title)}</h2><p>${esc(st.market)} · ${st.etfs?'Stocks + ETFs':'ETFs excluded'} · ${esc(SCR_COLS[st.sort]?.[0] || st.sort)} ${st.dir===2?'descending':'ascending'}</p></div><div class="research-modes" role="group" aria-label="Result presentation">${(researchExtendedWorkspaceEnabled()?['table','explore','changes']:[]).map(v=>`<button class="btn ${mode===v?'primary':'ghost'}" aria-pressed="${mode===v}" onclick="researchMode('${v}')">${v[0].toUpperCase()+v.slice(1)}</button>`).join('')}</div></div><div class="desk-actions"><button class="btn ghost library-open-control" onclick="researchLibraryOpen()">Screens</button><button class="btn ghost" onclick="openFilterModal()">Add filter</button><button class="btn ghost desk-clear" onclick="scrResetAll()" title="All stocks excluding ETFs, sorted by market cap">Clear</button>${scr.refresh_required?`<button class="btn primary" onclick="scrLoadUniverse(this)">Load ${esc(st.market)} market</button>`:''}${st.activePreset && scr.available===false && !researchPresetUnavailable(presets.find(p=>p.key===st.activePreset))?'<button class="btn primary" onclick="researchRetryPreset(this)">Retry screen</button>':''}<span class="desk-action-spacer"></span><button class="btn ghost" onclick="researchSave()">Save screen</button>${exportMenu}</div><div class="desk-views">${marketSelector}<label>View<select aria-label="Column view" onchange="this.value==='custom'?scrToggleColPick():scrSetView(this.value)">${[...Object.keys(VIEW_PRESETS),'custom'].map(v=>`<option value="${v}" ${(st.view || 'overview')===v?'selected':''}>${esc(researchViewLabel(v,st))}</option>`).join('')}</select></label><label>Sort<select aria-label="Sort results" onchange="researchSortSet(this.value,window.__scr.dir)">${Object.entries(SCR_COLS).map(([k,[label]])=>`<option value="${k}" ${st.sort===k?'selected':''}>${esc(label)}</option>`).join('')}</select></label><select aria-label="Sort direction" onchange="researchSortSet(window.__scr.sort,this.value)"><option value="2" ${st.dir===2?'selected':''}>Descending</option><option value="1" ${st.dir===1?'selected':''}>Ascending</option></select><details class="desk-options"><summary class="btn ghost">More</summary><div><button class="btn ghost" onclick="scrToggleColPick()">Choose columns (${st.cols.length})</button><label>Density<select aria-label="Row density" onchange="researchDensity(this.value)"><option value="comfortable" ${window.__researchDensity!=='compact'?'selected':''}>Comfortable</option><option value="compact" ${window.__researchDensity==='compact'?'selected':''}>Compact</option></select></label>${universe}<details class="research-advanced"><summary>Quick signals</summary><div class="secondary-tools">${Object.keys(SIG_DEFS).map(n=>`<button class="btn ghost" onclick="scrSignal('${n}')" title="${esc(SIG_DEFS[n].title)}">${esc(SIG_DEFS[n].label)}</button>`).join('')}</div></details></div></details></div>${allChips?`<div class="scr-chips" aria-label="Applied criteria">${allChips}</div>`:''}<div class="desk-result-summary" role="status">${mode==='changes'?'Current screen: ':''}${scr.available===false?'Data unavailable':matched.toLocaleString()+' '+(st.etfs?'instruments':'stocks')}${scr.available===false?'':mode==='changes'?'':mode==='explore'?' · Explore uses loaded matches':' · '+(scr.shown ?? (scr.rows || []).length)+' on this page'} ${scr.possibly_truncated?'· more provider matches may exist':''}</div></div>`}<details class="desk-data-context"><summary>${esc(source)}${st.src==='yf'?' · supplemental factors':''}</summary><p>${st.watchlistOnly?'Watchlist scope. ':''}${scr.stale_hint?'Showing cached data saved '+Math.max(1,Math.round((Date.now()-scr.stale_hint)/60000))+' min ago while updating. ':''}Stored universe reflects provider enumeration. Coverage, instrument types, periods and freshness can differ from the provider app. Exports use available qualified matches; missing numeric evidence is unavailable, not zero.</p></details>${scr.server_fallback_reason?`<div class="delay-note" role="status">${esc(scr.server_fallback_reason)}</div>`:''}${(scr.skipped_filters || []).length?`<div class="delay-note">${scr.skipped_filters.length} criteria lack numeric evidence: ${scr.skipped_filters.map(f=>esc(SCR_FIELDS[f] || f)).join(', ')}</div>`:''}${prog?`<div class="scr-prog"><div class="bar"><i style="width:${(progPct || 5).toFixed(0)}%;background:#3a76dd"></i><i style="width:${100-(progPct || 5)}%;background:#33415a"></i></div><span class="mono faint">${esc(prog.msg)}${prog.status?' · '+esc(prog.status):''}</span></div>`:''}<div id="research-provider-paging"></div><div id="research-presentation"></div><div class="scr-scroll">${table}</div><div id="research-mobile-results" class="research-mobile-results"></div>${pager}<p class="desk-export-scope">${mode==='changes'?'Ticker opens full research. Review evidence compares captures. Export comparison CSV includes the complete filtered capture review; switch to Table for current-screen exports.':'Ticker opens full research. Inspect preserves your screen. Exports: this page or all loaded matches, in the current sort order.'}</p><div id="research-selection" class="research-selection" hidden></div><output id="research-performance" hidden></output></main><aside id="research-inspector" class="research-inspector"></aside></div>`;
+}
+function researchDensity(value) {
+ window.__researchDensity=value==='compact'?'compact':'comfortable';
+ document.querySelector('.research-desk')?.classList.toggle('density-compact',window.__researchDensity==='compact');
+ try{localStorage.setItem('researchDensity',window.__researchDensity);}catch(e){}
+}
+function researchMobileMount(limit=40) {
+ const el=document.getElementById('research-mobile-results');if(!el)return;
+ const rows=researchVisibleRows(),st=window.__scr,call=x=>esc(JSON.stringify(x));
+ el.innerHTML=rows.slice(0,limit).map((r,i)=>`<article class="mobile-stock ${window.__researchSelected?.includes(researchKey(r))?'research-selected':''}" data-research-index="${i}"><div class="mobile-stock-heading"><label class="stock-select"><input type="checkbox" data-research-index="${i}" aria-label="Select ${esc(r.symbol)} for comparison" ${window.__researchSelected?.includes(researchKey(r))?'checked':''} onchange="researchSelect(${i},this.checked)"></label><div><a href="#" onclick="event.preventDefault();researchOpen(${call(researchKey(r))})">${esc(r.symbol)}</a><p>${esc(r.name || 'Company name unavailable')}</p></div><div class="mobile-stock-price">${researchMoneyHTML(r,'price')}${researchScreenValuesHTML(r,'price',st)}<small class="${r.pct>=0?'g':'r'}">${esc(researchValue('pct',r.pct))}</small>${researchScreenValuesHTML(r,'pct',st)}</div></div><div class="mobile-stock-metrics"><span>Cap <strong>${researchMoneyHTML(r,'market_cap')}</strong>${researchScreenValuesHTML(r,'market_cap',st)}</span><span>P/E <strong>${esc(researchValue('pe_ttm',r.pe_ttm))}</strong>${researchScreenValuesHTML(r,'pe_ttm',st)}</span><button class="btn ghost" onclick="researchInspect(${i},this)" aria-label="Inspect ${esc(r.symbol)}">Inspect</button></div><details><summary>Row details</summary><dl>${st.cols.filter(k=>!['symbol','name','price','pct','market_cap','pe_ttm'].includes(k)).map(k=>`<dt>${esc(SCR_COLS[k]?.[0] || k)}</dt><dd>${esc(RESEARCH_CURRENCY_FIELDS.has(k)?researchMoneyValue(r,k):researchDisplayField(k,r[k]))}${researchScreenValuesHTML(r,k,st)}</dd>`).join('')}</dl></details></article>`).join('') || '<p>No rows qualify. Use Clear or revise the criteria.</p>';
+ if(rows.length>limit)el.innerHTML+=`<button class="btn ghost" onclick="researchMobileMount(${limit+40})">Show next ${Math.min(40,rows.length-limit)} on this page</button><p>${limit} of ${rows.length} page rows displayed. Export this page includes all ${rows.length}.</p>`;
 }
 function scrWorkspaceMount() {
- window.__inspectGen=(window.__inspectGen || 0)+1;
- if(window.__inspectChart){try{window.klinecharts.dispose('inspect-chart');}catch(e){}window.__inspectChart=null;}
- const grid=document.querySelector('.scr-grid'), main=document.querySelector('.scr-main');if(!grid || !main)return;
- grid.classList.add('research-grid');
- const rail=grid.querySelector('.scr-rail') || [...grid.children].find(x=>x!==main);
- if(rail){rail.classList.add('research-library');grid.insertBefore(rail,main);
-   const heading=rail.querySelector('h3');if(heading)heading.innerHTML='Recommended <small>22 screens</small>';
-   const intro=document.createElement('div');intro.className='library-intro';intro.innerHTML=`<input aria-label="Search recommended screens" placeholder="Search recommended screens…" oninput="researchLibrarySearch(this.value)"><button class="btn ${window.__scr.activePreset?'ghost':'primary'}" onclick="scrResetAll()">All stocks · ETFs excluded</button>`;rail.prepend(intro);
-   const saved=document.createElement('section');saved.className='saved-library';saved.innerHTML='<h4>My saved screens</h4><div id="research-saved"></div><button class="btn ghost" onclick="researchSave()">Manage / save screen</button>';rail.append(saved);researchSavedMount();
+ researchDisposeInspector();researchModalRelease('library');
+ const grid=document.querySelector('.research-desk');if(!grid)return;
+ let density=window.__researchDensity;try{density=density || localStorage.getItem('researchDensity');}catch(e){}researchDensity(density);
+ grid.classList.toggle('identity-first',window.__scr.cols[0]==='symbol' && window.__scr.cols[1]==='name');
+ researchSavedMount();researchLibrarySearch(window.__researchLibraryQuery || '');researchMobileMount();researchSelectionMount();
+ researchFrozenColumns();if(typeof ResizeObserver!=='undefined'){window.__deskResize=new ResizeObserver(researchFrozenColumns);window.__deskResize.observe(grid.querySelector('.scr-table'));}
+ const st=window.__scr,rows=researchRows(),mode=st.presentation || 'table';grid.classList.toggle('table-mode',mode==='table');grid.classList.toggle('explore-mode',mode==='explore');
+ const presentation=document.getElementById('research-presentation'),scroll=grid.querySelector('.scr-scroll');
+ if(mode==='explore'){presentation.className='research-explore';researchExploreMount();scroll.hidden=true;document.getElementById('research-mobile-results').hidden=true;grid.querySelector('.pager')?.setAttribute('hidden','');}
+ if(mode==='changes'){presentation.className='research-changes';presentation.innerHTML=researchChangesHTML();scroll.hidden=true;document.getElementById('research-mobile-results').hidden=true;grid.querySelector('.pager')?.setAttribute('hidden','');researchLoadChanges();}
+ if(st.activePreset){const payload=window.__presetCache?.[st.activePreset+'|'+st.market]?.payload;
+  if(payload?.available){document.getElementById('research-provider-paging').innerHTML=researchProviderScopeHTML(payload,rows,st);}
  }
- const st=window.__scr,rows=researchRows(),mode=st.presentation || 'table';
- const h=main.querySelector('h3');if(h){h.firstChild.textContent=(st.activePreset ? (window.__scrPresets || []).find(p=>p.key===st.activePreset)?.name || 'Screen results' : st.savedScreenId ? (window.__savedScreeners || []).find(s=>s.id===st.savedScreenId)?.name || 'Saved screen' : st.filters.length || Object.keys(st.colFilters).length ? 'Custom screen' : 'All stocks')+' ';}
- const railNote=[...(rail?.querySelectorAll('.faint') || [])].find(e=>e.textContent.includes('Top-3 from')); if(railNote)railNote.remove();
- const top=document.createElement('div');top.className='research-top';top.innerHTML=`<div class="research-modes" role="group" aria-label="Result presentation">${['table','explore','changes'].map(v=>`<button class="btn ${mode===v?'primary':'ghost'}" aria-pressed="${mode===v}" onclick="researchMode('${v}')">${v[0].toUpperCase()+v.slice(1)}</button>`).join('')}</div><span class="faint">${esc(st.market)} · ${st.etfs?'Stocks + ETFs':'ETFs excluded'} · ${esc(SCR_COLS[st.sort]?.[0] || st.sort)} ${st.dir===2?'descending':'ascending'}</span><button class="btn ghost" onclick="researchSave()">Save screen</button>`;main.insertBefore(top,h);
- const exportGroup=main.querySelector('.expgrp');if(exportGroup){const menu=document.createElement('details');menu.className='research-export';menu.innerHTML='<summary class="btn ghost">Export ↓</summary><div class="export-options">'+exportGroup.innerHTML.replace('CSV · all','CSV · available matches').replace('Excel · all','Excel · available matches')+'<small>Excel-compatible .xls · respects filters, columns and sort</small></div>';exportGroup.replaceWith(menu);}
- const tpl=[...main.querySelectorAll('.scr-toolbar')];
- // Retain every control, with secondary templates and technical shortcuts on demand.
- const advanced=document.createElement('details');advanced.className='research-advanced';advanced.innerHTML='<summary>Quick signals & column templates</summary>';
- tpl.filter((t,i)=>i>0).forEach(t=>{t.classList.add('secondary-tools');advanced.append(t);});
- if(advanced.children.length>1)tpl[0].after(advanced);
- const tools=tpl[0]; if(tools){const more=document.createElement('details');more.className='research-universe';more.innerHTML='<summary class="btn ghost">Universe & data</summary><div class="universe-options"></div>';
-   const box=more.lastElementChild;
-   [...tools.children].filter(el=>el.tagName==='SELECT' || el.tagName==='INPUT' || el.tagName==='LABEL').forEach(el=>box.append(el));
-   tools.prepend(more);
- }
- if(st.activePreset){const payload=(window.__presetCache || {})[st.activePreset+'|'+st.market]?.payload;
-   if(payload?.available && (payload.provider_total!=null || payload.next_key)){const paging=document.createElement('div');paging.className='research-provider-paging';paging.innerHTML=`<p class="faint">${rows.length.toLocaleString()} ${st.etfs?'instrument':'stock'} matches loaded${payload.provider_total!=null?' · '+Number(payload.provider_total).toLocaleString()+' provider matches before instrument exclusions and custom refinements':''}. Exports and Explore use loaded matches.</p>${payload.next_key && payload.possibly_truncated?'<button class="btn ghost" id="research-load-more" onclick="researchLoadMore()">Load next 300 matches</button>':''}<span id="research-page-status" role="status"></span>`;main.append(paging);}
- }
- const sel=document.createElement('div');sel.id='research-selection';sel.className='research-selection';main.append(sel);researchSelectionMount();
- const scroll=main.querySelector('.scr-scroll');if(mode==='explore'){const plot=document.createElement('section');plot.className='research-explore';plot.innerHTML=researchExploreHTML(rows);scroll.before(plot);researchPlot(rows);}
- if(mode==='changes'){const pane=document.createElement('section');pane.id='research-changes';pane.className='research-changes';pane.innerHTML='<h3>Changes in this screen</h3><p class="faint">Compare complete snapshots with the same criteria. A first capture establishes the baseline.</p><button class="btn primary" onclick="researchSnapshot()">Capture snapshot</button><div id="research-change-results" aria-live="polite"></div>';scroll.before(pane);scroll.hidden=true;const pager=main.querySelector('.pager');if(pager)pager.hidden=true;researchLoadChanges();}
- const inspector=document.createElement('aside');inspector.id='research-inspector';inspector.className='research-inspector';inspector.innerHTML='<h3>Inspect a stock</h3><p class="faint">Use Inspect beside a row to see quote data and screen context without leaving your place.</p><p class="faint">Ticker links open the full research page with every chart and financial control.</p>';grid.append(inspector);
- if(window.__researchInspectCode){const i=researchVisibleRows().findIndex(r=>researchKey(r)===window.__researchInspectCode);if(i>=0)researchInspect(i);}
+ if(window.__researchInspectCode){const row=researchRows().find(r=>researchKey(r)===window.__researchInspectCode);if(row)researchInspectRow(row);else researchCloseInspector(false);}
+}
+function researchProviderScopeHTML(payload,rows,st) {
+ const warnings=Array.isArray(payload.hydration_warnings)?payload.hydration_warnings:[];
+ const unknown=(payload.rows || []).filter(r=>!r.stock_type || ['UNKNOWN','UNKNOW','UNCLASSIFIED','N/A'].includes(String(r.stock_type).toUpperCase())).length;
+ const outside=(payload.rows || []).filter(r=>!r.quote_generation_id).length;
+ const ck=st.activePreset+'|'+st.market,entry=window.__presetCache?.[ck],busy=!!window.__presetRefresh?.[ck],paging=!!window.__presetPagePending?.has(ck);
+ const counts=`${rows.length.toLocaleString()} ${st.etfs?'instrument':'stock'} matches loaded · ${(payload.rows || []).length.toLocaleString()} provider members retrieved${payload.provider_total!=null?' · '+Number(payload.provider_total).toLocaleString()+' provider matches before exclusions/refinements':''}`;
+ const refresh=`<button class="btn ghost" id="research-refresh-preset" onclick="researchRefreshPreset()" ${busy || paging?'disabled':''}>${busy?'Refreshing results…':'Refresh results'}</button>`;
+ const more=payload.next_key && payload.possibly_truncated?`<button class="btn ghost" id="research-load-more" onclick="researchLoadMore()" ${busy || paging?'disabled':''}>${paging?'Loading next provider page…':entry?.pageError?'Retry next page':'Load next 300 matches'}</button>`:'';
+ const quality=unknown || warnings.length;
+ const qualityText=[unknown?`${unknown.toLocaleString()} ${unknown===1?'instrument has':'instruments have'} unknown classification`:'',warnings.length?`${warnings.length} hydration ${warnings.length===1?'warning':'warnings'}`:''].filter(Boolean).join(' · ');
+ return `<section class="provider-scope" aria-label="Provider result coverage">
+  <div class="provider-scope-head"><p>${counts}</p><div class="provider-scope-actions">${refresh}${more}</div></div>
+  <p class="provider-value-context">Main values come from displayed quote/factor data. “Screen” values are provider screening observations; their period may differ. Inspect → Why it matches shows each rule and source. Sort and added filters use display values.</p>
+  <div class="provider-scope-meta"><span>Latest provider page retrieved: ${esc(researchCaptureTime(payload.retrieved_at))}</span><details class="provider-scope-details"><summary>Scope &amp; quote sources</summary><div><p>Exports and Explore use loaded matches. While navigating, loaded pages stay retained until Refresh results; refresh replaces them with the first provider page.</p>${payload.quote_generation_id?`<p><strong>Quote display cohort</strong><br>${esc(payload.quote_generation_id)} · ${outside.toLocaleString()} retrieved members outside this cohort. Membership comes from the provider screen; this quote cohort does not freeze provider membership or reporting periods.</p>`:'<p>Quote display cohort unavailable.</p>'}</div></details></div>
+  ${quality?`<details class="provider-quality"><summary>${qualityText}</summary><div><p>Unknown classifications are excluded from stock-only results. Captures require complete classification.</p>${warnings.map(w=>`<p>${esc(String(w))}</p>`).join('')}</div></details>`:''}
+  ${busy?'<p class="provider-refresh-status" role="status">Previous results retained while refreshing.</p>':''}
+  ${entry?.refreshError?`<p class="delay-note" role="status">Refresh failed; previous results retained. ${esc(entry.refreshError)}</p>`:''}<span id="research-page-status" role="status">${esc(entry?.pageError || '')}</span>
+ </section>`;
+}
+function researchExploreState() {
+ const st=window.__scr,key=JSON.stringify(researchStable({market:st.market,src:st.src,etfs:st.etfs,watchlist:st.watchlistOnly,preset:st.activePreset,filters:st.filters,colFilters:st.colFilters}));
+ if(window.__exploreState?.key!==key)window.__exploreState={key,x:window.__researchAxisX || 'pe_ttm',y:window.__researchAxisY || 'pct',xs:'linear',ys:'linear',trim:false,bounds:null,zoom:false,limit:100};
+ return window.__exploreState;
+}
+function researchExploreSet(key,value) {
+ const st=researchExploreState();if(['x','y'].includes(key)){if(!['pe_ttm','pb','market_cap','pct'].includes(value))return;st[key]=value;st.bounds=null;st.zoom=false;}
+ else if(['xs','ys'].includes(key)){if(!['linear','log'].includes(value))return;st[key]=value;}
+ else if(key==='trim')st.trim=!!value;else if(key==='capCurrency'){if(value!=='' && !/^[A-Z]{3}$/.test(value))return;st.capCurrency=value;st.bounds=null;st.zoom=false;}else if(key==='size'){if(!['uniform','cap'].includes(value))return;st.size=value;}else return;
+ st.pointCodes=null;st.plotCode=null;st.preview=false;st.limit=100;researchExploreMount();document.querySelector('[aria-label="'+({x:'X axis',y:'Y axis',xs:'X scale',ys:'Y scale',size:'Plot point size',capCurrency:'Market-cap axis currency'}[key] || 'Central 96% on each axis')+'"]')?.focus();
+}
+function researchPlottable(r,x,y) {return [x,y].every(k=>typeof r[k]==='number' && Number.isFinite(r[k]) && (!['pe_ttm','pb','market_cap'].includes(k) || r[k]>0));}
+function researchExploreCurrencyPass(row,st){return ![st.x,st.y].includes('market_cap') || !!st.capCurrency && researchFieldCurrency(row,'market_cap')===st.capCurrency;}
+function researchExploreSelected(rows,st=researchExploreState()) {
+ return rows.filter(r=>researchExploreCurrencyPass(r,st) && researchPlottable(r,st.x,st.y) && (!st.bounds || ['x','y'].every(axis=>{const v=Number(r[st[axis]]),b=st.bounds[axis];return (b.min==null || v>=b.min) && (b.max==null || v<=b.max);})));
+}
+function researchExploreDomain(values,scale,trim) {
+ const valid=values.filter(v=>Number.isFinite(v) && (scale!=='log' || v>0)).sort((a,b)=>a-b);if(!valid.length)return null;
+ const at=q=>valid[Math.floor(q*(valid.length-1))];let min=at(trim ? .02 : 0),max=at(trim ? .98 : 1);
+ if(min===max){const delta=Math.max(Math.abs(min)*.05,.1);min=scale==='log'?Math.max(min/1.1,Number.MIN_VALUE):min-delta;max=scale==='log'?max*1.1:max+delta;}
+ return {min,max};
+}
+function researchExploreModel(rows,st) {
+ const numericRows=rows.filter(r=>researchPlottable(r,st.x,st.y)),valid=numericRows.filter(r=>researchExploreCurrencyPass(r,st)),selected=researchExploreSelected(rows,st);
+ const scaleEligible=valid.filter(r=>(st.xs!=='log' || Number(r[st.x])>0) && (st.ys!=='log' || Number(r[st.y])>0));
+ const domainRows=st.zoom && st.bounds?selected.filter(r=>(st.xs!=='log' || Number(r[st.x])>0) && (st.ys!=='log' || Number(r[st.y])>0)):scaleEligible;
+ const xd=researchExploreDomain(domainRows.map(r=>Number(r[st.x])),st.xs,st.trim && !st.zoom),yd=researchExploreDomain(domainRows.map(r=>Number(r[st.y])),st.ys,st.trim && !st.zoom);
+ const plotted=xd && yd?scaleEligible.filter(r=>Number(r[st.x])>=xd.min && Number(r[st.x])<=xd.max && Number(r[st.y])>=yd.min && Number(r[st.y])<=yd.max):[];
+ return {valid,selected,plotted,xd,yd,missing:rows.length-numericRows.length,currencyExcluded:numericRows.length-valid.length,scaleExcluded:valid.length-scaleEligible.length,outside:scaleEligible.length-plotted.length};
+}
+function researchExploreBoundsToggle(panel) {
+ researchExploreState().formOpen=panel.open;
+ if(panel.open)document.querySelectorAll('.explore-action-strip .research-export[open]').forEach(menu=>{menu.open=false;});
+}
+function researchExploreSelectionText(regionRows) {
+ const selected=window.__researchSelected || [],keys=new Set(regionRows.map(researchKey));
+ const inside=selected.filter(code=>keys.has(code)).length;
+ return `${selected.length} selected for Compare · ${inside} in this scope · ${selected.length-inside} outside. Compare 2–4 stocks; changing the region keeps your selection.`;
+}
+function researchExploreSelectionMount() {
+ const context=document.getElementById('explore-selection-context'),button=document.getElementById('explore-compare');
+ if(!context && !button)return;
+ const selected=window.__researchSelected || [];
+ if(context)context.textContent=researchExploreSelectionText(researchExploreSelected(researchRows(),researchExploreState()));
+ if(button){button.textContent=`Compare selected (${selected.length})`;button.disabled=selected.length<2 || selected.length>4;}
+}
+function researchExploreSector(row,now=Date.now()) {
+ const value=row?.sector,origin=row?.display_field_sources?.sector;
+ if(typeof row?.code!=='string' || !/^(US|HK)\.[A-Z0-9][A-Z0-9._-]{0,30}$/.test(row.code) || typeof value!=='string' || !value.trim() || value.length>120 || !origin || origin.source!=='yfinance')return 'Unknown';
+ const stamp=Date.parse(origin.cache_at),age=now-stamp;
+ return Number.isFinite(stamp) && age>=0 && age<=7*86400000?value.trim():'Unknown';
+}
+function researchExploreSectorColor(sector) {
+ if(sector==='Unknown')return '#9aa9bd';
+ const colors=['#58a6ff','#ffb86b','#bd93f9','#50d9b2','#f781bf','#d4d66c','#79c9df','#ef8f88'];
+ let hash=0;for(const char of sector)hash=(Math.imul(hash,31)+char.charCodeAt(0))>>>0;return colors[hash%colors.length];
+}
+function researchExploreEncoding(rows,model,now=Date.now()) {
+ const groups=new Map(),plotted=new Set(model.plotted.map(researchKey));
+ for(const row of rows){const sector=researchExploreSector(row,now),group=groups.get(sector) || {sector,loaded:0,plotted:0,color:researchExploreSectorColor(sector)};group.loaded++;if(plotted.has(researchKey(row)))group.plotted++;groups.set(sector,group);}
+ const caps=model.plotted.map(row=>({value:row.market_cap,currency:researchFieldCurrency(row,'market_cap')}));
+ const currencies=new Set(caps.map(c=>c.currency).filter(Boolean)),capReady=caps.length>0 && caps.every(c=>typeof c.value==='number' && Number.isFinite(c.value) && c.value>0 && c.currency) && currencies.size===1;
+ return {sectors:[...groups.values()].sort((a,b)=>a.sector==='Unknown'?1:b.sector==='Unknown'?-1:a.sector.localeCompare(b.sector)),capReady,currency:capReady?[...currencies][0]:null,maxCap:capReady?Math.max(...caps.map(c=>c.value)):null,capReason:!caps.length?'No plotted stocks.':currencies.size>1?'Plotted market caps use different currencies.':'Every plotted stock needs a positive, identity-attributed market cap in one currency.'};
+}
+function researchExploreEncodingToggle(panel) {
+ researchExploreState().encodingOpen=panel.open;
+}
+function researchExploreEncodingHTML(rows,model,st) {
+ const encoding=researchExploreEncoding(rows,model),known=encoding.sectors.filter(g=>g.sector!=='Unknown').reduce((n,g)=>n+g.loaded,0);
+ return `<details class="explore-encoding" aria-label="Plot sectors and sizing" ${st.encodingOpen?'open':''} ontoggle="researchExploreEncodingToggle(this)"><summary>Plot appearance · ${st.size==='cap' && encoding.capReady?'size by '+esc(encoding.currency)+' market cap':'uniform points'} · ${known.toLocaleString()}/${rows.length.toLocaleString()} loaded classified${!encoding.capReady?' · cap sizing unavailable':''}</summary><div class="explore-encoding-controls"><label>Point size<select aria-label="Plot point size" onchange="researchExploreSet('size',this.value)"><option value="uniform" ${st.size!=='cap'?'selected':''}>Uniform</option><option value="cap" ${st.size==='cap' && encoding.capReady?'selected':''} ${!encoding.capReady?'disabled':''}>Market cap${encoding.currency?' · '+esc(encoding.currency):' · unavailable'}</option></select></label><p>${st.size==='cap' && encoding.capReady?'Size: bounded area by '+esc(encoding.currency)+' market cap · radius 3–12 px.':'Uniform points.'} ${!encoding.capReady?'Cap sizing unavailable: '+esc(encoding.capReason):'Cap sizing requires one attributed currency for all plotted stocks.'}</p><details class="explore-sector-legend"><summary>Sector context · ${known.toLocaleString()}/${rows.length.toLocaleString()} loaded classified</summary><p>Current cached yfinance labels, retrieved within seven days; separate from quote generations and provider lists. Counts: plotted / loaded. Colours can repeat; use labels and stock inspection. Unknown includes absent, stale or unqualified classifications. This does not change screen membership.</p><ul>${encoding.sectors.map(g=>`<li><span class="sector-swatch" style="background:${g.color}" aria-hidden="true"></span><span>${esc(g.sector)}</span><span>${g.plotted.toLocaleString()} / ${g.loaded.toLocaleString()}</span></li>`).join('')}</ul></details></div></details>`;
 }
 function researchExploreHTML(rows) {
- const x=window.__researchAxisX || 'pe_ttm',y=window.__researchAxisY || 'pct',axes=['pe_ttm','pb','market_cap','pct'];
- const selector=(key,value)=>`<select aria-label="${key} axis" onchange="window.__researchAxis${key}=this.value;showPage('home')">${axes.map(k=>`<option value="${k}" ${k===value?'selected':''}>${esc(SCR_COLS[k][0])}</option>`).join('')}</select>`;
- const valid=rows.filter(r=>researchPlottable(r,x,y));
- return `<div class="explore-head"><h3>Explore the same results</h3><label>X ${selector('X',x)}</label><label>Y ${selector('Y',y)}</label></div><p class="faint">${valid.length.toLocaleString()} of ${rows.length.toLocaleString()} available matches plotted · ${rows.length-valid.length} missing or nonmeaningful. Click a point to inspect. Full results remain below.</p><canvas id="research-scatter" height="300" role="img" aria-label="Linked scatter plot of screen results"></canvas><div id="research-plot-selection" aria-live="polite"></div>`;
+ const st=researchExploreState(),model=researchExploreModel(rows,st),axes=['pe_ttm','pb','market_cap','pct'];
+ const capAxis=[st.x,st.y].includes('market_cap'),currencies=[...new Set(rows.map(r=>researchFieldCurrency(r,'market_cap')).filter(Boolean))].sort();
+ const capControl=capAxis?`<label>Market-cap axis currency<select aria-label="Market-cap axis currency" onchange="researchExploreSet('capCurrency',this.value)"><option value="">Choose attributed currency</option>${currencies.map(currency=>`<option value="${currency}" ${st.capCurrency===currency?'selected':''}>${currency}</option>`).join('')}</select></label><p class="explore-currency-note">${currencies.length?'Only the chosen attributed currency can plot or qualify a cap region. Other and unknown currencies are excluded; no conversion.':'No identity-attributed cap currencies are supplied in these loaded rows. Choose another axis; no currency is inferred.'}</p>`:'';
+ const field=(a)=>`<label>${a.toUpperCase()} axis<select aria-label="${a.toUpperCase()} axis" onchange="researchExploreSet('${a}',this.value)">${axes.map(k=>`<option value="${k}" ${k===st[a]?'selected':''}>${esc(SCR_COLS[k][0])}</option>`).join('')}<option disabled>Forward P/E · coverage pending</option><option disabled>Revenue growth · coverage pending</option></select></label><label>Scale<select aria-label="${a.toUpperCase()} scale" onchange="researchExploreSet('${a}s',this.value)">${['linear','log'].map(k=>`<option value="${k}" ${st[a+'s']===k?'selected':''}>${k==='log'?'Log (positive only)':'Linear'}</option>`).join('')}</select></label>`;
+ const bound=(a,edge)=>`<label>${a.toUpperCase()} ${edge==='min'?'minimum':'maximum'}<input type="number" step="any" id="explore-${a}-${edge}" aria-label="${a.toUpperCase()} ${edge==='min'?'minimum':'maximum'}" value="${st.bounds?.[a]?.[edge] ?? ''}" placeholder="Unbounded"></label>`;
+ return `<div class="explore-controls">${field('x')}${field('y')}${capControl}<label><input type="checkbox" aria-label="Central 96% on each axis" ${st.trim?'checked':''} onchange="researchExploreSet('trim',this.checked)">Central 96% on each axis</label></div><p class="faint">${model.plotted.length.toLocaleString()} plotted of ${rows.length.toLocaleString()} loaded matches · ${model.missing} missing/nonmeaningful · ${capAxis?model.currencyExcluded+' outside chosen/attributed cap currency · ':''}${model.scaleExcluded} excluded by log scale · ${model.outside} outside view. Screen exports retain rows outside this view.</p><section class="explore-action-strip" aria-label="Explorer region actions"><div class="explore-region-summary"><strong>${st.bounds?'Region':'Plottable'} results (${model.selected.length.toLocaleString()})</strong><span class="faint">Temporary scope · current screen sort</span></div><button class="btn primary explore-preview-action" onclick="researchExplorePreview()" ${!st.bounds?'disabled':''}>Preview region filters</button><button id="explore-compare" class="btn ghost" onclick="researchCompare()" ${(window.__researchSelected || []).length<2 || (window.__researchSelected || []).length>4?'disabled':''}>Compare selected (${(window.__researchSelected || []).length})</button><details class="research-export"><summary class="btn ghost">Export ${st.bounds?'region':'plottable'} results</summary><div class="export-options"><button class="btn ghost" onclick="scrExport('csv','explore')" ${!model.selected.length?'disabled':''}>CSV · ${st.bounds?'region':'plottable'} results</button><button class="btn ghost" onclick="scrExport('xls','explore')" ${!model.selected.length?'disabled':''}>Excel · ${st.bounds?'region':'plottable'} results</button><small>All ${model.selected.length.toLocaleString()} eligible loaded rows · current sort · Excel-compatible .xls</small></div></details><button class="btn ghost" onclick="researchExploreClear()" ${!st.bounds?'disabled':''}>Clear region</button><button class="btn ghost explore-zoom" onclick="researchExploreZoom()" ${!st.bounds || !model.selected.length?'disabled':''}>${st.zoom?'Reset zoom':'Zoom to region'}</button><span id="explore-selection-context" class="faint" role="status">${researchExploreSelectionText(model.selected)}</span></section><details class="explore-range-panel" ${st.formOpen?'open':''} ontoggle="researchExploreBoundsToggle(this)"><summary>Set region bounds with numbers${st.bounds?' · region applied':''}</summary><form class="explore-range" onsubmit="event.preventDefault();researchExploreApply()"><span>Region bounds · X: ${esc(SCR_COLS[st.x][0])} (${st.x==='market_cap'?'whole '+(st.capCurrency || 'unqualified currency')+' units, not billions':st.x==='pct'?'percentage points':'times'}) · Y: ${esc(SCR_COLS[st.y][0])} (${st.y==='market_cap'?'whole '+(st.capCurrency || 'unqualified currency')+' units, not billions':st.y==='pct'?'percentage points':'times'})</span>${bound('x','min')}${bound('x','max')}${bound('y','min')}${bound('y','max')}<button class="btn primary" type="submit">Apply region</button><p id="explore-range-error" role="alert"></p></form></details>${st.preview?researchExplorePreviewHTML(rows,st):''}${researchExploreEncodingHTML(rows,model,st)}<canvas id="research-scatter" height="300" role="img" tabindex="0" aria-label="${esc(SCR_COLS[st.x][0])}${st.x==='market_cap'?' '+esc(st.capCurrency || 'currency unavailable'):''} versus ${esc(SCR_COLS[st.y][0])}${st.y==='market_cap'?' '+esc(st.capCurrency || 'currency unavailable'):''}. Arrow keys browse plotted coordinates; Enter inspects or opens overlapping stocks. Drag a region or use numeric bounds."></canvas><div id="research-plot-selection" role="status">Arrow keys browse coordinates; Enter opens stocks at that point. Drag a region or use numeric bounds.</div><div id="explore-point-picker"></div><div class="explore-subset-head"><h3>Linked results (${model.selected.length.toLocaleString()})</h3></div><p class="faint">Current screen sort. Region is a temporary research selection; screen criteria and saved definitions are unchanged. ${Math.min(st.limit,model.selected.length)} rows shown below.</p><div class="explore-linked"><table><thead><tr><th>Select</th><th>Symbol</th><th>Company</th><th>${esc(SCR_COLS[st.x][0])}</th><th>${esc(SCR_COLS[st.y][0])}</th><th>Inspect</th></tr></thead><tbody>${model.selected.slice(0,st.limit).map(r=>`<tr><td><label class="stock-select"><input type="checkbox" data-research-code="${esc(researchKey(r))}" aria-label="Select ${esc(r.symbol)} in region" ${(window.__researchSelected || []).includes(researchKey(r))?'checked':''} onchange="researchExploreSelect(${esc(JSON.stringify(researchKey(r)))},this.checked)"></label></td><td><a href="#" onclick="event.preventDefault();researchOpen(${esc(JSON.stringify(researchKey(r)))})">${esc(r.symbol)}</a></td><td>${esc(r.name || 'Unavailable')}</td><td>${esc(researchValue(st.x,r[st.x],st.x==='market_cap'?st.capCurrency:undefined))}</td><td>${esc(researchValue(st.y,r[st.y],st.y==='market_cap'?st.capCurrency:undefined))}</td><td><button class="btn ghost" aria-label="Inspect ${esc(r.symbol)} in region" onclick="researchExploreInspect(${esc(JSON.stringify(researchKey(r)))},this)">Inspect</button></td></tr>`).join('') || '<tr><td colspan="6">No stocks in this region. Clear the region or revise its bounds.</td></tr>'}</tbody></table></div>${model.selected.length>st.limit?'<button class="btn ghost" onclick="researchExploreMore()">Show next 100 region rows</button>':''}`;
 }
-function researchPlottable(r,x,y) {return [x,y].every(k=>r[k]!=null && Number.isFinite(Number(r[k])) && (k!=='pe_ttm' || Number(r[k])>0));}
+function researchExploreMount() {
+ const target=document.getElementById('research-presentation');if(!target)return;target.innerHTML=researchExploreHTML(researchRows());researchPlot(researchRows());researchExplorePointPicker();researchSelectionMount();
+ window.__exploreResize?.disconnect();if(typeof ResizeObserver!=='undefined'){window.__exploreResize=new ResizeObserver(()=>researchPlot(researchRows()));window.__exploreResize.observe(document.getElementById('research-scatter'));}
+}
+function researchExploreParseBounds(values) {
+ const result={x:{},y:{}};for(const a of ['x','y'])for(const edge of ['min','max']){const raw=values[a][edge];const value=raw==null || String(raw).trim()===''?null:Number(raw);if(value!=null && !Number.isFinite(value))throw new Error('Bounds must be finite numbers.');result[a][edge]=value;}
+ for(const a of ['x','y'])if(result[a].min!=null && result[a].max!=null && result[a].min>result[a].max)throw new Error(a.toUpperCase()+' minimum must not exceed maximum.');
+ return result;
+}
+function researchExploreApply() {
+ try{const values=Object.fromEntries(['x','y'].map(a=>[a,Object.fromEntries(['min','max'].map(edge=>[edge,document.getElementById('explore-'+a+'-'+edge).value]))]));const bounds=researchExploreParseBounds(values);const st=researchExploreState();st.pointCodes=null;st.plotCode=null;st.bounds=Object.values(bounds).some(b=>b.min!=null || b.max!=null)?bounds:null;st.zoom=false;st.limit=100;st.formOpen=false;st.preview=false;researchExploreMount();document.querySelector('.explore-range-panel summary')?.focus({preventScroll:true});}
+ catch(e){document.getElementById('explore-range-error').textContent=e.message;}
+}
+function researchExploreCriteria(st) {
+ if(!st.bounds)throw new Error('Select a region first.');
+ const bounds=researchExploreParseBounds(st.bounds),rules=new Map();
+ for(const axis of ['x','y']){
+  const field=st[axis];if(!['pe_ttm','pb','market_cap','pct'].includes(field))throw new Error('This axis is not qualified for screen filters.');
+  if(field==='market_cap' && !/^[A-Z]{3}$/.test(st.capCurrency || ''))throw new Error('Choose an attributed market-cap currency before applying this region.');
+  const b=bounds[axis],positive=field!=='pct',rule=rules.get(field) || {field};
+  if(field==='market_cap')rule.currency=st.capCurrency;
+  let min=b.min,max=b.max;
+  if(positive && (min==null || min<=0)){min=0;rule.excl_min=true;}
+  if(min!=null)rule.min=rule.min==null?min:Math.max(rule.min,min);
+  if(max!=null)rule.max=rule.max==null?max:Math.min(rule.max,max);
+  if(rule.min>0)delete rule.excl_min;
+  if(rule.min!=null && rule.max!=null && (rule.min>rule.max || (rule.min===rule.max && rule.excl_min)))throw new Error('The region has no meaningful intersection for '+SCR_COLS[field][0]+'.');
+  // Unbounded numeric criteria still exclude absent/nonfinite axis data.
+  rules.set(field,rule);
+ }
+ return [...rules.values()];
+}
+function researchExplorePreviewHTML(rows,st) {
+ try{
+  const rules=researchExploreCriteria(st),selected=researchExploreSelected(rows,st);
+  return `<section class="explore-filter-preview" aria-label="Region filter preview"><h3>Apply region as screen filters</h3><div class="explore-preview-rules">${rules.map(f=>`<span>${esc(SCR_COLS[f.field][0])}${f.currency?' · '+esc(f.currency):''}: ${f.min!=null?(f.excl_min?'&gt; ':'≥ ')+esc(researchValue(f.field,f.min)):'no lower bound'} · ${f.max!=null?'≤ '+esc(researchValue(f.field,f.max)):'no upper bound'}</span>`).join('')}</div><p>${selected.length.toLocaleString()} of ${rows.length.toLocaleString()} loaded matches qualify. Adds constraints; retains existing criteria, preset membership and sort. Saved definitions stay unchanged until you save.</p><button class="btn primary" onclick="researchExploreCommit()">Apply filters to screen</button><button class="btn ghost" onclick="researchExploreCancelPreview()">Cancel preview</button><details><summary>Scope, units and missing values</summary><p>Missing/nonfinite values are excluded. Counts may change when new data is retrieved; this does not freeze membership. Market-cap bounds retain the chosen attributed currency; unknown and other currencies cannot qualify. currency is not inferred. Original recommendations stay unchanged.</p></details><p id="explore-commit-error" role="alert"></p></section>`;
+ }catch(e){return `<p role="alert">${esc(e.message)}</p>`;}
+}
+function researchExplorePreview(){const st=researchExploreState();if(!st.bounds)return;st.preview=true;researchExploreMount();document.querySelector('.explore-filter-preview button')?.focus();}
+function researchExploreCancelPreview(){researchExploreState().preview=false;researchExploreMount();document.querySelector('.explore-preview-action')?.focus({preventScroll:true});}
+function researchExploreCommit(){
+ const region=researchExploreState();if(!region.preview)return;
+ try{
+  const rules=researchExploreCriteria(region),st=window.__scr,eligible=new Set(researchExploreSelected(researchRows(),region).map(researchKey));
+  const filters=JSON.parse(JSON.stringify(st.filters || []));
+  for(const rule of rules)if(!filters.some(f=>JSON.stringify(researchStable(f))===JSON.stringify(researchStable(rule))))filters.push(rule);
+  if(filters.length>40)throw new Error('This screen would exceed 40 criteria. Remove a criterion before applying the region.');
+  st.filters=filters;st.page=1;st.presentation='table';
+  window.__researchSelected=(window.__researchSelected || []).filter(code=>eligible.has(code));
+  scrPersist();showPage('home');
+ }catch(e){const el=document.getElementById('explore-commit-error');if(el)el.textContent=e.message;}
+}
+function researchExploreClear(){const st=researchExploreState();st.bounds=null;st.zoom=false;st.pointCodes=null;st.plotCode=null;st.preview=false;st.limit=100;researchExploreMount();document.querySelector('.explore-range-panel summary')?.focus({preventScroll:true});}
+function researchExploreZoom(){const st=researchExploreState();st.zoom=!st.zoom;researchExploreMount();document.querySelector('.explore-zoom')?.focus();}
+function researchExploreMore(){researchExploreState().limit+=100;researchExploreMount();}
+function researchExploreSelect(code,on){const set=new Set(window.__researchSelected || []);on?set.add(code):set.delete(code);window.__researchSelected=[...set];researchSelectionMount();}
+function researchExploreInspect(code,origin){const row=researchRows().find(r=>researchKey(r)===code);if(row){window.__inspectOrigin=origin;researchInspectRow(row,{focus:true});}}
+function researchExplorePointGroups(rows,st) {
+ const groups=new Map();
+ for(const row of researchExploreModel(rows,st).plotted){
+  const key=JSON.stringify([Number(row[st.x]),Number(row[st.y])]);
+  if(!groups.has(key))groups.set(key,{x:Number(row[st.x]),y:Number(row[st.y]),rows:[]});
+  groups.get(key).rows.push(row);
+ }
+ return [...groups.values()];
+}
+function researchExplorePointRows() {
+ const st=researchExploreState(),codes=new Set(st.pointCodes || []);
+ return researchExploreModel(researchRows(),st).plotted.filter(r=>codes.has(researchKey(r)) && st.pointCoordinate && Number(r[st.x])===st.pointCoordinate.x && Number(r[st.y])===st.pointCoordinate.y);
+}
+function researchExplorePointPicker() {
+ const el=document.getElementById('explore-point-picker');if(!el)return;
+ const st=researchExploreState(),rows=researchExplorePointRows();
+ if(!rows.length){el.innerHTML='';return;}
+ const offset=Math.max(0,Math.min(st.pointOffset || 0,Math.floor((rows.length-1)/50)*50));st.pointOffset=offset;
+ el.innerHTML=`<section class="explore-point-picker" aria-label="Stocks at plotted coordinate" onkeydown="if(event.key==='Escape'){event.preventDefault();researchExplorePointClose()}"><h3>${rows.length.toLocaleString()} stocks at this coordinate</h3><p>${esc(SCR_COLS[st.x][0])}: ${esc(researchValue(st.x,rows[0][st.x]))} · ${esc(SCR_COLS[st.y][0])}: ${esc(researchValue(st.y,rows[0][st.y]))}. Current screen sort. Choose a company to inspect; selecting it does not change screen filters.</p><button class="btn ghost" onclick="researchExplorePointClose()">Close coordinate stocks</button><ul>${rows.slice(offset,offset+50).map(r=>`<li><label><input type="checkbox" data-research-code="${esc(researchKey(r))}" aria-label="Select ${esc(r.symbol)} at coordinate" ${(window.__researchSelected || []).includes(researchKey(r))?'checked':''} onchange="researchExploreSelect(${esc(JSON.stringify(researchKey(r)))},this.checked)">${esc(r.symbol)} · ${esc(r.name || 'Unavailable')}</label><button class="btn ghost" onclick="researchExploreInspect(${esc(JSON.stringify(researchKey(r)))},this)">Inspect ${esc(r.symbol)} at coordinate</button></li>`).join('')}</ul><div class="explore-point-pages"><button class="btn ghost" onclick="researchExplorePointPage(-1)" ${offset===0?'disabled':''}>Previous coordinate stocks</button><span>${offset+1}–${Math.min(offset+50,rows.length)} of ${rows.length}</span><button class="btn ghost" onclick="researchExplorePointPage(1)" ${offset+50>=rows.length?'disabled':''}>Next coordinate stocks</button></div></section>`;
+}
+function researchExplorePointOpen(group,origin) {
+ const st=researchExploreState();st.plotCode=researchKey(group.rows[0]);
+ if(group.rows.length===1){st.pointCodes=null;researchExplorePointPicker();researchExploreInspect(st.plotCode,origin);return;}
+ st.pointCoordinate={x:Number(group.rows[0][st.x]),y:Number(group.rows[0][st.y])};st.pointCodes=group.rows.map(researchKey);st.pointOffset=0;researchExplorePointPicker();
+ document.getElementById('explore-point-picker')?.scrollIntoView?.({block:'start'});
+ document.querySelector('#explore-point-picker button')?.focus();
+}
+function researchExplorePointClose(){researchExploreState().pointCodes=null;researchExplorePointPicker();document.getElementById('research-scatter')?.focus();}
+function researchExplorePointPage(direction){const st=researchExploreState();st.pointOffset=(st.pointOffset || 0)+direction*50;researchExplorePointPicker();document.querySelector('#explore-point-picker button')?.focus();}
+function researchExploreKeyboard(groups,st,key) {
+ if(!groups.length)return null;
+ let index=groups.findIndex(g=>g.rows.some(r=>researchKey(r)===st.plotCode));
+ if(key==='Home')index=0;else if(key==='End')index=groups.length-1;
+ else if(['ArrowRight','ArrowDown'].includes(key))index=index<0?0:Math.min(index+1,groups.length-1);
+ else if(['ArrowLeft','ArrowUp'].includes(key))index=index<0?0:Math.max(index-1,0);
+ else if(key==='Enter')index=index<0?0:index;else return null;
+ st.plotCode=researchKey(groups[index].rows[0]);return groups[index];
+}
 function researchPlot(rows) {
  const canvas=document.getElementById('research-scatter');if(!canvas)return;
- const ctx=canvas.getContext('2d'),x=window.__researchAxisX || 'pe_ttm',y=window.__researchAxisY || 'pct';
- const data=rows.filter(r=>researchPlottable(r,x,y));canvas.width=Math.max(300,canvas.clientWidth);const w=canvas.width,h=300,p=40;
- ctx.fillStyle='#0d1826';ctx.fillRect(0,0,w,h);if(!data.length){ctx.fillStyle='#adbed2';ctx.fillText('No valid data for these axes',p,p);return;}
- const xs=data.map(r=>Number(r[x])),ys=data.map(r=>Number(r[y]));const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
- ctx.strokeStyle='#34465b';ctx.beginPath();ctx.moveTo(p,p);ctx.lineTo(p,h-p);ctx.lineTo(w-p,h-p);ctx.stroke();ctx.fillStyle='#adbed2';ctx.font='12px sans-serif';ctx.fillText(fmtMag(xmin),p,h-15);ctx.fillText(fmtMag(xmax),w-90,h-15);ctx.fillText(fmtMag(ymax),2,p+4);ctx.fillText(fmtMag(ymin),2,h-p);
- const points=data.map(r=>({r,px:p+(Number(r[x])-xmin)/(xmax-xmin || 1)*(w-2*p),py:h-p-(Number(r[y])-ymin)/(ymax-ymin || 1)*(h-2*p)}));
- ctx.fillStyle='#48a0ff';ctx.globalAlpha=.65;for(const pt of points){ctx.beginPath();ctx.arc(pt.px,pt.py,3,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
- canvas.onclick=e=>{const rect=canvas.getBoundingClientRect(),px=(e.clientX-rect.left)*w/rect.width,py=e.clientY-rect.top;let best=null,dist=144;for(const pt of points){const d=(pt.px-px)**2+(pt.py-py)**2;if(d<dist){best=pt;dist=d;}}if(best){researchInspectRow(best.r);document.getElementById('research-plot-selection').textContent=best.r.symbol+' · '+SCR_COLS[x][0]+': '+fmtMag(best.r[x])+' · '+SCR_COLS[y][0]+': '+fmtMag(best.r[y]);}};
+ const st=researchExploreState(),model=researchExploreModel(rows,st),ctx=canvas.getContext('2d'),w=Math.max(300,canvas.clientWidth),h=300,p=56;canvas.width=w;canvas.height=h;
+ ctx.fillStyle='#0d1826';ctx.fillRect(0,0,w,h);ctx.font='11px system-ui';ctx.fillStyle='#b4c8e1';
+ if(!model.xd || !model.yd){ctx.fillText([st.x,st.y].includes('market_cap')?'No eligible caps in the chosen attributed currency.':'No finite values for the chosen axes/scale.',p,h/2);return;}
+ const transform=(v,scale)=>scale==='log'?Math.log10(v):v,inverse=(v,scale)=>scale==='log'?10**v:v;
+ const xlo=transform(model.xd.min,st.xs),xhi=transform(model.xd.max,st.xs),ylo=transform(model.yd.min,st.ys),yhi=transform(model.yd.max,st.ys);
+ const pos=(v,axis)=>{const x=axis==='x',lo=x?xlo:ylo,hi=x?xhi:yhi;const ratio=(transform(v,st[axis+'s'])-lo)/(hi-lo);return x?p+ratio*(w-2*p):h-p-ratio*(h-2*p);};
+ const value=(v,axis)=>{const x=axis==='x',ratio=x?(v-p)/(w-2*p):(h-p-v)/(h-2*p);return inverse((x?xlo:ylo)+ratio*((x?xhi:yhi)-(x?xlo:ylo)),st[axis+'s']);};
+ const encoding=researchExploreEncoding(rows,model),radius=r=>st.size==='cap' && encoding.capReady?Math.max(3,12*Math.sqrt(r.market_cap/encoding.maxCap)):3;
+ const points=model.plotted.map(r=>({r,px:pos(Number(r[st.x]),'x'),py:pos(Number(r[st.y]),'y')}));
+ const groups=researchExplorePointGroups(rows,st).map(g=>({...g,px:pos(g.x,'x'),py:pos(g.y,'y')}));
+ const draw=()=>{ctx.fillStyle='#0d1826';ctx.fillRect(0,0,w,h);for(let i=0;i<=4;i++){const xp=p+i/4*(w-2*p),yp=h-p-i/4*(h-2*p);ctx.strokeStyle='#25364b';ctx.beginPath();ctx.moveTo(xp,p);ctx.lineTo(xp,h-p);ctx.moveTo(p,yp);ctx.lineTo(w-p,yp);ctx.stroke();ctx.fillStyle='#b4c8e1';ctx.textAlign='center';ctx.fillText(researchValue(st.x,value(xp,'x')),xp,h-p+18);ctx.textAlign='right';ctx.fillText(researchValue(st.y,value(yp,'y')),p-6,yp+4);}
+ ctx.textAlign='center';ctx.fillText(SCR_COLS[st.x][0]+(st.x==='market_cap'?' · '+st.capCurrency:''),w/2,h-8);ctx.save();ctx.translate(12,h/2);ctx.rotate(-Math.PI/2);ctx.fillText(SCR_COLS[st.y][0]+(st.y==='market_cap'?' · '+st.capCurrency:''),0,0);ctx.restore();
+ if(st.bounds){const b=st.bounds;const left=Math.max(p,b.x.min==null?p:pos(b.x.min,'x')),right=Math.min(w-p,b.x.max==null?w-p:pos(b.x.max,'x')),top=Math.max(p,b.y.max==null?p:pos(b.y.max,'y')),bottom=Math.min(h-p,b.y.min==null?h-p:pos(b.y.min,'y'));if([left,right,top,bottom].every(Number.isFinite) && right>=left && bottom>=top){ctx.fillStyle='#268bff22';ctx.fillRect(left,top,right-left,bottom-top);ctx.strokeStyle='#72b9ff';ctx.strokeRect(left,top,right-left,bottom-top);}}
+ const selected=new Set(model.selected.map(researchKey));for(const pt of points){ctx.fillStyle=researchExploreSectorColor(researchExploreSector(pt.r));ctx.globalAlpha=.75;ctx.beginPath();ctx.arc(pt.px,pt.py,radius(pt.r),0,Math.PI*2);ctx.fill();if(st.bounds && selected.has(researchKey(pt.r))){ctx.strokeStyle='#fff';ctx.stroke();}}ctx.globalAlpha=1;const active=points.find(pt=>researchKey(pt.r)===st.plotCode);if(active){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(active.px,active.py,radius(active.r)+4,0,Math.PI*2);ctx.stroke();ctx.lineWidth=1;}};draw();
+ const at=e=>{const rect=canvas.getBoundingClientRect();return {x:Math.max(p,Math.min(w-p,(e.clientX-rect.left)*w/rect.width)),y:Math.max(p,Math.min(h-p,(e.clientY-rect.top)*h/rect.height))};};
+ const nearest=q=>{let best=null,dist=144;for(const group of groups){const d=(group.px-q.x)**2+(group.py-q.y)**2;if(d<dist){best=group;dist=d;}}return best;};let start=null,lastHover=null;
+ const announce=group=>{const el=document.getElementById('research-plot-selection');if(el)el.textContent=group?group.rows.length+' stock'+(group.rows.length===1?'':'s')+' · '+SCR_COLS[st.x][0]+': '+researchValue(st.x,group.x)+' · '+SCR_COLS[st.y][0]+': '+researchValue(st.y,group.y)+' · '+group.rows[0].symbol+' · '+researchExploreSector(group.rows[0])+' · Enter or click to inspect':'Arrow keys browse coordinates; Enter opens stocks at that point. Drag a region or use numeric bounds.';};
+ canvas.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();researchExplorePointClose();return;}const group=researchExploreKeyboard(groups,st,e.key);if(!group)return;e.preventDefault();announce(group);draw();if(e.key==='Enter')researchExplorePointOpen(group,canvas);};
+ canvas.onfocus=()=>{const group=groups.find(g=>g.rows.some(r=>researchKey(r)===st.plotCode));if(group){announce(group);draw();}};
+
+ canvas.onpointerdown=e=>{if(e.button!==0)return;start=at(e);canvas.setPointerCapture(e.pointerId);};
+ canvas.onpointermove=e=>{const q=at(e);if(start){draw();ctx.strokeStyle='#72b9ff';ctx.strokeRect(start.x,start.y,q.x-start.x,q.y-start.y);}else{const group=nearest(q),code=group && researchKey(group.rows[0]);if(code!==lastHover){lastHover=code;announce(group);}}};
+ canvas.onpointerup=e=>{if(!start)return;const q=at(e),origin=start;start=null;canvas.releasePointerCapture(e.pointerId);if(Math.hypot(q.x-origin.x,q.y-origin.y)>8){st.pointCodes=null;st.plotCode=null;st.bounds={x:{min:value(Math.min(q.x,origin.x),'x'),max:value(Math.max(q.x,origin.x),'x')},y:{min:value(Math.max(q.y,origin.y),'y'),max:value(Math.min(q.y,origin.y),'y')}};st.zoom=false;st.limit=100;st.formOpen=false;st.preview=false;researchExploreMount();}else{const group=nearest(q);if(group){announce(group);researchExplorePointOpen(group,canvas);draw();}}};
+ canvas.onpointercancel=()=>{start=null;draw();};
 }
-async function researchInspect(i) { const r=researchVisibleRows()[i];if(r)await researchInspectRow(r); }
-async function researchInspectRow(r) {
- const el=document.getElementById('research-inspector');if(!el)return;
- const code=researchKey(r);window.__researchInspectCode=code;const gen=window.__inspectGen=(window.__inspectGen || 0)+1;
- const filters=window.__scr.filters || [],preset=window.__scr.activePreset;
- if(window.__inspectChart){try{window.klinecharts.dispose('inspect-chart');}catch(e){}window.__inspectChart=null;}
- el.classList.add('open');el.innerHTML=`<button class="btn ghost inspector-close" onclick="window.__researchInspectCode=null;this.parentElement.classList.remove('open')">Close preview</button><h2>${esc(r.symbol)}</h2><p>${esc(r.name)}</p><div class="inspector-price">${fmtAuto(r.price)} <small>${r.pct==null?'—':Number(r.pct).toFixed(2)+'%'}</small></div><div id="inspect-chart" style="height:220px"></div><h4>Screen context</h4>${filters.length?'<ul>'+filters.map(f=>`<li>${esc(fldStr(f))}<small>${preset ? (r.criterion_values?.[f.field]==null ? 'Provider-qualified; numeric evidence unavailable' : 'Provider value: '+esc(fmtMag(r.criterion_values[f.field]))+(f.days?' · '+f.days+'-day average':'')) : r[f.field]==null?'Value unavailable': 'Stored value: '+esc(fmtMag(r[f.field]))}</small></li>`).join('')+'</ul>':'<p class="faint">All stocks — no custom criteria.</p>'}<dl>${['market_cap','pe_ttm','pb','volume'].map(k=>`<dt>${esc(SCR_COLS[k][0])}</dt><dd>${r[k]==null?'—':esc(fmtMag(r[k]))}</dd>`).join('')}</dl><p class="faint">Stored quote · ${esc(r.update_time || r.updated_at || r.data_date || 'source time unavailable')}<br>Snapshot data; not a streaming feed.</p><button class="btn primary" onclick="researchOpen('${esc(code)}')">Open full research →</button><p class="faint">Overview · Options · Financials · Analysis · Company · News · Comments</p>`;
- if(window.__inspectChart){try{window.klinecharts.dispose('inspect-chart');}catch(e){}}
- const data=await api('/api/stock/'+encodeURIComponent(code)+'/candles?range=3M').catch(()=>null);if(gen!==window.__inspectGen || !document.getElementById('inspect-chart'))return;
- const bars=data?.bars || data?.candles || [];
- if(!bars.length){document.getElementById('inspect-chart').innerHTML='<p class="faint">Preview history unavailable. Open full research for chart sessions and intervals.</p>';return;}
- const c=window.klinecharts.init('inspect-chart');window.__inspectChart=c;klineTheme(c);
- c.applyNewData(bars.map(b=>({timestamp:typeof (b.time_key || b.time || b.timestamp || b.t)==='number' ? (b.time_key || b.time || b.timestamp || b.t) : Date.parse(b.time_key || b.time || b.timestamp || b.t),open:Number(b.open??b.o),high:Number(b.high??b.h),low:Number(b.low??b.l),close:Number(b.close??b.c),volume:Number(b.volume??b.v)||0})).filter(b=>Number.isFinite(b.timestamp)&&Number.isFinite(b.close)));
+const RESEARCH_RANGES = {
+ '1M':{request:'Q',days:31,interval:'Daily'},'3M':{request:'Q',days:93,interval:'Daily'},
+ '6M':{request:'6M',days:186,interval:'Daily'},'1Y':{request:'Y',days:366,interval:'Daily'},
+ '5Y':{request:'W',days:1827,interval:'Weekly'}
+};
+const RESEARCH_PERCENT_FIELDS=new Set(['pct','turnover_rate','div_yield','amplitude','bid_ask_ratio','roe','roe_yoy','roa','gross_margin','operating_margin','net_margin','revenue_growth','net_profit_growth','eps_growth','debt_ratio','lt_debt_eq','total_debt_eq','short_float','inst_own','insider_own','payout_ratio','sma20_pos','sma50_pos','sma200_pos','perf_w','perf_m','perf_q','perf_h','perf_y','perf_ytd','vol_w','vol_m','pos_52w']);
+const RESEARCH_CURRENCY_FIELDS=new Set(['price','chg','open','high','low','high52','low52','market_cap','float_cap','turnover','eps','div_ttm','target_price','op_ebt']);
+function researchFieldCurrency(row,field) {
+ if(!RESEARCH_CURRENCY_FIELDS.has(field))return '';
+ const code=row?.code,value=row?.[field],o=row?.field_observations?.[field];
+ if(typeof code!=='string' || !/^(US|HK)\.[A-Z0-9][A-Z0-9._-]{0,30}$/.test(code) || typeof value!=='number' || !Number.isFinite(value))return '';
+ return o && o.code===code && o.field===field && o.unit==='currency' && typeof o.value==='number' && Number.isFinite(o.value) && o.value===value && typeof o.currency==='string' && /^[A-Z]{3}$/.test(o.currency)?o.currency:'';
 }
-function researchDefinition() {const s=window.__scr;return {market:s.market,src:s.src || 'moo',etfs:!!s.etfs,watchlist_only:!!s.watchlistOnly,filters:scrEffFilters(),preset:s.activePreset || null};}
-async function researchLoadChanges() {
- const el=document.getElementById('research-change-results');if(!el)return;
- try{const d=await api('/api/screener/changes?definition='+encodeURIComponent(JSON.stringify(researchDefinition())));if(document.getElementById('research-change-results')!==el)return;researchChangesRender(el,d);}catch(e){el.textContent='Snapshot history unavailable: '+e.message;}
+function researchMoneyValue(row,field) {
+ const value=researchValue(field,row?.[field]);if(value==='Unavailable')return value;
+ const currency=researchFieldCurrency(row,field);
+ return currency?currency+' '+value:value+' · currency unavailable';
 }
-function researchChangesRender(el,d) {
- if(!d.comparable){el.innerHTML=`<p class="faint">${esc(d.reason || 'Capture the first complete baseline, then another comparable snapshot.')}</p>`;return;}
- el.innerHTML=`<p class="faint">${esc(d.previous_at)} → ${esc(d.current_at)} · complete available-data snapshots</p><h4>${d.added.length} newly qualifying · ${d.exited.length} exited · ${d.unchanged} unchanged</h4>${[['Newly qualifying',d.added],['Exited',d.exited]].map(([title,rows])=>`<h4>${title}</h4>${rows.map(r=>`<button class="btn ghost" onclick="researchOpen('${esc(r.code)}')">${esc(r.symbol)} · ${esc(r.name || '')}</button>`).join('') || '<p class="faint">None</p>'}`).join('')}<p class="faint">Membership changes do not establish a buy/sell recommendation. Full research retains the evidence and chart tools.</p>`;
+function researchMoneyHTML(row,field) {
+ const value=researchValue(field,row?.[field]);if(value==='Unavailable')return esc(value);
+ const currency=researchFieldCurrency(row,field);
+ return (currency?esc(currency)+' ':'')+esc(value)+(currency?'':' <abbr title="Currency not supplied for this value" aria-label="Currency not supplied for this value">cur?</abbr>');
 }
-async function researchSnapshot() {
- const el=document.getElementById('research-change-results');el.textContent='Capturing and validating complete membership…';
- try{await api('/api/screener/snapshots',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(researchDefinition())});await researchLoadChanges();}catch(e){el.textContent='Capture unavailable: '+e.message;}
+function researchValue(field,value,currency) {
+ if(typeof value!=='number' || !Number.isFinite(value))return 'Unavailable';
+ const n=Number(value),precision=Math.abs(n)>0 && Math.abs(n)<0.01?Math.min(12,Math.ceil(-Math.log10(Math.abs(n)))+2):2,short=n.toLocaleString('en-US',{maximumFractionDigits:precision});
+ if(['price','chg','high52','low52'].includes(field))return fmtAuto(n);
+ if(RESEARCH_PERCENT_FIELDS.has(field))return short+'%';
+ if(['market_cap','float_cap','turnover'].includes(field)){
+  const a=Math.abs(n),scale=a>=1e12?1e12:a>=1e9?1e9:a>=1e6?1e6:a>=1e3?1e3:1;
+  return (currency?currency+' ':'')+(n/scale).toLocaleString('en-US',{maximumFractionDigits:2})+({[1e12]:'T',[1e9]:'B',[1e6]:'M',[1e3]:'K'}[scale] || '');
+ }
+ if(field==='volume')return n.toLocaleString('en-US',{maximumFractionDigits:0})+' shares';
+ return short;
+}
+function researchDisplayField(field,value) {
+ if(value==null || value==='')return 'Unavailable';
+ const kind=SCR_COLS[field]?.[1];
+ if(kind==='bool')return [true,1,'1'].includes(value)?'Yes':[false,0,'0'].includes(value)?'No':'Unavailable';
+ if(['text','multi','symbol','date'].includes(kind))return Array.isArray(value)?value.filter(v=>typeof v==='string' || typeof v==='number').join(', ') || 'Unavailable':typeof value==='object'?'Unavailable':String(value);
+ return researchValue(field,value);
+}
+function researchScreenValuesHTML(row,field,st=window.__scr) {
+ if(!st.activePreset)return '';
+ const original=(window.__scrPresets || []).find(p=>p.key===st.activePreset)?.filters || window.__presetCache?.[st.activePreset+'|'+st.market]?.payload?.filters;
+ if(!Array.isArray(original))return '';
+ const same=(a,b)=>JSON.stringify(researchStable(a))===JSON.stringify(researchStable(b));
+ const criteria=(st.filters || []).filter(f=>f.field===field && original.some(o=>same(o,f)));
+ return criteria.map(f=>{
+  const e=researchEvidence(row,f,st.activePreset),windowLabel=f.days?' · '+f.days+'-day':'';
+  return `<small class="screen-value">Screen${esc(windowLabel)}: ${esc(e.value==='Numeric evidence unavailable'?'Unavailable':e.value)}</small>`;
+ }).join('');
+}
+function researchEvidence(row,filter,preset) {
+ const field=filter.field,original=preset?((window.__scrPresets || []).find(p=>p.key===preset)?.filters || window.__presetCache?.[preset+'|'+window.__scr.market]?.payload?.filters):null;
+ const same=(a,b)=>JSON.stringify(researchStable(a))===JSON.stringify(researchStable(b));
+ const provider=!!preset && (!original || original.some(c=>same(c,filter)));
+ const records=provider && Array.isArray(row.criterion_evidence)?row.criterion_evidence.filter(e=>e?.code===row.code && same(e.criterion,filter)):null;
+ const record=records?.length===1?records[0]:null;
+ const value=provider?(records?record?.value:row.criterion_values?.[field]):row[field];
+ const numeric=typeof value==='number' && Number.isFinite(value);
+ const terms=[];
+ if(filter.min!=null)terms.push((filter.excl_min?'> ':'≥ ')+researchValue(field,filter.min));
+ if(filter.max!=null)terms.push((filter.excl_max?'< ':'≤ ')+researchValue(field,filter.max));
+ if(filter.values)terms.push(filter.values.join(', '));
+ const financial=['roe','roe_yoy','revenue_growth','net_profit_growth','debt_ratio','gross_margin','net_margin','eps','eps_growth','op_ebt','op_profit_growth','div_yield','float_cap'].includes(field);
+ const o=provider?null:row.field_observations?.[field],origin=row.display_field_sources?.[field];
+ const attributed=o && o.code===row.code && o.field===field && o.value===value;
+ const period=attributed && typeof o.period==='string' && o.period?o.period:'Reported period not supplied';
+ const basis=filter.days?filter.days+'-day '+(field==='volume'?'average':'window')+' requested':provider && financial?'Annual financial basis requested':field==='pe_ttm'?'TTM definition':field==='forward_pe'?'Forward estimate definition':'No reporting basis supplied';
+ const source=provider?'Moomoo screen criterion':({yfinance:'yfinance cached factor',computed_technicals:'Computed technical factor',provider_screen:'Moomoo screen value',stored_generation:'Stored quote generation',legacy_cache:'Stored quote cache',live_snapshot:'Snapshot quote'})[origin?.source] || (attributed && typeof o.source==='string'?o.source:'Source not supplied');
+ const stamp=provider?record?.retrieved_at || row.criterion_retrieved_at:origin?.cache_at || origin?.retrieved_at || (attributed?o.observed_at:null);
+ const categorical=!provider && Array.isArray(filter.values) && (typeof value==='string' || typeof value==='boolean' || Array.isArray(value));
+ let shown=numeric?researchValue(field,value):categorical?researchDisplayField(field,value):'Numeric evidence unavailable';
+ if(numeric && RESEARCH_CURRENCY_FIELDS.has(field))shown=provider?shown+' · currency not supplied':researchMoneyValue(row,field);
+ const passes=numeric?(filter.min==null || (filter.excl_min?value>filter.min:value>=filter.min)) && (filter.max==null || (filter.excl_max?value<filter.max:value<=filter.max)):null;
+ const display=provider?(RESEARCH_CURRENCY_FIELDS.has(field)?researchMoneyValue(row,field):researchDisplayField(field,row[field])):null;
+ return {label:SCR_COLS[field]?.[0] || SCR_FIELDS[field] || field,value:shown,display_value:display,threshold:terms.join(' and '),basis,period,source,
+  timestamp:stamp?researchCaptureTime(stamp):'Source/retrieval time not supplied',
+  status:numeric?(passes?'Supplied value passes these bounds; period/source qualification is separate':'Supplied value does not pass these bounds; review current evidence'):categorical?'Stored classification supplied':provider?'Provider screen membership; criterion value unavailable':'Value unavailable'};
 }
 
+function researchCompanyContextHTML(payload,code,now=Date.now()) {
+ const qualified=field=>{const value=payload?.fields?.[field],origin=payload?.origins?.[field],stamp=Date.parse(origin?.cache_at),age=now-stamp;return payload?.code===code && typeof value==='string' && value.trim() && origin?.source==='yfinance' && typeof origin.cache_at==='string' && /(Z|[+-]\d{2}:\d{2})$/.test(origin.cache_at) && Number.isFinite(stamp) && age>=0 && age<=7*86400000?value.trim():null;};
+ const sector=qualified('sector'),industry=qualified('industry'),site=qualified('website');let url;
+ try{const parsed=new URL(site);if(['http:','https:'].includes(parsed.protocol) && !parsed.username && !parsed.password && parsed.hostname)url=parsed;}catch(e){}
+ const dates=[['sector','Sector',sector],['industry','Industry',industry],['website','Website',url]].map(([field,label,value])=>value?`<p>${label} · yfinance · retrieved <time datetime="${esc(payload.origins[field].cache_at)}">${esc(researchCaptureTime(payload.origins[field].cache_at))}</time></p>`:`<p>${label}: qualified source/retrieval time unavailable</p>`).join('');
+ return `<section class="inspector-company" aria-label="Company context"><h4>Company context</h4><dl><dt>Sector</dt><dd>${esc(sector || 'Unavailable')}</dd><dt>Industry</dt><dd>${esc(industry || 'Unavailable')}</dd><dt>Website</dt><dd>${url?`<a href="${esc(url.href)}" target="_blank" rel="noopener noreferrer">${esc(url.hostname)}</a>`:'Unavailable'}</dd></dl><details class="company-source-details"><summary>Company source &amp; retrieval dates</summary>${dates}<p>Retrieval time is not a financial reporting period. These current cached classifications are separate from provider lists and the screen's quote generation.</p></details></section>`;
+}
+async function researchCompanyMount(code,gen) {
+ const cache=window.__researchCompanyCache || (window.__researchCompanyCache=new Map());let entry=cache.get(code);
+ try{
+  if(!entry || Date.now()-entry.at>30000){const payload=await api('/api/screener/company-context?code='+encodeURIComponent(code));entry={payload,at:Date.now()};if(payload?.code===code){if(cache.size>=128 && !cache.has(code))cache.delete(cache.keys().next().value);cache.set(code,entry);}}
+  if(gen!==window.__inspectGen || window.__researchInspectCode!==code)return;
+  const target=document.getElementById('inspect-company');if(target)target.innerHTML=researchCompanyContextHTML(entry.payload,code);
+ }catch(e){if(gen===window.__inspectGen && window.__researchInspectCode===code){const target=document.getElementById('inspect-company');if(target)target.textContent='Company context unavailable. Reopen Overview to retry.';}}
+}
+function researchDisposeInspector() {
+ researchModalRelease('inspector');
+ window.__inspectGen=(window.__inspectGen || 0)+1;
+ window.__inspectResize?.disconnect();window.__inspectResize=null;
+ if(window.__inspectChart){try{window.klinecharts.dispose('inspect-chart');}catch(e){}window.__inspectChart=null;}
+}
+function researchCloseInspector(restore=true) {
+ const changeCode=window.__researchChangeCode,changeRow=window.__changePayload?.rows?.find(r=>r.code===changeCode);
+ researchDisposeInspector();window.__researchInspectCode=null;window.__researchChangeCode=null;
+ document.getElementById('research-inspector')?.classList.remove('open');
+ const origin=window.__inspectOrigin;if(restore && origin?.isConnected && origin.getClientRects().length)origin.focus({preventScroll:true});
+ else if(restore){const label=changeCode?'Review '+(changeRow?.symbol || changeCode)+' snapshot evidence':'Inspect '+window.__inspectRow?.symbol;[...document.querySelectorAll('button[aria-label]')].find(b=>b.getAttribute('aria-label')===label && b.getClientRects().length)?.focus({preventScroll:true});}
+}
+function researchInspectorTab(tab) {
+ if(!['overview','why','news'].includes(tab))return;
+ window.__inspectTab=tab;researchInspectRow(window.__inspectRow,{focusControl:'tab'});
+}
+function researchInspectorRange(range) {
+ if(!RESEARCH_RANGES[range])return;
+ window.__inspectRange=range;researchInspectRow(window.__inspectRow,{focusControl:'range'});
+}
+async function researchInspect(i,origin) {
+ const row=researchVisibleRows()[i];if(!row)return;
+ window.__inspectOrigin=origin || [...document.querySelectorAll('button[aria-label]')].find(b=>b.getAttribute('aria-label')==='Inspect '+row.symbol && b.getClientRects().length) || document.activeElement;await researchInspectRow(row,{focus:true});
+}
+function researchQuoteCurrency(row) {
+ return typeof row?.currency==='string' && /^(USD|HKD|CNY|CNH|JPY|AUD|CAD|EUR|GBP|CHF|SGD)$/.test(row.currency)?row.currency:'';
+}
+function researchQuoteProvenance(row) {
+ const valid=t=>typeof t==='string' && /(Z|[+-]\d{2}:\d{2})$/.test(t) && Number.isFinite(Date.parse(t));
+ const source=row.quote_time_semantics==='provider_snapshot_update' && valid(row.quote_observed_at)?researchCaptureTime(row.quote_observed_at):'Unavailable';
+ const cache=row.quote_cache_at || row.updated_at;
+ const sources=row.display_field_sources;
+ const display=sources?`<details><summary>Displayed value sources</summary><p>Screen membership and rule values are from the provider screening response. Quote fills may have different source times.</p>${['price','pct','market_cap','stock_type'].map(field=>{const origin=sources[field];if(!origin)return '';const label={provider_screen:'Provider screen',stored_generation:'Stored generation',legacy_cache:'Legacy cache',live_snapshot:'Live snapshot',provider_basicinfo:'Provider classification'}[origin.source] || 'Unverified';return `<p>${esc(SCR_COLS[field]?.[0] || field)}: ${esc(label)}${origin.generation_id?' · '+esc(origin.generation_id):''} · ${esc(researchCaptureTime(origin.cache_at || origin.retrieved_at))}</p>`;}).join('')}</details>`:'';
+ return `<div class="inspector-provenance"><strong>Data context</strong><p>Provider snapshot updated: ${esc(source)}<br>Cache updated: ${esc(valid(cache)?researchCaptureTime(cache):'Unavailable')}<br>Price currency: ${esc(researchFieldCurrency(row,'price') || 'Not supplied')} · ${sources?'Moomoo screen / quote display':window.__scr.src==='yf'?'Moomoo quotes / supplemental factors':'Moomoo stored quote'}<br>Snapshot update is not last-trade time. Session, adjustment and delay are not verified.</p>${display}</div>`;
+}
+function researchInspectorKey(event) {
+ if(window.matchMedia?.('(max-width:1350px)').matches)researchModalKey(event,document.getElementById('research-inspector'),()=>researchCloseInspector());
+ else if(event.key==='Escape'){event.preventDefault();researchCloseInspector();}
+}
+function researchWhyEvidenceHTML(row,filters,preset) {
+ const evidence=filters.map(f=>researchEvidence(row,f,preset));
+ return filters.length?`<div class="inspector-evidence">${evidence.map(e=>`<section><h4>${esc(e.label)}</h4><strong>${esc(e.value)}</strong>${e.display_value!==null?`<p>Table display: ${esc(e.display_value)}. This is separate from the screen criterion observation.</p>`:''}<p>Rule: ${esc(e.threshold || 'Provider definition')}<br>${esc(e.basis)}<br>${esc(e.period)}<br>${esc(e.source)} · ${esc(e.timestamp)}</p><small>${esc(e.status)}</small></section>`).join('')}</div>`:'<p>All stocks — no custom criteria. This stock is in the current stock-only universe.</p>';
+}
+function researchMergeObservations(row,payload) {
+ if(!row || payload?.code!==row.code || payload.generation_id!==row.generation_id || !payload.field_observations || typeof payload.field_observations!=='object')return row;
+ const observations={...(row.field_observations || {})};
+ for(const [field,o] of Object.entries(payload.field_observations)){
+  if(o && o.code===row.code && o.field===field && typeof o.value==='number' && Number.isFinite(o.value) && o.value===row[field] && payload.values?.[field]===row[field])observations[field]=o;
+ }
+ return {...row,field_observations:observations};
+}
+async function researchObservationMount(row,gen) {
+ const code=row.code,generation=row.generation_id;
+ if(typeof code!=='string' || !/^(US|HK)\.[A-Z0-9][A-Z0-9._-]{0,30}$/.test(code) || typeof generation!=='string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(generation))return;
+ const cache=window.__researchObservationCache || (window.__researchObservationCache=new Map()),key=generation+'|'+code;
+ try{
+  let payload=cache.get(key);
+  if(!payload){payload=await api('/api/screener/observations?code='+encodeURIComponent(code)+'&generation_id='+encodeURIComponent(generation));if(payload?.code===code && payload.generation_id===generation){if(cache.size>=32 && !cache.has(key))cache.delete(cache.keys().next().value);cache.set(key,payload);}}
+  if(gen!==window.__inspectGen || window.__researchInspectCode!==code || window.__inspectRow?.generation_id!==generation || window.__inspectTab!=='why')return;
+  const rows=researchRows(),found=rows.find(r=>r.code===code);if((found && found.generation_id!==generation) || (!found && rows.length))return;
+  const current=found || window.__inspectRow;
+  const merged=researchMergeObservations(current,payload);window.__inspectRow=merged;
+  const target=document.getElementById('inspector-content');if(target)target.innerHTML=researchWhyEvidenceHTML(merged,scrEffFilters(false),window.__scr.activePreset);
+ }catch(e){if(gen===window.__inspectGen && window.__researchInspectCode===code){const status=document.getElementById('inspect-observation-status');if(status)status.textContent='Original field evidence unavailable. Reopen Why it matches to retry.';}}
+}
+async function researchInspectRow(row,options={}) {
+ const el=document.getElementById('research-inspector');if(!el || !row)return;
+ const code=researchKey(row),changed=window.__researchInspectCode!==code;
+ if(changed){window.__inspectTab='overview';window.__inspectRange='3M';}
+ researchDisposeInspector();const gen=window.__inspectGen;
+ window.__researchInspectCode=code;window.__inspectRow=row;
+ const tab=window.__inspectTab || 'overview',range=window.__inspectRange || '3M',currency=researchQuoteCurrency(row);
+ const privateItem=state.page==='shortlists'?(window.__researchListItems || []).find(r=>r.code===code):null;window.__researchPrivateInspect=!!privateItem;
+ const filters=privateItem?[]:scrEffFilters(false),watched=(window.__scr.watchlistSyms || []).includes(row.symbol);
+ const call=value=>esc(JSON.stringify(value));
+ const tabs=[['overview','Overview'],['why',privateItem?'List context':'Why it matches'],['news','News']];
+ const provenance=researchQuoteProvenance(row);
+ const why=privateItem?`<h4>Research shortlist</h4><p>${esc(privateItem.review_status.replaceAll('_',' '))}</p><p>${esc(privateItem.note || 'No note')}</p><p>List membership does not establish qualification for the current screener criteria.</p>`:researchWhyEvidenceHTML(row,filters,window.__scr.activePreset);
+ el.classList.add('open');el.setAttribute('role',window.matchMedia?.('(max-width:1350px)').matches?'dialog':'complementary');el.setAttribute('aria-label',row.symbol+' stock inspector');
+ if(window.matchMedia?.('(max-width:1350px)').matches)el.setAttribute('aria-modal','true');else el.removeAttribute('aria-modal');
+ el.onkeydown=researchInspectorKey;
+ el.innerHTML=`<div class="inspector-heading"><div><h2>${esc(row.symbol)}</h2><p>${esc(row.name)}</p></div><button class="btn ghost inspector-close" onclick="researchCloseInspector()">Close preview</button></div><div class="inspector-price">${researchMoneyHTML(row,'price')}<small class="${Number(row.pct)>=0?'g':'r'}">${esc(researchValue('pct',row.pct))}</small></div><div class="inspector-tabs" role="group" aria-label="Inspector section">${tabs.map(([id,label])=>`<button class="btn ${tab===id?'primary':'ghost'}" aria-pressed="${tab===id}" onclick="researchInspectorTab('${id}')">${label}</button>`).join('')}</div><div class="inspector-scroll"><div id="inspector-content">${tab==='overview'?`<dl class="inspector-key-metrics" aria-label="Quote metrics">${['market_cap','pe_ttm','pb','volume','high52','low52'].map(k=>`<dt>${esc(SCR_COLS[k]?.[0] || k)}</dt><dd>${RESEARCH_CURRENCY_FIELDS.has(k)?researchMoneyHTML(row,k):esc(researchValue(k,row[k]))}</dd>`).join('')}</dl><div id="inspect-company" role="status">Loading cached company context…</div><div id="inspect-chart" aria-label="${esc(row.symbol)} price history" style="height:220px"></div><div class="inspector-ranges" role="group" aria-label="Chart range">${Object.keys(RESEARCH_RANGES).map(r=>`<button class="btn ${range===r?'primary':'ghost'}" aria-pressed="${range===r}" onclick="researchInspectorRange('${r}')">${r}</button>`).join('')}</div><p id="inspect-chart-status" role="status">Loading ${range} history…</p><h4>${privateItem?'List context':'Screen context'}</h4><p>${privateItem?'Research shortlist · see List context':filters.length?filters.length+' criteria · see Why it matches':'All stocks — no custom criteria'}</p>`:tab==='why'?why+(row.generation_id && !options.observationsLoaded?'<p id="inspect-observation-status" role="status">Loading original field evidence…</p>':''):'<div id="inspect-news" role="status">Loading recent news…</div>'}</div>${provenance}</div><div class="inspector-actions">${researchExtendedWorkspaceEnabled()?`<button class="btn ghost" onclick="researchShortlistPicker(${call(code)})">Add to shortlist</button>`:''}<button class="btn ghost" onclick="toggleWatch(${call(row.symbol)})" ${window.__watchPending?.has(row.symbol)?'disabled':''}>${watched?'Remove from watchlist':'Add to watchlist'}</button><button class="btn primary" onclick="researchOpen(${call(code)})">Open full research</button></div><p class="faint">All stock tabs and KLine tools remain in full research.</p>`;
+ if(window.matchMedia?.('(max-width:1350px)').matches)researchModalIsolate(el,'inspector');
+ if(options.focus)el.querySelector('.inspector-close')?.focus({preventScroll:true});
+ if(options.focusControl)el.querySelector(options.focusControl==='tab'?'.inspector-tabs [aria-pressed="true"]':'.inspector-ranges [aria-pressed="true"]')?.focus({preventScroll:true});
+ if(tab==='news'){
+  try{
+   const data=await api('/api/stock/'+encodeURIComponent(code)+'/news?type=news&limit=8');
+   if(gen!==window.__inspectGen || window.__researchInspectCode!==code)return;
+   const items=data?.news_list || data?.news || [],target=document.getElementById('inspect-news');if(!target)return;
+   target.innerHTML=data?.available===false?`<p>${esc(data.reason || 'News unavailable')}</p>`:items.length?items.slice(0,8).map(n=>{
+    let url='';try{const u=new URL(n.url);if(['https:','http:'].includes(u.protocol))url=u.href;}catch(e){}
+    const title=esc(String(n.title || 'Untitled').replace(/<\/?em>/g,''));
+    return `<article class="inspector-news">${url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${title}</a>`:title}<small>${n.publish_time?esc(stkTime(Number(n.publish_time)*1000)):'Publication time unavailable'}</small></article>`;
+   }).join(''):'<p>No recent news returned by the provider.</p>';
+  }catch(e){if(gen===window.__inspectGen)document.getElementById('inspect-news').textContent='News unavailable. Retry by reopening News.';}
+  return;
+ }
+ if(tab==='why' && !privateItem && !options.observationsLoaded){researchObservationMount(row,gen);return;}
+ if(tab!=='overview')return;
+ researchCompanyMount(code,gen);
+ const config=RESEARCH_RANGES[range];
+ try{
+  const data=await api('/api/stock/'+encodeURIComponent(code)+'/candles?range='+config.request);
+  if(gen!==window.__inspectGen || window.__researchInspectCode!==code)return;
+  const target=document.getElementById('inspect-chart'),status=document.getElementById('inspect-chart-status');if(!target || !status)return;
+  const bars=researchInspectorBars(data,config.days);
+  if(data?.available===false || !bars.length){target.innerHTML='<p>Preview history unavailable. Full research retains chart controls.</p>';status.textContent=data?.reason || 'No valid bars returned';return;}
+  const chart=window.klinecharts.init('inspect-chart');window.__inspectChart=chart;klineTheme(chart);chart.setStyles({candle:{tooltip:{showRule:'follow_cross',custom:[{title:'time',value:'{time}'},{title:'close',value:'{close}'}]}}});chart.applyNewData(bars);
+  const fit=()=>{if(window.__inspectChart!==chart)return;chart.resize();chart.setBarSpace(Math.max(2,Math.min(12,(target.clientWidth-65)/bars.length)));};fit();
+  if(typeof ResizeObserver!=='undefined'){window.__inspectResize=new ResizeObserver(fit);window.__inspectResize.observe(target);}
+  const date=t=>new Date(t).toISOString().slice(0,10);
+  status.textContent=config.interval+' interval requested · '+date(bars[0].timestamp)+' to '+date(bars.at(-1).timestamp)+' · '+bars.length+' bars · regular session request · adjustment/completeness not supplied';
+ }catch(e){if(gen===window.__inspectGen){const target=document.getElementById('inspect-chart-status');if(target)target.textContent='History unavailable. Retry by choosing a range.';}}
+}
+function researchInspectorBars(data,days) {
+ const now=Date.now(),cutoff=now-days*86400000,byTime=new Map();
+ for(const b of data?.bars || data?.candles || []){
+  const raw=b.time_key ?? b.time ?? b.timestamp ?? b.t;
+  const timestamp=typeof raw==='number'?(raw<1e11?raw*1000:raw):Date.parse(raw);
+  if([b.open??b.o,b.high??b.h,b.low??b.l,b.close??b.c].some(v=>v==null || v===''))continue;
+  const rawVolume=b.volume??b.v;
+  const row={timestamp,open:Number(b.open??b.o),high:Number(b.high??b.h),low:Number(b.low??b.l),close:Number(b.close??b.c)};
+  if(rawVolume!=null && rawVolume!=='')row.volume=Number(rawVolume);
+  if(timestamp>=cutoff && timestamp<=now && [timestamp,row.open,row.high,row.low,row.close].every(Number.isFinite) && row.low>0 && row.low<=Math.min(row.open,row.close) && row.high>=Math.max(row.open,row.close) && row.low<=row.high && (row.volume==null || (Number.isFinite(row.volume) && row.volume>=0)))byTime.set(timestamp,row);
+ }
+ return [...byTime.values()].sort((a,b)=>a.timestamp-b.timestamp);
+}
+function researchDefinition() {const s=window.__scr;return {market:s.market,src:s.src || 'moo',etfs:!!s.etfs,watchlist_only:!!s.watchlistOnly,filters:scrEffFilters(),preset:s.activePreset || null};}
+function researchErrorMessage(error) {
+ const text=String(error?.message || error || 'Request unavailable');
+ try{const data=JSON.parse(text);return typeof data.detail==='string'?data.detail:'Please check the requested inputs.';}catch(e){return text;}
+}
+function researchChangeState() {
+ const key=JSON.stringify(researchStable(researchDefinition()));
+ if(window.__changeState?.key!==key)window.__changeState={key,status:'new',q:'',sort:'symbol',direction:1,offset:0,limit:100,previous_id:'',current_id:'',history_offset:0,review_status:'all',source:'manual',schedule_id:''};
+ return window.__changeState;
+}
+function researchPairPrivate(d) {return ['private_capture_pair','private_schedule_pair'].includes(d?.review_scope);}
+function researchPairEndpoint(d) {return d?.review_scope==='private_schedule_pair'?'/api/research/capture-schedules/'+encodeURIComponent(d.schedule_id)+'/pair-reviews':'/api/research/pair-reviews';}
+function researchChangeSourceHTML() {
+ const st=researchChangeState();return `<label class="change-source">Capture history<select aria-label="Capture history source" onchange="researchChangeSource(this.value)"><option value="manual" ${st.source!=='private'?'selected':''}>Manual · shared deployment</option><option value="private" ${st.source==='private'?'selected':''} ${window.__researchSession?'':'disabled'}>My private captures${window.__researchSession?'':' · sign in required'}</option></select></label><button class="btn ghost" onclick="researchCaptureScheduleOpen()" ${window.__researchSession?'':'disabled'} title="${window.__researchSession?'Configure a private cadence for this exact screen':'Sign in to configure a private capture schedule'}">Capture schedule</button>`;
+}
+function researchChangeSource(source) {
+ if(!['manual','private'].includes(source) || source==='private' && !window.__researchSession)return;
+ const st=researchChangeState();Object.assign(st,{source,schedule_id:'',previous_id:'',current_id:'',offset:0,history_offset:0,review_status:'all'});
+ clearTimeout(window.__changeSearchTimer);
+ window.__changePayload=null;window.__researchChangeSelection=null;window.__researchChangeCode=null;window.__researchPairDraftKey=null;window.__changeGen=(window.__changeGen || 0)+1;window.__changeLoading=true;researchCloseInspector(false);
+ const results=document.getElementById('research-change-results');if(results)results.innerHTML='Loading capture history…';
+ researchChangeRequestNotice(source==='private'?'Loading your private capture history…':'Loading shared deployment capture history…');showPage('home');
+}
+async function researchLoadPrivateChanges(st,gen=window.__changeGen || 0) {
+ st={...st};
+ if(!window.__researchSession)throw Error('Sign in to view your private captures.');
+ const owner=window.__researchSession.user.id,key=st.key;
+ let cached=window.__researchCaptureSchedule;
+ // A missing schedule is not stable: another tab may create it before Reload.
+ if(!cached?.schedule)cached=null;
+ if(cached?.owner!==owner || cached?.key!==key){
+  const data=await researchPrivateAPI('/api/research/capture-schedules?'+new URLSearchParams({definition:JSON.stringify(researchDefinition())}));
+  if(!Array.isArray(data.schedules) || data.schedules.length>1)throw Error('Private schedule scope was not confirmed.');
+  if(gen!==(window.__changeGen || 0) || owner!==window.__researchSession?.user.id)throw researchAuthError('Comparison changed.',499);
+  cached={owner,key,schedule:data.schedules[0] || null};window.__researchCaptureSchedule=cached;
+ }
+ if(!cached.schedule)return {comparable:false,scope:'authenticated_owner',history:[],reason:'No private capture schedule exists for this exact screen. Automated captures are not enabled yet.'};
+ st.schedule_id=cached.schedule.id;
+ const base='/api/research/capture-schedules/'+encodeURIComponent(st.schedule_id);
+ const timeline=await researchPrivateAPI(base+'/captures?'+new URLSearchParams({limit:100,offset:st.history_offset || 0}));
+ if(!Array.isArray(timeline.captures))throw Error('Private capture history was not confirmed.');
+ const history=[...timeline.captures].reverse(),metadata={history,history_offset:timeline.offset,history_has_more:timeline.has_more,scope:'authenticated_owner',schedule_id:st.schedule_id};
+ if(!st.previous_id || !st.current_id){
+  if((st.history_offset || 0)!==0)return {...metadata,comparable:false,reason:'Choose a before/after pair from private history.'};
+  if(history.length<2)return {...metadata,comparable:false,reason:history.length?'One private baseline is retained. A second complete capture is needed. Automation is not enabled yet.':'No successful private capture is retained. Automation is not enabled yet.'};
+  st.previous_id=history.at(-2).id;st.current_id=history.at(-1).id;
+ }
+ const pair={previous_id:st.previous_id,current_id:st.current_id,schedule_id:st.schedule_id,review_scope:'private_schedule_pair'};
+ const d=await researchPrivateAPI(base+'/pair-reviews?'+researchPairQuery(pair,st));
+ const known=new Set(history.map(s=>s.id));history.push(...(d.history || []).filter(s=>!known.has(s.id)));
+ history.sort((a,b)=>Date.parse(a.at || a.published_at)-Date.parse(b.at || b.published_at) || a.id.localeCompare(b.id));
+ return {...d,...metadata,history};
+}
+function researchChangeHeader(title,st) {
+ return `<div class="change-context"><div class="change-heading"><h2>Changes in ${esc(title)}</h2><div class="research-modes" role="group" aria-label="Result presentation">${['table','explore','changes'].map(v=>`<button class="btn ${v==='changes'?'primary':'ghost'}" aria-pressed="${v==='changes'}" onclick="researchMode('${v}')">${v[0].toUpperCase()+v.slice(1)}</button>`).join('')}</div><button class="btn primary" data-capture onclick="researchSnapshot()" ${window.__snapshotBusy || researchChangeState().source==='private'?'disabled':''}>Capture snapshot</button></div><p>${esc(st.market)} · ${st.etfs?'Stocks + ETFs':'ETFs excluded'} · compare captures of the same definition <button class="btn ghost library-open-control" onclick="researchLibraryOpen()">Screens</button><button class="btn ghost" onclick="researchMode('table')">Edit screen</button><button class="btn ghost desk-clear" onclick="scrResetAll()" title="All stocks excluding ETFs, sorted by market cap">Clear</button></p>${researchChangeSourceHTML()}</div>`;
+}
+function researchRefreshChangeHeader() {
+ const header=document.querySelector('.change-context');if(!header)return;
+ const title=header.querySelector('h2')?.textContent.replace(/^Changes in /,'') || 'Current screen';
+ header.outerHTML=researchChangeHeader(title,window.__scr);
+}
+function researchChangesHTML() {
+ return `<div id="research-change-load-status" role="status" aria-live="polite"></div><div id="research-change-results" aria-live="polite">Loading snapshot comparison…</div>`;
+}
+function researchChangeRequestNotice(message,retry=false) {
+ const notice=document.getElementById('research-change-load-status');if(!notice)return;
+ document.querySelectorAll('input[data-change-code]').forEach(input=>input.disabled=!!message && !retry);
+ notice.innerHTML=message?`<p>${esc(message)}${retry?' <button class="btn ghost" onclick="researchLoadChanges()">Retry comparison</button>':''}</p>`:'';
+}
+async function researchLoadChanges() {
+ const el=document.getElementById('research-change-results');if(!el)return;
+ const st=researchChangeState(),authGen=window.__researchAuthGen || 0,gen=(window.__changeGen || 0)+1;window.__changeGen=gen;window.__changeLoading=true;researchChangeRequestNotice(window.__changePayload?.comparable?'Loading comparison. Rows still shown belong to the previous successful request; selection and exports are paused.':'Loading snapshot comparison…');const exportButton=document.querySelector('.change-tools button');if(exportButton)exportButton.disabled=true;
+ const qs=new URLSearchParams({definition:JSON.stringify(researchDefinition()),status:st.status,q:st.q,sort:st.sort,direction:st.direction,limit:st.limit,offset:st.offset,history_offset:st.history_offset || 0});
+ for(const k of ['previous_id','current_id'])if(st[k])qs.set(k,st[k]);
+ try{let d=st.source==='private'?await researchLoadPrivateChanges(st,gen):await api('/api/screener/changes?'+qs);if(st.source!=='private' && d.comparable && window.__researchSession){
+  try{d=await researchPrivateAPI('/api/research/pair-reviews?'+researchPairQuery(d,st));}
+  catch(e){if(e.status===499)return;d={...d,review_error:researchErrorMessage(e)};}
+ }if(authGen!==(window.__researchAuthGen || 0) || gen!==window.__changeGen || document.getElementById('research-change-results')!==el)return;if(st.source==='private' && d.schedule_id)st.schedule_id=d.schedule_id;window.__changePayload=d;researchChangeRequestNotice('');researchChangesRender(el,d);}
+ catch(e){if(gen===window.__changeGen && document.getElementById('research-change-results')===el){const previous=window.__changePayload;window.__changePayload=null;researchChangeRequestNotice('The requested comparison could not load. Retry to retrieve its rows.',true);researchChangesRender(el,{comparable:false,request_failed:true,history:previous?.history || [],history_has_more:previous?.history_has_more,history_offset:previous?.history_offset || 0,scope:previous?.scope,reason:'Comparison unavailable: '+researchErrorMessage(e)});}}finally{if(gen===window.__changeGen){window.__changeLoading=false;const button=document.querySelector('.change-tools button');if(button)button.disabled=false;}}
+}
+function researchChangeSearch(input) {
+ const st=researchChangeState();st.q=input.value;st.offset=0;window.__changeLoading=true;researchChangeRequestNotice('Updating comparison search. Rows still shown belong to the previous successful request; selection and exports are paused.');const button=document.querySelector('.change-tools button');if(button)button.disabled=true;window.__changeGen=(window.__changeGen || 0)+1;
+ clearTimeout(window.__changeSearchTimer);window.__changeSearchTimer=setTimeout(()=>researchLoadChanges(),200);
+}
+function researchChangeSet(key,value) {
+ const st=researchChangeState();if(!['status','q','sort','direction','previous_id','current_id','offset','history_offset','review_status'].includes(key))return;
+ if(key==='review_status' && !['all','unreviewed','in_review','reviewed','scope_conflict'].includes(value))return;
+ st[key]=['direction','offset','history_offset'].includes(key)?Number(value):value;if(!['offset','history_offset'].includes(key))st.offset=0;
+ researchLoadChanges();
+}
+function researchChangeCriteria(definition) {
+ const filters=definition?.filters || [];return filters.map((c,i)=>({...c,criterion_key:'c'+i,sort_key:filters.filter(f=>f.field===c.field).length===1?c.field:'c'+i})).filter(c=>c.values==null && (c.min!=null || c.max!=null));
+}
+function researchChangeCriterionLabel(c) {
+ return (SCR_COLS[c.field]?.[0] || SCR_FIELDS[c.field] || c.field)+(c.days?' · '+c.days+'d':'');
+}
+function researchCaptureClockLabel(clock) {
+ return {provider_retrieval:'Provider retrieval',stored_universe:'Stored cache update',generation_publication:'Generation published'}[clock] || 'Time type unverified';
+}
+function researchCaptureTime(at) {
+ if(!at)return 'Time unavailable';const d=new Date(at);if(!Number.isFinite(d.getTime()))return 'Time unavailable';
+ return TZ()==='nz'?d.toLocaleString('en-NZ',{timeZone:'Pacific/Auckland',year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' NZ time':d.toISOString().slice(0,23).replace('T',' ')+' UTC';
+}
+function researchChangesRender(el,d) {
+ const st=researchChangeState(),history=d.history || [],counts=d.counts || {new:d.added?.length || 0,exited:d.exited?.length || 0,all:(d.added?.length || 0)+(d.exited?.length || 0)+(d.unchanged || 0)};
+ const optionsOpen=!!el.querySelector?.('.change-options')?.open,selectionOpen=!!el.querySelector?.('.change-selection-menu')?.open,provenanceOpen=!!el.querySelector?.('.change-provenance')?.open,focusHistory=document.activeElement?.getAttribute('data-history-page');
+ const criteria=researchChangeCriteria(d.definition),sorts=[['symbol','Symbol'],['name','Company'],['status','Change status'],['market_cap','Captured market cap'+(d.market_cap_sort?.ready?' · '+d.market_cap_sort.currencies[0]:' · currency unqualified')],...criteria.flatMap(c=>['before','after'].map(side=>['criterion:'+side+':'+c.sort_key,researchChangeCriterionLabel(c)+' · '+side+(d.criterion_sorts?.['criterion:'+side+':'+c.sort_key]?.ready?'':' · attribution unqualified')]))];
+ const criterionHeaders=criteria.map(c=>`<th scope="col">${esc(researchChangeCriterionLabel(c))} before</th><th scope="col">${esc(researchChangeCriterionLabel(c))} after</th>`).join('');
+ const criterionCells=r=>criteria.map(c=>`<td>${researchCapturedCriterionHTML(r.previous,c)}</td><td>${researchCapturedCriterionHTML(r.current,c)}</td>`).join('');
+ const date=researchCaptureTime;
+ const pairOptions=(key,selected)=>`<label>${key==='previous_id'?'Before':'After'}<select aria-label="${key==='previous_id'?'Previous snapshot':'Current snapshot'}" onchange="researchChangeSet('${key}',this.value)">${history.map(s=>`<option value="${esc(s.id)}" ${s.id===selected?'selected':''}>${esc(s.at?date(s.at):'Published '+date(s.published_at))}${s.members!=null?' · '+s.members+' members':''} · ${esc(s.id.slice(-8))}</option>`).join('')}</select></label>`;
+ const historyPager=`<div class="change-history-pager"><span role="status">Retained capture page ${Math.floor((d.history_offset || 0)/100)+1} · ${d.scope==='deployment_owner'?'deployment-shared history':d.scope==='authenticated_owner'?'my private history':'history'}</span><button class="btn ghost" data-history-page="newer" ${!(d.history_offset>0)?'disabled':''} onclick="researchChangeSet('history_offset',Math.max(0,${(d.history_offset || 0)-100}))">Newer captures</button><button class="btn ghost" data-history-page="older" ${d.history_has_more?'':'disabled'} onclick="researchChangeSet('history_offset',${(d.history_offset || 0)+100})">Older captures</button></div>`;
+ const pair=history.length>=2?`<div class="change-pair">${pairOptions('previous_id',d.previous_id || st.previous_id || history.at(-2).id)}${pairOptions('current_id',d.current_id || st.current_id || history.at(-1).id)}</div>`:'';
+ if(!d.comparable){if(window.__researchChangeCode)researchCloseInspector(false);el.innerHTML=`${pair}${historyPager}<div class="change-setup"><h4>${d.request_failed?'Comparison unavailable':history.length?'Baseline / comparison setup':'Start change monitoring'}</h4><p>${esc(d.reason || 'Capture a complete baseline, then another comparable snapshot.')}</p><p class="faint">Captures are retained as immutable records. Manual deployment history remains shared. Private captures and notes require sign-in; automated capture activation is still pending.</p></div>`;return;}
+ st.previous_id=d.previous_id;st.current_id=d.current_id;
+ const selectedCodes=new Set(researchChangeSelection(d,st).rows.map(r=>r.code));
+ const focusTab=document.activeElement?.getAttribute('data-change-tab'),focusPage=document.activeElement?.getAttribute('data-change-page'),focused=document.activeElement?.getAttribute('aria-label'),selection=focused==='Search snapshot matches'?[document.activeElement.selectionStart,document.activeElement.selectionEnd]:null;
+ el.innerHTML=`${pair}<div class="change-review-bar">${researchPairToolsHTML(d,st)}<div id="research-change-selection">${researchChangeSelectionHTML(d,st,selectionOpen)}</div></div><div class="change-results-controls"><div class="change-tabs" role="group" aria-label="Change cohort">${[['new','New matches'],['exited','Exited'],['all','All matches']].map(([key,label])=>`<button class="btn ${st.status===key?'primary':'ghost'}" aria-pressed="${st.status===key}" data-change-tab="${key}" onclick="researchChangeSet('status','${key}')">${label} (${counts[key] || 0})</button>`).join('')}</div><div class="change-tools"><label>Find a stock<input aria-label="Search snapshot matches" maxlength="100" value="${esc(st.q)}" placeholder="Symbol or company" oninput="researchChangeSearch(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();clearTimeout(window.__changeSearchTimer);researchChangeSet('q',this.value)}"></label><details class="change-options" ontoggle="researchChangeMenuToggle(this)" ${optionsOpen?'open':''} onkeydown="if(event.key==='Escape'){event.preventDefault();this.open=false;this.querySelector('summary').focus()}"><summary class="btn ghost">${esc(sorts.find(([key])=>key===st.sort)?.[1] || st.sort)} ${st.direction===1?'↑':'↓'} · Export</summary><div class="change-options-panel"><label>Sort<select aria-label="Sort snapshot matches" onchange="researchChangeSet('sort',this.value)">${sorts.map(([key,label])=>`<option value="${key}" ${(key==='market_cap' && !d.market_cap_sort?.ready) || (key.startsWith('criterion:') && !d.criterion_sorts?.[key]?.ready)?'disabled':''} ${st.sort===key?'selected':''}>${label}</option>`).join('')}</select></label><select aria-label="Snapshot sort direction" onchange="researchChangeSet('direction',this.value)"><option value="1" ${st.direction===1?'selected':''}>Ascending</option><option value="2" ${st.direction===2?'selected':''}>Descending</option></select><button class="btn ghost" onclick="researchChangesExport()" data-pair-export>Export comparison CSV</button>${d.review_scope==='private_schedule_pair'?'<button class="btn ghost" data-pair-export onclick="researchChangesExport(\'all\',\'excel\')">Export comparison Excel</button>':''}<p class="faint">Cap uses the after observation when present; otherwise before. Sorting requires positive attributed values in one currency; missing/nonpositive values stay last. Criterion sorts require matching units, currency, period and source with valid observation times across this filtered review. No conversion.</p></div></details></div></div><p role="status">${d.matched.toLocaleString()} matches in this review · ${counts.unchanged || 0} unchanged in the complete pair</p><div class="change-table"><table><thead><tr><th scope="col">Select</th><th>Status</th><th>Symbol</th><th>Company</th><th>Captured cap</th>${criterionHeaders}<th>Review status</th><th>Evidence</th></tr></thead><tbody>${(d.rows || []).map(r=>`<tr><td><label class="change-row-select"><input type="checkbox" data-change-code="${esc(r.code)}" aria-label="Select ${esc(r.symbol || r.code)} from comparison" ${selectedCodes.has(r.code)?'checked':''} onchange="researchChangeSelect(${esc(JSON.stringify(r.code))},this.checked)"></label></td><td>${r.status==='new'?'Entered':r.status==='exited'?'Exited':'Unchanged'}</td><td><a href="#" onclick="event.preventDefault();researchOpen(${esc(JSON.stringify(r.code))})">${esc(r.symbol || r.code)}</a></td><td>${esc(r.name || 'Unavailable')}</td><td>${researchCapturedMoneyHTML(r.current || r.previous,'market_cap')}</td>${criterionCells(r)}<td>${esc(researchPairPrivate(d)?researchPairStatusLabel(r.review?.review_status):'Unavailable')}</td><td><button class="btn ghost" aria-label="Review ${esc(r.symbol || r.code)} snapshot evidence" onclick="researchChangeInspect(${esc(JSON.stringify(r.code))},this)">Review evidence</button></td></tr>`).join('') || `<tr><td colspan="${7+criteria.length*2}">No matches in this view. Change tabs or clear the search.</td></tr>`}</tbody></table></div><details class="change-provenance"><summary>Complete captured membership · source, definition and retained history</summary>${historyPager}<p>Capture time: ${esc(date(d.previous_at))} → ${esc(date(d.current_at))}. ${esc(researchCaptureClockLabel(d.previous_source_clock))}: ${esc(date(d.previous_source_at))} → ${esc(researchCaptureClockLabel(d.current_source_clock))}: ${esc(date(d.current_source_at))}. Quote source time is not established by these clocks.</p>${d.previous_generation_id || d.current_generation_id?`<p>Stored generations: ${esc(d.previous_generation_id || 'Legacy / unpinned')} → ${esc(d.current_generation_id || 'Legacy / unpinned')}.</p>`:''}<p>All matches is the union of both captures; it is not the current stock universe. Missing numeric evidence does not establish a cause.</p>${d.observation_coverage?.scope==='eligible_stored_universe'?`<p>Eligible observations: ${d.observation_coverage.previous} before · ${d.observation_coverage.current} after, including nonmembers.</p>`:'<p>Legacy captures contain member observations only.</p>'}${researchCriteriaDefinition(d.definition?.filters || [])}</details><div class="change-pager"><button class="btn ghost" data-change-page="previous" ${st.offset<=0?'disabled':''} onclick="researchChangeSet('offset',Math.max(0,${st.offset-st.limit}))">Previous review page</button><span>${d.matched?st.offset+1:0}–${Math.min(d.matched,st.offset+(d.rows || []).length)} of ${d.matched}</span><button class="btn ghost" data-change-page="next" ${st.offset+(d.rows || []).length>=d.matched?'disabled':''} onclick="researchChangeSet('offset',${st.offset+st.limit})">Next review page</button></div><p class="faint">Membership changes are distinct from price moves. Before/after criterion evidence may be unavailable; no cause is inferred from missing values. All matches is the union of entered, exited and retained members. Review notes are private to this capture pair. Automatic capture activation and team review remain pending.</p>`;
+ if(provenanceOpen){const disclosure=el.querySelector('.change-provenance');if(disclosure)disclosure.open=true;}
+ if(focusHistory){const target=el.querySelector('[data-history-page="'+focusHistory+'"]');const next=target && !target.disabled?target:el.querySelector('[data-history-page]:not([disabled])');next?.focus();}
+ if(focusTab)el.querySelector('[data-change-tab="'+focusTab+'"]')?.focus();if(focusPage){const button=el.querySelector('[data-change-page="'+focusPage+'"]');if(button && !button.disabled)button.focus();}
+ if(focused && ['Search snapshot matches','Sort snapshot matches','Snapshot sort direction','Previous snapshot','Current snapshot'].includes(focused)){const target=el.querySelector('[aria-label="'+focused+'"]');target?.focus();if(selection)target?.setSelectionRange(...selection);}
+ if(window.__researchChangeCode){if(d.rows.some(r=>r.code===window.__researchChangeCode))researchChangeInspect(window.__researchChangeCode,null,false);else researchCloseInspector(false);}
+}
+function researchCriterionRule(c) {
+ const parts=[];if(Array.isArray(c.values))parts.push(c.values.join(', '));if(c.min!=null)parts.push((c.excl_min?'> ':'≥ ')+researchDisplayField(c.field,c.min));if(c.max!=null)parts.push((c.excl_max?'< ':'≤ ')+researchDisplayField(c.field,c.max));return parts.join(' · ') || 'Provider definition';
+}
+function researchCriteriaDefinition(criteria) {
+ if(!criteria.length)return '<p>No additional criteria in this definition.</p>';
+ return `<div class="change-matrix"><table><caption>Screen definition</caption><thead><tr><th scope="col">Criterion</th><th scope="col">Rule</th></tr></thead><tbody>${criteria.map(c=>`<tr><th scope="row">${esc(researchChangeCriterionLabel(c))}</th><td>${esc(researchCriterionRule(c))}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function researchCapturedCriterion(row,c) {
+ const observation=row?.criterion_observations?.[c.criterion_key];return observation?observation.value:c.sort_key===c.field?row?.evidence?.[c.field]:undefined;
+}
+function researchSemanticCriterion(c) {
+ if(!c || typeof c!=='object' || Array.isArray(c))return null;
+ return Object.fromEntries(Object.entries(c).filter(([key,value])=>key!=='_label' && !(['min','max'].includes(key) && value==null)));
+}
+function researchCriterionValueHTML(c,value,observation) {
+ const {criterion_key,sort_key,...definition}=c;const display=esc(researchDisplayField(c.field,value));
+ if(!['price','market_cap'].includes(c.field) && observation?.unit!=='currency')return display;
+ if(typeof value!=='number' || !Number.isFinite(value))return display;
+ const known=observation?.unit==='currency' && observation.value===value && JSON.stringify(researchStable(researchSemanticCriterion(observation.criterion)))===JSON.stringify(researchStable(researchSemanticCriterion(definition))) && typeof observation.currency==='string' && /^[A-Z]{3}$/.test(observation.currency);
+ return known?esc(observation.currency)+' '+display:display+' <abbr title="Currency not supplied for this value" aria-label="Currency not supplied for this value">cur?</abbr>';
+}
+function researchCapturedCriterionHTML(row,c) {
+ return researchCriterionValueHTML(c,researchCapturedCriterion(row,c),row?.criterion_observations?.[c.criterion_key]);
+}
+function researchPairedEvidenceLabel(e) {
+ if(e.status==='comparable')return ({rule_entered:'Comparable observations · now meets this rule',rule_exited:'Comparable observations · no longer meets this rule',rule_retained:'Comparable observations · rule result retained'})[e.assessment] || 'Comparable observations';
+ return e.previous!=null && e.current!=null?'Both values supplied · comparability unverified':'Paired values unavailable';
+}
+function researchObservationProvenance(e) {
+ return ['previous','current'].map(side=>{const o=e[side+'_observation'];if(!o || !o.observed_at)return '';return `<p class="faint">${side==='previous'?'Before':'After'}: ${esc(o.currency || o.unit || 'Unit unavailable')} · ${esc(({quote_source:'Quote source',computed_bar_time:'Computed bar',financial_report:'Financial report'})[o.clock] || 'Time type unverified')} · ${esc(researchCaptureTime(o.observed_at))}</p>`;}).join('');
+}
+function researchCriterionMatrix(criteria,evidence,compact=false) {
+ const entries=criteria.map((c,i)=>({criterion:c,...(evidence.find(e=>e.criterion_key==='c'+i || (e.criterion && JSON.stringify(researchStable(e.criterion))===JSON.stringify(researchStable(c))) || (!e.criterion_key && !e.criterion && e.field===c.field && criteria.filter(f=>f.field===c.field).length===1)) || {field:c.field,status:'unavailable_pair'})}));
+ if(!entries.length)return '<p>No numeric criteria in this definition.</p>';
+ const rule=researchCriterionRule;
+ if(compact)return entries.map(e=>`<section class="change-evidence"><h4>${esc(SCR_COLS[e.field]?.[0] || SCR_FIELDS[e.field] || e.field)}</h4><p>Rule: ${esc(rule(e.criterion))}</p><table class="change-observation"><thead><tr><th scope="col">Before</th><th scope="col">After</th></tr></thead><tbody><tr><td>${researchCriterionValueHTML(e.criterion,e.previous,e.previous_observation)}</td><td>${researchCriterionValueHTML(e.criterion,e.current,e.current_observation)}</td></tr></tbody></table><p>${esc(e.period || 'Period not supplied')} · ${esc(e.source || 'Source not supplied')} · ${esc(researchPairedEvidenceLabel(e))}</p>${researchObservationProvenance(e)}</section>`).join('');
+ return `<div class="change-matrix"><table><caption>Captured criteria and paired observations</caption><thead><tr><th scope="col">Criterion</th><th scope="col">Rule</th><th scope="col">Before</th><th scope="col">After</th><th scope="col">Evidence</th></tr></thead><tbody>${entries.map(e=>`<tr><th scope="row">${esc(SCR_COLS[e.field]?.[0] || SCR_FIELDS[e.field] || e.field)}</th><td>${esc(rule(e.criterion))}</td><td>${researchCriterionValueHTML(e.criterion,e.previous,e.previous_observation)}</td><td>${researchCriterionValueHTML(e.criterion,e.current,e.current_observation)}</td><td>${esc(e.period || 'Period not supplied')} · ${esc(e.source || 'Source not supplied')} · ${esc(researchPairedEvidenceLabel(e))}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function researchChangeInspect(code,origin,focus=true) {
+ const d=window.__changePayload,r=d?.rows?.find(x=>x.code===code),el=document.getElementById('research-inspector');if(!r || !el)return;
+ researchDisposeInspector();window.__researchChangeCode=code;window.__researchInspectCode=null;window.__inspectOrigin=origin || window.__inspectOrigin;
+ const modal=matchMedia('(max-width:1350px)').matches;el.classList.add('open');el.setAttribute('role',modal?'dialog':'complementary');el.setAttribute('aria-label',(r.symbol || code)+' snapshot evidence');if(modal){el.setAttribute('aria-modal','true');researchModalIsolate(el,'inspector');}else el.removeAttribute('aria-modal');
+ const date=t=>t?fmtTs(t)+(TZ()==='nz'?' NZ time':''):'Time unavailable';
+ el.innerHTML=`<div class="inspector-heading"><div><h2>${esc(r.symbol || code)}</h2><p>${esc(r.name || '')} · ${r.status==='new'?'Entered':r.status==='exited'?'Exited':'Unchanged'}</p></div><button class="btn ghost inspector-close" onclick="researchCloseInspector()">Close preview</button></div><div class="inspector-scroll">${researchPairFormHTML(d,r)}<h3>Snapshot evidence</h3><p>${esc(date(d.previous_at))} → ${esc(date(d.current_at))}</p><p>${esc(r.reason)}</p>${researchCriterionMatrix(d.definition?.filters || (r.evidence || []).map(e=>e.criterion || {field:e.field}),r.evidence || [],true)}<p class="faint">Eligible-universe captures retain nonmember observations. Legacy or missing observations cannot establish a numeric crossing; supplied values require compatible provenance. These are captured observations; full research loads the current stock view.</p></div><div class="inspector-actions"><button class="btn ghost" onclick="researchShortlistPicker(${esc(JSON.stringify(code))})">Add to shortlist</button><button class="btn primary" onclick="researchOpen(${esc(JSON.stringify(code))})">Open full research</button></div>`;
+ el.onkeydown=e=>researchModalKey(e,el,()=>researchCloseInspector());if(focus)el.querySelector('.inspector-close')?.focus({preventScroll:true});
+}
+function researchCapturedMoneyHTML(record,field) {
+ return researchMoneyHTML({...(record?.metrics || {}),code:record?.code,field_observations:record?.metric_observations},field);
+}
+function researchChangesCSV(d,rows) {
+ const cell=researchCSVCell;
+ const header=['definition_json','previous_id','current_id','previous_at','current_at','previous_source_at','current_source_at','code','symbol','name','status','reason','previous_metrics','current_metrics','criterion_evidence','previous_source_clock','current_source_clock','capture_scope','observation_scope','previous_eligible_observations','current_eligible_observations','previous_generation_id','current_generation_id','export_scope',...(researchPairPrivate(d)?['review_scope','review_revision_hash','review_revision','review_status','private_note']:[]),'previous_metric_observations','current_metric_observations','market_cap_sort_json','criterion_sorts_json','previous_definition_json','current_definition_json','previous_definition_identity','current_definition_identity','previous_history_key','current_history_key','review_history_key','previous_instrument_classification','current_instrument_classification','review_anchor_json','review_variants_json'];
+ return '\ufeff'+[header.map(cell).join(','),...rows.map(r=>[d.definition,d.previous_id,d.current_id,d.previous_at,d.current_at,d.previous_source_at,d.current_source_at,r.code,r.symbol,r.name,r.status,r.reason,r.previous?.metrics,r.current?.metrics,r.evidence,d.previous_source_clock || 'unverified',d.current_source_clock || 'unverified',d.scope || 'unverified',d.observation_coverage?.scope || 'unverified',d.observation_coverage?.previous,d.observation_coverage?.current,d.previous_generation_id,d.current_generation_id,d.export_scope || 'all_filtered',...(researchPairPrivate(d)?[d.review_scope,d.review_revision_hash,r.review?.revision,r.review?.review_status,r.review?.note]:[]),r.previous?.metric_observations,r.current?.metric_observations,d.market_cap_sort,d.criterion_sorts,d.previous_definition,d.current_definition,d.previous_definition_identity,d.current_definition_identity,d.previous_history_key,d.current_history_key,d.review_history_key,r.previous?.instrument_classification,r.current?.instrument_classification,r.review?.review_anchor,r.review?.review_variants].map(cell).join(','))].join('\n');
+}
+async function researchChangesExport(scope='all',format='csv') {
+ if(window.__changePayload?.review_scope==='private_schedule_pair')return researchScheduledExport(scope,format);
+ if(window.__changeLoading){alert('Wait for the requested comparison to finish loading.');return;}const st={...researchChangeState()},pair=window.__changePayload,authGen=window.__researchAuthGen || 0,changeGen=window.__changeGen;if(!pair?.comparable)return;
+ const selection=scope==='selected'?researchChangeSelection(pair,st).rows.map(r=>r.code):null;if(selection && !selection.length){alert('Select comparison stocks to export.');return;}
+ const button=[...document.querySelectorAll('.change-tools button')].find(b=>b.textContent==='Export comparison CSV');if(button)button.disabled=true;
+ try{const qs=new URLSearchParams({definition:JSON.stringify(pair.definition || researchDefinition()),previous_id:pair.previous_id,current_id:pair.current_id,status:st.status,q:st.q,sort:st.sort,direction:st.direction,limit:500,offset:0});if(pair.review_scope==='private_capture_pair')qs.set('review_status',st.review_status || 'all');let rows=[],expected=null,reviewHash=null;
+ for(let offset=0;offset<40000;offset+=500){qs.set('offset',offset);const data=pair.review_scope==='private_capture_pair'?await researchPrivateAPI('/api/research/pair-reviews?'+qs):await api('/api/screener/changes?'+qs);if(authGen!==(window.__researchAuthGen || 0) || changeGen!==window.__changeGen)throw new Error('Account or comparison changed. Retry export.');if(pair.review_scope==='private_capture_pair'){if(reviewHash!==null && reviewHash!==data.review_revision_hash)throw new Error('Review revisions changed during export. Retry.');reviewHash=data.review_revision_hash;if(selection && reviewHash!==pair.review_revision_hash)throw new Error('Review revisions changed since selection. Reload and select again.');if(!reviewHash)throw new Error('Review revisions are unconfirmed.');}if(!data.comparable || data.previous_id!==pair.previous_id || data.current_id!==pair.current_id)throw new Error('The comparison pair is no longer available.');if(expected!=null && expected!==data.matched)throw new Error('The review cohort changed during export.');expected=data.matched;rows.push(...data.rows);if(rows.length>=expected)break;if(!data.rows.length)throw new Error('Comparison export is incomplete.');}
+ if(rows.length!==expected || new Set(rows.map(r=>r.code)).size!==rows.length)throw new Error('Comparison export identities are incomplete or duplicated.');
+ if(selection){const selectedCodes=new Set(selection);rows=rows.filter(r=>selectedCodes.has(r.code));if(rows.length!==selection.length)throw new Error('Selected identities are no longer in this review. Reload and select again.');}
+ const blob=new Blob([researchChangesCSV({...pair,export_scope:scope==='selected'?'selected':'all_filtered',review_revision_hash:reviewHash || pair.review_revision_hash},rows)],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='screen_comparison_'+pair.previous_id+'_'+pair.current_id+(scope==='selected'?'_selected':'')+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),30000);
+ }catch(e){alert('Comparison export unavailable: '+e.message);}finally{if(button?.isConnected)button.disabled=false;}
+}
+function researchViewedGeneration() {
+ const s=window.__scr,ds=window.__scrDataset;
+ if(s.activePreset || s.watchlistOnly || !ds || ds.key!==[s.market,s.etfs?1:0,s.src || 'moo'].join('|'))return null;
+ return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(ds.generationId || '')?ds.generationId:null;
+}
+function researchCaptureRequest(definition) {
+ const key=JSON.stringify(researchStable(definition));let pending=window.__captureRequest;
+ if(!pending){try{const saved=JSON.parse(sessionStorage.getItem('researchCaptureRequestV1') || 'null');if(saved?.key===key && /^[0-9a-f-]{36}$/i.test(saved.id || ''))pending=saved;}catch(e){}}
+ if(pending?.key!==key)pending={key,id:crypto.randomUUID(),generation_id:researchViewedGeneration()};window.__captureRequest=pending;
+ try{sessionStorage.setItem('researchCaptureRequestV1',JSON.stringify(pending));}catch(e){}
+ return pending;
+}
+function researchCaptureConfirmed(request) {
+ if(window.__captureRequest!==request)return;window.__captureRequest=null;
+ try{sessionStorage.removeItem('researchCaptureRequestV1');}catch(e){}
+}
+async function researchSnapshot() {
+ const el=document.getElementById('research-change-results');if(!el || window.__snapshotBusy)return;const definition=researchDefinition(),request=researchCaptureRequest(definition);window.__snapshotBusy=true;const button=document.querySelector('[data-capture]');if(button)button.disabled=true;el.textContent='Capturing and validating complete membership…';
+ try{await api('/api/screener/snapshots',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':request.id,...(request.generation_id?{'X-Screener-Generation':request.generation_id}:{})},body:JSON.stringify(definition)});researchCaptureConfirmed(request);if(document.getElementById('research-change-results')!==el)return;const st=researchChangeState();st.previous_id='';st.current_id='';st.offset=0;st.history_offset=0;await researchLoadChanges();}catch(e){if(document.getElementById('research-change-results')===el)el.innerHTML=`<p>Capture unavailable: ${esc(researchErrorMessage(e))}</p><button class="btn primary" onclick="researchSnapshot()">Retry capture</button><button class="btn ghost" onclick="researchLoadChanges()">Return to comparison</button>`;}finally{window.__snapshotBusy=false;if(button?.isConnected)button.disabled=false;}
+}
+
+async function researchRetryPreset(button) {
+ const st=window.__scr,ck=st.activePreset+'|'+st.market;
+ if(!st.activePreset || window.__presetInflight?.[ck] || researchPresetUnavailable((window.__scrPresets || []).find(p=>p.key===st.activePreset)))return;
+ if(button)button.disabled=true;
+ try{await showPage('home');}finally{if(button?.isConnected)button.disabled=false;}
+}
+async function researchRefreshPreset() {
+ const st=window.__scr,key=st.activePreset,market=st.market,ck=key+'|'+market,entry=window.__presetCache?.[ck];
+ if(!key || !entry?.payload?.available || window.__presetRefresh?.[ck] || window.__presetPagePending?.has(ck))return;
+ entry.retained=true;delete entry.refreshError;
+ const pending=window.__presetRefresh || (window.__presetRefresh={});pending[ck]=true;
+ const visible=()=>state.page==='home' && window.__scr.activePreset===key && window.__scr.market===market;
+ try {
+  if(visible())await showPage('home');
+  const payload=await api('/api/screener/execute?key='+encodeURIComponent(key)+'&market='+encodeURIComponent(market)+'&limit=300&refresh=true');
+  if(!payload?.available)throw new Error(payload?.reason || 'Provider screen unavailable');
+  if(window.__presetCache?.[ck]!==entry)return;
+  window.__presetCache[ck]={ts:Date.now(),retained:true,payload};
+  if(visible()){
+   window.__scr.page=1;
+   const available=new Set(scrPresetRows(payload).map(researchKey));
+   window.__researchSelected=(window.__researchSelected || []).filter(code=>available.has(code));
+   scrPersist();
+  }
+ }catch(e){if(window.__presetCache?.[ck]===entry)entry.refreshError=e.message || 'Provider request failed';}
+ finally {delete pending[ck];if(visible())await showPage('home');}
+}
 async function researchLoadMore() {
  const s=window.__scr,key=s.activePreset,market=s.market,ck=key+'|'+market,entry=(window.__presetCache || {})[ck];
- const current=entry?.payload;if(!key || !current?.next_key)return;
+ const current=entry?.payload;if(!key || !current?.next_key || window.__presetRefresh?.[ck] || window.__presetPagePending?.has(ck))return;
+ const paging=window.__presetPagePending || (window.__presetPagePending=new Set());paging.add(ck);
  const button=document.getElementById('research-load-more');if(button){button.disabled=true;button.textContent='Loading next provider page…';}
- try{const next=await api('/api/screener/execute?key='+encodeURIComponent(key)+'&market='+encodeURIComponent(market)+'&limit=300&next_key='+encodeURIComponent(current.next_key));
+ try{const next=await api('/api/screener/execute?key='+encodeURIComponent(key)+'&market='+encodeURIComponent(market)+'&limit=300&next_key='+encodeURIComponent(current.next_key)+(current.quote_generation_id?'&quote_generation_id='+encodeURIComponent(current.quote_generation_id):''));
   if(!next.available)throw new Error(next.reason || 'Provider page unavailable');
-  if(window.__scr.activePreset!==key || window.__scr.market!==market)return;
-  const byCode=new Map(current.rows.map(r=>[r.code,r]));next.rows.forEach(r=>byCode.set(r.code,r));
-  if(byCode.size===current.rows.length && next.possibly_truncated)throw new Error('Provider returned duplicate membership; previous results retained');
-  window.__presetCache[ck]={ts:Date.now(),payload:{...next,rows:[...byCode.values()],result_limit:byCode.size}};
+  if((next.quote_generation_id || null)!==(current.quote_generation_id || null))throw new Error('Quote display cohort changed; previous results retained. Refresh this screen.');
+  if(window.__scr.activePreset!==key || window.__scr.market!==market || window.__presetCache?.[ck]!==entry)return;
+  const merged=researchMergeProviderPage(current,next,market,entry.pageCursors || []);
+  const hydration_warnings=[...new Set([...(current.hydration_warnings || []),...(next.hydration_warnings || [])])];
+  window.__presetCache[ck]={ts:Date.now(),retained:true,pageCursors:[...(entry.pageCursors || []),current.next_key],payload:{...next,provider_total:next.provider_total ?? current.provider_total,rows:merged,hydration_warnings,result_limit:merged.length}};
+  paging.delete(ck);
   await showPage('home');
- }catch(e){if(button){button.disabled=false;button.textContent='Retry next page';}const el=document.getElementById('research-page-status');if(el)el.textContent=e.message;}
+ }catch(e){if(window.__scr.activePreset!==key || window.__scr.market!==market || window.__presetCache?.[ck]!==entry)return;entry.pageError=e.message;if(button){button.disabled=false;button.textContent='Retry next page';}const el=document.getElementById('research-page-status');if(el)el.textContent=e.message;}finally{paging.delete(ck);}
+}
+function researchMergeProviderPage(current,next,market,pageCursors) {
+ const failed=message=>{throw new Error(message+'; previous results retained. Refresh this screen.');};
+ if(!Array.isArray(current.rows) || !Array.isArray(next.rows))failed('Provider membership page is invalid');
+ const existing=new Set(current.rows.map(r=>r.code)),incoming=new Set();
+ for(const row of next.rows){
+  if(typeof row?.code!=='string' || !row.code.startsWith(market+'.') || incoming.has(row.code))failed('Provider page identities are invalid');
+  if(existing.has(row.code))failed('Provider pages overlap; membership may have changed');
+  incoming.add(row.code);
+ }
+ if(current.provider_total!=null && next.provider_total!=null && current.provider_total!==next.provider_total)failed('Provider match total changed');
+ const total=next.provider_total ?? current.provider_total,rows=[...current.rows,...next.rows];
+ if(total!=null && rows.length>total)failed('Provider pages exceed the declared match total');
+ if(next.next_key && [current.next_key,...pageCursors].includes(next.next_key))failed('Provider continuation cursor repeated');
+ if(next.possibly_truncated && !next.rows.length)failed('Provider continuation returned no new members');
+ if(next.possibly_truncated===false && (next.next_key || total!=null && rows.length!==total))failed('Provider completion does not match loaded membership');
+ return rows;
+}
+function researchSearchClose() {
+ clearTimeout(window.__researchSearchTimer);window.__researchSearchGen=(window.__researchSearchGen || 0)+1;
+ const el=document.getElementById('research-global-results');if(el)el.hidden=true;
+ document.getElementById('research-global-search')?.setAttribute('aria-expanded','false');
+}
+function researchSearchInput(q) {
+ clearTimeout(window.__researchSearchTimer);
+ const query=String(q || '').trim();if(!query){researchSearchClose();return;}
+ window.__researchSearchTimer=setTimeout(()=>researchSearchRun(query),180);
+}
+function researchSearchUniverse(market) {
+ const ds=window.__scrDataset;
+ if(ds?.key===market+'|0|moo' || ds?.key===market+'|0|yf')return Promise.resolve({rows:ds.rows,at:ds.ts});
+ const cached=window.__researchSearchUniverse?.[market];if(cached && Date.now()-cached.at<300000)return Promise.resolve(cached);
+ window.__researchSearchRequests=window.__researchSearchRequests || {};
+ if(window.__researchSearchRequests[market])return window.__researchSearchRequests[market];
+ const qs=new URLSearchParams({market,watchlist_only:0,src:'moo',sort:'market_cap',direction:2,limit:20000,filters:JSON.stringify([{field:'stock_type',values:['STOCK']}])});
+ return window.__researchSearchRequests[market]=api('/api/screener?'+qs).then(d=>{
+  if(d.available===false)throw new Error(d.reason || 'Universe unavailable');
+  const result={rows:d.rows || [],at:Date.now(),truncated:!!d.possibly_truncated};
+  window.__researchSearchUniverse=window.__researchSearchUniverse || {};window.__researchSearchUniverse[market]=result;return result;
+ }).finally(()=>delete window.__researchSearchRequests[market]);
+}
+async function researchSearchRun(q) {
+ const gen=window.__researchSearchGen=(window.__researchSearchGen || 0)+1,market=window.__scr.market,el=document.getElementById('research-global-results');if(!el)return;
+ el.hidden=false;document.getElementById('research-global-search')?.setAttribute('aria-expanded','true');
+ const needle=q.toLowerCase(),call=x=>esc(JSON.stringify(x));
+ const presets=(window.__scrPresets || []).filter(p=>p.name.toLowerCase().includes(needle)).slice(0,5),saved=(window.__savedScreeners || []).filter(p=>p.name.toLowerCase().includes(needle)).slice(0,5);
+ const screens=presets.map(p=>`<button onclick="researchSearchClose();scrApplyPreset(${call(p.key)})">${esc(p.name)}<small>Recommended screen</small></button>`).concat(saved.map(s=>`<button onclick="researchSearchClose();scrApplySaved(${call(s.id)})">${esc(s.name)}<small>Saved screen</small></button>`)).join('');
+ el.innerHTML=screens+'<p role="status">Searching the '+esc(market)+' stock universe…</p>';
+ try{
+  const data=await researchSearchUniverse(market);if(gen!==window.__researchSearchGen || market!==window.__scr.market)return;
+  const rows=stkMatches(q,data.rows,8);
+  el.innerHTML=screens+rows.map(r=>`<button onclick="researchSearchClose();researchOpen(${call(researchKey(r))})">${esc(r.symbol)} <span>${esc(r.name || '')}</span><small>Open full research</small></button>`).join('')+`<p>${data.rows.length.toLocaleString()} ${esc(market)} stocks searched${data.truncated?' · loaded subset':''}. ${!screens && !rows.length?'No matches. Try the full symbol or company name.':''}</p>`;
+ }catch(e){if(gen===window.__researchSearchGen)el.innerHTML=screens+'<p role="status">Stock search unavailable. Screen matches above remain available.</p>';}
+}
+function researchSearchKey(e) {
+ const el=document.getElementById('research-global-results');if(e.key==='Escape'){researchSearchClose();document.getElementById('research-global-search')?.focus();return;}
+ const buttons=[...el.querySelectorAll('button')];
+ if(e.key==='ArrowDown' || e.key==='ArrowUp'){e.preventDefault();const index=buttons.indexOf(document.activeElement),next=e.key==='ArrowDown'?(index+1)%buttons.length:(index<=0?buttons.length-1:index-1);buttons[next]?.focus();}
+ if(e.key==='Enter' && document.activeElement===document.getElementById('research-global-search')){e.preventDefault();if(buttons.length)buttons[0].click();else researchSearchRun(e.target.value);}
+}
+function researchTimingRecord(name,start,meta={}) {
+ const elapsed=(window.performance?.now() ?? Date.now())-start;
+ const entries=window.__researchTiming || (window.__researchTiming=[]);entries.push({name,ms:Math.round(elapsed*100)/100,...meta});if(entries.length>200)entries.shift();
+ const out=document.getElementById('research-performance');if(out)out.textContent=JSON.stringify(entries);
+}
+function researchRenderSource() {
+ const st=window.__scr,preset=st.activePreset && window.__presetCache?.[st.activePreset+'|'+st.market];
+ if(preset && Date.now()-preset.ts<60000)return 'preset-cache';
+ const ds=window.__scrDataset;if(!st.activePreset && ds?.key===[st.market,st.etfs?1:0,st.src || 'moo'].join('|') && Date.now()-ds.ts<60000)return 'dataset-memory';
+ return 'uncached-or-persisted';
+}
+function researchResponsivePanels() {
+ const inspector=document.getElementById('research-inspector');
+ if(inspector?.classList.contains('open')){
+  const modal=window.matchMedia('(max-width:1350px)').matches;
+  inspector.setAttribute('role',modal?'dialog':'complementary');
+  if(modal){inspector.setAttribute('aria-modal','true');researchModalIsolate(inspector,'inspector');if(!inspector.contains(document.activeElement)){window.__inspectOrigin=window.__inspectOrigin || document.activeElement;inspector.querySelector('.inspector-close')?.focus({preventScroll:true});}}
+  else{inspector.removeAttribute('aria-modal');researchModalRelease('inspector');}
+ }
+ if(window.matchMedia('(min-width:1001px)').matches && document.getElementById('research-library')?.classList.contains('library-open'))researchLibraryClose(false);
+}
+if(window.matchMedia){window.matchMedia('(max-width:1350px)').addEventListener?.('change',researchResponsivePanels);window.matchMedia('(min-width:1001px)').addEventListener?.('change',researchResponsivePanels);}
+function researchDisposeDesk() {window.__deskResize?.disconnect();window.__deskResize=null;window.__exploreResize?.disconnect();window.__exploreResize=null;}
+function researchFrozenColumns() {
+ const grid=document.querySelector('.research-desk'),table=grid?.querySelector('.scr-table');if(!table)return;
+ const select=table.querySelector('th:first-child')?.getBoundingClientRect().width || 44,no=table.querySelector('th:nth-child(2)')?.getBoundingClientRect().width || 34,symbol=table.querySelector('th[data-field="symbol"]')?.getBoundingClientRect().width || 112;
+ grid.style.setProperty('--frozen-number-left',select+'px');grid.style.setProperty('--frozen-symbol-left',(select+no)+'px');grid.style.setProperty('--frozen-name-left',(select+no+symbol)+'px');
+}
+
+function researchPairQuery(pair,st,extra={}) {
+ return new URLSearchParams({definition:JSON.stringify(pair.definition || researchDefinition()),previous_id:pair.previous_id,current_id:pair.current_id,
+  status:st.status,q:st.q,sort:st.sort,direction:st.direction,limit:st.limit,offset:st.offset,history_offset:st.history_offset || 0,review_status:st.review_status || 'all',...extra});
+}
+function researchPairStatusLabel(status) {return {unreviewed:'Unreviewed',in_review:'In review',reviewed:'Reviewed',scope_conflict:'Choose review scope'}[status] || 'Unavailable';}
+function researchPairToolsHTML(d,st) {
+ if(d.review_unavailable_reason)return '<p class="pair-review-tools">'+esc(d.review_unavailable_reason)+'</p>';
+ if(!window.__researchSession)return '<p class="pair-review-tools">Sign in to keep private notes and review status for this capture pair. <button class="btn ghost" onclick="researchPairSignIn()">Sign in to review</button></p>';
+ if(d.review_error)return `<p class="delay-note" role="status">Private review unavailable: ${esc(d.review_error)} <button class="btn ghost" onclick="researchLoadChanges()">Retry private review</button></p>`;
+ if(!researchPairPrivate(d))return '';
+ return `<div class="pair-review-tools"><label>My review<select aria-label="Filter my pair review" onchange="researchChangeSet('review_status',this.value)">${['all','unreviewed','in_review','reviewed',...(d.review_scope_conflicts!=null?['scope_conflict']:[])].map(status=>`<option value="${status}" ${(st.review_status || 'all')===status?'selected':''}>${status==='all'?'All review states':researchPairStatusLabel(status)}</option>`).join('')}</select></label><button class="btn ghost" onclick="researchPairNext()">Next unreviewed</button><span id="research-pair-queue-status" role="status">Private notes · this capture pair only · CSV includes notes</span></div>`;
+}
+function researchPairDraftKey(d,code,anchor=null) {return JSON.stringify([window.__researchSession?.user.id,anchor?'original_review_scope':researchChangeState().key,d.review_scope,d.schedule_id || null,d.previous_id,d.current_id,code,...(anchor?[anchor.previous_history_key,anchor.current_history_key]:[])]);}
+function researchPairFormHTML(d,r) {
+ if(!researchPairPrivate(d) || !r.review)return '';
+ const base=researchPairDraftKey(d,r.code),choice=window.__researchPairScopeChoices?.[base];
+ let saved=r.review;
+ if(saved.scope_conflict){
+  const variants=saved.review_variants || [];
+  saved=variants.find(v=>JSON.stringify(v.review_anchor)===JSON.stringify(choice));
+  if(!saved){window.__researchPairDraftKey=null;return `<section class="pair-review-editor"><h3>Choose an original review</h3><p>Several private notes exist for identical captures. Each keeps its own revision and draft.</p>${variants.map((v,i)=>`<section><h4>Review ${i+1} · revision ${v.revision} · ${esc(researchPairStatusLabel(v.review_status))}</h4><p class="faint">Saved ${esc(researchCaptureTime(v.updated_at))}</p><p style="white-space:pre-wrap">${esc(v.note)}</p><button class="btn ghost" type="button" onclick="researchPairChooseScope(${i})">Edit review ${i+1}</button></section>`).join('')}</section>`;}
+ }
+ const key=researchPairDraftKey(d,r.code,saved.review_anchor),draft=(window.__researchPairDrafts ||= {})[key] || {...saved,owner:d.owner_id || window.__researchSession?.user.id,key,code:r.code};
+ window.__researchPairDrafts[key]=draft;window.__researchPairDraftKey=key;
+ return `<section class="pair-review-editor"><h3>My review of this pair</h3>${r.review.scope_conflict?'<button class="btn ghost" type="button" onclick="researchPairChooseScope(null)">Choose another original review</button>':''}<form data-pair-review onsubmit="event.preventDefault();researchPairSave(this)" oninput="researchPairDraftUpdate(this)" onchange="researchPairDraftUpdate(this)"><label>Review status<select name="review_status" aria-label="Pair review status">${['unreviewed','in_review','reviewed'].map(status=>`<option value="${status}" ${draft.review_status===status?'selected':''}>${researchPairStatusLabel(status)}</option>`).join('')}</select></label><label>Private note<textarea name="note" aria-label="Private pair review note" maxlength="4000" rows="4">${esc(draft.note || '')}</textarea></label><div class="pair-review-actions"><button class="btn primary" type="submit">Save pair review</button><button class="btn ghost" type="button" onclick="researchPairReload(this.form)">Reload saved review</button><button class="btn ghost" type="button" onclick="researchPairNext()">Next unreviewed</button></div><p role="status">${esc(draft.message || 'Draft stays in this tab until saved. Closing the preview keeps it; signing out clears it.')}</p>${draft.latest?`<details><summary>Latest saved review · revision ${draft.latest.revision}</summary><p>${esc(researchPairStatusLabel(draft.latest.review_status))}</p><p>${esc(draft.latest.note)}</p></details>`:''}</form></section>`;
+}
+function researchPairChooseScope(index) {
+ const pair=window.__changePayload,row=pair?.rows?.find(r=>r.code===window.__researchChangeCode);
+ if(!researchPairPrivate(pair) || !row?.review?.scope_conflict)return;
+ const form=document.querySelector('[data-pair-review]');if(form)researchPairDraftUpdate(form);
+ const base=researchPairDraftKey(pair,row.code);window.__researchPairScopeChoices ||= {};
+ if(index===null)delete window.__researchPairScopeChoices[base];
+ else {const variant=row.review.review_variants?.[index];if(!Number.isInteger(index) || !variant?.review_anchor)return;window.__researchPairScopeChoices[base]={...variant.review_anchor};}
+ researchChangeInspect(row.code,null,false);
+ document.querySelector(index===null?'.pair-review-editor button':'[data-pair-review] textarea')?.focus?.();
+}
+function researchPairDraftUpdate(form) {
+ const draft=window.__researchPairDrafts?.[window.__researchPairDraftKey];if(!draft)return;
+ const changed=draft.note!==form.elements.note.value || draft.review_status!==form.elements.review_status.value;
+ draft.note=form.elements.note.value;draft.review_status=form.elements.review_status.value;
+ if(changed){draft.message='Unsaved changes. Your draft stays in this tab until saved.';const status=form.querySelector('[role=status]');if(status)status.textContent=draft.message;}
+}
+async function researchPairSave(form) {
+ researchPairDraftUpdate(form);const key=window.__researchPairDraftKey,draft=window.__researchPairDrafts?.[key],pair=window.__changePayload;
+ if(!draft || !pair || draft.owner!==window.__researchSession?.user.id)return;
+ const submitted={note:draft.note,review_status:draft.review_status},gen=window.__researchAuthGen || 0,changeGen=window.__changeGen,button=form.querySelector('button[type=submit]'),status=form.querySelector('[role=status]');button.disabled=true;status.textContent='Saving pair review…';
+ try{const result=await researchPrivateAPI(researchPairEndpoint(pair),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...(pair.review_scope==='private_schedule_pair'?{}:{definition:pair.definition}),previous_id:pair.previous_id,current_id:pair.current_id,code:draft.code,revision:draft.revision,note:draft.note,review_status:draft.review_status,...(pair.review_scope!=='private_schedule_pair' && draft.review_anchor?{review_anchor:draft.review_anchor}:{})})});
+  if(gen!==(window.__researchAuthGen || 0) || changeGen!==window.__changeGen || window.__changePayload!==pair || window.__researchPairDraftKey!==key)return;
+  const edited=draft.note!==submitted.note || draft.review_status!==submitted.review_status;
+  draft.revision=result.review.revision;draft.latest=edited?result.review:null;draft.message=edited?'Submitted review saved. Your newer edits are still unsaved.':'Pair review saved.';
+  const row=pair.rows.find(r=>r.code===draft.code);if(row)row.review=result.review;
+  if(form.isConnected){const el=document.getElementById('research-change-results');if(el)await researchLoadChanges();else status.textContent=draft.message;}
+ }catch(e){if(gen!==(window.__researchAuthGen || 0) || changeGen!==window.__changeGen || window.__changePayload!==pair || window.__researchPairDraftKey!==key)return;draft.message=e.status===409?'This review changed. Your draft is kept. Reload the saved review, compare it with your draft, then save again.':researchErrorMessage(e);if(form.isConnected)status.textContent=draft.message;}
+ finally{if(button.isConnected)button.disabled=false;}
+}
+async function researchPairReload(form) {
+ researchPairDraftUpdate(form);const key=window.__researchPairDraftKey,draft=window.__researchPairDrafts?.[key],pair=window.__changePayload;
+ if(!draft || !pair)return;const gen=window.__researchAuthGen || 0,changeGen=window.__changeGen,status=form.querySelector('[role=status]');status.textContent='Loading saved review; keeping your draft…';
+ try{const d=await researchPrivateAPI(researchPairEndpoint(pair)+'?'+researchPairQuery(pair,researchChangeState(),{code:draft.code,status:'all',q:'',offset:0,limit:1,review_status:'all'}));
+  if(gen!==(window.__researchAuthGen || 0) || changeGen!==window.__changeGen || window.__changePayload!==pair || window.__researchPairDraftKey!==key)return;
+  let saved=d.rows.find(r=>r.code===draft.code)?.review;
+  if(draft.review_anchor){saved=saved?.scope_conflict?saved.review_variants?.find(v=>JSON.stringify(v.review_anchor)===JSON.stringify(draft.review_anchor)):JSON.stringify(saved?.review_anchor)===JSON.stringify(draft.review_anchor)?saved:null;}
+  if(!saved)throw Error('This original review scope is unavailable. Your draft is kept.');
+  draft.latest=saved;draft.revision=saved.revision;draft.message='Latest saved review loaded below. Your draft is kept; saving will replace this revision.';
+  if(document.getElementById('research-change-results'))await researchLoadChanges();
+  else researchChangeInspect(draft.code,null,false);
+ }catch(e){if(gen===(window.__researchAuthGen || 0) && changeGen===window.__changeGen && window.__changePayload===pair && window.__researchPairDraftKey===key && form.isConnected)status.textContent=researchErrorMessage(e);}
+}
+async function researchPairNext() {
+ const pair=window.__changePayload;if(!researchPairPrivate(pair))return;
+ const st=researchChangeState(),gen=(window.__changeGen || 0)+1,authGen=window.__researchAuthGen || 0;window.__changeGen=gen;window.__changeLoading=true;
+ const status=document.querySelector('#research-inspector form[data-pair-review] [role=status]') || document.getElementById('research-pair-queue-status');if(status)status.textContent='Finding next unreviewed stock…';
+ try{const d=await researchPrivateAPI(researchPairEndpoint(pair)+'?'+researchPairQuery(pair,st,{review_status:'unreviewed',next_review:true,...(window.__researchChangeCode?{next_code:window.__researchChangeCode}:{}),offset:0}));
+  if(gen!==window.__changeGen || authGen!==(window.__researchAuthGen || 0))return;
+  if(!d.next_review_code){if(status)status.textContent='No unreviewed stocks in this comparison and search.';return;}
+  if(pair.review_scope==='private_schedule_pair')Object.assign(d,{history:pair.history,history_offset:pair.history_offset,history_has_more:pair.history_has_more});
+  st.review_status='unreviewed';st.offset=d.offset;window.__changePayload=d;window.__researchChangeCode=null;
+  const el=document.getElementById('research-change-results');if(el){researchChangesRender(el,d);researchChangeInspect(d.next_review_code,null,true);}
+ }catch(e){if(gen===window.__changeGen && status)status.textContent=researchErrorMessage(e);}
+ finally{if(gen===window.__changeGen)window.__changeLoading=false;}
+}
+
+function researchPairSignIn(){window.__researchPendingPairReview=true;researchAccountOpen();}
+
+function researchChangeSelectionKey(d,st) {
+ return JSON.stringify([researchPairPrivate(d)?window.__researchSession?.user.id:null,d.review_scope || null,d.schedule_id || null,researchStable(d.definition),d.previous_id,d.current_id,
+  st.status,st.q,st.sort,st.direction,st.review_status || 'all',d.review_revision_hash || null]);
+}
+function researchChangeSelection(d=window.__changePayload,st=researchChangeState()) {
+ const key=researchChangeSelectionKey(d || {},st);
+ if(window.__researchChangeSelection?.key!==key)window.__researchChangeSelection={key,rows:[],message:window.__researchChangeSelection?.rows?.length?'Selection cleared because the pair, query, account or review revisions changed.':''};
+ return window.__researchChangeSelection;
+}
+function researchChangeSelect(code,on) {
+ if(window.__changeLoading)return;const d=window.__changePayload,row=d?.rows.find(r=>r.code===code);if(!row)return;
+ const selection=researchChangeSelection(),rows=new Map(selection.rows.map(r=>[r.code,r]));
+ if(on)rows.set(code,{code,symbol:row.symbol});else rows.delete(code);selection.rows=[...rows.values()];selection.message='';researchChangeSelectionMount();
+}
+function researchChangeSelectPage(on) {
+ if(window.__changeLoading)return;const d=window.__changePayload;if(!d?.comparable)return;
+ const selection=researchChangeSelection(),rows=new Map(selection.rows.map(r=>[r.code,r]));
+ for(const r of d.rows)if(on)rows.set(r.code,{code:r.code,symbol:r.symbol});else rows.delete(r.code);
+ selection.rows=[...rows.values()];selection.message='';researchChangeSelectionMount();
+}
+function researchChangeMenuToggle(menu) {
+ if(!menu.isConnected || !menu.open)return;
+ document.querySelectorAll('.change-selection-menu[open],.change-options[open]').forEach(other=>{if(other!==menu)other.open=false;});
+}
+function researchChangeSelectionHTML(d,st,open=false) {
+ const selection=researchChangeSelection(d,st),n=selection.rows.length;
+ return `<details class="change-selection-menu" ontoggle="researchChangeMenuToggle(this)" onkeydown="if(event.key==='Escape'){event.preventDefault();this.open=false;this.querySelector('summary').focus()}" ${open?'open':''}><summary class="btn ghost">Selection · ${n} selected</summary><div class="change-selection-tools"><button class="btn ghost" onclick="researchChangeSelectPage(true)">Select this review page</button><button class="btn ghost" onclick="researchChangeSelectPage(false)">Deselect this page</button><span role="status">${n} selected across review pages${selection.message?' · '+esc(selection.message):''}</span>${n?`<button class="btn ghost" onclick="researchChangeCompare()" ${n<2 || n>4?'disabled':''}>Compare selected (${n})</button><button class="btn ghost" onclick="researchChangeBulkPicker()">Add selected to shortlist</button><button class="btn ghost" onclick="researchChangesExport('selected')">Export selected comparison CSV</button>${d.review_scope==='private_schedule_pair'?`<button class="btn ghost" onclick="researchChangesExport('selected','excel')">Export selected comparison Excel</button>`:''}<button class="btn ghost" onclick="researchChangeClearSelection()">Clear review selection</button>`:''}<span class="faint">Compare 2–4 · exports use this pair and current sort</span></div></details>`;
+}
+function researchChangeSelectionMount() {
+ const d=window.__changePayload,st=researchChangeState(),el=document.getElementById('research-change-selection');if(!d || !el)return;
+ const active=document.activeElement,inside=el.contains?.(active),action=inside?active?.getAttribute('onclick'):null,summaryFocused=inside && active?.tagName==='SUMMARY',open=!!el.querySelector('.change-selection-menu')?.open;
+ el.innerHTML=researchChangeSelectionHTML(d,st,open);if(summaryFocused)el.querySelector('summary')?.focus({preventScroll:true});if(action){const target=[...el.querySelectorAll('button')].find(b=>b.getAttribute('onclick')===action);(target || el.querySelector('button'))?.focus({preventScroll:true});}const codes=new Set(researchChangeSelection(d,st).rows.map(r=>r.code));
+ document.querySelectorAll('input[data-change-code]').forEach(input=>input.checked=codes.has(input.dataset.changeCode));
+}
+function researchChangeClearSelection(){researchChangeSelection().rows=[];researchChangeSelectionMount();}
+function researchChangeCompare() {
+ if(window.__changeLoading)return;const rows=researchChangeSelection().rows;if(rows.length<2 || rows.length>4)return;
+ researchCaptureContext();const st=cmpState();st.cells=rows.map(r=>({...JSON.parse(JSON.stringify(CMP_DEFAULT.cells[0])),sym:r.code.replace(/^US\./,'')}));
+ st.layout=rows.length===2?'2h':rows.length===3?'1+2':'2x2';st.active=0;st.sync.ticker=false;cmpSave();showPage('compare');
+}
+async function researchChangeBulkPicker() {
+ if(window.__changeLoading)return;if(!window.__researchSession){researchPairSignIn();return;}
+ const pair=window.__changePayload,selection=researchChangeSelection();if(!pair?.comparable || !selection.rows.length)return;
+ const bulk={owner:window.__researchSession.user.id,key:selection.key,codes:selection.rows.map(r=>r.code),done:[],failures:[],pair:[pair.previous_id,pair.current_id]};
+ window.__researchChangeBulk=bulk;
+ const el=researchDialogOpen('<div class="dialog-heading"><h2>Add selected comparison stocks</h2><button class="btn ghost" onclick="researchDialogClose()">Close</button></div><p role="status">Loading your shortlists…</p>');el.setAttribute('data-change-bulk','');
+ try{const d=await researchPrivateAPI('/api/research/lists');if(window.__researchDialog!==el || window.__researchChangeBulk!==bulk)return;
+  el.innerHTML=`<div class="dialog-heading"><h2>Add ${bulk.codes.length} selected ${bulk.codes.length===1?'stock':'stocks'}</h2><button class="btn ghost" onclick="researchDialogClose()">Close</button></div><p>Pair ${esc(pair.previous_id)} → ${esc(pair.current_id)}. Existing shortlist notes and review status are preserved. Each addition is confirmed separately; failed additions can be retried.</p>${d.lists.length?`<label>Shortlist<select aria-label="Shortlist for comparison selection">${d.lists.map(r=>`<option value="${esc(r.id)}">${esc(r.name)}</option>`).join('')}</select></label><button class="btn primary" onclick="researchChangeBulkAdd()">Add selected stocks</button>`:'<p>Create a shortlist before adding stocks.</p>'}${d.possibly_truncated?'<p>Only the first 500 shortlists are shown. Manage shortlists to locate another list.</p>':''}<button class="btn ghost" onclick="researchDialogClose();showPage('shortlists')">Manage shortlists</button><p role="status"></p><div id="research-change-bulk-failures"></div>`;researchDialogLabel(el);el.querySelector('select,button')?.focus();
+ }catch(e){if(window.__researchDialog===el)el.querySelector('[role=status]').textContent=researchErrorMessage(e);}
+}
+async function researchChangeBulkAdd() {
+ const bulk=window.__researchChangeBulk,el=window.__researchDialog;if(!bulk || !el || bulk.running)return;if(window.__changeLoading){el.querySelector('[role=status]').textContent='Wait for the comparison to finish loading.';return;}
+ const selection=researchChangeSelection();if(bulk.owner!==window.__researchSession?.user.id || bulk.key!==selection.key){el.querySelector('[role=status]').textContent='Comparison or account changed. Close and select again.';return;}
+ const list=el.querySelector('select').value;if(!researchListIDValid(list)){el.querySelector('[role=status]').textContent='Select a valid shortlist.';return;}if(bulk.list && bulk.list!==list){el.querySelector('[role=status]').textContent='This operation belongs to the original shortlist. Close and start again for a different list.';return;}
+ bulk.list=list;bulk.running=true;const button=el.querySelector('button.primary'),status=el.querySelector('[role=status]'),gen=window.__researchAuthGen || 0;
+ button.disabled=true;el.querySelector('select').disabled=true;const confirmed=new Set(bulk.done),remaining=bulk.codes.filter(code=>!confirmed.has(code));bulk.failures=[];
+ try{for(let i=0;i<remaining.length;i+=4){if(gen!==(window.__researchAuthGen || 0) || window.__researchDialog!==el || bulk.key!==researchChangeSelection().key)break;
+   const batch=remaining.slice(i,i+4),results=await Promise.allSettled(batch.map(code=>researchPrivateAPI('/api/research/lists/'+encodeURIComponent(list)+'/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})})));
+   if(gen!==(window.__researchAuthGen || 0))return;
+   results.forEach((result,j)=>{if(result.status==='fulfilled' && result.value.item?.code===batch[j])bulk.done.push(batch[j]);else bulk.failures.push({code:batch[j],message:result.status==='rejected'?researchErrorMessage(result.reason):'Addition was not confirmed.'});});
+   if(window.__researchDialog===el)status.textContent=bulk.done.length+' of '+bulk.codes.length+' additions confirmed · '+bulk.failures.length+' failed';
+  }
+  if(window.__researchDialog===el){const unstarted=bulk.codes.length-bulk.done.length-bulk.failures.length;status.textContent=bulk.done.length+' of '+bulk.codes.length+' additions confirmed · '+bulk.failures.length+' failed'+(unstarted?' · '+unstarted+' not started':'')+'. Existing notes and status retained.';
+   el.querySelector('#research-change-bulk-failures').innerHTML=bulk.failures.length?'<ul>'+bulk.failures.map(f=>'<li>'+esc(f.code)+': '+esc(f.message)+'</li>').join('')+'</ul>':'';button.textContent=bulk.done.length===bulk.codes.length?'All additions confirmed':'Retry unconfirmed additions';}
+ }finally{bulk.running=false;if(button.isConnected)button.disabled=bulk.done.length===bulk.codes.length;}
+}
+
+async function researchScheduledExport(scope='all',format='csv') {
+ if(window.__changeLoading || window.__scheduledExportBusy)return;
+ const pair=window.__changePayload,st={...researchChangeState()},authGen=window.__researchAuthGen || 0,changeGen=window.__changeGen;
+ if(pair?.review_scope!=='private_schedule_pair' || !pair.comparable || !['csv','excel'].includes(format))return;
+ const selected=scope==='selected'?researchChangeSelection(pair,st).rows.map(r=>r.code):[];
+ if(scope==='selected' && !selected.length)return;
+ const buttons=[...document.querySelectorAll('[data-pair-export]')];window.__scheduledExportBusy=true;for(const b of buttons)b.disabled=true;
+ try{
+  const body={previous_id:pair.previous_id,current_id:pair.current_id,review_revision_hash:pair.review_revision_hash,
+   status:st.status,q:st.q,sort:st.sort,direction:st.direction,review_status:st.review_status || 'all',scope:scope==='selected'?'selected':'all_filtered',codes:selected,format};
+  const blob=await researchPrivateAPI('/api/research/capture-schedules/'+encodeURIComponent(pair.schedule_id)+'/pair-export',
+   {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),responseType:'blob'});
+  if(authGen!==(window.__researchAuthGen || 0) || changeGen!==window.__changeGen || window.__changePayload!==pair)throw researchAuthError('Account or comparison changed. Retry export.',499);
+  const url=URL.createObjectURL(blob),a=document.createElement('a');(window.__researchExportURLs ||= new Set()).add(url);
+  a.href=url;a.download='private_comparison_'+pair.previous_id+'_'+pair.current_id+(scope==='selected'?'_selected':'')+(format==='excel'?'.xls':'.csv');document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>{URL.revokeObjectURL(url);window.__researchExportURLs?.delete(url);},30000);
+ }catch(e){if(e.status!==499)alert('Private comparison export unavailable: '+researchErrorMessage(e));}
+ finally{window.__scheduledExportBusy=false;for(const b of buttons)if(b.isConnected)b.disabled=false;}
+}
+
+
+function researchCaptureScheduleFormHTML(ctx) {
+ const row=ctx.schedule,d=ctx.draft || {name:row?.name || 'Screen capture',cadence:row?.cadence || {timezone:'America/New_York',hour:16,minute:15,weekdays:[0,1,2,3,4]}};
+ return `<div class="dialog-heading"><h2>Private capture schedule</h2><button class="btn ghost" onclick="researchDialogClose()">Close</button></div><p>This cadence belongs to the exact current screen and its original preset rules. Editing screen criteria creates a separate schedule.</p><p><strong>Automation unavailable.</strong> You can save cadence settings. No captures will run until private runtime qualification is complete. Times use the named time zone; weekdays are calendar days, not exchange holidays.</p><div data-capture-status role="status">Capture status has not loaded.</div><form data-capture-schedule oninput="researchCaptureScheduleDraft(this)" onchange="researchCaptureScheduleDraft(this)" onsubmit="event.preventDefault();researchCaptureScheduleSave(this)"><label>Schedule name<input name="name" aria-label="Schedule name" required maxlength="80" value="${esc(d.name)}"></label><label>Time zone<input name="timezone" aria-label="Capture time zone" required maxlength="80" value="${esc(d.cadence.timezone)}" placeholder="America/New_York"></label><label>Local time<input type="time" name="time" aria-label="Capture local time" required value="${String(d.cadence.hour).padStart(2,'0')}:${String(d.cadence.minute).padStart(2,'0')}"></label><fieldset><legend>Capture weekdays</legend>${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map((day,i)=>`<label><input type="checkbox" name="weekdays" value="${i}" ${d.cadence.weekdays.includes(i)?'checked':''}> ${day}</label>`).join('')}</fieldset><button class="btn primary" type="submit">Save cadence settings</button></form><p role="status" data-schedule-message>${esc(ctx.message || (row?'Saved revision '+row.revision+' · automation off.':'No saved schedule for this screen.'))}</p><button class="btn ghost" onclick="researchCaptureScheduleLatest()">Load latest settings to compare</button><div data-schedule-latest></div>`;
+}
+async function researchCaptureScheduleOpen() {
+ if(!window.__researchSession)return;
+ const ctx={owner:window.__researchSession.user.id,authGen:window.__researchAuthGen || 0,key:researchChangeState().key,definition:researchDefinition(),schedule:null};
+ window.__researchScheduleContext=ctx;
+ const el=researchDialogOpen('<div class="dialog-heading"><h2>Private capture schedule</h2><button class="btn ghost" onclick="researchDialogClose()">Close</button></div><p role="status">Loading your settings…</p>');el.setAttribute('data-private-schedule','');
+ try{
+  const data=await researchPrivateAPI('/api/research/capture-schedules?'+new URLSearchParams({definition:JSON.stringify(ctx.definition)}));
+  if(window.__researchDialog!==el || ctx.authGen!==(window.__researchAuthGen || 0))return;
+  if(!Array.isArray(data.schedules) || data.schedules.length>1 || data.runtime_available!==false)throw Error('Schedule settings were not confirmed.');
+  ctx.schedule=data.schedules[0] || null;ctx.draft=window.__researchScheduleDrafts?.[ctx.owner+'|'+ctx.key];
+  el.innerHTML=researchCaptureScheduleFormHTML(ctx);researchDialogLabel(el);el.querySelector('input')?.focus();researchCaptureScheduleStatus(ctx,el);
+ }catch(e){if(window.__researchDialog===el)el.querySelector('[role=status]').textContent=researchErrorMessage(e);}
+}
+function researchCaptureScheduleDraft(form) {
+ const ctx=window.__researchScheduleContext;if(!ctx)return;
+ const time=form.elements.time.value.split(':').map(Number);
+ ctx.draft={name:form.elements.name.value,cadence:{timezone:form.elements.timezone.value,hour:time[0],minute:time[1],weekdays:[...form.querySelectorAll('input[name=weekdays]:checked')].map(e=>Number(e.value))}};
+ (window.__researchScheduleDrafts ||= {})[ctx.owner+'|'+ctx.key]=ctx.draft;
+}
+async function researchCaptureScheduleSave(form) {
+ const ctx=window.__researchScheduleContext,el=window.__researchDialog;if(!ctx || !el)return;
+ researchCaptureScheduleDraft(form);const status=el.querySelector('[data-schedule-message]'),button=form.querySelector('button[type=submit]');
+ if(ctx.owner!==window.__researchSession?.user.id || ctx.authGen!==(window.__researchAuthGen || 0) || ctx.key!==researchChangeState().key){status.textContent='Account or screen changed. Reopen schedule settings.';return;}
+ if(!ctx.draft.cadence.weekdays.length){status.textContent='Choose at least one weekday.';return;}
+ button.disabled=true;const submitted=JSON.stringify(ctx.draft),row=ctx.schedule;
+ try{
+  const data=await researchPrivateAPI('/api/research/capture-schedules'+(row?'/'+encodeURIComponent(row.id):''),{method:row?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...ctx.draft,...(row?{revision:row.revision}:{definition:ctx.definition}),enabled:false})});
+  if(window.__researchDialog!==el || ctx.authGen!==(window.__researchAuthGen || 0))return;
+  if(data.runtime_available!==false || !data.schedule || data.schedule.owner_id!==ctx.owner || data.schedule.revision!==(row?row.revision+1:1) || row && data.schedule.id!==row.id)throw Error('Schedule save was not confirmed. Load latest before retrying.');
+  ctx.schedule=data.schedule;window.__researchCaptureSchedule=null;researchCaptureScheduleStatus(ctx,el);
+  const edited=JSON.stringify(ctx.draft)!==submitted;
+  if(!edited)delete window.__researchScheduleDrafts?.[ctx.owner+'|'+ctx.key];
+  status.textContent=edited?'Submitted cadence saved. Your newer edits remain unsaved. Automation is off.':'Cadence settings saved. Automation is off; no captures will run.';
+ }catch(e){if(window.__researchDialog===el && ctx.authGen===(window.__researchAuthGen || 0))status.textContent=researchErrorMessage(e)+(e.status===409?' Your draft is kept. Load latest settings to compare before saving again.':'');}
+ finally{if(button.isConnected)button.disabled=false;}
+}
+async function researchCaptureScheduleLatest() {
+ const ctx=window.__researchScheduleContext,el=window.__researchDialog;if(!ctx || !el)return;
+ try{
+  const data=await researchPrivateAPI('/api/research/capture-schedules?'+new URLSearchParams({definition:JSON.stringify(ctx.definition)}));
+  if(window.__researchDialog!==el || ctx.authGen!==(window.__researchAuthGen || 0))return;
+  if(!Array.isArray(data.schedules) || data.schedules.length>1 || data.runtime_available!==false)throw Error('Latest settings were not confirmed.');
+  ctx.schedule=data.schedules[0] || null;
+  el.querySelector('[data-schedule-latest]').innerHTML=ctx.schedule?`<h3>Latest saved settings · revision ${ctx.schedule.revision}</h3><pre>${esc(JSON.stringify({name:ctx.schedule.name,cadence:ctx.schedule.cadence},null,2))}</pre>`:'<p>No saved schedule exists.</p>';
+  el.querySelector('[data-schedule-message]').textContent='Your draft is kept. Saving will replace the latest settings shown below. Automation remains off.';
+ }catch(e){if(window.__researchDialog===el)el.querySelector('[data-schedule-message]').textContent=researchErrorMessage(e);}
+}
+
+
+function researchCaptureStatusHTML(data) {
+ const labels={pending:'Queued',running:'Running',succeeded:'Succeeded',failed:'Failed',cancelled:'Cancelled',awaiting_recovery:'Lease expired · awaiting recovery'};
+ const errors={provider_unavailable:'Provider unavailable',incomplete_data:'Incomplete data · no capture published',storage_unconfirmed:'Storage confirmation unavailable',worker_interrupted:'Worker interrupted',definition_changed:'Original screen definition changed',lease_exhausted:'Retry attempts exhausted',schedule_changed:'Schedule changed or disabled'};
+ const latest=data.latest_occurrence,success=data.last_success;
+ if(latest && (!labels[latest.display_status] || latest.error_code && !errors[latest.error_code]))throw Error('Capture status was not confirmed.');
+ return `<p><strong>Last successful publication:</strong> ${success?esc(researchCaptureTime(success.published_at))+' · revision '+esc(success.schedule_revision):'None retained'}</p><p><strong>Latest occurrence:</strong> ${latest?esc(labels[latest.display_status])+' · attempt '+esc(latest.attempts)+' of 3'+(!latest.current_revision?' · earlier schedule revision':''):'No work has been dispatched'}</p>${latest?.error_code?`<p>${esc(errors[latest.error_code])}. Prior successful captures remain available.</p>`:''}${latest?.display_status==='pending' && latest.attempts>0?`<p>Retry eligible from ${esc(researchCaptureTime(latest.retry_at))}; this is not a completion estimate.</p>`:''}`;
+}
+async function researchCaptureScheduleStatus(ctx,el) {
+ const target=el.querySelector('[data-capture-status]');if(!target)return;
+ if(!ctx.schedule){target.textContent='No private capture history exists for this screen yet.';return;}
+ const id=ctx.schedule.id,requestGen=(ctx.statusGen || 0)+1;ctx.statusGen=requestGen;target.textContent='Loading private capture status…';
+ try{
+  const data=await researchPrivateAPI('/api/research/capture-schedules/'+encodeURIComponent(id)+'/status');
+  if(window.__researchDialog!==el || ctx.authGen!==(window.__researchAuthGen || 0) || ctx.schedule?.id!==id || ctx.statusGen!==requestGen)return;
+  if(data.scope!=='authenticated_owner' || data.schedule_id!==id || data.runtime_available!==false)throw Error('Private capture status scope was not confirmed.');
+  target.innerHTML=researchCaptureStatusHTML(data);
+ }catch(e){if(window.__researchDialog===el && ctx.authGen===(window.__researchAuthGen || 0) && ctx.statusGen===requestGen)target.textContent='Capture status unavailable: '+researchErrorMessage(e)+' Settings remain editable.';}
 }

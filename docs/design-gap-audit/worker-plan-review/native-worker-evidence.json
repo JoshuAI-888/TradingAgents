@@ -1,0 +1,14 @@
+{
+  "scope": "real worker + native PostgreSQL 16.14 RPCs; synthetic provider; no PostgREST or production qualification",
+  "contracts": [
+    "later_batch_failure_no_publication",
+    "exact_classified_generation_and_retained_history",
+    "fresh_pinned_cohort_skip",
+    "lost_commit_response_exact_replay",
+    "expired_successor_fencing",
+    "quote_only_pinned_metadata_retry"
+  ],
+  "generation_rows": 401,
+  "provider_batches": 2,
+  "completed_at": "2026-10-02T06:22:43.397226+00:00"
+}

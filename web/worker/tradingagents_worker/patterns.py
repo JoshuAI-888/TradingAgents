@@ -16,18 +16,19 @@ METHODOLOGY (agreed with the owner before any measurement):
 
 This module ships DETECTORS + MEASUREMENT. It ships no UI signals.
 """
+
 from __future__ import annotations
 
 import statistics
 from datetime import datetime, timezone
 
 # ── tolerances (explicit per spec §6b rule 2) ────────────────────────────────
-PIVOT_ORDER = 5          # bars left+right for a fractal pivot
-DT_TOL = 0.03            # double top/bottom: peaks within ±3%
-DT_MIN_GAP = 20          # … and ≥20 bars apart
-DT_TROUGH_DEPTH = 0.05   # intervening move ≥5% against the peaks
-SR_TOL = 0.02            # horizontal S/R: touches within ±2%
-CONFIRM_BARS = 2         # closes beyond the level, 2 bars running (false-break filter)
+PIVOT_ORDER = 5  # bars left+right for a fractal pivot
+DT_TOL = 0.03  # double top/bottom: peaks within ±3%
+DT_MIN_GAP = 20  # … and ≥20 bars apart
+DT_TROUGH_DEPTH = 0.05  # intervening move ≥5% against the peaks
+SR_TOL = 0.02  # horizontal S/R: touches within ±2%
+CONFIRM_BARS = 2  # closes beyond the level, 2 bars running (false-break filter)
 SR_TOUCHES = 3
 HORIZONS = (5, 10, 20, 40)
 GATE_SPREAD_BPS = 25.0
@@ -42,7 +43,7 @@ def pivots(bars: list[dict], order: int = PIVOT_ORDER) -> tuple[list[int], list[
     highs, lows = [], []
     n = len(closes)
     for i in range(order, n - order):
-        win = closes[i - order:i + order + 1]
+        win = closes[i - order : i + order + 1]
         if closes[i] == max(win) and closes[i + order] < closes[i]:
             highs.append(i)
         if closes[i] == min(win) and closes[i + order] > closes[i]:
@@ -71,9 +72,15 @@ def detect_double_top(bars: list[dict]) -> list[dict]:
             neckline = trough
             for j in range(i2 + 1, len(closes) - CONFIRM_BARS + 1):
                 if all(closes[j + k] < neckline for k in range(CONFIRM_BARS)):
-                    out.append({"pattern": "double_top", "peak1": i1, "peak2": i2,
-                                "signal_index": j,
-                                "day": bars[j].get("day", "")})
+                    out.append(
+                        {
+                            "pattern": "double_top",
+                            "peak1": i1,
+                            "peak2": i2,
+                            "signal_index": j,
+                            "day": bars[j].get("day", ""),
+                        }
+                    )
                     break
             break  # only the nearest valid second peak per first peak
     return out
@@ -98,9 +105,15 @@ def detect_double_bottom(bars: list[dict]) -> list[dict]:
                 continue
             for j in range(i2 + 1, len(closes) - CONFIRM_BARS + 1):
                 if all(closes[j + k] > peak for k in range(CONFIRM_BARS)):
-                    out.append({"pattern": "double_bottom", "peak1": i1, "peak2": i2,
-                                "signal_index": j,
-                                "day": bars[j].get("day", "")})
+                    out.append(
+                        {
+                            "pattern": "double_bottom",
+                            "peak1": i1,
+                            "peak2": i2,
+                            "signal_index": j,
+                            "day": bars[j].get("day", ""),
+                        }
+                    )
                     break
             break
     return out
@@ -128,11 +141,16 @@ def detect_horizontal_sr(bars: list[dict]) -> list[dict]:
             last_touch = max(touches)
             direction = 1 if kind == "resistance" else -1
             for j in range(last_touch + 1, len(closes)):
-                if ((closes[j] - level) * direction > level * 0.01
-                        and j - last_touch >= PIVOT_ORDER):
-                    out.append({"pattern": f"horizontal_{kind}", "level_index": i,
-                                "touches": len(touches), "signal_index": j,
-                                "day": bars[j].get("day", "")})
+                if (closes[j] - level) * direction > level * 0.01 and j - last_touch >= PIVOT_ORDER:
+                    out.append(
+                        {
+                            "pattern": f"horizontal_{kind}",
+                            "level_index": i,
+                            "touches": len(touches),
+                            "signal_index": j,
+                            "day": bars[j].get("day", ""),
+                        }
+                    )
                     used_until = j
                     break
     return out
@@ -152,16 +170,21 @@ def _forward(closes: list[float], idx: int, h: int) -> float | None:
     return (closes[idx + h] / closes[idx] - 1) * 100
 
 
-def evaluate_pattern(closes: list[float], detections: list[dict],
-                     horizons=HORIZONS) -> dict:
+def evaluate_pattern(closes: list[float], detections: list[dict], horizons=HORIZONS) -> dict:
     """Forward-return stats per pattern vs the all-bar baseline, plus
     split-half stability at h=10 (spec §6b rule 3)."""
     per_h = {}
     for h in horizons:
-        base = statistics.median([v for v in (_forward(closes, i, h) for i in range(len(closes)))
-                                  if v is not None]) if len(closes) > h else None
-        fw = [v for v in (_forward(closes, d["signal_index"], h) for d in detections)
-              if v is not None]
+        base = (
+            statistics.median(
+                [v for v in (_forward(closes, i, h) for i in range(len(closes))) if v is not None]
+            )
+            if len(closes) > h
+            else None
+        )
+        fw = [
+            v for v in (_forward(closes, d["signal_index"], h) for d in detections) if v is not None
+        ]
         per_h[h] = {
             "n": len(fw),
             "median": round(statistics.median(fw), 4) if fw else None,
@@ -177,23 +200,33 @@ def evaluate_pattern(closes: list[float], detections: list[dict],
     spread = None
     if per_h[10]["median"] is not None and per_h[10]["baseline"] is not None:
         spread = round((per_h[10]["median"] - per_h[10]["baseline"]) * 100, 1)  # bps
-    gate = (spread is not None and spread > GATE_SPREAD_BPS
-            and per_h[10]["n"] >= GATE_MIN_N
-            and halves[0] is not None and halves[1] is not None
-            and (halves[0] - per_h[10]["baseline"]) * (halves[1] - per_h[10]["baseline"]) > 0)
-    return {"horizons": per_h, "spread_bps_h10": spread,
-            "halves_h10": [round(h, 4) if h is not None else None for h in halves],
-            "gate_passed": gate}
+    gate = (
+        spread is not None
+        and spread > GATE_SPREAD_BPS
+        and per_h[10]["n"] >= GATE_MIN_N
+        and halves[0] is not None
+        and halves[1] is not None
+        and (halves[0] - per_h[10]["baseline"]) * (halves[1] - per_h[10]["baseline"]) > 0
+    )
+    return {
+        "horizons": per_h,
+        "spread_bps_h10": spread,
+        "halves_h10": [round(h, 4) if h is not None else None for h in halves],
+        "gate_passed": gate,
+    }
 
 
 def run_report(bars_by_code: dict[str, list[dict]]) -> dict:
     """Full spike report over a code→bars store (screener_klines)."""
-    report = {"generated_at": datetime.now(timezone.utc).isoformat(),
-              "codes": len(bars_by_code), "patterns": {}}
+    report = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "codes": len(bars_by_code),
+        "patterns": {},
+    }
     for name, fn in DETECTORS.items():
         agg_closes: list[float] = []
         detections = []
-        for code, bars in bars_by_code.items():
+        for _code, bars in bars_by_code.items():
             det = fn(bars)
             if det:
                 detections.extend(det)
@@ -205,9 +238,13 @@ def run_report(bars_by_code: dict[str, list[dict]]) -> dict:
         }
     any_pass = any(p.get("gate_passed") for p in report["patterns"].values())
     enough = all(p["detections"] >= GATE_MIN_N for p in report["patterns"].values())
-    report["verdict"] = ("gate passed — patterns may ship as signals" if any_pass and enough
-                         else "insufficient data or no edge — do NOT ship (spec §6b rule 4)"
-                         if enough else "insufficient detections — run the kline backfill, then re-run")
+    report["verdict"] = (
+        "gate passed — patterns may ship as signals"
+        if any_pass and enough
+        else "insufficient data or no edge — do NOT ship (spec §6b rule 4)"
+        if enough
+        else "insufficient detections — run the kline backfill, then re-run"
+    )
     return report
 
 
@@ -226,9 +263,10 @@ if __name__ == "__main__":
     codes = [r["code"] for r in db.select_all("screener_universe", {"market": "eq.US"}, "code")]
     bars_by_code: dict[str, list] = {}
     for i in range(0, len(codes), 100):
-        chunk = codes[i:i + 100]
-        rows = db.select_all("screener_klines",
-                             {"market": "eq.US", "code": f"in.({','.join(chunk)})"})
+        chunk = codes[i : i + 100]
+        rows = db.select_all(
+            "screener_klines", {"market": "eq.US", "code": f"in.({','.join(chunk)})"}
+        )
         for b in rows:
             bars_by_code.setdefault(b["code"], []).append(b)
     bars_by_code = {c: sorted(v, key=lambda b: b["day"]) for c, v in bars_by_code.items()}

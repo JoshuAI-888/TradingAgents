@@ -1,0 +1,207 @@
+{
+  "observed_at": "2026-10-02T20:56:55.733Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/pb-ratio-less-than-1-6",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/GLNS-US",
+      "text": "2501\nGLNS\nGOLDEN STAR RESOURCES CORPORATION\n0.8020\n0.00%\n0.0000\n5.67M\n0.00\n-5.99"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GKIN-US",
+      "text": "2502\nGKIN\nGUSKIN GOLD CORP\n0.000100\n0.00%\n0.000000\n4.80K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GBLX-US",
+      "text": "2503\nGBLX\nGB SCIENCES INC\n0.000100\n0.00%\n0.000000\n40.71K\n950.00\n-0.01"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FREJP-US",
+      "text": "2504\nFREJP\nFEDERAL HOME LOAN MORTGAGE CORP 5.3% PRF USD50\n10.000\n0.00%\n0.000\n40.00M\n0.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FREJO-US",
+      "text": "2505\nFREJO\nFEDERAL HOME LOAN MORTGAGE CORP 5.1% PRF USD50 SALOMON SMITH BARNEY\n14.010\n0.00%\n0.000\n42.03M\n0.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FREJN-US",
+      "text": "2506\nFREJN\nFEDERAL HOME LOAN MORTGAGE CORP NON CUM PER PFD 5.81% USD50\n12.140\n0.00%\n0.000\n36.42M\n0.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FREGP-US",
+      "text": "2507\nFREGP\nFEDERAL HOME LOAN MORTGAGE CORP 5.81% PRF USD50\n11.380\n0.00%\n0.000\n34.14M\n0.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FNMAI-US",
+      "text": "2508\nFNMAI\nFEDERAL NATIONAL MORTGAGE ASSOC PRF NON CUM SER 'Q'\n5.500\n0.00%\n0.000\n82.50M\n10.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FMHS-US",
+      "text": "2509\nFMHS\nFARMHOUSE INC\n0.1430\n0.00%\n0.0000\n2.73M\n0.00\n-0.48"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FMCKP-US",
+      "text": "2510\nFMCKP\nFEDERAL HOME LOAN MORTGAGE CORP 5.7% PRF USD50\n10.700\n0.00%\n0.000\n64.20M\n0.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FMCCT-US",
+      "text": "2511\nFMCCT\nFEDERAL HOME LOAN MORTGAGE CORP 6.42% PRF NON-CUM PERP\n11.000\n0.00%\n0.000\n55.00M\n7.45K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FMCCP-US",
+      "text": "2512\nFMCCP\nFEDERAL HOME LOAN MORTGAGE CORP 6% PRF NON-CUM USD50\n10.498\n0.00%\n0.000\n36.22M\n0.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FMCCK-US",
+      "text": "2513\nFMCCK\nFEDERAL HOME LOAN MORTGAGE CORP 5.79% PRF PERP USD50\n10.410\n0.00%\n0.000\n52.05M\n0.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FMCCH-US",
+      "text": "2514\nFMCCH\nFEDERAL HOME LOAN MORTGAGE CORP 5.1% PRF PERP USD50 SER'H'\n10.000\n0.00%\n0.000\n80.00M\n0.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FGNV-US",
+      "text": "2515\nFGNV\nFORGE INNOVATION DEV CORP\n0.0011\n0.00%\n0.0000\n55.43K\n0.00\n-0.28"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FFLO-US",
+      "text": "2516\nFFLO\nFREEFLOW INC\n0.2442\n0.00%\n0.0000\n7.57M\n0.00\n-6.26"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FBTT-US",
+      "text": "2517\nFBTT\nFIRST BANKERS TRUSTSHARES INC\n26.700\n0.00%\n0.000\n80.00M\n0.00\n0.67"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ENDV-US",
+      "text": "2518\nENDV\nENDONOVO THERAPEUTICS INC\n0.000050\n0.00%\n0.000000\n90.38K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CVAT-US",
+      "text": "2519\nCVAT\nCAVITATION TECHNOLOGIES INC\n0.0380\n0.00%\n0.0000\n12.05M\n110.04K\n-19.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CRYM-US",
+      "text": "2520\nCRYM\nCRYOMASS TECHNOLOGIES INC\n0.000001\n0.00%\n0.000000\n237.16\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CIPI-US",
+      "text": "2521\nCIPI\nCORRELATE ENERGY CORP\n0.000100\n0.00%\n0.000000\n7.83K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CHHE-US",
+      "text": "2522\nCHHE\nCHINA HEALTH INDUSTRIES HOLDNGS INC\n0.000100\n0.00%\n0.000000\n6.55K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BSPK-US",
+      "text": "2523\nBSPK\nBESPOKE EXCTRACTS INC\n0.0016\n0.00%\n0.0000\n18.01K\n0.00\n-0.01"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BRST-US",
+      "text": "2524\nBRST\nBROAD STREET REALTY INC\n0.000100\n0.00%\n0.000000\n3.47K\n0.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BMTM-US",
+      "text": "2525\nBMTM\nBRIGHT MOUNTAIN MEDIA INC\n0.0052\n0.00%\n0.0000\n972.07K\n0.00\n-0.01"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BFYW-US",
+      "text": "2526\nBFYW\nBETTER FOR YOU WELLNESS INC\n0.000001\n0.00%\n0.000000\n507.81\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BBLR-US",
+      "text": "2527\nBBLR\nBUBBLR INC\n0.0003\n0.00%\n0.0000\n91.59K\n14.54M\n-0.03"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AURX-US",
+      "text": "2528\nAURX\nNUO THERAPEUTICS INC\n1.250\n0.00%\n0.000\n60.54M\n0.00\n-39.06"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ASRE-US",
+      "text": "2529\nASRE\nASTRA ENERGY INC\n0.0010\n0.00%\n0.0000\n75.11K\n0.00\n-0.01"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMNI-US",
+      "text": "2530\nAMNI\nAMERICAN NOBLE GAS INC\n0.0002\n0.00%\n0.0000\n4.81K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ALDS-US",
+      "text": "2531\nALDS\nAPPLIFE DIGITAL SOLUTIONS INC\n1.000\n0.00%\n0.000\n8.10M\n0.00\n-4.03"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AIXN-US",
+      "text": "2532\nAIXN\nAIXIN LIFE INTERNATIONAL INC\n0.2600\n0.00%\n0.0000\n6.50M\n0.00\n-0.99"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ACRG-US",
+      "text": "2533\nACRG\nAMERICAN CLEAN RESOURCES GROUP\n7.990\n0.00%\n0.000\n112.67M\n0.00\n-9.93"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BLMS-US",
+      "text": "2534\nBLMS\nBLOOMIOS INC\n0.0003\n0.00%\n0.0000\n19.34K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PVCT-US",
+      "text": "2535\nPVCT\nPROVECTUS BIOPHARMACEUTICALS INC\n0.0544\n0.00%\n0.0000\n22.86M\n15.07K\n-3.63"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RTGN-US",
+      "text": "2536\nRTGN\nRETINALGENIX TECHNOLOGIES INC\n3.990\n0.00%\n0.000\n75.19M\n0.00\n-28.50"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MKULQ-US",
+      "text": "2537\nMKULQ\nMolekule Group\n0.000\n0.00%\n0.000\n13.86K\n0.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LDSN-US",
+      "text": "2538\nLDSN\nLuduson G Inc.\n0.0039\n0.00%\n0.0000\n2.20M\n0.00\n-23.80"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TOBAD-US",
+      "text": "2539\nTOBAD\nTaat Lifestyle & Wellness Ltd.\n0.159\n0.00%\n0.000\n1.83M\n0.00\n0.87"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/INFIQ-US",
+      "text": "2540\nINFIQ\nInfinity Pharmaceuticals\n0.000001\n0.00%\n0.000000\n90.76\n100.00\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AONC-US",
+      "text": "2541\nAONC\nAmerican Oncology Network\n11.000\n0.00%\n0.000\n492.71M\n0.00\n-7.64"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ZEVY-US",
+      "text": "2542\nZEVY\nLightning eMotors, Inc.\n0.000100\n0.00%\n0.000000\n659.35\n1.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MDAI-US",
+      "text": "2543\nMDAI\nSpectral AI\n1.660\n0.00%\n0.000\n53.43M\n187.54K\n-4.43"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ACFND-US",
+      "text": "2544\nACFND\nACORN ENERGY INC\n6.300\n0.00%\n0.000\n15.34M\n0.00\n-15.79"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TGRO-US",
+      "text": "2545\nTGRO\nTIGER OIL & ENERGY INC\n0.000001\n0.00%\n0.000000\n14.82K\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PUGE-US",
+      "text": "2546\nPUGE\nPUGET TECHNOLOGIES INC\n0.000001\n0.00%\n0.000000\n4.75K\n369.40K\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SYSX-US",
+      "text": "2547\nSYSX\nSysorex Inc.\n0.000100\n0.00%\n0.000000\n248.44\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LOWLD-US",
+      "text": "2548\nLOWLD\nLOWELL FARMS INC\n0.352\n0.00%\n0.000\n6.38M\n0.00\n0.27"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MNKTQ-US",
+      "text": "2549\nMNKTQ\nMallinckrodt\n0.120\n0.00%\n0.000\n1.60M\n0.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/OIGBQ-US",
+      "text": "2550\nOIGBQ\nORBITAL INFRASTRUCTURE GROUP INC\n0.000\n0.00%\n0.000\n469.36\n0.00\n0.00"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\n\nDeposit, Share & Win NVDA 0.1\n\nGet started\nScreener\nRecommended Screeners\nP/B Ratio Less Than 1\nP/B Ratio Less Than 1\n\nSpot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.\n\nSelected:\n\nSave Screener\nMarket: USP/B: ≤1.00\nResult: 4534 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nP/B\nWatchlist\nPaper Trade\n2501\nGLNS\nGOLDEN STAR RESOURCES CORPORATION\n0.8020\n0.00%\n0.0000\n5.67M\n0.00\n-5.99\n2502\nGKIN\nGUSKIN GOLD CORP\n0.000100\n0.00%\n0.000000\n4.80K\n0.00\n-0.00\n2503\nGBLX\nGB SCIENCES INC\n0.000100\n0.00%\n0.000000\n40.71K\n950.00\n-0.01\n2504\nFREJP\nFEDERAL HOME LOAN MORTGAGE CORP 5.3% PRF USD50\n10.000\n0.00%\n0.000\n40.00M\n0.00\n0.00\n2505\nFREJO\nFEDERAL HOME LOAN MORTGAGE CORP 5.1% PRF USD50 SALOMON SMITH BARNEY\n14.010\n0.00%\n0.000\n42.03M\n0.00\n0.00\n2506\nFREJN\nFEDERAL HOME LOAN MORTGAGE CORP NON CUM PER PFD 5.81% USD50\n12.140\n0.00%\n0.000\n36.42M\n0.00\n0.00\n2507\nFREGP\nFEDERAL HOME LOAN MORTGAGE CORP 5.81% PRF USD50\n11.380\n0.00%\n0.000\n34.14M\n0.00\n0.00\n2508\nFNMAI\nFEDERAL NATIONAL MORTGAGE ASSOC PRF NON CUM SER 'Q'\n5.500\n0.00%\n0.000\n82.50M\n10.00\n0.00\n2509\nFMHS\nFARMHOUSE INC\n0.1430\n0.00%\n0.0000\n2.73M\n0.00\n-0.48\n2510\nFMCKP\nFEDERAL HOME LOAN MORTGAGE CORP 5.7% PRF USD50\n10.700\n0.00%\n0.000\n64.20M\n0.00\n0.00\n2511\nFMCCT\nFEDERAL HOME LOAN MORTGAGE CORP 6.42% PRF NON-CUM PERP\n11.000\n0.00%\n0.000\n55.00M\n7.45K\n0.00\n2512\nFMCCP\nFEDERAL HOME LOAN MORTGAGE CORP 6% PRF NON-CUM USD50\n10.498\n0.00%\n0.000\n36.22M\n0.00\n0.00\n2513\nFMCCK\nFEDERAL HOME LOAN MORTGAGE CORP 5.79% PRF PERP USD50\n10.410\n0.00%\n0.000\n52.05M\n0.00\n0.00\n2514\nFMCCH\nFEDERAL HOME LOAN MORTGAGE CORP 5.1% PRF PERP USD50 SER'H'\n10.000\n0.00%\n0.000\n80.00M\n0.00\n0.00\n2515\nFGNV\nFORGE INNOVATION DEV CORP\n0.0011\n0.00%\n0.0000\n55.43K\n0.00\n-0.28\n2516\nFFLO\nFREEFLOW INC\n0.2442\n0.00%\n0.0000\n7.57M\n0.00\n-6.26\n2517\nFBTT\nFIRST BANKERS TRUSTSHARES INC\n26.700\n0.00%\n0.000\n80.00M\n0.00\n0.67\n2518\nENDV\nENDONOVO THERAPEUTICS INC\n0.000050\n0.00%\n0.000000\n90.38K\n0.00\n-0.00\n2519\nCVAT\nCAVITATION TECHNOLOGIES INC\n0.0380\n0.00%\n0.0000\n12.05M\n110.04K\n-19.00\n2520\nCRYM\nCRYOMASS TECHNOLOGIES INC\n0.000001\n0.00%\n0.000000\n237.16\n0.00\n-0.00\n2521\nCIPI\nCORRELATE ENERGY CORP\n0.000100\n0.00%\n0.000000\n7.83K\n0.00\n-0.00\n2522\nCHHE\nCHINA HEALTH INDUSTRIES HOLDNGS INC\n0.000100\n0.00%\n0.000000\n6.55K\n0.00\n-0.00\n2523\nBSPK\nBESPOKE EXCTRACTS INC\n0.0016\n0.00%\n0.0000\n18.01K\n0.00\n-0.01\n2524\nBRST\nBROAD STREET REALTY INC\n0.000100\n0.00%\n0.000000\n3.47K\n0.00\n0.00\n2525\nBMTM\nBRIGHT MOUNTAIN MEDIA INC\n0.0052\n0.00%\n0.0000\n972.07K\n0.00\n-0.01\n2526\nBFYW\nBETTER FOR YOU WELLNESS INC\n0.000001\n0.00%\n0.000000\n507.81\n0.00\n-0.00\n2527\nBBLR\nBUBBLR INC\n0.0003\n0.00%\n0.0000\n91.59K\n14.54M\n-0.03\n2528\nAURX\nNUO THERAPEUTICS INC\n1.250\n0.00%\n0.000\n60.54M\n0.00\n-39.06\n2529\nASRE\nASTRA ENERGY INC\n0.0010\n0.00%\n0.0000\n75.11K\n0.00\n-0.01\n2530\nAMNI\nAMERICAN NOBLE GAS INC\n0.0002\n0.00%\n0.0000\n4.81K\n0.00\n-0.00\n2531\nALDS\nAPPLIFE DIGITAL SOLUTIONS INC\n1.000\n0.00%\n0.000\n8.10M\n0.00\n-4.03\n2532\nAIXN\nAIXIN LIFE INTERNATIONAL INC\n0.2600\n0.00%\n0.0000\n6.50M\n0.00\n-0.99\n2533\nACRG\nAMERICAN CLEAN RESOURCES GROUP\n7.990\n0.00%\n0.000\n112.67M\n0.00\n-9.93\n2534\nBLMS\nBLOOMIOS INC\n0.0003\n0.00%\n0.0000\n19.34K\n0.00\n-0.00\n2535\nPVCT\nPROVECTUS BIOPHARMACEUTICALS INC\n0.0544\n0.00%\n0.0000\n22.86M\n15.07K\n-3.63\n2536\nRTGN\nRETINALGENIX TECHNOLOGIES INC\n3.990\n0.00%\n0.000\n75.19M\n0.00\n-28.50\n2537\nMKULQ\nMolekule Group\n0.000\n0.00%\n0.000\n13.86K\n0.00\n0.00\n2538\nLDSN\nLuduson G Inc.\n0.0039\n0.00%\n0.0000\n2.20M\n0.00\n-23.80\n2539\nTOBAD\nTaat Lifestyle & Wellness Ltd.\n0.159\n0.00%\n0.000\n1.83M\n0.00\n0.87\n2540\nINFIQ\nInfinity Pharmaceuticals\n0.000001\n0.00%\n0.000000\n90.76\n100.00\n0.00\n2541\nAONC\nAmerican Oncology Network\n11.000\n0.00%\n0.000\n492.71M\n0.00\n-7.64\n2542\nZEVY\nLightning eMotors, Inc.\n0.000100\n0.00%\n0.000000\n659.35\n1.00\n-0.00\n2543\nMDAI\nSpectral AI\n1.660\n0.00%\n0.000\n53.43M\n187.54K\n-4.43\n2544\nACFND\nACORN ENERGY INC\n6.300\n0.00%\n0.000\n15.34M\n0.00\n-15.79\n2545\nTGRO\nTIGER OIL & ENERGY INC\n0.000001\n0.00%\n0.000000\n14.82K\n0.00\n-0.00\n2546\nPUGE\nPUGET TECHNOLOGIES INC\n0.000001\n0.00%\n0.000000\n4.75K\n369.40K\n-0.00\n2547\nSYSX\nSysorex Inc.\n0.000100\n0.00%\n0.000000\n248.44\n0.00\n-0.00\n2548\nLOWLD\nLOWELL FARMS INC\n0.352\n0.00%\n0.000\n6.38M\n0.00\n0.27\n2549\nMNKTQ\nMallinckrodt\n0.120\n0.00%\n0.000\n1.60M\n0.00\n-0.00\n2550\nOIGBQ\nORBITAL INFRASTRUCTURE GROUP INC\n0.000\n0.00%\n0.000\n469.36\n0.00\n0.00\n1\n50\n51\n52\n53\n91\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\nSTRW\n\n+4.90%\n\nABX\n\n+4.82%\n\nSNLAY\n\n+3.77%\n\nLow P/E Ratio Stocks\n\nZENVF\n\n+2900.00%\n\nBHATF\n\n+500.00%\n\nNXUR\n\n+266.67%\n\nBelow 30 RSI Stocks\n\nBPTH\n\n+200.00%\n\nNCLX\n\n+36.36%\n\nNIVF\n\n+27.72%\n\nJunk Stocks\n\nAILEQ\n\n+9900.00%\n\nPCTL\n\n+9900.00%\n\nZENVF\n\n+2900.00%\n\nSmall Cap Stocks with Huge Growth Potential\n\nFCEL\n\n+11.47%\n\nAZ\n\n+9.75%\n\nHYLN\n\n+7.60%\n\nBlue Chip Dividend Stocks\n\nRIO\n\n+1.44%\n\n--\n\n--\n\n--\n\n--\n\n1\n2\nCustomer Service\n0800 886 800\n\n(toll free)\n\n+64 9 872 6000\n\n(from overseas)\n\nTrading days: 24 hours\n\nNon-trading days: 9:30 - 21:30 NZT\n\nsupport@nz.moomoo.com\n\nOfficial WhatsApp\n\nAbout moomoo\nAbout moomoo\nContact Us\nInvestor Relations\nTerms & Conditions\nPrivacy Policy\nTerms of Use\nFinancial Services Guide\nLicensed Entities*\nCareers / Contact:\nApply Now\ncareer@au.moomoo.com\nFollow us on\n\nThe moomoo app is an online trading platform offered by Moomoo Technologies Inc. In New Zealand, financial services are offered by Moomoo Securities Australia Ltd, NZBN: 942 905 240 2296, a financial services provider registered in New Zealand (FSP1008656). Moomoo Securities Australia Limited is not licensed by a New Zealand regulator to provide financial services. Its registration on the New Zealand FSP Register does not mean that it is subject to active regulation or oversight by a New Zealand regulator.\n\nInvestments carry risks and may result in losses. Market data or information on this website is for reference only and should not be seen as an endorsement or recommendation to buy or sell financial products. Past performance is not indicative of future results. The information is general and doesn't consider your personal investment objectives, financial situation, or needs. Consider your personal circumstances before making investment decisions.\n\nOptions trading involves substantial risks and may not be suitable for all investors. Losses could potentially exceed your initial investment. Please carefully review and consider our US Options Product Disclosure Statement and OCC's Characteristics and Risks of Standardized Options before trading options with us.\n\nPlease read, consider and understand our Financial Services Disclosure Statement, Privacy Policy, Website Terms and Conditions, Information Collection Notice and Risk Disclosure Statement before deciding to use our services.\n\nCompany Address: Moomoo Securities Australia Ltd. Suite 5.01, 570 George Street, Sydney NSW 2000\n\nCopyright © 2026 Moomoo Technologies Inc. All Rights Reserved."
+}

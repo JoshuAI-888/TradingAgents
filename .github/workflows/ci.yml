@@ -2,8 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main, 'v[0-9]+.[0-9]+.[0-9]+']
+    branches: [main, 'codex/investment-team-release-evidence', 'v[0-9]+.[0-9]+.[0-9]+']
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -50,6 +54,26 @@ jobs:
           # Catches undeclared runtime deps (e.g. #994 python-dotenv): a bare
           # install must import the package and the CLI module.
           python -c "import tradingagents, cli.main; print('clean-install import OK')"
+
+  portal-mvp:
+    name: portal and worker MVP (py3.12)
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: web/api:web/worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install portal and worker test dependencies
+        run: pip install -e . -r web/api/requirements.txt pytest httpx
+      - name: Run portal and worker regression suites
+        run: python -m pytest web/api/tests web/worker/tests -q
+      - name: Run screener and Desk UI contracts
+        run: node --test web/api/tests/ui/screener.test.cjs web/api/tests/ui/desk-mvp.test.cjs
 
   lint:
     name: ruff (strict, full repo)

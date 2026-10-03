@@ -1,0 +1,207 @@
+{
+  "observed_at": "2026-10-02T20:42:59.655Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/penny-stocks-0",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/GREH-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "1\nGREH\nGREEN RAIN ENERGY HOLDINGS INC\n0.0058\n+56.76%\n+0.0021\n268.71K\n183.82K\n36.84%\n58.59%\n36.60%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NMTC-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "2\nNMTC\nNeuroOne Medical\n1.1200\n+13.69%\n+0.1349\n10.20M\n196.55K\n70.73%\n163.47%\n34.43%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MWYN-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "3\nMWYN\nMarwynn\n1.100\n+10.00%\n+0.100\n22.21M\n40.61K\n10.88%\n427.50%\n14.22%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CTNT-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "4\nCTNT\nCheetah Net Supply Chain Service\n2.620\n+6.94%\n+0.170\n3.49M\n4.97M\n29.66%\n182.69%\n21.11%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HIT-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "5\nHIT\nHealth in Tech\n0.7834\n+6.15%\n+0.0454\n51.34M\n328.65K\n90.74%\n70.99%\n25.89%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ZHUD-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "6\nZHUD\nZHUDING INTL LTD\n0.0100\n+5.26%\n+0.0005\n1.60M\n390.10K\n8.07%\n24.53%\n29.95%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/JZXN-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "7\nJZXN\nJiuzi\n1.130\n+4.63%\n+0.050\n58.21M\n43.46K\n82.77%\n105.89%\n18.20%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NAGE-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "8\nNAGE\nNiagen Bioscience\n2.790\n+4.10%\n+0.110\n220.76M\n1.57M\n103.30%\n29.95%\n28.07%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GURE-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "9\nGURE\nGulf Resources\n3.015\n+3.61%\n+0.105\n5.47M\n65.42K\n26.68%\n231.79%\n16.64%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CAN-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "10\nCAN\nCanaan\n0.3502\n+3.00%\n+0.0102\n256.31M\n8.58M\n15.81%\n96.69%\n27.45%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RFL-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "11\nRFL\nRafael Holdings\n1.540\n+2.67%\n+0.040\n80.08M\n178.19K\n52.86%\n43.96%\n13.79%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MTEN-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "12\nMTEN\nMingteng International\n1.0100\n+2.58%\n+0.0254\n7.73M\n111.85K\n68.53%\n15.26%\n29.44%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SEER-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "13\nSEER\nSeer Inc\n2.250\n+2.27%\n+0.050\n124.59M\n200.54K\n15.01%\n16.99%\n12.42%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VLN-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "14\nVLN\nValens Semiconductor\n1.910\n+2.14%\n+0.040\n206.81M\n468.61K\n13.67%\n22.06%\n22.06%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RANI-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "15\nRANI\nRani Therapeutics\n0.8108\n+1.92%\n+0.0153\n113.02M\n418.33K\n27.63%\n58.85%\n29.19%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HYPD-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "16\nHYPD\nHyperion DeFi\n3.730\n+1.91%\n+0.070\n57.96M\n529.61K\n9.04%\n1318.75%\n20.68%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ZTG-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "17\nZTG\nZenta Group\n0.9722\n+1.69%\n+0.0162\n23.42M\n104.24K\n25.37%\n55.77%\n5.87%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FTFT-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "18\nFTFT\nFuture FinTech\n3.410\n+1.49%\n+0.050\n27.54M\n142.31K\n91.70%\n81.13%\n17.51%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CPSH-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "19\nCPSH\nCPS Technologies\n3.840\n+1.32%\n+0.050\n74.45M\n169.75K\n113.41%\n54.31%\n16.52%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ELTP-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "20\nELTP\nELITE PHARMACEUTICALS INC\n0.2287\n+0.73%\n+0.0017\n246.29M\n1.87M\n1140.01%\n77.13%\n28.50%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/YDDL-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "21\nYDDL\nOne and one Green Technologies\n1.430\n+0.70%\n+0.010\n80.13M\n28.72K\n82.37%\n23.12%\n25.38%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/IVVD-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "22\nIVVD\nInvivyd\n0.8221\n+0.69%\n+0.0056\n242.32M\n7.11M\n69.11%\n110.47%\n12.76%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CTM-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "23\nCTM\nCastellum\n0.6296\n+0.41%\n+0.0026\n59.67M\n319.21K\n75.97%\n18.10%\n14.68%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MSGM-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "24\nMSGM\nMotorsport Games\n4.860\n+0.41%\n+0.020\n22.30M\n62.76K\n324.56%\n30.05%\n36.65%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HLP-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "25\nHLP\nHongli\n2.550\n+0.39%\n+0.010\n190.58M\n71.68K\n203.25%\n38.96%\n19.89%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CSDX-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "26\nCSDX\nCS Diagnostics\n0.0085\n0.00%\n0.0000\n2.12M\n0.00\n9258.61%\n83.93%\n0.00%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AAPJ-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "27\nAAPJ\nAAP INC\n0.000001\n0.00%\n0.000000\n2.36K\n0.00\n42.55%\n20.00%\n31.25%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MSMY-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "28\nMSMY\nMC ENDEAVORS INC\n0.0008\n0.00%\n0.0000\n485.43K\n2.00\n40.49%\n542.25%\n13.09%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LGBS-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "29\nLGBS\nLEGENDS BUSINESS GROUP INC\n0.000001\n0.00%\n0.000000\n2.54K\n0.00\n99.69%\n50.00%\n25.89%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WDLF-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "30\nWDLF\nDecentral Life\n0.0004\n0.00%\n0.0000\n2.96M\n1.02M\n134.32%\n223.28%\n29.81%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TFFP-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "31\nTFFP\nTFF Pharmaceuticals\n0.0650\n0.00%\n0.0000\n288.86K\n0.00\n33.13%\n48.02%\n20.46%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DAVA-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "32\nDAVA\nEndava\n1.920\n0.00%\n0.000\n101.46M\n269.40K\n34.51%\n13.19%\n37.70%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/XBIO-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "33\nXBIO\nXenetic Biosciences\n2.240\n0.00%\n0.000\n5.25M\n43.20K\n32.31%\n19.04%\n11.57%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LUNA-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "34\nLUNA\nLuna Innovations\n1.340\n0.00%\n0.000\n46.49M\n0.00\n571.42%\n25.12%\n38.15%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/IDN-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "35\nIDN\nIntellicheck\n2.270\n-0.22%\n-0.005\n46.01M\n88.84K\n238.67%\n13.35%\n15.46%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TWG-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "36\nTWG\nTop Wealth Group Holding\n0.1102\n-0.45%\n-0.0005\n6.91M\n2.39M\n257.96%\n92.30%\n5.68%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ORKT-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "37\nORKT\nOrangeKloud Technology\n1.015\n-0.49%\n-0.005\n5.93M\n116.37K\n45.24%\n48.88%\n28.14%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TPET-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "38\nTPET\nTrio Petroleum\n1.610\n-1.23%\n-0.020\n8.57M\n152.63K\n24.36%\n87.02%\n14.46%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CGEN-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "39\nCGEN\nCompugen\n2.310\n-1.28%\n-0.030\n218.82M\n113.87K\n348.35%\n161.14%\n34.39%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMPG-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "40\nAMPG\nAmpliTech Group\n3.050\n-1.29%\n-0.040\n91.63M\n680.31K\n37.67%\n164.99%\n36.16%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMST-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "41\nAMST\nAmesite\n0.9400\n-1.38%\n-0.0132\n6.16M\n38.41K\n14.41%\n230.24%\n12.41%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HOLO-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "42\nHOLO\nMicroCloud Hologram\n1.560\n-1.89%\n-0.030\n35.74M\n206.01K\n18.50%\n45.09%\n2.98%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KRMD-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "43\nKRMD\nKORU Medical Systems\n2.960\n-1.99%\n-0.060\n136.67M\n273.43K\n56.52%\n22.23%\n39.55%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/XPON-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "44\nXPON\nExpion Energy\n4.200\n-2.33%\n-0.100\n4.04M\n15.82K\n53.74%\n71.59%\n19.03%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BGMS-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "45\nBGMS\nBio Green Med Solution\n0.8800\n-2.69%\n-0.0243\n5.83M\n9.81K\n73.26%\n1637.21%\n16.41%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NIXX-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "46\nNIXX\nNixxy\n0.3027\n-2.83%\n-0.0088\n8.75M\n182.27K\n33.69%\n1631666.67%\n39.49%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/OGI-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "47\nOGI\nOrganiGram\n0.9531\n-2.97%\n-0.0292\n137.39M\n720.84K\n47.07%\n57.52%\n37.90%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/IMRN-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "48\nIMRN\nImmuron\n1.090\n-3.54%\n-0.040\n8.80M\n88.72K\n25.83%\n11.28%\n15.11%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MYSE-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "49\nMYSE\nMYSEUM.AI INC\n1.700\n-3.95%\n-0.070\n8.83M\n31.22K\n39.50%\n26.15%\n15.18%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GMEX-US?chain_id=FznuZVUy7L5Bf0.1lc05q4&global_content=%7B%22promote_id%22%3A16418%2C%22sub_promote_id%22%3A13%2C%22f%22%3A%22mm%2Fscreener%22%7D",
+      "text": "50\nGMEX\nGMEX Robotics\n2.450\n-4.30%\n-0.110\n1.84M\n76.20K\n92.67%\n16.42%\n19.35%"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\nLog in to access Online Inquiry\nBack to the Top\nScreener\nRecommended Screeners\nPenny Stocks\nPenny Stocks\n\nSpot undervalued, low-priced stocks for substantial returns.\n\nApplied Filters: Stock Price ≤ $5, Market Cap ≤ $300 million, 30-Day Average Daily Trading Volume ≥ 100,000 shares, Revenue Growth (%) ≥ 10%, Net Income Growth (%) > 5%, Debt to Assets Ratio ≤ 40%.\n\nSelected:\n\nSave Screener\nMarket: USStock Price: ≤5.00Market Value: ≤300.00MVolume: ≥100.00KOperating Revenue Growth Rate: ≥10%Net Profit Growth Rate: >5%Debt to Asset Ratio: ≤40%\nResult: 57 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nNet Profit GR (YOY)\nRevenue GR (YOY)\nDebt to Asset Ratio\nWatchlist\nPaper Trade\n1\nGREH\nGREEN RAIN ENERGY HOLDINGS INC\n0.0058\n+56.76%\n+0.0021\n268.71K\n183.82K\n36.84%\n58.59%\n36.60%\n2\nNMTC\nNeuroOne Medical\n1.1200\n+13.69%\n+0.1349\n10.20M\n196.55K\n70.73%\n163.47%\n34.43%\n3\nMWYN\nMarwynn\n1.100\n+10.00%\n+0.100\n22.21M\n40.61K\n10.88%\n427.50%\n14.22%\n4\nCTNT\nCheetah Net Supply Chain Service\n2.620\n+6.94%\n+0.170\n3.49M\n4.97M\n29.66%\n182.69%\n21.11%\n5\nHIT\nHealth in Tech\n0.7834\n+6.15%\n+0.0454\n51.34M\n328.65K\n90.74%\n70.99%\n25.89%\n6\nZHUD\nZHUDING INTL LTD\n0.0100\n+5.26%\n+0.0005\n1.60M\n390.10K\n8.07%\n24.53%\n29.95%\n7\nJZXN\nJiuzi\n1.130\n+4.63%\n+0.050\n58.21M\n43.46K\n82.77%\n105.89%\n18.20%\n8\nNAGE\nNiagen Bioscience\n2.790\n+4.10%\n+0.110\n220.76M\n1.57M\n103.30%\n29.95%\n28.07%\n9\nGURE\nGulf Resources\n3.015\n+3.61%\n+0.105\n5.47M\n65.42K\n26.68%\n231.79%\n16.64%\n10\nCAN\nCanaan\n0.3502\n+3.00%\n+0.0102\n256.31M\n8.58M\n15.81%\n96.69%\n27.45%\n11\nRFL\nRafael Holdings\n1.540\n+2.67%\n+0.040\n80.08M\n178.19K\n52.86%\n43.96%\n13.79%\n12\nMTEN\nMingteng International\n1.0100\n+2.58%\n+0.0254\n7.73M\n111.85K\n68.53%\n15.26%\n29.44%\n13\nSEER\nSeer Inc\n2.250\n+2.27%\n+0.050\n124.59M\n200.54K\n15.01%\n16.99%\n12.42%\n14\nVLN\nValens Semiconductor\n1.910\n+2.14%\n+0.040\n206.81M\n468.61K\n13.67%\n22.06%\n22.06%\n15\nRANI\nRani Therapeutics\n0.8108\n+1.92%\n+0.0153\n113.02M\n418.33K\n27.63%\n58.85%\n29.19%\n16\nHYPD\nHyperion DeFi\n3.730\n+1.91%\n+0.070\n57.96M\n529.61K\n9.04%\n1318.75%\n20.68%\n17\nZTG\nZenta Group\n0.9722\n+1.69%\n+0.0162\n23.42M\n104.24K\n25.37%\n55.77%\n5.87%\n18\nFTFT\nFuture FinTech\n3.410\n+1.49%\n+0.050\n27.54M\n142.31K\n91.70%\n81.13%\n17.51%\n19\nCPSH\nCPS Technologies\n3.840\n+1.32%\n+0.050\n74.45M\n169.75K\n113.41%\n54.31%\n16.52%\n20\nELTP\nELITE PHARMACEUTICALS INC\n0.2287\n+0.73%\n+0.0017\n246.29M\n1.87M\n1140.01%\n77.13%\n28.50%\n21\nYDDL\nOne and one Green Technologies\n1.430\n+0.70%\n+0.010\n80.13M\n28.72K\n82.37%\n23.12%\n25.38%\n22\nIVVD\nInvivyd\n0.8221\n+0.69%\n+0.0056\n242.32M\n7.11M\n69.11%\n110.47%\n12.76%\n23\nCTM\nCastellum\n0.6296\n+0.41%\n+0.0026\n59.67M\n319.21K\n75.97%\n18.10%\n14.68%\n24\nMSGM\nMotorsport Games\n4.860\n+0.41%\n+0.020\n22.30M\n62.76K\n324.56%\n30.05%\n36.65%\n25\nHLP\nHongli\n2.550\n+0.39%\n+0.010\n190.58M\n71.68K\n203.25%\n38.96%\n19.89%\n26\nCSDX\nCS Diagnostics\n0.0085\n0.00%\n0.0000\n2.12M\n0.00\n9258.61%\n83.93%\n0.00%\n27\nAAPJ\nAAP INC\n0.000001\n0.00%\n0.000000\n2.36K\n0.00\n42.55%\n20.00%\n31.25%\n28\nMSMY\nMC ENDEAVORS INC\n0.0008\n0.00%\n0.0000\n485.43K\n2.00\n40.49%\n542.25%\n13.09%\n29\nLGBS\nLEGENDS BUSINESS GROUP INC\n0.000001\n0.00%\n0.000000\n2.54K\n0.00\n99.69%\n50.00%\n25.89%\n30\nWDLF\nDecentral Life\n0.0004\n0.00%\n0.0000\n2.96M\n1.02M\n134.32%\n223.28%\n29.81%\n31\nTFFP\nTFF Pharmaceuticals\n0.0650\n0.00%\n0.0000\n288.86K\n0.00\n33.13%\n48.02%\n20.46%\n32\nDAVA\nEndava\n1.920\n0.00%\n0.000\n101.46M\n269.40K\n34.51%\n13.19%\n37.70%\n33\nXBIO\nXenetic Biosciences\n2.240\n0.00%\n0.000\n5.25M\n43.20K\n32.31%\n19.04%\n11.57%\n34\nLUNA\nLuna Innovations\n1.340\n0.00%\n0.000\n46.49M\n0.00\n571.42%\n25.12%\n38.15%\n35\nIDN\nIntellicheck\n2.270\n-0.22%\n-0.005\n46.01M\n88.84K\n238.67%\n13.35%\n15.46%\n36\nTWG\nTop Wealth Group Holding\n0.1102\n-0.45%\n-0.0005\n6.91M\n2.39M\n257.96%\n92.30%\n5.68%\n37\nORKT\nOrangeKloud Technology\n1.015\n-0.49%\n-0.005\n5.93M\n116.37K\n45.24%\n48.88%\n28.14%\n38\nTPET\nTrio Petroleum\n1.610\n-1.23%\n-0.020\n8.57M\n152.63K\n24.36%\n87.02%\n14.46%\n39\nCGEN\nCompugen\n2.310\n-1.28%\n-0.030\n218.82M\n113.87K\n348.35%\n161.14%\n34.39%\n40\nAMPG\nAmpliTech Group\n3.050\n-1.29%\n-0.040\n91.63M\n680.31K\n37.67%\n164.99%\n36.16%\n41\nAMST\nAmesite\n0.9400\n-1.38%\n-0.0132\n6.16M\n38.41K\n14.41%\n230.24%\n12.41%\n42\nHOLO\nMicroCloud Hologram\n1.560\n-1.89%\n-0.030\n35.74M\n206.01K\n18.50%\n45.09%\n2.98%\n43\nKRMD\nKORU Medical Systems\n2.960\n-1.99%\n-0.060\n136.67M\n273.43K\n56.52%\n22.23%\n39.55%\n44\nXPON\nExpion Energy\n4.200\n-2.33%\n-0.100\n4.04M\n15.82K\n53.74%\n71.59%\n19.03%\n45\nBGMS\nBio Green Med Solution\n0.8800\n-2.69%\n-0.0243\n5.83M\n9.81K\n73.26%\n1637.21%\n16.41%\n46\nNIXX\nNixxy\n0.3027\n-2.83%\n-0.0088\n8.75M\n182.27K\n33.69%\n1631666.67%\n39.49%\n47\nOGI\nOrganiGram\n0.9531\n-2.97%\n-0.0292\n137.39M\n720.84K\n47.07%\n57.52%\n37.90%\n48\nIMRN\nImmuron\n1.090\n-3.54%\n-0.040\n8.80M\n88.72K\n25.83%\n11.28%\n15.11%\n49\nMYSE\nMYSEUM.AI INC\n1.700\n-3.95%\n-0.070\n8.83M\n31.22K\n39.50%\n26.15%\n15.18%\n50\nGMEX\nGMEX Robotics\n2.450\n-4.30%\n-0.110\n1.84M\n76.20K\n92.67%\n16.42%\n19.35%\n1\n2\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\nSTRW\n\n+4.90%\n\nABX\n\n+4.82%\n\nSNLAY\n\n+3.77%\n\nLow P/E Ratio Stocks\n\nZENVF\n\n+2900.00%\n\nBHATF\n\n+500.00%\n\nNXUR\n\n+266.67%\n\nBelow 30 RSI Stocks\n\nBPTH\n\n+200.00%\n\nNCLX\n\n+36.36%\n\nNIVF\n\n+27.72%\n\nJunk Stocks\n\nAILEQ\n\n+9900.00%\n\nPCTL\n\n+9900.00%\n\nZENVF\n\n+2900.00%\n\nSmall Cap Stocks with Huge Growth Potential\n\nFCEL\n\n+11.47%\n\nAZ\n\n+9.75%\n\nHYLN\n\n+7.60%\n\nBlue Chip Dividend Stocks\n\nRIO\n\n+1.44%\n\n--\n\n--\n\n--\n\n--\n\n1\n2"
+}

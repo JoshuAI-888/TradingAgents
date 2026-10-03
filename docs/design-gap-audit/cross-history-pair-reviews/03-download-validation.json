@@ -1,0 +1,14 @@
+{
+  "source": "actual browser comparison export saved in Downloads",
+  "fixture": "synthetic localhost cross-history API/Auth/storage adapters; not platform/provider proof",
+  "rows": 1,
+  "code": "US.S0001",
+  "review_revision": 4,
+  "review_status": "in_review",
+  "note_retained": true,
+  "both_original_keys_retained": true,
+  "common_review_key_blank": true,
+  "original_distinct_raw_definitions_retained": true,
+  "captured_currency": "USD",
+  "sha256": "d1beef775ca9ef90a9b1017f92aa68371e3b08ab270278ed094007a79cbb0395"
+}

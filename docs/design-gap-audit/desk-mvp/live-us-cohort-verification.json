@@ -1,0 +1,16 @@
+{
+  "checked_at": "2026-10-02T19:40:56.408025+00:00",
+  "url": "https://tradingagents-portal.onrender.com/api/screener?market=US&watchlist_only=0&filters=%5B%7B%22field%22%3A+%22stock_type%22%2C+%22values%22%3A+%5B%22STOCK%22%5D%7D%5D&sort=market_cap&direction=2&limit=20000&offset=0&src=moo",
+  "sha256": "93496cee494443496ef712147307bb2fa96e52eb7bc1650582941ace2f65b911",
+  "matched": 12045,
+  "retrieved": 12045,
+  "available": true,
+  "generation_id": null,
+  "universe_as_of": "2026-10-02T19:01:44.494347+00:00",
+  "duplicate_ids": 0,
+  "bad_us_ids": [],
+  "nonstock_labels": 0,
+  "finite_caps": 12045,
+  "descending_inversions": 0,
+  "limits": "API-to-API consistency only; stock labels not independent ETF/REIT qualification. No raw Moomoo/source comparison or immutable-generation evidence."
+}

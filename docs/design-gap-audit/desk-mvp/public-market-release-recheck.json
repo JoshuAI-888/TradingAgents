@@ -1,0 +1,26 @@
+{
+  "checked_at": "2026-10-02T21:12:19.034470+00:00",
+  "scope": "Read-only public deployed first-page availability check; no auth, refresh or private connector metadata queries. Does not qualify local candidate or full source coverage.",
+  "observations": [
+    {
+      "market": "US",
+      "url": "https://tradingagents-portal.onrender.com/api/screener?market=US&watchlist_only=0&limit=1&offset=0&src=moo&sort=market_cap&direction=2&filters=%5B%7B%22field%22%3A+%22stock_type%22%2C+%22values%22%3A+%5B%22STOCK%22%5D%7D%5D",
+      "status": 200,
+      "available": true,
+      "matched": 12045,
+      "retrieved": 1,
+      "universe_as_of": "2026-10-02T21:01:27.607001+00:00",
+      "generation_id": null
+    },
+    {
+      "market": "HK",
+      "url": "https://tradingagents-portal.onrender.com/api/screener?market=HK&watchlist_only=0&limit=1&offset=0&src=moo&sort=market_cap&direction=2&filters=%5B%7B%22field%22%3A+%22stock_type%22%2C+%22values%22%3A+%5B%22STOCK%22%5D%7D%5D",
+      "status": 200,
+      "available": true,
+      "matched": 0,
+      "retrieved": 0,
+      "universe_as_of": null,
+      "generation_id": null
+    }
+  ]
+}

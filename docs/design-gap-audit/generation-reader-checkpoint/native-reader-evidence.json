@@ -1,0 +1,12 @@
+{
+  "scope": "actual API loader + worker-published native PostgreSQL generation; synthetic provider; no PostgREST",
+  "generation_id": "5466241f-a6ee-464d-9c7a-49991dd06561",
+  "rows": 401,
+  "published_at": "2026-10-02T19:22:43.387673+13:00",
+  "contracts": [
+    "native_worker_api_roundtrip",
+    "retained_legacy_exclusion",
+    "cache_mutation_isolation"
+  ],
+  "completed_at": "2026-10-02T06:32:29.370593+00:00"
+}

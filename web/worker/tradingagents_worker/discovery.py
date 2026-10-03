@@ -2,19 +2,37 @@
 macro → deduped, scored candidates. ~7 moomoo calls per sweep (budget-aware).
 Nothing auto-runs; candidates are surfaced for one-click analysis.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
 from .db import Db
-from .moomoo import MoomooClient, MoomooError
+from .moomoo import MoomooClient
 from .ttl_cache import TtlCache
 
-SECTOR_ETFS = ["US.SPY", "US.QQQ", "US.IWM", "US.XLK", "US.XLC", "US.XLY", "US.XLF",
-               "US.XLV", "US.XLI", "US.XLP", "US.XLU", "US.XLRE", "US.XLE", "US.XLB", "US.VIXY"]
+SECTOR_ETFS = [
+    "US.SPY",
+    "US.QQQ",
+    "US.IWM",
+    "US.XLK",
+    "US.XLC",
+    "US.XLY",
+    "US.XLF",
+    "US.XLV",
+    "US.XLI",
+    "US.XLP",
+    "US.XLU",
+    "US.XLRE",
+    "US.XLE",
+    "US.XLB",
+    "US.VIXY",
+]
 
 
-def sweep(db: Db, mm: MoomooClient | None, cache: TtlCache, watchlist: list[str] | None = None) -> list[dict]:
+def sweep(
+    db: Db, mm: MoomooClient | None, cache: TtlCache, watchlist: list[str] | None = None
+) -> list[dict]:
     candidates: list[dict] = []
     if mm is not None:
         candidates += _screen_candidates(mm, cache)
@@ -42,8 +60,14 @@ def market_state(mm: MoomooClient, cache: TtlCache) -> list[dict]:
     out = []
     for it in items:
         code = it.get("code", "")
-        out.append({"symbol": code.split(".")[-1], "last": it.get("last_price"),
-                    "pct": it.get("pct_change"), "ts": it.get("update_time")})
+        out.append(
+            {
+                "symbol": code.split(".")[-1],
+                "last": it.get("last_price"),
+                "pct": it.get("pct_change"),
+                "ts": it.get("update_time"),
+            }
+        )
     cache.put("quotes", k, out)
     return out
 
@@ -66,14 +90,24 @@ def _news_candidates(mm: MoomooClient, cache: TtlCache) -> list[dict]:
     out = []
     for n in items[:6]:
         title = n.get("title", "")[:120]
-        out.append({
-            "trigger_type": "news", "symbol": None, "market": None,
-            "title": f"News: {title}",
-            "reason": "Headline from the news sweep — check whether it moves a watchlist name or opens a new candidate.",
-            "score": 55,
-            "sources": [{"vendor": "moomoo", "endpoint": "/quote/find-news", "url": n.get("url"),
-                         "published_at": n.get("publish_time")}],
-        })
+        out.append(
+            {
+                "trigger_type": "news",
+                "symbol": None,
+                "market": None,
+                "title": f"News: {title}",
+                "reason": "Headline from the news sweep — check whether it moves a watchlist name or opens a new candidate.",
+                "score": 55,
+                "sources": [
+                    {
+                        "vendor": "moomoo",
+                        "endpoint": "/quote/find-news",
+                        "url": n.get("url"),
+                        "published_at": n.get("publish_time"),
+                    }
+                ],
+            }
+        )
     return out
 
 
@@ -85,25 +119,34 @@ def _calendar_candidates(mm: MoomooClient, cache: TtlCache) -> list[dict]:
         cache.put("other", k, items)
     out = []
     for ev in items[:4]:
-        out.append({
-            "trigger_type": "macro", "symbol": None, "market": None,
-            "title": f"Macro: {ev.get('title', ev.get('event_name', 'event'))}",
-            "reason": "Scheduled macro release — queue a post-print watchlist sweep; >consensus shifts multiples.",
-            "score": 60,
-            "sources": [{"vendor": "moomoo", "endpoint": "/quote/economic-calendar/hot"}],
-        })
+        out.append(
+            {
+                "trigger_type": "macro",
+                "symbol": None,
+                "market": None,
+                "title": f"Macro: {ev.get('title', ev.get('event_name', 'event'))}",
+                "reason": "Scheduled macro release — queue a post-print watchlist sweep; >consensus shifts multiples.",
+                "score": 60,
+                "sources": [{"vendor": "moomoo", "endpoint": "/quote/economic-calendar/hot"}],
+            }
+        )
     return out
 
 
 def _watchlist_candidates(db: Db, watchlist: list[str]) -> list[dict]:
     if not watchlist:
         return []
-    return [{
-        "trigger_type": "watchlist", "symbol": None, "market": None,
-        "title": f"Nightly sweep: {len(watchlist)} tickers",
-        "reason": "Scheduled re-underwrite of " + ", ".join(watchlist[:6]) + ".",
-        "score": 50, "sources": [{"vendor": "cron"}],
-    }]
+    return [
+        {
+            "trigger_type": "watchlist",
+            "symbol": None,
+            "market": None,
+            "title": f"Nightly sweep: {len(watchlist)} tickers",
+            "reason": "Scheduled re-underwrite of " + ", ".join(watchlist[:6]) + ".",
+            "score": 50,
+            "sources": [{"vendor": "cron"}],
+        }
+    ]
 
 
 def sweep_due(now: datetime | None = None) -> bool:

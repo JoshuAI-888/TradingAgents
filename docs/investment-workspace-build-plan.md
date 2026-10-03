@@ -1,5 +1,51 @@
 # TradingAgents: combined screener and research workflow
 
+**Current build-to-mockup review and delivery order:** [fresh six-step comparison and corrected checklist](design-gap-audit/mockup-recheck-e0131ef/README.md), reviewed against UI commit `e0131ef`. Default Desk placement and settled closed-inspector Changes placement pass in the tested desktop fixture. Remaining priorities are field/source qualification, visible criterion-versus-display semantics, inspector scroll/focus and field dates, laptop Explorer actions/peer context, pair review/monitoring, then full end-to-end and production acceptance. Company context, per-rule evidence, percentage columns, region apply/save and collision selection are built locally; older missing-feature statements below are historical. Seven ordered packets map to the existing R01–R15 register; all broader release gates remain open. No new merge/deployment or investment-grade data qualification is claimed.
+
+**Current build-to-design revision:** [fresh review and seven ordered build packets](design-gap-audit/company-evidence-review/README.md) identifies remaining Desk/evidence, continuity, Explorer peers, Changes queue and release gaps. Company context and honest requested/reported period labels are implemented locally, with 396 API/worker and 94 JavaScript tests. Preserve the full feature inventory below; live data, device/performance/Auth and production acceptance remain open.
+
+**Latest plan revision:** [current build versus original mockups](design-gap-audit/updated-design-review/README.md) defines seven ordered packets: field contracts → Desk/evidence → research/Compare continuity → complete Explorer → pair review → supported causes/monitoring → investment-team release. It corrects historical missing-feature statements: region-to-save, coordinate picker and presentation-specific Explorer counts are implemented locally and now need full qualification. Keep the original preservation inventory below; the R01–R15 register remains authoritative for closure.
+
+**Latest presentation checkpoint:** [compact provider coverage and inspector hierarchy](design-gap-audit/compact-provider-desk/README.md). Default table top 357.625 px at the original 1487 × 1058 viewport; warning-bearing laptop state is about 45 px shorter. Coverage counts/quality remain visible, phone controls measure 44 px with no document overflow, and preview metrics precede the simplified chart. 82 JavaScript tests pass; broader D02–D04/data/release gates remain open.
+
+**Current mockup review:** [fresh retained-build audit and D01–D09 tickets](investment-workspace-design-review-latest.md) supersedes older design status below. Desk reset was checked, all four views freshly captured, and the next packet specifies compact scope/quality, company/criterion context and reload/Compare continuity before Explorer region-to-save, review queue and monitoring. Latest tested build: 379 API/worker and 81 JavaScript tests; live-data and production release gates remain open.
+
+**Latest navigation/refresh checkpoint:** [retained provider pages and explicit refresh](screener-preset-retention.md) preserves opened pages through expired-cache navigation/full-research return, commits replacement only after successful explicit refresh, revalidates selection and moves coverage/quality disclosure above rows. 379 API/worker and 81 JavaScript tests plus controlled actual-route browser checks pass. Reload/deep links, full-feature/data/device/platform and release gates remain open.
+
+**Latest preset consistency checkpoint:** [provider membership and quote display hydration](screener-preset-generation-hydration.md) pins quote fills across pages/capture, retains valid zero and field origins, renders unknown/hydration warnings and separates requested annual basis from actual period. 378 API/worker and 75 JavaScript tests pass; real API/capture routes were exercised with controlled offline provider transport. Preset membership consistency, expired-cache page retention, live/platform and release gates remain open.
+
+**Current design review:** [fresh four-step comparison and D01–D09 delivery tickets](investment-workspace-design-review-latest.md) rechecks Desk, inspector, Explorer and Changes at 1280 × 720 against the original three mockups. That earlier review had 368 API/worker and 70 JavaScript tests; the current review above supersedes its pending-change status. The review and plan are complete; feature and production acceptance remain open.
+
+**Latest capture/export handoff:** [viewed-generation provenance](screener-generation-capture-handoff.md) binds capture retries/reloads to the viewed cohort and retains generation IDs in observations and downloaded CSVs. 362 API/worker and 70 JavaScript tests pass; two actual 1,176-row synthetic browser downloads reconcile. Remaining readers, native capture/PostgREST, live data, retention/cutover and full release gates remain open.
+
+**Latest R01 API checkpoint:** [generation-consistent API readers](screener-generation-api-readers.md) pin stored screener rows/server pages/downloads and derive facets, previews, groups and coverage from validated generations. 360 API/worker and 68 JavaScript tests pass, plus actual API/native worker-generation round-trip. Remaining direct readers, capture provenance, frontend handoff, PostgREST, retention and production cutover remain open; R01 is not closed.
+
+**Latest R01 worker checkpoint:** [actual worker/native database evidence](screener-generation-worker-integration.md) verifies staged atomic publication, exact replay after a lost commit response and successor fencing. 347 API/worker and 68 JavaScript tests pass. API readers still use legacy mirrors; pinned paging/capture/export, PostgREST, retention and production cutover remain open. R01 is not closed.
+
+**Current authoritative review and build sequence:** [build-to-design gap register](investment-workspace-current-gap-plan.md), reviewed against `bab57b2` and fresh desktop captures of all three views. It distinguishes built foundations from missing workflow/data elements and defines R01–R15, six dependent build packets and preservation gates. Older status/build-order paragraphs below are dated evidence; this review supersedes them. No new merge/deployment or production qualification is claimed.
+
+**Latest refresh checkpoint:** [universe refresh integrity](universe-refresh-integrity.md) adds strict batch/paging/classification validation, market-specific success/failure clocks, cohort fingerprints and a working cadence save. 331 API/worker and 68 JavaScript tests pass; synthetic desktop/phone evidence verifies status/save and 390 px document fit. Atomic publication/concurrency, complete market coverage and live reconciliation remain open.
+
+**Latest producer checkpoint:** [real quote provenance and remaining acceptance checks](design-gap-audit/quote-provenance-checkpoint/README.md). Cloud normalization now produces field observations and distinct source/cache clocks; the inspector no longer infers currency from market prefix. 298 API/worker and 68 JavaScript tests pass, with a fresh single AAPL quote and desktop/phone verification. Currency, fiscal/session contracts and full-universe coverage remain unqualified; all broader mockup/release gates remain open. Earlier counts/status paragraphs are dated evidence.
+
+**Latest execution plan:** [fresh comparison against all three original mockups](investment-workspace-mockup-review.md#plan-recheck-against-the-three-original-mockups), reviewed on 2 October. Its revised build order supersedes earlier local status paragraphs below: preservation/presentation → observation reliability → team/pair review → qualified Explorer → capture automation → investment-team release. Research account/list UI, company search, compact criterion review and immutable retained history are committed locally. Version-3 eligible observations and repeated-criterion safeguards are committed at `3d2c8d5` with synthetic browser/storage evidence. The latest quote producer checkpoint supplies partial real provenance; provider-wide currency/period coverage and production qualification remain open. These changes are unmerged, undeployed and unqualified against real Auth/production storage. All original preservation and data gates remain required.
+
+Current build order and completion checklist:
+
+Latest D2 progress: [paired observation contract and evidence](paired-screen-observations.md). Stored-universe v3 capture and read validation, independent criterion slots, conservative assessments and full-union CSV are locally verified (272 API/worker, 67 JavaScript, native PostgreSQL round-trip, desktop/phone and downloaded 108-row synthetic export). Actual provenance producers and provider-wide observations remain missing; D2 remains open.
+
+- [ ] Finish shortlist workflow acceptance: dialogs, bounded inspector, phone cards/chooser, ticker/status/Next unreviewed and conflict recovery are implemented locally. Company search and measured phone/tablet layout now pass locally; complete 200% zoom/full keyboard coverage, real Auth and large-cohort browser export qualification. A downloaded one-item synthetic shortlist CSV was parsed and reconciled.
+- [ ] Qualify authentication/private storage; implement team roles and explicit legacy ownership migration without losing saved definitions.
+- [ ] Complete Changes acceptance: contextual/compact layout and criterion matrix/capture-side sorting are implemented locally. Add selected review actions and pair-scoped review status; qualify real observations and expanded device/zoom cases.
+- [ ] Qualify immutable retained history in production: append-only storage, retries and paged date selection are implemented locally. Complete verified capture ownership, paired observations, opt-in schedules, large-history performance and recovery qualification. See [retained-history contract](durable-screen-history.md).
+- [ ] Qualify provider coverage; add sector/cap/peer context and supported advanced axes with explicit eligibility.
+- [ ] Finish desk typography/icons and research toolbar grouping; verify every original preset, chart/tab/Compare feature and export scope.
+- [ ] Complete original visual elements: qualified company sector/industry/website and criterion evidence, optional batched row trends, Explorer sector legend/cap bubbles/peer ranks, explicit region-to-filter/save workflow and overlap disambiguation. Verify each field's identity/period/source/currency before presentation; do not copy the mockups' sample values or vendor labels.
+- [ ] Restore private shortlist route/context through reload/deep links and full research return; do not let an old public Changes hash reopen instead.
+- [ ] Complete dated Moomoo reconciliation, real-device performance/accessibility and analyst tasks; merge/deploy and verify production with rollback.
+
+Fresh regression checks: 240 API/worker tests and 65 JavaScript tests pass; isolated PostgreSQL revision/locking and immutable capture/concurrent append contracts pass. Browser evidence is synthetic; passing tests do not close the checklist above.
+
 Prepared 2 October 2026. This records the approved design, implementation sequence and release checks. Implementation and verification status is recorded in [the release checklist](investment-workspace-release-checklist.md). Based on the current repository, live browser inspection, read-only API probes and read-only database aggregates. The approved Research Desk, Factor Explorer and Change Monitor become views of one workflow, rather than separate products.
 
 ## Product decision
@@ -12,7 +58,7 @@ Prepared 2 October 2026. This records the approved design, implementation sequen
 4. Click **Inspect** to open a lightweight right panel: quote, small KLine preview, watchlist action and screen context. Ticker/name links continue opening the full stock page. No information is removed from that page to make the inspector fit.
 5. Full research offers **Back to screen** and previous/next within the originating result set. Returning restores criteria, selected screen, sort, columns, page, selection and scroll. Direct links remain usable without a parent screen.
 6. Select stocks for the existing **Compare** workspace. Keep its layouts, synchronized chart controls and indicators. Return to the originating screen without losing selections.
-7. **Export** presents format and scope explicitly: this page or available matches; selected rows can be added later. **Save screen** preserves the complete reproducible screen definition. Changes becomes usable only after comparable, complete snapshots exist.
+7. **Export** presents format and scope explicitly: this page, available matches or selected rows. Selected exports are implemented and remain a preservation requirement in new views. **Save screen** preserves the complete reproducible screen definition. Changes becomes usable only after comparable, complete snapshots exist.
 
 Do not put every current action on the new top bar. Retain infrequent controls in labeled menus, keep full functionality discoverable, and use the existing page routes as compatibility aliases. Use “Run agent analysis” for the job action to distinguish it from the stock Analysis tab and the global Analyze workspace.
 
@@ -98,9 +144,24 @@ Yfinance exposes per-ticker statements, history and estimates, but those APIs do
 - **API health:** `/api/meta` returned HTTP 500 in one probe. Reproduce and repair before relying on it for capabilities.
 - **Verified database exposure:** RLS is disabled on enrichment/KLine tables and both `anon` and `authenticated` hold broad write grants. Add an access-control migration and test that public writes fail while service-role API/worker operations continue. Check the broader exposed-table list; do not assume simply enabling RLS addresses every grant. [Supabase RLS guidance](https://supabase.com/docs/guides/database/postgres/row-level-security).
 
-Evidence: [database coverage](research-workspace-evidence/baseline/database-coverage.json), [live API probes](research-workspace-evidence/baseline/live-api-probes.json). These audits did not mutate production data or saved screens.
+Evidence: [database coverage](research-workspace-evidence/database-coverage.json), [live API probes](research-workspace-evidence/live-api-probes.json). These audits did not mutate production data or saved screens.
 
 ## Build plan and release gates
+
+### Current status after the design review
+
+The initial functional release is deployed; the complete approved design is unfinished. The [fresh design-gap audit and build packages](investment-workspace-design-gap-audit.md) are the current execution backlog and preserve the contracts below.
+
+| Original phase | Delivery status | Remaining work |
+| --- | --- | --- |
+| 0 — foundation | Initial repairs delivered; richer data contracts partial | Typed evidence, taxonomy and fresh coverage validation |
+| 1 — shell | Shared state/library/export delivered; hierarchy partial | Screener navigation, compact context, collapsible library, pinned toolbar, mobile rows/sheets |
+| 2 — continuity | Inspector/research/Compare return delivered; inspector design partial | Tabs/ranges/watchlist, selected chips/export, focus lifecycle and toolbar polish |
+| 3 — Explore | Quote plot delivered; analytical interaction incomplete | Scales/outliers, brush/form selection, linked subset, saved axes; advanced factors gated |
+| 4 — Changes | Manual two-snapshot membership comparison delivered | Review queue, dated history, paired evidence, schedules and review state |
+| 5 — quality | Functional checks and production smoke tests delivered | Measured p95, accessibility, matched visual QA and intended-user tasks |
+
+Packages A–F in the audit define the next implementation sequence. Functional regression tests do not close design-completion gates.
 
 ### Phase 0 — feature baseline, data contracts and repairs
 
@@ -153,3 +214,59 @@ Current full research and financial views establish the preservation baseline. T
 ![Analysis chart initialization failure](research-workspace-evidence/baseline/03-stock-analysis.png)
 ![Financial tab baseline](research-workspace-evidence/baseline/04-financials.png)
 ![Compare baseline](research-workspace-evidence/baseline/05-compare.png)
+
+
+## Design completion sequence after the initial release
+
+The [design-gap audit and follow-up acceptance checklist](investment-workspace-design-gap-audit.md) is authoritative for remaining mockup fidelity. Work through A (shell/library/toolbar/responsive rows), B (inspector/selection/research continuity), C (usable linked Explorer), D1 (change-review UI), D2 (history/paired evidence/schedules), E (measured coverage and advanced factors), and F (performance/accessibility/usability). Begin F instrumentation before A; perform E in bounded batches alongside supported UI work. Each package must carry preservation tests, browser evidence, deployment verification and rollback. Prior initial-release checkmarks do not close these packages.
+
+The first cohesive UI milestone is A+B: compare the default desk and open inspector against the combined mockup, including phone/tablet behavior. The final presentation gate also requires C, D, coverage disclosures and measured F evidence. Keep optional named shortlists distinct from watchlists and saved screen definitions; establish ownership before shared persistence. Inspector range controls must disclose and verify actual history span, bar interval, session and adjustment.
+
+Local progress on 2 October: B's tabbed inspector, requested ranges, watchlist action and selected ticker/export controls are implemented in the working tree. Twenty-three JavaScript checks and 199 API/worker tests pass; offline interaction evidence is linked in the design-gap audit. This is not A/B completion or a deployed release. Next: finish inspector lifecycle/accessibility and export browser validation, then implement A's unified desk and mobile results while measuring F. C/D/E and independent shortlist persistence remain explicit work packages.
+
+
+### Updated execution checkpoint after mockup comparison
+
+A/B now include the direct desk shell, grouped 22-preset/saved library, global search, unified controls, readable Overview, responsive rows/sheets, typed inspector and selection exports. Current evidence and the remaining P1/P2 list are in [design QA](../design-qa.md) and the [design-gap audit](investment-workspace-design-gap-audit.md). Thirty JavaScript tests pass; the 199-test API/worker suite passed earlier in this checkpoint. Changes remain local.
+
+Continue in this order, retaining each package's acceptance requirements:
+
+1. **Finish A/B:** library no-match/unavailable/modified states, retained-column disclosure, export counts/descriptions, consistent typography/icons; complete inspector range/provenance contract and independent named shortlists.
+2. **Preservation gate:** all 22 definitions and saved count/hash, default/second-click/Clear, canonical identities, all export scopes/files, full research/KLine/Compare and return state on the new shell.
+3. **C:** usable factor Explorer with labeled scales, outlier handling, accessible brush/form subset and linked table/inspector. Unsupported factors remain gated.
+4. **D1/D2:** New/Exited/All review, search/sort/date pairs, compatible historical cohorts, paired criterion evidence, notes and scheduling with explicit missing-history states.
+5. **E/F alongside UI:** fresh eligible-universe coverage/freshness measurements, comparable Moomoo reconciliation; representative performance, tablet/phone/zoom, keyboard/screen-reader/contrast checks.
+6. **Release:** matching live-data visual QA with no open P1/P2, end-to-end downloaded-file/data reconciliation, merge/deploy, production smoke and rollback evidence.
+
+The desktop stack now meets the ≤360 px table-start target (356.6 px). Twelve synthetic warm sorts yielded nearest-rank p95 157.4 ms; this preliminary sample does not establish real-device or production performance.
+
+
+### Local linked Explorer checkpoint
+
+Core C now supports labeled linear/log axes, outlier-view disclosure, numeric/pointer region selection, zoom/clear, a linked results table, shared selection/inspection and explicit region CSV/Excel exports. Advanced forward-P/E/growth/ROIC/sector comparison remains gated on E; C acceptance is not closed. Numeric workflow, linked selection and Clear reset were browser-verified. Pointer dragging and full real-cohort/device qualification remain open.
+
+A/B status work adds no-match library recovery, per-export counts, retained-column labels and Modified saved-screen relationships. Applying saved settings now clones nested arrays/objects so UI edits cannot mutate the saved definition in memory. **37 JavaScript tests pass**; evidence and remaining findings are in [design QA](../design-qa.md). This is a local, unmerged, undeployed checkpoint.
+
+
+### Local Change Monitor D1 checkpoint — 2 October 2026
+
+Basic D1 is implemented locally: New/Exited/All queues, search, sort, pagination, explicit capture pairs, unavailable/paired evidence inspection and complete filtered comparison CSV. Snapshot safeguards reject incomplete/classification-unknown cohorts, incompatible versions, invalid dates and identities; provider financial evidence cannot borrow unrelated quote fields. Current-screen and review counts/exports are labeled separately. **208 API/worker tests and 43 JavaScript tests pass.** Desktop/phone fixture evidence and remaining fidelity gaps are recorded in [design QA](../design-qa.md). This is unmerged and undeployed, with no production capture writes or fresh financial reconciliation.
+
+D1/D2 are not complete: criterion-specific table fields/sorting, selection, Next unreviewed, notes/shortlists, authenticated ownership, concurrency-safe durable history and scheduling remain open. Storage currently keeps only two captures. Entering/exiting records often lack an observation on the other side, so numeric causes are explicitly unavailable. Do not infer a threshold crossing from absent membership.
+
+### Remaining implementation sequence from the three mockups
+
+| Order | Build elements | Acceptance evidence |
+| --- | --- | --- |
+| 1 — shared workflow | Authenticate owner scope; create independent named shortlists, list membership and review notes/status. Preserve watchlists and saved screen definitions as separate objects. | Two-owner read/write isolation, signed-out behavior, refresh persistence, canonical instrument identity, add/remove/undo and atomic concurrent updates. Existing 22-preset golden test and saved-definition count/hash remain unchanged. |
+| 2 — Change Monitor | Immutable normalized snapshot/member records, retained history with date pairs, complete paired observations and period/source contracts; criterion columns/sorts, selected review actions, Next unreviewed and optional capture schedule status. Migrate legacy captures without inventing observations. | Incomplete/stale/unknown-classification runs produce no exits; incompatible edits/periods never claim crossings; capture concurrency loses no history; scheduled failures preserve last success. Exact review/export membership and source metadata match. |
+| 3 — information density | Contextual Changes title/toolbar, compact capture metadata, before/after matrix; stronger body/provenance hierarchy, consistent icons, shortlist/review affordances. Finish research toolbar grouping. | Paired desktop mockup review; first review row within 500 CSS px at 1487 × 1058, actions remain reachable; phone/tablet/200% zoom with no document overflow or blocked controls. |
+| 4 — Explorer/data | Fresh universe-wide field/period/unit/freshness audit; normalized sector/industry, eligible sector ranks and bubble sizing; qualified forward P/E/growth and separately validated ROIC/debt derivations. | Coverage by eligible universe with missing/stale counts, dated like-for-like Moomoo membership/count reconciliation. Unsupported axes remain unavailable or explicitly restricted to a qualified subset. |
+| 5 — preservation/release | Real-data screener → inspect → all seven research tabs/six financial subtabs → KLine studies/drawings/ranges/session/fullscreen → Compare → Back; all export scopes and accessibility/performance. | Complete end-to-end/download reconciliation, real device/network timings, contrast/keyboard/screen-reader checks; close every P1/P2, merge/deploy, production smoke and rollback evidence. |
+
+Dependencies: owner authentication precedes private team notes/lists; full paired observations precede numeric change causes; verified coverage precedes advanced-factor presentation. Density and existing research preservation can proceed alongside those contracts. Current passing fixtures are development evidence, not investment-team presentation sign-off.
+
+
+### Local private-research backend checkpoint
+
+Owner-verified shortlist APIs and an additive migration are implemented, with soft archive/removal, canonical instrument membership, private notes/review status, optimistic revisions and atomic parent locks. **226 API/worker tests pass**; an isolated PostgreSQL 16.14 contract and an observed two-connection archive/add race pass. Details and limitations are in [private research ownership](private-research-ownership.md). No browser login/list UI is wired yet; the migration is unapplied to production. Existing 22 presets and shared Phase 0 saved/watchlist/snapshot records are untouched. Owner-private storage does not close shared-team workflow acceptance. Next: authentication UI and shortlist/review integration, legacy ownership migration, live schema/Auth qualification and the remaining D/E/F gates.

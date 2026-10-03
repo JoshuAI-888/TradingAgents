@@ -13,6 +13,7 @@ and already-good repairs are skipped; a first repair that came back unreadable
 (letter-spaced) is redone from content_original. Bounded per call — the worker
 re-runs it at boot and after each job until the backlog is drained.
 """
+
 from __future__ import annotations
 
 import os
@@ -25,7 +26,7 @@ _MAX_ROWS_PER_PASS = 4
 
 
 def is_legacy_row(content) -> bool:
-    return (isinstance(content, str) and len(content) > 400 and " " not in content)
+    return isinstance(content, str) and len(content) > 400 and " " not in content
 
 
 def _looks_unreadable(content) -> bool:
@@ -57,15 +58,17 @@ def _chunks(text: str, cap: int = _CHUNK):
 def _first_divergence(before: str, after: str) -> str:
     sb, sa = "".join(before.split()).lower(), "".join(after.split()).lower()
     i = next((k for k in range(min(len(sb), len(sa))) if sb[k] != sa[k]), min(len(sb), len(sa)))
-    return f"at char {i}: ...{sb[max(0, i - 30):i + 30]!r} vs ...{sa[max(0, i - 30):i + 30]!r}"
+    return f"at char {i}: ...{sb[max(0, i - 30) : i + 30]!r} vs ...{sa[max(0, i - 30) : i + 30]!r}"
 
 
 def _similarity(before: str, after: str) -> float:
     from difflib import SequenceMatcher
+
     # autojunk=False: its default treats frequent letters as junk on long
     # sequences, collapsing real near-matches to ~0.02
-    return SequenceMatcher(None, "".join(before.split()).lower(),
-                           "".join(after.split()).lower(), autojunk=False).ratio()
+    return SequenceMatcher(
+        None, "".join(before.split()).lower(), "".join(after.split()).lower(), autojunk=False
+    ).ratio()
 
 
 # The model occasionally micro-corrects grammar ("trader says" -> "traders say").
@@ -85,7 +88,10 @@ def _restore_spacing(client, text: str) -> str | None:
         "nothing, drop nothing, reorder nothing, explain nothing. Output text only."
     )
     from .runner import demangle_debate
-    text = demangle_debate(text)  # raw form is chars joined by blank lines: collapse to a letter stream
+
+    text = demangle_debate(
+        text
+    )  # raw form is chars joined by blank lines: collapse to a letter stream
     out: list[str] = []
     chunks = list(_chunks(text))
     for i, chunk in enumerate(chunks, 1):
@@ -93,24 +99,38 @@ def _restore_spacing(client, text: str) -> str | None:
         for attempt in (1, 2, 3):  # a retry usually clears gross truncation
             t0 = time.monotonic()
             resp = client.chat.completions.create(
-                model=_quick_model(), temperature=0, max_tokens=10000,
-                messages=[{"role": "system", "content": _SYSTEM},
-                          {"role": "user", "content": chunk}])
+                model=_quick_model(),
+                temperature=0,
+                max_tokens=10000,
+                messages=[
+                    {"role": "system", "content": _SYSTEM},
+                    {"role": "user", "content": chunk},
+                ],
+            )
             fixed = (resp.choices[0].message.content or "").strip()
             finish = getattr(resp.choices[0], "finish_reason", None)
-            print(f"[rehydrate] chunk {i}/{len(chunks)} attempt {attempt} ({len(chunk)} chars) -> "
-                  f"{len(fixed)} chars in {time.monotonic() - t0:.0f}s (finish={finish})", flush=True)
+            print(
+                f"[rehydrate] chunk {i}/{len(chunks)} attempt {attempt} ({len(chunk)} chars) -> "
+                f"{len(fixed)} chars in {time.monotonic() - t0:.0f}s (finish={finish})",
+                flush=True,
+            )
             if not fixed:
                 continue
             ratio = _similarity(chunk, fixed)
             if ratio == 1.0:
                 break
             if ratio >= _ACCEPT_RATIO:
-                print(f"[rehydrate] chunk {i} accepted at ratio {ratio:.4f} "
-                      f"(micro-divergence: {_first_divergence(chunk, fixed)})", flush=True)
+                print(
+                    f"[rehydrate] chunk {i} accepted at ratio {ratio:.4f} "
+                    f"(micro-divergence: {_first_divergence(chunk, fixed)})",
+                    flush=True,
+                )
                 break
-            print(f"[rehydrate] chunk {i} attempt {attempt} rejected (ratio {ratio:.3f}): "
-                  f"{_first_divergence(chunk, fixed)}", flush=True)
+            print(
+                f"[rehydrate] chunk {i} attempt {attempt} rejected (ratio {ratio:.3f}): "
+                f"{_first_divergence(chunk, fixed)}",
+                flush=True,
+            )
             fixed = None
         if not fixed:
             print(f"[rehydrate] chunk {i} failed after retries — row abandoned", flush=True)
@@ -126,11 +146,13 @@ def _plausibly_same(before: str, after: str) -> bool:
 
 def _quick_model() -> str:
     from .config import SETTINGS
+
     return SETTINGS.quick_model
 
 
 def _client():
     from .digest import _client as _openrouter_client
+
     return _openrouter_client()
 
 
@@ -140,9 +162,11 @@ def _summarize_run(db: Db, run_id: str, client) -> None:
     rows = db.select("run_digest", {"run_id": f"eq.{run_id}"}, "digest,model")
     if rows and (rows[0].get("digest") or {}).get("debate_summary"):
         return  # new-run digests already carry one
-    debates = db.select("debate_messages", {"run_id": f"eq.{run_id}",
-                                            "order": "created_at.asc"},
-                        "debate_type,content")
+    debates = db.select(
+        "debate_messages",
+        {"run_id": f"eq.{run_id}", "order": "created_at.asc"},
+        "debate_type,content",
+    )
     parts = []
     for m in debates:
         content = m.get("content") or ""
@@ -154,21 +178,34 @@ def _summarize_run(db: Db, run_id: str, client) -> None:
     if not parts:
         return
     resp = client.chat.completions.create(
-        model=_quick_model(), temperature=0.2, max_tokens=400,
+        model=_quick_model(),
+        temperature=0.2,
+        max_tokens=400,
         messages=[
-            {"role": "system", "content":
-                "You are an equity-research editor. In one short plain-English "
+            {
+                "role": "system",
+                "content": "You are an equity-research editor. In one short plain-English "
                 "paragraph (<=120 words, no bullets), summarize what the bull "
                 "case argued, what the bear case argued, and how the risk debate "
-                "resolved. Answer only from the material provided."},
-            {"role": "user", "content": material}])
+                "resolved. Answer only from the material provided.",
+            },
+            {"role": "user", "content": material},
+        ],
+    )
     summary = (resp.choices[0].message.content or "").strip()
     if not summary:
         return
     digest_value = (rows[0].get("digest") or {}) if rows else {}
     digest_value["debate_summary"] = summary[:1200]
-    db.upsert("run_digest", "run_id", {"run_id": run_id, "digest": digest_value,
-                                       **({"model": rows[0]["model"]} if rows and rows[0].get("model") else {})})
+    db.upsert(
+        "run_digest",
+        "run_id",
+        {
+            "run_id": run_id,
+            "digest": digest_value,
+            **({"model": rows[0]["model"]} if rows and rows[0].get("model") else {}),
+        },
+    )
 
 
 def rehydrate_debates(db: Db, max_rows: int = _MAX_ROWS_PER_PASS, client=None) -> int:
@@ -176,32 +213,48 @@ def rehydrate_debates(db: Db, max_rows: int = _MAX_ROWS_PER_PASS, client=None) -
     if not os.getenv("OPENROUTER_API_KEY"):
         return 0
     try:
-        rows = db.select("debate_messages", {"order": "created_at.desc", "limit": "400"},
-                         "id,run_id,content,content_original")
+        rows = db.select(
+            "debate_messages",
+            {"order": "created_at.desc", "limit": "400"},
+            "id,run_id,content,content_original",
+        )
     except Exception:
         return 0  # table/column not migrated yet
     backlog = [r for r in rows if _repairable_row(r)]
     backlog.sort(key=lambda r: len(r.get("content_original") or r.get("content") or ""))
     client = client or _client()
     if backlog:
-        print(f"[rehydrate] {len(backlog)} unreadable debate row(s) in backlog; repairing up to {max_rows}", flush=True)
+        print(
+            f"[rehydrate] {len(backlog)} unreadable debate row(s) in backlog; repairing up to {max_rows}",
+            flush=True,
+        )
     fixed = 0
     for row in backlog[:max_rows]:
         try:
-            source = row.get("content_original") or row["content"]  # redo case: repair the original again
+            source = (
+                row.get("content_original") or row["content"]
+            )  # redo case: repair the original again
             redo = bool(row.get("content_original"))
-            print(f"[rehydrate] repairing row {row['id']} ({len(row['content'])} chars, "
-                  f"run {str(row.get('run_id'))[:8]}{', redo' if redo else ''})", flush=True)
+            print(
+                f"[rehydrate] repairing row {row['id']} ({len(row['content'])} chars, "
+                f"run {str(row.get('run_id'))[:8]}{', redo' if redo else ''})",
+                flush=True,
+            )
             restored = _restore_spacing(client, source)
             if not restored:
                 continue
-            db.update("debate_messages", f"id=eq.{row['id']}",
-                      {"content": restored, "content_original": source})
+            db.update(
+                "debate_messages",
+                f"id=eq.{row['id']}",
+                {"content": restored, "content_original": source},
+            )
             fixed += 1
             try:
                 if redo:
                     # the first repair also summarized letter-spaced junk: regenerate
-                    drows = db.select("run_digest", {"run_id": f"eq.{row['run_id']}"}, "digest,model")
+                    drows = db.select(
+                        "run_digest", {"run_id": f"eq.{row['run_id']}"}, "digest,model"
+                    )
                     if drows and (drows[0].get("digest") or {}).get("debate_summary"):
                         dv = drows[0]["digest"]
                         dv.pop("debate_summary", None)

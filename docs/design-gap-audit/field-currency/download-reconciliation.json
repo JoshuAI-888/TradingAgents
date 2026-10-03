@@ -1,0 +1,14 @@
+{
+  "file": "/Users/joshmini/Downloads/screener_US_1176rows_2026-10-02 (2).csv",
+  "rows": 1176,
+  "unique_codes": 1176,
+  "currency_columns": [
+    "price_currency",
+    "market_cap_currency"
+  ],
+  "unknown_each": 1176,
+  "sort": "market_cap descending",
+  "generation_id": "11111111-1111-4111-8111-111111111111",
+  "first_code": "US.S0001",
+  "last_code": "US.S1199"
+}

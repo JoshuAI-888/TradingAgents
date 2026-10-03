@@ -1,0 +1,21 @@
+{
+  "checks": [
+    {
+      "code": "US.MCD",
+      "exact_identity": true,
+      "missing_LT_inputs_remain_unavailable": true,
+      "provider_total_debt_ratio_preserved": false,
+      "api_contract_eligibility": true,
+      "legacy_contract_withheld": true
+    },
+    {
+      "code": "US.KO",
+      "exact_identity": true,
+      "missing_LT_inputs_remain_unavailable": true,
+      "provider_total_debt_ratio_preserved": true,
+      "api_contract_eligibility": true,
+      "legacy_contract_withheld": true
+    }
+  ],
+  "scope": "Input availability and raw/output/cache contract agreement only; no balance-sheet denominator or fiscal/currency qualification."
+}

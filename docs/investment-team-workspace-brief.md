@@ -2,6 +2,8 @@
 
 ## Review objective
 
+This is the supported initial release for team review, not completion of the full approved mockups. The [design-gap audit](investment-workspace-design-gap-audit.md) records remaining shell, inspector, Explorer, change-review, mobile and measured-quality work with acceptance gates.
+
 Move from a qualifying stock cohort to comparative evidence and full company research without losing the screen, sort order, chart tools or export context. The combined design provides Table for precise screening, Explore for relationships among supported factors, and Changes for complete cohort comparisons.
 
 ![Deployed research workspace](research-workspace-evidence/live-workspace.png)

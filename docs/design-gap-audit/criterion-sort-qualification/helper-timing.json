@@ -1,0 +1,57 @@
+{
+  "scope": "helper-only synthetic local timing; not HTTP/UI p95",
+  "results": [
+    {
+      "method": "uncached",
+      "unique_timestamps": false,
+      "rows": 40000,
+      "side_criterion_passes": 12,
+      "runs_seconds": [
+        0.6838682499947026,
+        0.6947535830549896,
+        0.6735270420322195
+      ],
+      "median_seconds": 0.6838682499947026,
+      "ready": true
+    },
+    {
+      "method": "bounded_timestamp_cache",
+      "unique_timestamps": false,
+      "rows": 40000,
+      "side_criterion_passes": 12,
+      "runs_seconds": [
+        0.6021981670055538,
+        0.6035590840037912,
+        0.6014363339636475
+      ],
+      "median_seconds": 0.6021981670055538,
+      "ready": true
+    },
+    {
+      "method": "uncached",
+      "unique_timestamps": true,
+      "rows": 40000,
+      "side_criterion_passes": 12,
+      "runs_seconds": [
+        0.7459128339542076,
+        0.8031337910797447,
+        0.6802505829837173
+      ],
+      "median_seconds": 0.7459128339542076,
+      "ready": true
+    },
+    {
+      "method": "bounded_timestamp_cache",
+      "unique_timestamps": true,
+      "rows": 40000,
+      "side_criterion_passes": 12,
+      "runs_seconds": [
+        0.7114893749821931,
+        0.7133032910060138,
+        0.7079219999723136
+      ],
+      "median_seconds": 0.7114893749821931,
+      "ready": true
+    }
+  ]
+}

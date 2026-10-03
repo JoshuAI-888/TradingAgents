@@ -1,5 +1,6 @@
 """Worker service loop: claim → run → persist (runs, agent_reports, decisions,
 memory, settlements) with cooperative cancel and crash rehydration."""
+
 from __future__ import annotations
 
 import os
@@ -18,8 +19,11 @@ from .settings import get_model_pair, get_runtime_flags
 REPORT_STAGES = ["analysts", "research_debate", "trader", "risk_debate", "portfolio_manager"]
 
 # Runner stages → agent_reports.stage values allowed by the schema check.
-_DB_REPORT_STAGE = {"analysts": "analyst_market", "trader": "trader",
-                    "portfolio_manager": "portfolio_manager"}
+_DB_REPORT_STAGE = {
+    "analysts": "analyst_market",
+    "trader": "trader",
+    "portfolio_manager": "portfolio_manager",
+}
 # Debate transcripts live in debate_messages, not agent_reports.
 _DEBATE_STAGE = {"research_debate": "research", "risk_debate": "risk"}
 
@@ -54,74 +58,139 @@ def persist_run(db: Db, job: dict, result: dict) -> str:
     ticker_row = db.select("tickers", {"symbol": f"eq.{ticker}"}, "id")
     ticker_id = ticker_row[0]["id"] if ticker_row else _ensure_ticker(db, ticker)
     run_id = str(uuid.uuid4())
-    cfg = {"depth": job["payload"].get("depth", "standard"), "provider": SETTINGS.llm_provider,
-           "quick": SETTINGS.quick_model, "deep": SETTINGS.deep_model, "stub": SETTINGS.stub_mode}
-    db.insert("runs", {
-        "id": run_id, "job_id": job["id"], "user_id": job.get("user_id"),
-        "ticker_id": ticker_id, "trade_date": trade_date, "asset_type": "stock",
-        "config": cfg, "config_hash": _hash_cfg(cfg), "llm_provider": SETTINGS.llm_provider,
-        "quick_model": SETTINGS.quick_model, "deep_model": SETTINGS.deep_model,
-        "depth_preset": job["payload"].get("depth", "standard"),
-        "effective_provider": SETTINGS.llm_provider,
-        "status": "succeeded",
-        "prompt_tokens": result["tokens"]["prompt"], "completion_tokens": result["tokens"]["completion"],
-        "tokens_cached": result["tokens"]["cached"], "tokens_uncached": result["tokens"]["uncached"],
-        "tool_calls": result.get("tool_calls", 0), "elapsed_seconds": result.get("elapsed_seconds"),
-        "cost_usd": result.get("cost_usd", 0), "framework_version": "0.5.1",
-    }, prefer="return=minimal")
+    cfg = {
+        "depth": job["payload"].get("depth", "standard"),
+        "provider": SETTINGS.llm_provider,
+        "quick": SETTINGS.quick_model,
+        "deep": SETTINGS.deep_model,
+        "stub": SETTINGS.stub_mode,
+    }
+    db.insert(
+        "runs",
+        {
+            "id": run_id,
+            "job_id": job["id"],
+            "user_id": job.get("user_id"),
+            "ticker_id": ticker_id,
+            "trade_date": trade_date,
+            "asset_type": "stock",
+            "config": cfg,
+            "config_hash": _hash_cfg(cfg),
+            "llm_provider": SETTINGS.llm_provider,
+            "quick_model": SETTINGS.quick_model,
+            "deep_model": SETTINGS.deep_model,
+            "depth_preset": job["payload"].get("depth", "standard"),
+            "effective_provider": SETTINGS.llm_provider,
+            "status": "succeeded",
+            "prompt_tokens": result["tokens"]["prompt"],
+            "completion_tokens": result["tokens"]["completion"],
+            "tokens_cached": result["tokens"]["cached"],
+            "tokens_uncached": result["tokens"]["uncached"],
+            "tool_calls": result.get("tool_calls", 0),
+            "elapsed_seconds": result.get("elapsed_seconds"),
+            "cost_usd": result.get("cost_usd", 0),
+            "framework_version": "0.5.1",
+        },
+        prefer="return=minimal",
+    )
     for stage, md in (result.get("reports") or {}).items():
         if not md:
             continue
         if stage in _DEBATE_STAGE:
-            db.insert("debate_messages", {
-                "run_id": run_id, "debate_type": _DEBATE_STAGE[stage],
-                "speaker": "neutral", "round": 1, "content": md,
-            }, prefer="return=minimal")
+            db.insert(
+                "debate_messages",
+                {
+                    "run_id": run_id,
+                    "debate_type": _DEBATE_STAGE[stage],
+                    "speaker": "neutral",
+                    "round": 1,
+                    "content": md,
+                },
+                prefer="return=minimal",
+            )
         elif stage in _DB_REPORT_STAGE:
-            db.insert("agent_reports", {
-                "run_id": run_id, "stage": _DB_REPORT_STAGE[stage], "content_markdown": md,
-            }, prefer="return=minimal")
+            db.insert(
+                "agent_reports",
+                {
+                    "run_id": run_id,
+                    "stage": _DB_REPORT_STAGE[stage],
+                    "content_markdown": md,
+                },
+                prefer="return=minimal",
+            )
     decision = result.get("decision") or {}
     if job.get("user_id") and not result.get("is_review"):
         dec_id = str(uuid.uuid4())
-        db.insert("decisions", {
-            "id": dec_id, "run_id": run_id, "user_id": job["user_id"], "ticker_id": ticker_id,
-            "trade_date": trade_date, "rating": _rating_slug(result.get("rating")),
-            "rating_rank": _rating_rank(result.get("rating")),
-            "signal": _signal_slug(result.get("signal"), result.get("rating")),
-            "is_review": False, "executive_summary": decision.get("executive_summary"),
-            "price_target": decision.get("price_target"), "time_horizon": decision.get("time_horizon"),
-            "full_decision": decision.get("full_decision") or {},
-            "qc_verdict": "passed",
-        }, prefer="return=minimal")
+        db.insert(
+            "decisions",
+            {
+                "id": dec_id,
+                "run_id": run_id,
+                "user_id": job["user_id"],
+                "ticker_id": ticker_id,
+                "trade_date": trade_date,
+                "rating": _rating_slug(result.get("rating")),
+                "rating_rank": _rating_rank(result.get("rating")),
+                "signal": _signal_slug(result.get("signal"), result.get("rating")),
+                "is_review": False,
+                "executive_summary": decision.get("executive_summary"),
+                "price_target": decision.get("price_target"),
+                "time_horizon": decision.get("time_horizon"),
+                "full_decision": decision.get("full_decision") or {},
+                "qc_verdict": "passed",
+            },
+            prefer="return=minimal",
+        )
         # memory entry (pending) + settlement placeholders for configured horizons
-        db.insert("memory_entries", {
-            "user_id": job["user_id"], "ticker_id": ticker_id, "decision_id": dec_id,
-            "entry_date": trade_date, "rating": _rating_slug(result.get("rating")),
-            "status": "pending",
-        }, prefer="return=minimal")
+        db.insert(
+            "memory_entries",
+            {
+                "user_id": job["user_id"],
+                "ticker_id": ticker_id,
+                "decision_id": dec_id,
+                "entry_date": trade_date,
+                "rating": _rating_slug(result.get("rating")),
+                "status": "pending",
+            },
+            prefer="return=minimal",
+        )
         for h in (5, 30):
-            db.insert("settlements", {
-                "decision_id": dec_id, "horizon_days": h, "status": "pending",
-                "as_of_date": str(date.fromisoformat(trade_date) + timedelta(days=h)),
-            }, prefer="return=minimal")
+            db.insert(
+                "settlements",
+                {
+                    "decision_id": dec_id,
+                    "horizon_days": h,
+                    "status": "pending",
+                    "as_of_date": str(date.fromisoformat(trade_date) + timedelta(days=h)),
+                },
+                prefer="return=minimal",
+            )
     return run_id
 
 
 def _ensure_ticker(db: Db, symbol: str) -> str:
     tid = str(uuid.uuid4())
-    db.insert("tickers", {"id": tid, "symbol": symbol, "native_symbol": symbol,
-                          "asset_type": "stock"}, prefer="return=minimal")
+    db.insert(
+        "tickers",
+        {"id": tid, "symbol": symbol, "native_symbol": symbol, "asset_type": "stock"},
+        prefer="return=minimal",
+    )
     return tid
 
 
 def _rating_slug(rating: str | None) -> str:
-    return str(rating or "hold").lower().replace("overweight", "overweight").replace("underweight", "underweight")
+    return (
+        str(rating or "hold")
+        .lower()
+        .replace("overweight", "overweight")
+        .replace("underweight", "underweight")
+    )
 
 
 def _rating_rank(rating: str | None) -> int:
     return {"sell": 1, "underweight": 2, "hold": 3, "overweight": 4, "buy": 5}.get(
-        str(rating or "").lower(), 3)
+        str(rating or "").lower(), 3
+    )
 
 
 def _signal_slug(signal: str | None, rating: str | None) -> str:
@@ -141,7 +210,9 @@ def _signal_slug(signal: str | None, rating: str | None) -> str:
 
 
 def _hash_cfg(cfg: dict) -> str:
-    import hashlib, json
+    import hashlib
+    import json
+
     return hashlib.sha256(json.dumps(cfg, sort_keys=True).encode()).hexdigest()[:16]
 
 
@@ -152,21 +223,31 @@ def _upsert_snapshot_rows(db: Db, ticker_id: str, rows: list[dict]) -> None:
     rows ≤ trade_date and the report chart serves byte-identical bars to the
     price_context text every agent was shown.
     """
-    db.upsert("price_bars", "ticker_id,bar_date,source,adjusted", [
-        {"ticker_id": ticker_id, "bar_date": r["date"],
-         "open": r["open"], "high": r["high"], "low": r["low"], "close": r["close"],
-         "volume": r["volume"], "source": "yfinance", "adjusted": True}
-        for r in rows])
+    db.upsert(
+        "price_bars",
+        "ticker_id,bar_date,source,adjusted",
+        [
+            {
+                "ticker_id": ticker_id,
+                "bar_date": r["date"],
+                "open": r["open"],
+                "high": r["high"],
+                "low": r["low"],
+                "close": r["close"],
+                "volume": r["volume"],
+                "source": "yfinance",
+                "adjusted": True,
+            }
+            for r in rows
+        ],
+    )
 
 
 def _queue_busy(db: Db, pending_only: bool = False) -> bool:
     """True while the LLM budget belongs to pipeline work: any run in flight,
     or (for post-job repair) anything waiting to start."""
     statuses = ["eq.pending"] if pending_only else ["eq.pending", "eq.running"]
-    for st in statuses:
-        if db.select("jobs", {"status": st}, "id"):
-            return True
-    return False
+    return any(db.select("jobs", {"status": st}, "id") for st in statuses)
 
 
 def rehydrate_crashed(db: Db, worker_id: str):
@@ -178,7 +259,11 @@ def rehydrate_crashed(db: Db, worker_id: str):
         try:
             db.requeue_job(str(row["id"]), "worker restarted mid-run")
         except Exception:
-            db.update("jobs", f"id=eq.{row['id']}", {"status": "failed", "last_error": "worker restarted mid-run"})
+            db.update(
+                "jobs",
+                f"id=eq.{row['id']}",
+                {"status": "failed", "last_error": "worker restarted mid-run"},
+            )
 
 
 def beat(db: Db, worker_id: str, last: float, now: float) -> float:
@@ -188,9 +273,18 @@ def beat(db: Db, worker_id: str, last: float, now: float) -> float:
     if now - last < 20:
         return last
     try:
-        db.upsert("app_settings", "key", {"key": "worker_state", "value": {
-            "worker_id": worker_id, "at": datetime.now(timezone.utc).isoformat(),
-            "poll_interval_s": SETTINGS.poll_interval_s}})
+        db.upsert(
+            "app_settings",
+            "key",
+            {
+                "key": "worker_state",
+                "value": {
+                    "worker_id": worker_id,
+                    "at": datetime.now(timezone.utc).isoformat(),
+                    "poll_interval_s": SETTINGS.poll_interval_s,
+                },
+            },
+        )
     except Exception as e:
         print(f"heartbeat (non-fatal): {e}", flush=True)
     return now
@@ -204,9 +298,11 @@ def run_forever():
     if missing:
         raise SystemExit(f"missing env: {', '.join(missing)}")
     rehydrate_crashed(db, wid)
-    runner = get_runner(model_pair_resolver=lambda: get_model_pair(db),
-                        stub_resolver=lambda: get_runtime_flags(db)["stub"],
-                        prompts_resolver=lambda: active_prompt_overrides(db))
+    runner = get_runner(
+        model_pair_resolver=lambda: get_model_pair(db),
+        stub_resolver=lambda: get_runtime_flags(db)["stub"],
+        prompts_resolver=lambda: active_prompt_overrides(db),
+    )
     seed_prompt_defaults(db)
 
     def _boot_rehydrate():
@@ -217,6 +313,7 @@ def run_forever():
         # bear-researcher hung 35 min while boot chunks ran), so wait for quiet.
         try:
             from .rehydrate import rehydrate_debates
+
             total = 0
             while total < 40:
                 if _queue_busy(db):
@@ -232,15 +329,23 @@ def run_forever():
             # one quiet pass: digests that died on a degraded model
             if not _queue_busy(db, pending_only=True):
                 from .digest import backfill_digests
+
                 fixed_dg = backfill_digests(db)
                 if fixed_dg:
-                    print(f"backfill: regenerated {fixed_dg} missing run digest(s) at boot", flush=True)
+                    print(
+                        f"backfill: regenerated {fixed_dg} missing run digest(s) at boot",
+                        flush=True,
+                    )
         except Exception as e:
             print(f"rehydrate boot (non-fatal): {e}", flush=True)
+
     threading.Thread(target=_boot_rehydrate, daemon=True, name="rehydrate").start()
     inflight: dict[str, threading.Event] = {}
     last_beat = 0.0
-    print(f"[{datetime.utcnow().isoformat()}Z] worker {wid} up (stub_mode={SETTINGS.stub_mode})", flush=True)
+    print(
+        f"[{datetime.utcnow().isoformat()}Z] worker {wid} up (stub_mode={SETTINGS.stub_mode})",
+        flush=True,
+    )
     while True:
         last_beat = beat(db, wid, last_beat, time.monotonic())
         job = None
@@ -263,12 +368,15 @@ def run_forever():
                 emit.emit("universe", "started", f"universe refresh ({market})")
                 from .moomoo import MoomooClient
                 from .universe_refresh import UniverseRefresher
+
                 client = MoomooClient(SETTINGS.moomoo_appkey, SETTINGS.moomoo_private_key)
                 out = UniverseRefresher(db, client, market, emit=emit.emit).run(
-                    force_enum=bool(payload.get("force")))
+                    force_enum=bool(payload.get("force"))
+                )
                 summary = out.get("skipped") or (
                     f"{out.get('quotes', {}).get('quotes', 0)} quotes · "
-                    f"{out.get('enum', {}).get('codes', 'cached')} codes")
+                    f"{out.get('enum', {}).get('codes', 'cached')} codes"
+                )
                 db.finish_job(str(job["id"]), "succeeded")
                 emit.emit("universe", "done", summary)
                 continue
@@ -282,6 +390,7 @@ def run_forever():
             try:
                 if not get_runtime_flags(db).get("stub"):
                     from .price_context import build_price_context
+
                     price_ctx = build_price_context(ticker, trade_date)
             except Exception as e:
                 print(f"price_context (non-fatal): {e}", flush=True)
@@ -290,14 +399,24 @@ def run_forever():
                     trow = db.select("tickers", {"symbol": f"eq.{ticker}"}, "id")
                     tid = trow[0]["id"] if trow else _ensure_ticker(db, ticker)
                     _upsert_snapshot_rows(db, tid, price_ctx["rows"])
-                    emit.emit("analysts", "progress",
-                              f"verified snapshot: {len(price_ctx['rows'])} bars "
-                              f"as of {price_ctx['latest_date']} — shared by all agents and the chart")
+                    emit.emit(
+                        "analysts",
+                        "progress",
+                        f"verified snapshot: {len(price_ctx['rows'])} bars "
+                        f"as of {price_ctx['latest_date']} — shared by all agents and the chart",
+                    )
                 except Exception as e:
                     print(f"price_context persist (non-fatal): {e}", flush=True)
                     price_ctx = None
-            result = runner.run(ticker, trade_date, depth, payload.get("instructions"), emit, cancel,
-                                price_context=price_ctx["text"] if price_ctx else None)
+            result = runner.run(
+                ticker,
+                trade_date,
+                depth,
+                payload.get("instructions"),
+                emit,
+                cancel,
+                price_context=price_ctx["text"] if price_ctx else None,
+            )
             snapshot_text = price_ctx["text"] if price_ctx else None
             run_id = persist_run(db, job, result)
             db.finish_job(str(job["id"]), "succeeded", run_id=run_id)
@@ -306,15 +425,22 @@ def run_forever():
                 # Seed the verified snapshot immediately: it survives even when
                 # the digest LLM call below dies on a degraded model.
                 try:
-                    db.upsert("run_digest", "run_id", {"run_id": run_id,
-                               "digest": {"verified_snapshot": snapshot_text}})
+                    db.upsert(
+                        "run_digest",
+                        "run_id",
+                        {"run_id": run_id, "digest": {"verified_snapshot": snapshot_text}},
+                    )
                 except Exception as e0:
                     print(f"digest seed (non-fatal): {e0}", flush=True)
             try:
                 from .enrich import enrich_run
+
                 got = enrich_run(db, ticker)
-                emit.emit("report_qc", "progress",
-                          f"context: {got['bars']} bars · {got['news']} news · profile={'✓' if got['profile'] else '—'}")
+                emit.emit(
+                    "report_qc",
+                    "progress",
+                    f"context: {got['bars']} bars · {got['news']} news · profile={'✓' if got['profile'] else '—'}",
+                )
                 if price_ctx:
                     # enrich re-fetched price_bars after the run; same-day yfinance
                     # fetches can drift ~0.03% — the snapshot's own rows win for
@@ -327,11 +453,15 @@ def run_forever():
                 print(f"enrich (non-fatal): {e2}", flush=True)
             try:
                 from .digest import build_digest
+
                 dig = build_digest(db, run_id, ticker, verified_snapshot=snapshot_text)
                 if dig.get("stored"):
-                    emit.emit("report_qc", "progress",
-                              f"digest: {dig['evidence']} evidence · {dig['scenarios']} scenarios · "
-                              f"{dig['news']} news reads · qc {dig['qc']} stages")
+                    emit.emit(
+                        "report_qc",
+                        "progress",
+                        f"digest: {dig['evidence']} evidence · {dig['scenarios']} scenarios · "
+                        f"{dig['news']} news reads · qc {dig['qc']} stages",
+                    )
                 else:
                     emit.emit("report_qc", "progress", f"digest skipped: {dig.get('reason')}")
             except Exception as e3:
@@ -341,15 +471,23 @@ def run_forever():
                 # degraded model a pass can stall the queue for many minutes.
                 if not _queue_busy(db, pending_only=True):
                     from .rehydrate import rehydrate_debates
+
                     fixed = rehydrate_debates(db)
                     if fixed:
-                        emit.emit("report_qc", "progress",
-                                  f"repaired {fixed} legacy debate row(s) · spacing restored, originals preserved")
+                        emit.emit(
+                            "report_qc",
+                            "progress",
+                            f"repaired {fixed} legacy debate row(s) · spacing restored, originals preserved",
+                        )
                     from .digest import backfill_digests
+
                     fixed_dg = backfill_digests(db)
                     if fixed_dg:
-                        emit.emit("report_qc", "progress",
-                                  f"backfilled {fixed_dg} missing run digest(s) · dossier panels restored")
+                        emit.emit(
+                            "report_qc",
+                            "progress",
+                            f"backfilled {fixed_dg} missing run digest(s) · dossier panels restored",
+                        )
             except Exception as e4:
                 print(f"rehydrate (non-fatal): {e4}", flush=True)
         except Cancelled:

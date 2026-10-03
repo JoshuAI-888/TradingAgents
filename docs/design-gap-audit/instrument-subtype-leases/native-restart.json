@@ -1,0 +1,20 @@
+{
+  "sigkill_returncode": -9,
+  "immediate_replacement_idle": true,
+  "lease_seconds": 330,
+  "natural_expiry": true,
+  "prior_record_exact": true,
+  "recovered": {
+    "market": "US",
+    "attempted": 1,
+    "eligible": 1,
+    "remaining": 0,
+    "saved": 1,
+    "conflicts": 0,
+    "scope": "bounded_raw_provider_trust_fund_subtypes",
+    "coverage_qualified": false
+  },
+  "subsequent_attempted": 0,
+  "elapsed_seconds": 330.396,
+  "database_removed": true
+}

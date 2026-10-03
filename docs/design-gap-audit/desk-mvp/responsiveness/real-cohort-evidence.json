@@ -1,0 +1,192 @@
+{
+  "capturedAt": "2026-10-02T19:45:12.453Z",
+  "scope": "Current static Desk; local replay of captured public 12,045-row US cohort; 2560px Chrome viewport. Not provider parity or production latency.",
+  "initialRenderMs": 395.9,
+  "warmSorts": [
+    {
+      "name": "desk.usable-frame",
+      "ms": 156.2,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 94.7,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 85.6,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 84.1,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 82.6,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 83.1,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 112.5,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 83.2,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 83,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 81.2,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 80.1,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    },
+    {
+      "name": "desk.usable-frame",
+      "ms": 83.3,
+      "source": "dataset-memory",
+      "rows": 100,
+      "mode": "table"
+    }
+  ],
+  "finalState": "12,045 stocks · 100 on this page ",
+  "renderedFacetLimit": 100,
+  "totalDistinctCompanyNames": 11949,
+  "passed": [
+    "facet page 101-200",
+    "search NVIDIA; select; search Microsoft; apply retains NVDA",
+    "apostrophe-name O'Reilly Automotive applies ORLY",
+    "Clear restores 12045 matches and cap descending"
+  ],
+  "logs": [
+    {
+      "level": "warn",
+      "message": "ObjectMultiplex - orphaned data for stream \"app-init-liveness\"",
+      "timestamp": "2026-10-02T19:43:30.301Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "ObjectMultiplex - orphaned data for stream \"background-liveness\"",
+      "timestamp": "2026-10-02T19:43:30.301Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "ObjectMultiplex - orphaned data for stream \"background-liveness\"",
+      "timestamp": "2026-10-02T19:43:30.301Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit",
+      "timestamp": "2026-10-02T19:44:20.999Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit",
+      "timestamp": "2026-10-02T19:44:20.999Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "ObjectMultiplex - orphaned data for stream \"app-init-liveness\"",
+      "timestamp": "2026-10-02T19:44:21.005Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "ObjectMultiplex - orphaned data for stream \"app-init-liveness\"",
+      "timestamp": "2026-10-02T19:44:21.006Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "ObjectMultiplex - orphaned data for stream \"background-liveness\"",
+      "timestamp": "2026-10-02T19:44:21.011Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "ObjectMultiplex - orphaned data for stream \"background-liveness\"",
+      "timestamp": "2026-10-02T19:44:21.012Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit",
+      "timestamp": "2026-10-02T19:44:51.491Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit",
+      "timestamp": "2026-10-02T19:44:51.491Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "ObjectMultiplex - orphaned data for stream \"app-init-liveness\"",
+      "timestamp": "2026-10-02T19:44:51.535Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "ObjectMultiplex - orphaned data for stream \"app-init-liveness\"",
+      "timestamp": "2026-10-02T19:44:51.538Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "ObjectMultiplex - orphaned data for stream \"background-liveness\"",
+      "timestamp": "2026-10-02T19:44:51.538Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    },
+    {
+      "level": "warn",
+      "message": "ObjectMultiplex - orphaned data for stream \"background-liveness\"",
+      "timestamp": "2026-10-02T19:44:51.539Z",
+      "url": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/contentscript.js"
+    }
+  ]
+}

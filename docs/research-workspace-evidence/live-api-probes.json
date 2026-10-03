@@ -1,0 +1,2588 @@
+[
+  {
+    "path": "/api/meta",
+    "seconds": 0.65,
+    "data": null,
+    "error": "curl: (56) The requested URL returned error: 500\n"
+  },
+  {
+    "path": "/api/screener/execute?key=penny&market=US&limit=300",
+    "seconds": 0.31,
+    "data": {
+      "available": true,
+      "key": "penny",
+      "name": "Penny Stocks",
+      "description": "Spot undervalued, low-priced stocks for substantial returns.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "price",
+          "max": 5
+        },
+        {
+          "field": "market_cap",
+          "max": 300000000.0
+        },
+        {
+          "field": "volume",
+          "min": 100000.0,
+          "days": 30
+        },
+        {
+          "field": "revenue_growth",
+          "min": 10
+        },
+        {
+          "field": "net_profit_growth",
+          "min": 5,
+          "excl_min": 1
+        },
+        {
+          "field": "debt_ratio",
+          "max": 40
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "rows": [
+        {
+          "symbol": "IPSC",
+          "code": "US.IPSC",
+          "name": "Century Therapeutics",
+          "price": 1.61,
+          "pct": -5.85,
+          "market_cap": 291531266.81,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 1.254,
+          "pe": -11.5,
+          "chg": -0.1,
+          "eps": -0.14,
+          "low": 1.595,
+          "high": 1.695,
+          "open": 1.65,
+          "low52": 0.435,
+          "high52": 3.04,
+          "pe_ttm": -1.731,
+          "shares": 101252828,
+          "volume": 619413,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 1013679.827,
+          "amplitude": 5.848,
+          "div_yield": null,
+          "float_cap": 163017053.08,
+          "volume_ratio": 1.296,
+          "bid_ask_ratio": -60,
+          "turnover_rate": 0.612,
+          "plate": "Biotechnology",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Hillhouse Capital Holdings",
+            "Overnight Tradable List AirStar"
+          ]
+        },
+        {
+          "symbol": "VIOT",
+          "code": "US.VIOT",
+          "name": "Viomi Technology",
+          "price": 1.895,
+          "pct": 11.47,
+          "market_cap": 127574676.455,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.588,
+          "pe": 6.316,
+          "chg": 0.195,
+          "eps": 0.3,
+          "low": 1.63,
+          "high": 2.2199,
+          "open": 1.71,
+          "low52": 0.6615,
+          "high52": 3.389388885,
+          "pe_ttm": -105.277,
+          "shares": 31641485,
+          "volume": 3014064,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 6007858.23,
+          "amplitude": 34.7,
+          "div_yield": null,
+          "float_cap": 59960614.075,
+          "volume_ratio": 4.603,
+          "bid_ask_ratio": -66.667,
+          "turnover_rate": 9.526,
+          "plate": "Furnishings, Fixtures & Appliances",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Smart Home",
+            "coversion test - US Chinese stocks pool",
+            "Top Gainers Yesterday",
+            "Chinese Concept"
+          ]
+        },
+        {
+          "symbol": "MSGM",
+          "code": "US.MSGM",
+          "name": "Motorsport Games",
+          "price": 4.84,
+          "pct": -0.62,
+          "market_cap": 22209801.68,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 5.714,
+          "pe": 3.384,
+          "chg": -0.03,
+          "eps": 1.43,
+          "low": 4.83,
+          "high": 5.08,
+          "open": 4.9,
+          "low52": 2.105,
+          "high52": 5.5584,
+          "pe_ttm": 16.133,
+          "shares": 2995081,
+          "volume": 114833,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 570344.772,
+          "amplitude": 5.133,
+          "div_yield": null,
+          "float_cap": 14496192.04,
+          "volume_ratio": 1.62,
+          "bid_ask_ratio": -60.784,
+          "turnover_rate": 3.834,
+          "plate": "Electronic Gaming & Multimedia",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Top Gainers",
+            "CA Night Market list",
+            "NASDAQ"
+          ]
+        },
+        {
+          "symbol": "CAN",
+          "code": "US.CAN",
+          "name": "Canaan",
+          "price": 0.34,
+          "pct": -1.45,
+          "market_cap": 248847489.2,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.85,
+          "pe": -0.757,
+          "chg": -0.005,
+          "eps": -0.449,
+          "low": 0.3305,
+          "high": 0.3598,
+          "open": 0.35,
+          "low52": 0.1516,
+          "high52": 2.22,
+          "pe_ttm": -0.752,
+          "shares": 572861163,
+          "volume": 6951642,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 2372167.771,
+          "amplitude": 8.493,
+          "div_yield": null,
+          "float_cap": 194772795.42,
+          "volume_ratio": 0.91,
+          "bid_ask_ratio": 20,
+          "turnover_rate": 1.213,
+          "plate": "Computer Hardware",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Cryptocurrency concept stocks and derivatives",
+            "coversion test - US Chinese stocks pool",
+            "Crypto",
+            "Blockchain",
+            "Shariah Compliant",
+            "U.S. Crypto Concept Stocks"
+          ]
+        },
+        {
+          "symbol": "GREH",
+          "code": "US.GREH",
+          "name": "GREEN RAIN ENERGY HOLDINGS INC",
+          "price": 0.0037,
+          "pct": -58.1,
+          "market_cap": 171419.261,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": -0.056,
+          "pe": null,
+          "chg": -0.005,
+          "eps": -27.085,
+          "low": 0.0036,
+          "high": 0.006,
+          "open": 0.006,
+          "low52": 0.0018,
+          "high52": 0.0474,
+          "pe_ttm": null,
+          "shares": 46329530,
+          "volume": 3583245,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 14689.266,
+          "amplitude": 27.18,
+          "div_yield": null,
+          "float_cap": 171419.261,
+          "volume_ratio": 69.03,
+          "bid_ask_ratio": 0,
+          "turnover_rate": 7.734,
+          "plate": "Top Gainers Yesterday",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": []
+        },
+        {
+          "symbol": "WDLF",
+          "code": "US.WDLF",
+          "name": "Decentral Life",
+          "price": 0.0004,
+          "pct": 0.0,
+          "market_cap": 2957917.156,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": null,
+          "pe": null,
+          "chg": 0.0,
+          "eps": null,
+          "low": 0.0002,
+          "high": 0.0004,
+          "open": 0.0002,
+          "low52": 0.0002,
+          "high52": 0.0005,
+          "pe_ttm": null,
+          "shares": 7386901226,
+          "volume": 1349722,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 442.299,
+          "amplitude": 50,
+          "div_yield": null,
+          "float_cap": 2954760.49,
+          "volume_ratio": 0.159,
+          "bid_ask_ratio": 0,
+          "turnover_rate": 0.018,
+          "plate": "Top Gainers Yesterday",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": []
+        },
+        {
+          "symbol": "AMPG",
+          "code": "US.AMPG",
+          "name": "AmpliTech Group",
+          "price": 3.09,
+          "pct": -1.59,
+          "market_cap": 92835610.83,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 1.985,
+          "pe": -9.363,
+          "chg": -0.05,
+          "eps": -0.33,
+          "low": 3.03,
+          "high": 3.2,
+          "open": 3.14,
+          "low52": 1.64,
+          "high52": 10.11,
+          "pe_ttm": -8.828,
+          "shares": 26879533,
+          "volume": 711096,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 2192283.228,
+          "amplitude": 5.414,
+          "div_yield": null,
+          "float_cap": 83057756.97,
+          "volume_ratio": 1.177,
+          "bid_ask_ratio": 0,
+          "turnover_rate": 2.645,
+          "plate": "Communication Equipment",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Overnight",
+            "Shariah Compliant",
+            "\u884c\u60c5\u591c\u76d8\u5217\u8868"
+          ]
+        },
+        {
+          "symbol": "RANI",
+          "code": "US.RANI",
+          "name": "Rani Therapeutics",
+          "price": 0.7955,
+          "pct": 0.57,
+          "market_cap": 91820555.68,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 2.339,
+          "pe": -1.767,
+          "chg": 0.004,
+          "eps": -0.45,
+          "low": 0.7911,
+          "high": 0.8517,
+          "open": 0.819,
+          "low52": 0.4453,
+          "high52": 3.87,
+          "pe_ttm": -6.119,
+          "shares": 83498272,
+          "volume": 483722,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 393615.481,
+          "amplitude": 7.661,
+          "div_yield": null,
+          "float_cap": 66422875.376,
+          "volume_ratio": 0.971,
+          "bid_ask_ratio": 6.952,
+          "turnover_rate": 0.579,
+          "plate": "Biotechnology",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": []
+        },
+        {
+          "symbol": "VLN",
+          "code": "US.VLN",
+          "name": "Valens Semiconductor",
+          "price": 1.87,
+          "pct": -0.53,
+          "market_cap": 202483704.72,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 2.087,
+          "pe": -6.032,
+          "chg": -0.01,
+          "eps": -0.31,
+          "low": 1.82,
+          "high": 1.89,
+          "open": 1.89,
+          "low52": 1.1,
+          "high52": 3.71,
+          "pe_ttm": -6.032,
+          "shares": 76470764,
+          "volume": 323731,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 599205.275,
+          "amplitude": 3.723,
+          "div_yield": null,
+          "float_cap": 143000328.68,
+          "volume_ratio": 0.726,
+          "bid_ask_ratio": -86.957,
+          "turnover_rate": 0.423,
+          "plate": "Semiconductors",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "\u884c\u60c5\u591c\u76d8\u5217\u8868"
+          ]
+        },
+        {
+          "symbol": "ORKT",
+          "code": "US.ORKT",
+          "name": "OrangeKloud Technology",
+          "price": 1.02,
+          "pct": 3.03,
+          "market_cap": 5956565.4,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.895,
+          "pe": -1.697,
+          "chg": 0.03,
+          "eps": -0.601,
+          "low": 0.826,
+          "high": 1.0582,
+          "open": 1.04,
+          "low52": 0.6165,
+          "high52": 2.49,
+          "pe_ttm": -1.697,
+          "shares": 1947003,
+          "volume": 108282,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 100577.341,
+          "amplitude": 23.455,
+          "div_yield": null,
+          "float_cap": 1985943.06,
+          "volume_ratio": 0.929,
+          "bid_ask_ratio": -83.753,
+          "turnover_rate": 5.561,
+          "plate": "Software - Application",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Shariah Compliant",
+            "Only Tradable US ticker on Moomoo"
+          ]
+        },
+        {
+          "symbol": "CGEN",
+          "code": "US.CGEN",
+          "name": "Compugen",
+          "price": 2.34,
+          "pct": -1.68,
+          "market_cap": 221663346.84,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 2.497,
+          "pe": 6.157,
+          "chg": -0.04,
+          "eps": 0.38,
+          "low": 2.33,
+          "high": 2.435,
+          "open": 2.39,
+          "low52": 1.43,
+          "high52": 3.235,
+          "pe_ttm": 6.157,
+          "shares": 92675693,
+          "volume": 173137,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 411676.095,
+          "amplitude": 4.412,
+          "div_yield": null,
+          "float_cap": 216861121.62,
+          "volume_ratio": 1.669,
+          "bid_ask_ratio": 98.807,
+          "turnover_rate": 0.187,
+          "plate": "Biotechnology",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": []
+        },
+        {
+          "symbol": "HYPD",
+          "code": "US.HYPD",
+          "name": "Hyperion DeFi",
+          "price": 3.66,
+          "pct": -2.27,
+          "market_cap": 56874328.44,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.557,
+          "pe": -0.389,
+          "chg": -0.085,
+          "eps": -9.4,
+          "low": 3.635,
+          "high": 3.78,
+          "open": 3.74,
+          "low52": 2.34,
+          "high52": 11.41,
+          "pe_ttm": -0.948,
+          "shares": 13781138,
+          "volume": 252661,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 935717.791,
+          "amplitude": 3.872,
+          "div_yield": null,
+          "float_cap": 50438965.08,
+          "volume_ratio": 0.397,
+          "bid_ask_ratio": -93.484,
+          "turnover_rate": 1.833,
+          "plate": "Biotechnology",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Overnight Tradable List us",
+            "Shariah Compliant",
+            "NASDAQ"
+          ]
+        },
+        {
+          "symbol": "IVVD",
+          "code": "US.IVVD",
+          "name": "Invivyd",
+          "price": 0.8165,
+          "pct": -6.16,
+          "market_cap": 240670516.109,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 1.329,
+          "pe": -2.721,
+          "chg": -0.054,
+          "eps": -0.3,
+          "low": 0.8057,
+          "high": 0.898,
+          "open": 0.8653,
+          "low52": 0.5277,
+          "high52": 3.0699,
+          "pe_ttm": -2.633,
+          "shares": 207832177,
+          "volume": 5361972,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 4495320.521,
+          "amplitude": 10.608,
+          "div_yield": null,
+          "float_cap": 169694972.52,
+          "volume_ratio": 0.443,
+          "bid_ask_ratio": 8.696,
+          "turnover_rate": 2.58,
+          "plate": "Biotechnology",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "NASDAQ"
+          ]
+        },
+        {
+          "symbol": "SXTP",
+          "code": "US.SXTP",
+          "name": "60 Degrees Pharmaceuticals",
+          "price": 1.25,
+          "pct": -6.02,
+          "market_cap": 4396235,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": -0.632,
+          "pe": -0.106,
+          "chg": -0.08,
+          "eps": -11.73,
+          "low": 1.23,
+          "high": 1.39,
+          "open": 1.29,
+          "low52": 0.83995,
+          "high52": 8.62,
+          "pe_ttm": -0.468,
+          "shares": 2438161,
+          "volume": 137216,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 174863.225,
+          "amplitude": 12.03,
+          "div_yield": null,
+          "float_cap": 3047701.25,
+          "volume_ratio": 1.607,
+          "bid_ask_ratio": -33.779,
+          "turnover_rate": 5.628,
+          "plate": "Biotechnology",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Overnight Tradable List AirStar",
+            "Stocks tradable only on moomoo",
+            "Only Tradable US ticker on Moomoo"
+          ]
+        },
+        {
+          "symbol": "JZXN",
+          "code": "US.JZXN",
+          "name": "Jiuzi",
+          "price": 1.08,
+          "pct": -2.7,
+          "market_cap": 55633779.72,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.771,
+          "pe": -0.036,
+          "chg": -0.03,
+          "eps": -29.38,
+          "low": 1.06,
+          "high": 1.14,
+          "open": 1.13,
+          "low52": 0.75,
+          "high52": 18.392,
+          "pe_ttm": -0.024,
+          "shares": 51511485,
+          "volume": 133746,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 146424.974,
+          "amplitude": 7.207,
+          "div_yield": null,
+          "float_cap": 55632403.8,
+          "volume_ratio": 1.644,
+          "bid_ask_ratio": 81.308,
+          "turnover_rate": 0.26,
+          "plate": "Auto & Truck Dealerships",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "coversion test - US Chinese stocks pool",
+            "Shariah Compliant",
+            "Chinese Concept"
+          ]
+        },
+        {
+          "symbol": "GURE",
+          "code": "US.GURE",
+          "name": "Gulf Resources",
+          "price": 2.91,
+          "pct": -4.9,
+          "market_cap": 5277375.21,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.046,
+          "pe": -0.088,
+          "chg": -0.15,
+          "eps": -32.95,
+          "low": 2.9,
+          "high": 3.21,
+          "open": 3.14,
+          "low52": 2.04,
+          "high52": 11.83,
+          "pe_ttm": -0.096,
+          "shares": 1399132,
+          "volume": 140621,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 428671.191,
+          "amplitude": 10.131,
+          "div_yield": null,
+          "float_cap": 4071474.12,
+          "volume_ratio": 0.915,
+          "bid_ask_ratio": -98.02,
+          "turnover_rate": 10.051,
+          "plate": "Chemicals",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "coversion test - US Chinese stocks pool",
+            "Stocks tradable only on moomoo",
+            "JP Sell Restriction",
+            "Chinese Concept"
+          ]
+        },
+        {
+          "symbol": "SEER",
+          "code": "US.SEER",
+          "name": "Seer Inc",
+          "price": 2.2,
+          "pct": -1.35,
+          "market_cap": 121818433,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.539,
+          "pe": -1.718,
+          "chg": -0.03,
+          "eps": -1.28,
+          "low": 2.1001,
+          "high": 2.23,
+          "open": 2.15,
+          "low52": 1.55,
+          "high52": 2.41,
+          "pe_ttm": -1.803,
+          "shares": 40529127,
+          "volume": 311440,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 682645.938,
+          "amplitude": 5.825,
+          "div_yield": null,
+          "float_cap": 89164079.4,
+          "volume_ratio": 0.511,
+          "bid_ask_ratio": 0,
+          "turnover_rate": 0.768,
+          "plate": "Biotechnology",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Overnight",
+            "\u884c\u60c5\u591c\u76d8\u5217\u8868"
+          ]
+        },
+        {
+          "symbol": "RFL",
+          "code": "US.RFL",
+          "name": "Rafael Holdings",
+          "price": 1.5,
+          "pct": 13.64,
+          "market_cap": 77999994,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 1.034,
+          "pe": -1.442,
+          "chg": 0.18,
+          "eps": -1.04,
+          "low": 1.28,
+          "high": 1.52,
+          "open": 1.32,
+          "low52": 1.12,
+          "high52": 3.96,
+          "pe_ttm": -2.112,
+          "shares": 31769938,
+          "volume": 502443,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 721210.02,
+          "amplitude": 18.182,
+          "div_yield": null,
+          "float_cap": 47654907,
+          "volume_ratio": 0.813,
+          "bid_ask_ratio": 33.333,
+          "turnover_rate": 1.582,
+          "plate": "Real Estate Services",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": []
+        },
+        {
+          "symbol": "CTM",
+          "code": "US.CTM",
+          "name": "Castellum",
+          "price": 0.627,
+          "pct": -0.08,
+          "market_cap": 59427866.322,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 1.654,
+          "pe": -20.9,
+          "chg": 0.0,
+          "eps": -0.03,
+          "low": 0.62,
+          "high": 0.6467,
+          "open": 0.635,
+          "low52": 0.48,
+          "high52": 1.36,
+          "pe_ttm": -20.9,
+          "shares": 83325950,
+          "volume": 281370,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 177621.74,
+          "amplitude": 4.255,
+          "div_yield": null,
+          "float_cap": 52245370.65,
+          "volume_ratio": 0.827,
+          "bid_ask_ratio": -98.131,
+          "turnover_rate": 0.338,
+          "plate": "Information Technology Services",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Overnight",
+            "Stocks tradable only on moomoo",
+            "\u884c\u60c5\u591c\u76d8\u5217\u8868",
+            "Only Tradable US ticker on Moomoo"
+          ]
+        },
+        {
+          "symbol": "MTEN",
+          "code": "US.MTEN",
+          "name": "Mingteng International",
+          "price": 0.9846,
+          "pct": -3.47,
+          "market_cap": 7532057.079,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.341,
+          "pe": -0.025,
+          "chg": -0.035,
+          "eps": -39.34,
+          "low": 0.962,
+          "high": 1.02,
+          "open": 1.01,
+          "low52": 0.8,
+          "high52": 1175.98,
+          "pe_ttm": -0.025,
+          "shares": 6109365,
+          "volume": 167449,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 167253.97,
+          "amplitude": 5.686,
+          "div_yield": null,
+          "float_cap": 6015280.779,
+          "volume_ratio": 1.264,
+          "bid_ask_ratio": 90.476,
+          "turnover_rate": 2.741,
+          "plate": "Metal Fabrication",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Shariah Compliant",
+            "Stocks tradable only on moomoo",
+            "Only Tradable US ticker on Moomoo",
+            "Chinese Concept"
+          ]
+        },
+        {
+          "symbol": "DAVA",
+          "code": "US.DAVA",
+          "name": "Endava",
+          "price": 1.92,
+          "pct": 7.26,
+          "market_cap": 101458016.64,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.445,
+          "pe": 4.042,
+          "chg": 0.13,
+          "eps": 0.475,
+          "low": 1.83,
+          "high": 1.9799,
+          "open": 1.86,
+          "low52": 1.6,
+          "high52": 9.88,
+          "pe_ttm": -0.187,
+          "shares": 35654195,
+          "volume": 571316,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 1103287.078,
+          "amplitude": 8.374,
+          "div_yield": null,
+          "float_cap": 68456054.4,
+          "volume_ratio": 0.482,
+          "bid_ask_ratio": 73.226,
+          "turnover_rate": 1.602,
+          "plate": "Software - Infrastructure",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Aegon Group Holdings",
+            "HK suisuigu",
+            "Overnight Tradable List us",
+            "Fractional Shares JP"
+          ]
+        },
+        {
+          "symbol": "SPRO",
+          "code": "US.SPRO",
+          "name": "Spero Therapeutics",
+          "price": 1.26,
+          "pct": 4.13,
+          "market_cap": 73375882.02,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 1.66,
+          "pe": 8.4,
+          "chg": 0.05,
+          "eps": 0.15,
+          "low": 1.195,
+          "high": 1.31,
+          "open": 1.22,
+          "low52": 1.08,
+          "high52": 3.08,
+          "pe_ttm": 9,
+          "shares": 47099512,
+          "volume": 1039159,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 1318111.713,
+          "amplitude": 9.504,
+          "div_yield": null,
+          "float_cap": 59345385.12,
+          "volume_ratio": 2.253,
+          "bid_ask_ratio": 60,
+          "turnover_rate": 2.206,
+          "plate": "Biotechnology",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Top Gainers",
+            "Overnight Tradable List AirStar"
+          ]
+        },
+        {
+          "symbol": "OGI",
+          "code": "US.OGI",
+          "name": "OrganiGram",
+          "price": 0.9823,
+          "pct": -1.37,
+          "market_cap": 141601189.351,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.414,
+          "pe": -7.222,
+          "chg": -0.014,
+          "eps": -0.136,
+          "low": 0.9801,
+          "high": 1.02,
+          "open": 0.9959,
+          "low52": 0.8531,
+          "high52": 2.24,
+          "pe_ttm": 2.322,
+          "shares": 100478927,
+          "volume": 517437,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 517662.456,
+          "amplitude": 4.006,
+          "div_yield": null,
+          "float_cap": 98700449.992,
+          "volume_ratio": 0.925,
+          "bid_ask_ratio": -1.523,
+          "turnover_rate": 0.515,
+          "plate": "Drug Manufacturers - Specialty & Generic",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Cannabis & Hemp",
+            "Options-Tradable Stocks"
+          ]
+        },
+        {
+          "symbol": "HIT",
+          "code": "US.HIT",
+          "name": "Health in Tech",
+          "price": 0.738,
+          "pct": -10.08,
+          "market_cap": 48364577.604,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 2.476,
+          "pe": 36.9,
+          "chg": -0.083,
+          "eps": 0.02,
+          "low": 0.6501,
+          "high": 0.782,
+          "open": 0.758,
+          "low52": 0.6501,
+          "high52": 4.02,
+          "pe_ttm": -10.542,
+          "shares": 20299116,
+          "volume": 660539,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 474043.57,
+          "amplitude": 16.072,
+          "div_yield": null,
+          "float_cap": 14980747.608,
+          "volume_ratio": 0.522,
+          "bid_ask_ratio": 89.573,
+          "turnover_rate": 3.254,
+          "plate": "Software - Application",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": []
+        },
+        {
+          "symbol": "HOLO",
+          "code": "US.HOLO",
+          "name": "MicroCloud Hologram",
+          "price": 1.59,
+          "pct": -0.63,
+          "market_cap": 36430652.4,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.098,
+          "pe": -2.663,
+          "chg": -0.01,
+          "eps": -0.597,
+          "low": 1.5708,
+          "high": 1.62,
+          "open": 1.6,
+          "low52": 1.43,
+          "high52": 5.65,
+          "pe_ttm": -0.199,
+          "shares": 22304797,
+          "volume": 118605,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 188754.003,
+          "amplitude": 3.075,
+          "div_yield": null,
+          "float_cap": 35464627.23,
+          "volume_ratio": 0.771,
+          "bid_ask_ratio": 23.001,
+          "turnover_rate": 0.532,
+          "plate": "Software - Application",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Quantum Computing",
+            "Overnight Tradable List AirStar",
+            "CA Night Market list",
+            "NASDAQ",
+            "Popular Quantum Computing Stocks",
+            "Chinese Concept"
+          ]
+        },
+        {
+          "symbol": "TWG",
+          "code": "US.TWG",
+          "name": "Top Wealth Group Holding",
+          "price": 0.1107,
+          "pct": -8.51,
+          "market_cap": 6946043.085,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.074,
+          "pe": 0.028,
+          "chg": -0.01,
+          "eps": 3.87,
+          "low": 0.1008,
+          "high": 0.1107,
+          "open": 0.1008,
+          "low52": 0.1008,
+          "high52": 26.36,
+          "pe_ttm": 0.851,
+          "shares": 44408695,
+          "volume": 4597002,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 480874.977,
+          "amplitude": 8.182,
+          "div_yield": null,
+          "float_cap": 4916042.536,
+          "volume_ratio": 0.14,
+          "bid_ask_ratio": -99.905,
+          "turnover_rate": 10.352,
+          "plate": "Food Distribution",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Top Gainers Yesterday",
+            "NASDAQ",
+            "Chinese Concept"
+          ]
+        },
+        {
+          "symbol": "NIXX",
+          "code": "US.NIXX",
+          "name": "Nixxy",
+          "price": 0.3115,
+          "pct": -2.04,
+          "market_cap": 9005103.348,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 1.089,
+          "pe": -0.426,
+          "chg": -0.007,
+          "eps": -0.73,
+          "low": 0.301,
+          "high": 0.3299,
+          "open": 0.3161,
+          "low52": 0.2913,
+          "high52": 1.97,
+          "pe_ttm": -1.074,
+          "shares": 20169179,
+          "volume": 132800,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 40669.522,
+          "amplitude": 9.088,
+          "div_yield": null,
+          "float_cap": 6282699.258,
+          "volume_ratio": 0.434,
+          "bid_ask_ratio": -5.21,
+          "turnover_rate": 0.658,
+          "plate": "Telecom Services",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Overnight Tradable List AirStar",
+            "Shariah Compliant",
+            "CA Night Market list",
+            "Only Tradable US ticker on Moomoo"
+          ]
+        },
+        {
+          "symbol": "CTNT",
+          "code": "US.CTNT",
+          "name": "Cheetah Net Supply Chain Service",
+          "price": 2.45,
+          "pct": -9.59,
+          "market_cap": 3266817.75,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.04,
+          "pe": null,
+          "chg": -0.26,
+          "eps": -33600,
+          "low": 2.31,
+          "high": 2.69,
+          "open": 2.64,
+          "low52": 2.31,
+          "high52": 63600,
+          "pe_ttm": -1.115,
+          "shares": 1319728,
+          "volume": 300555,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 753329.323,
+          "amplitude": 14.022,
+          "div_yield": null,
+          "float_cap": 3233333.6,
+          "volume_ratio": 0.002,
+          "bid_ask_ratio": -68.852,
+          "turnover_rate": 22.774,
+          "plate": "Integrated Freight & Logistics",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Overnight"
+          ]
+        },
+        {
+          "symbol": "CRGO",
+          "code": "US.CRGO",
+          "name": "Freightos",
+          "price": 0.9,
+          "pct": -5.29,
+          "market_cap": 46515148.2,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 1.271,
+          "pe": -2.571,
+          "chg": -0.05,
+          "eps": -0.35,
+          "low": 0.8506,
+          "high": 0.9502,
+          "open": 0.9003,
+          "low52": 0.8506,
+          "high52": 4.24,
+          "pe_ttm": -2.727,
+          "shares": 35079121,
+          "volume": 159552,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 142480.43,
+          "amplitude": 10.481,
+          "div_yield": null,
+          "float_cap": 31571208.9,
+          "volume_ratio": 1.939,
+          "bid_ask_ratio": 33.11,
+          "turnover_rate": 0.455,
+          "plate": "Software - Application",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": []
+        },
+        {
+          "symbol": "KRMD",
+          "code": "US.KRMD",
+          "name": "KORU Medical Systems",
+          "price": 3.02,
+          "pct": 3.07,
+          "market_cap": 139439144.04,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 7.723,
+          "pe": -50.333,
+          "chg": 0.09,
+          "eps": -0.06,
+          "low": 2.86,
+          "high": 3.04,
+          "open": 2.94,
+          "low52": 2.86,
+          "high52": 6.608,
+          "pe_ttm": -75.5,
+          "shares": 34447503,
+          "volume": 280380,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 823516.854,
+          "amplitude": 6.143,
+          "div_yield": null,
+          "float_cap": 104031459.06,
+          "volume_ratio": 0.957,
+          "bid_ask_ratio": 42.857,
+          "turnover_rate": 0.814,
+          "plate": "Medical Instruments & Supplies",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Overnight Tradable List AirStar",
+            "Shariah Compliant"
+          ]
+        },
+        {
+          "symbol": "ORGO",
+          "code": "US.ORGO",
+          "name": "Organogenesis",
+          "price": 1.4,
+          "pct": 2.19,
+          "market_cap": 180144367.2,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 1.215,
+          "pe": 9.333,
+          "chg": 0.03,
+          "eps": 0.15,
+          "low": 1.37,
+          "high": 1.43,
+          "open": 1.38,
+          "low52": 1.34,
+          "high52": 7.0771,
+          "pe_ttm": -1.772,
+          "shares": 61058969,
+          "volume": 684498,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 962873.725,
+          "amplitude": 4.38,
+          "div_yield": null,
+          "float_cap": 85482556.6,
+          "volume_ratio": 1.314,
+          "bid_ask_ratio": -88.889,
+          "turnover_rate": 1.121,
+          "plate": "Drug Manufacturers - Specialty & Generic",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Shariah Compliant"
+          ]
+        },
+        {
+          "symbol": "HCIL",
+          "code": "US.HCIL",
+          "name": "HONGCHANG INTL CO LTD",
+          "price": 0.05585,
+          "pct": -47.66,
+          "market_cap": 28976731.846,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.681,
+          "pe": -55.85,
+          "chg": -0.051,
+          "eps": -0.001,
+          "low": 0.0535,
+          "high": 0.08645,
+          "open": 0.0813,
+          "low52": 0.0535,
+          "high52": 0.251633,
+          "pe_ttm": null,
+          "shares": 47237245,
+          "volume": 186285,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 11530.024,
+          "amplitude": 30.881,
+          "div_yield": null,
+          "float_cap": 2638200.133,
+          "volume_ratio": 31.299,
+          "bid_ask_ratio": 0,
+          "turnover_rate": 0.394,
+          "plate": "OTC",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": []
+        },
+        {
+          "symbol": "XNET",
+          "code": "US.XNET",
+          "name": "Xunlei",
+          "price": 4.64,
+          "pct": -3.93,
+          "market_cap": 295755688,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.3,
+          "pe": 0.28,
+          "chg": -0.19,
+          "eps": 16.563,
+          "low": 4.53,
+          "high": 4.85,
+          "open": 4.85,
+          "low52": 4.52,
+          "high52": 11.03,
+          "pe_ttm": -4.131,
+          "shares": 28680385,
+          "volume": 390191,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 1822478.96,
+          "amplitude": 6.625,
+          "div_yield": null,
+          "float_cap": 133076986.4,
+          "volume_ratio": 2.132,
+          "bid_ask_ratio": -81.818,
+          "turnover_rate": 1.36,
+          "plate": "Software - Infrastructure",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "coversion test - US Chinese stocks pool",
+            "Top Gainers",
+            "NASDAQ",
+            "China Internet Industry",
+            "Chinese Concept"
+          ]
+        },
+        {
+          "symbol": "NMTC",
+          "code": "US.NMTC",
+          "name": "NeuroOne Medical",
+          "price": 0.9851,
+          "pct": -4.36,
+          "market_cap": 8970087.131,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 2.379,
+          "pe": -1.824,
+          "chg": -0.045,
+          "eps": -0.54,
+          "low": 0.9615,
+          "high": 1.0732,
+          "open": 1.03,
+          "low52": 0.9615,
+          "high52": 6.959999999,
+          "pe_ttm": -1.015,
+          "shares": 6238474,
+          "volume": 125136,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 124998.89,
+          "amplitude": 10.845,
+          "div_yield": null,
+          "float_cap": 6145520.737,
+          "volume_ratio": 0.863,
+          "bid_ask_ratio": 0,
+          "turnover_rate": 2.006,
+          "plate": "Medical Devices",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Brain-Computer Interface",
+            "NASDAQ"
+          ]
+        },
+        {
+          "symbol": "TPET",
+          "code": "US.TPET",
+          "name": "Trio Petroleum",
+          "price": 1.63,
+          "pct": -3.55,
+          "market_cap": 8677968.41,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 0.237,
+          "pe": -0.226,
+          "chg": -0.06,
+          "eps": -7.2,
+          "low": 1.602,
+          "high": 1.695,
+          "open": 1.695,
+          "low52": 1.602,
+          "high52": 22.5,
+          "pe_ttm": -0.682,
+          "shares": 5169074,
+          "volume": 177831,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 292137.958,
+          "amplitude": 5.503,
+          "div_yield": null,
+          "float_cap": 8425590.62,
+          "volume_ratio": 0.721,
+          "bid_ask_ratio": -90.476,
+          "turnover_rate": 3.44,
+          "plate": "Oil & Gas E&P",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "CA Night Market list"
+          ]
+        },
+        {
+          "symbol": "IDN",
+          "code": "US.IDN",
+          "name": "Intellicheck",
+          "price": 2.275,
+          "pct": -0.87,
+          "market_cap": 46106840.325,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 2.049,
+          "pe": 37.916,
+          "chg": -0.02,
+          "eps": 0.06,
+          "low": 2.26,
+          "high": 2.315,
+          "open": 2.31,
+          "low52": 2.26,
+          "high52": 9.08,
+          "pe_ttm": 15.166,
+          "shares": 19582983,
+          "volume": 105601,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 240401.486,
+          "amplitude": 2.397,
+          "div_yield": null,
+          "float_cap": 44551286.325,
+          "volume_ratio": 0.8,
+          "bid_ask_ratio": 96.078,
+          "turnover_rate": 0.539,
+          "plate": "Software - Application",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Options-Tradable Stocks"
+          ]
+        },
+        {
+          "symbol": "ELTP",
+          "code": "US.ELTP",
+          "name": "ELITE PHARMACEUTICALS INC",
+          "price": 0.227,
+          "pct": -6.12,
+          "market_cap": 244509972.334,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 2.34,
+          "pe": 7.566,
+          "chg": -0.015,
+          "eps": 0.03,
+          "low": 0.2256,
+          "high": 0.2418,
+          "open": 0.2418,
+          "low52": 0.2256,
+          "high52": 0.69,
+          "pe_ttm": 4.54,
+          "shares": 840092034,
+          "volume": 1153782,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 267262.389,
+          "amplitude": 6.7,
+          "div_yield": null,
+          "float_cap": 190700891.718,
+          "volume_ratio": 1.616,
+          "bid_ask_ratio": 0,
+          "turnover_rate": 0.137,
+          "plate": "OTC",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": []
+        },
+        {
+          "symbol": "NAGE",
+          "code": "US.NAGE",
+          "name": "Niagen Bioscience",
+          "price": 2.68,
+          "pct": -8.22,
+          "market_cap": 212057685.36,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": 2.569,
+          "pe": 13.4,
+          "chg": -0.24,
+          "eps": 0.2,
+          "low": 2.67,
+          "high": 2.92,
+          "open": 2.91,
+          "low52": 2.67,
+          "high52": 7.95,
+          "pe_ttm": 14.105,
+          "shares": 58906461,
+          "volume": 1383950,
+          "div_ttm": null,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 3776680.472,
+          "amplitude": 8.562,
+          "div_yield": null,
+          "float_cap": 157869315.48,
+          "volume_ratio": 3.371,
+          "bid_ask_ratio": 42.857,
+          "turnover_rate": 2.349,
+          "plate": "Packaged Foods",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "Overnight Tradable List AirStar"
+          ]
+        },
+        {
+          "symbol": "LGBS",
+          "code": "US.LGBS",
+          "name": "LEGENDS BUSINESS GROUP INC",
+          "price": 1e-06,
+          "pct": 0.0,
+          "market_cap": 2543.255,
+          "factors": {
+            "3104": null,
+            "4106": null,
+            "4102": null,
+            "4109": null
+          },
+          "pb": null,
+          "pe": null,
+          "chg": 0.0,
+          "eps": null,
+          "low": 1e-06,
+          "high": 1e-06,
+          "open": 1e-06,
+          "low52": 1e-06,
+          "high52": 1e-06,
+          "pe_ttm": null,
+          "shares": 2543255000,
+          "volume": 346020,
+          "div_ttm": null,
+          "new_low": true,
+          "new_high": true,
+          "turnover": 0.346,
+          "amplitude": 0,
+          "div_yield": null,
+          "float_cap": 2543.255,
+          "volume_ratio": 3.198,
+          "bid_ask_ratio": 0,
+          "turnover_rate": 0.014,
+          "plate": "screen-slice",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": []
+        }
+      ],
+      "shown": 39
+    },
+    "error": null
+  },
+  {
+    "path": "/api/stock/NVDA/estimates",
+    "seconds": 7.08,
+    "data": {
+      "symbol": "NVDA",
+      "revenue_estimate": [
+        {
+          "period": "0q",
+          "avg": 108995424980,
+          "low": 104937000000,
+          "high": 116251000000,
+          "numberOfAnalysts": 44,
+          "yearAgoRevenue": 57006000000,
+          "growth": 0.91199994,
+          "currency": "USD"
+        },
+        {
+          "period": "+1q",
+          "avg": 124328519630,
+          "low": 117290260810,
+          "high": 138490000000,
+          "numberOfAnalysts": 41,
+          "yearAgoRevenue": 68127000000,
+          "growth": 0.825,
+          "currency": "USD"
+        },
+        {
+          "period": "0y",
+          "avg": 411556323240,
+          "low": 403206319550,
+          "high": 426885000000,
+          "numberOfAnalysts": 53,
+          "yearAgoRevenue": 215938000000,
+          "growth": 0.90589994,
+          "currency": "USD"
+        },
+        {
+          "period": "+1y",
+          "avg": 683283874850,
+          "low": 416398000000,
+          "high": 778471000000,
+          "numberOfAnalysts": 58,
+          "yearAgoRevenue": 411556323240,
+          "growth": 0.66019994,
+          "currency": "USD"
+        }
+      ],
+      "earnings_estimate": [
+        {
+          "period": "0q",
+          "avg": 2.47332,
+          "low": 2.34,
+          "high": 2.7,
+          "yearAgoEps": 1.3,
+          "numberOfAnalysts": 43,
+          "growth": 0.90260005,
+          "currency": "USD"
+        },
+        {
+          "period": "+1q",
+          "avg": 2.74222,
+          "low": 2.56,
+          "high": 3.117,
+          "yearAgoEps": 1.62,
+          "numberOfAnalysts": 41,
+          "growth": 0.69269997,
+          "currency": "USD"
+        },
+        {
+          "period": "0y",
+          "avg": 9.30732,
+          "low": 9.01,
+          "high": 10.1,
+          "yearAgoEps": 4.77,
+          "numberOfAnalysts": 51,
+          "growth": 0.9512,
+          "currency": "USD"
+        },
+        {
+          "period": "+1y",
+          "avg": 15.69508,
+          "low": 9.8,
+          "high": 18.746,
+          "yearAgoEps": 9.30732,
+          "numberOfAnalysts": 53,
+          "growth": 0.6863,
+          "currency": "USD"
+        }
+      ],
+      "eps_trend": [
+        {
+          "period": "0q",
+          "current": 2.47332,
+          "7daysAgo": 2.47356,
+          "30daysAgo": 2.46983,
+          "60daysAgo": 2.34527,
+          "90daysAgo": 2.33883,
+          "currency": "USD"
+        },
+        {
+          "period": "+1q",
+          "current": 2.74222,
+          "7daysAgo": 2.74295,
+          "30daysAgo": 2.74567,
+          "60daysAgo": 2.66044,
+          "90daysAgo": 2.64729,
+          "currency": "USD"
+        },
+        {
+          "period": "0y",
+          "current": 9.30732,
+          "7daysAgo": 9.30713,
+          "30daysAgo": 9.29436,
+          "60daysAgo": 8.96139,
+          "90daysAgo": 8.93743,
+          "currency": "USD"
+        },
+        {
+          "period": "+1y",
+          "current": 15.69508,
+          "7daysAgo": 15.68263,
+          "30daysAgo": 15.40425,
+          "60daysAgo": 12.83623,
+          "90daysAgo": 12.71023,
+          "currency": "USD"
+        }
+      ],
+      "earnings_history": [
+        {
+          "quarter": "2025-10-31",
+          "eps_estimate": 1.25647,
+          "eps_actual": 1.3,
+          "surprise_pct": 3.46
+        },
+        {
+          "quarter": "2026-01-31",
+          "eps_estimate": 1.53812,
+          "eps_actual": 1.62,
+          "surprise_pct": 5.32
+        },
+        {
+          "quarter": "2026-04-30",
+          "eps_estimate": 1.77191,
+          "eps_actual": 1.87,
+          "surprise_pct": 5.54
+        },
+        {
+          "quarter": "2026-07-31",
+          "eps_estimate": 2.09113,
+          "eps_actual": 2.22,
+          "surprise_pct": 6.16
+        }
+      ],
+      "calendar": {
+        "Dividend Date": "2026-10-01",
+        "Ex-Dividend Date": "2026-09-10",
+        "Earnings Date": [
+          "2026-11-17"
+        ],
+        "Earnings High": 2.7,
+        "Earnings Low": 2.34,
+        "Earnings Average": 2.47332,
+        "Revenue High": 116251000000,
+        "Revenue Low": 104937000000,
+        "Revenue Average": 108995424980
+      },
+      "available": true
+    },
+    "error": null
+  },
+  {
+    "path": "/api/screener?market=US&watchlist_only=0&limit=1&src=yf",
+    "seconds": 1.56,
+    "data": {
+      "available": true,
+      "universe": "US",
+      "rows": [
+        {
+          "pb": 24.298,
+          "pe": 47.114,
+          "chg": 2.48,
+          "eps": 4.9,
+          "low": 228.16,
+          "pct": 1.09,
+          "code": "US.NVDA",
+          "high": 232.285,
+          "name": "NVIDIA",
+          "open": 229.975,
+          "low52": 163.895371915,
+          "price": 230.86,
+          "high52": 236.000555627,
+          "pe_ttm": 29.185,
+          "shares": 23330891375,
+          "symbol": "NVDA",
+          "volume": 97534984,
+          "div_ttm": 0.28,
+          "new_low": false,
+          "new_high": false,
+          "turnover": 22493267015.954,
+          "amplitude": 1.806,
+          "div_yield": 0.12,
+          "float_cap": 5386169582832.5,
+          "market_cap": 5563726000000,
+          "volume_ratio": 0.912,
+          "bid_ask_ratio": 99.327,
+          "turnover_rate": 0.418,
+          "plate": "Semiconductors",
+          "stock_type": "STOCK",
+          "exchange": "US",
+          "concepts": [
+            "BATMMAAN",
+            "Temasek Holdings",
+            "Robot concept stock",
+            "BlackRock Holdings",
+            "Autonomous Driving",
+            "Softbank Holdings",
+            "Trump Holdings Concept",
+            "Metaverse",
+            "Prudential Financial Holdings",
+            "Brain-Computer Interface",
+            "Robotics",
+            "Sumitomo Mitsui Trust Holdings",
+            "Baillie Gifford Holdings",
+            "AI PC",
+            "Duan Yongping chicang gainian",
+            "AXA Group Holdings",
+            "UBS Holdings",
+            "BNY Mellon Holdings",
+            "Northern Trust Corp Holdings",
+            "ARK Portfolio",
+            "Vanguard Group Holdings",
+            "Star Tech Companies",
+            "Digitization of financial services",
+            "Natixis Investment Managers Holdings",
+            "Blockchain",
+            "HSBC Holdings",
+            "Legal & General Group Holdings",
+            "Wells Fargo Holdings",
+            "Credit Suisse Holdings",
+            "Morgan Stanley Holdings",
+            "BNP Paribas Holdings",
+            "Artificial Intelligence",
+            "Stargate Concept Stocks",
+            "Franklin Templeton Holdings",
+            "Goldman Sachs Holdings",
+            "State Street Global Holdings",
+            "Nancy Pelosi Portfolio",
+            "Data Center",
+            "CPU Concept",
+            "Coatue Management Holdings",
+            "JPMorgan Chase & Co. Holdings",
+            "Amundi Holdings",
+            "Invesco Holdings",
+            "AI glasses concept stocks",
+            "Physical AI",
+            "Intelligent driving concept stocks",
+            "T. Rowe Price Holdings",
+            "Nuveen Asset Management Holdings",
+            "Aegon Group Holdings",
+            "Fed Rate Cut Beneficiaries",
+            "AI Chip",
+            "U.S Tech Companies",
+            "Stocks reporting earnings this month",
+            "Magnificent 7 Stocks",
+            "AI semiconductor",
+            "Top 10 S&P 500 companies by weight",
+            "Top 10 S&P 500 companies by weight \u6cd5:Les 10 principaux titres composant le S&P 500",
+            "Moomoo Top-Traded Stocks",
+            "Regular Savings Plan",
+            "Star Stocks",
+            "AU\u5238\u5546\u7f8e\u80a1\u5b9a\u6295",
+            "Fractional Shares JP",
+            "Major tech companies",
+            "Options-Tradable Stocks",
+            "HK\u5238\u5546\u7f8e\u80a1\u5b9a\u6295",
+            "Star Technology Stocks",
+            "NASDAQ",
+            "Global list",
+            "Earnings Season Spotlight: Top Reports to Watch",
+            "Crypto Related Stocks",
+            "Popular US Stocks",
+            "moomoo jp",
+            "US suisuigu",
+            "screen-slice"
+          ]
+        }
+      ],
+      "count": 10605,
+      "matched": 10605,
+      "shown": 1,
+      "offset": 0,
+      "skipped_filters": [],
+      "enrich_as_of": "2026-09-30T01:06:55.246887+00:00",
+      "universe_loaded": true,
+      "universe_as_of": null,
+      "presets": [
+        {
+          "key": "penny",
+          "page": 1,
+          "name": "Penny Stocks",
+          "description": "Spot undervalued, low-priced stocks for substantial returns.",
+          "filters": [
+            {
+              "field": "price",
+              "max": 5
+            },
+            {
+              "field": "market_cap",
+              "max": 300000000.0
+            },
+            {
+              "field": "volume",
+              "min": 100000.0,
+              "days": 30
+            },
+            {
+              "field": "revenue_growth",
+              "min": 10
+            },
+            {
+              "field": "net_profit_growth",
+              "min": 5,
+              "excl_min": 1
+            },
+            {
+              "field": "debt_ratio",
+              "max": 40
+            }
+          ]
+        },
+        {
+          "key": "high-div",
+          "page": 1,
+          "name": "High Dividend Stocks",
+          "description": "Spot high-yield, stable dividend stocks for reliable income.",
+          "filters": [
+            {
+              "field": "market_cap",
+              "min": 2000000000.0,
+              "excl_min": 1
+            },
+            {
+              "field": "pe_ttm",
+              "max": 12
+            },
+            {
+              "field": "div_yield",
+              "min": 8
+            },
+            {
+              "field": "debt_ratio",
+              "max": 30
+            },
+            {
+              "field": "revenue_growth",
+              "min": 5,
+              "excl_min": 1
+            }
+          ]
+        },
+        {
+          "key": "blue-chip",
+          "page": 1,
+          "name": "Blue Chip Stocks",
+          "description": "Spot blue-chip stocks from well-established companies for reliable returns and low volatility.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 50
+            },
+            {
+              "field": "market_cap",
+              "min": 100000000000.0
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            },
+            {
+              "field": "revenue_growth",
+              "min": 5
+            }
+          ]
+        },
+        {
+          "key": "buffett",
+          "page": 1,
+          "name": "Warren Buffett Strategy",
+          "description": "Spot stocks with strong earnings, growth potential, and recognized value for strategic long-term investment.",
+          "filters": [
+            {
+              "field": "float_cap",
+              "min": 500000000.0
+            },
+            {
+              "field": "net_profit_growth",
+              "min": 10
+            },
+            {
+              "field": "gross_margin",
+              "min": 50
+            },
+            {
+              "field": "op_ebt",
+              "min": 70
+            },
+            {
+              "field": "roe",
+              "min": 15
+            },
+            {
+              "field": "roe_yoy",
+              "min": 20
+            }
+          ]
+        },
+        {
+          "key": "undervalued",
+          "page": 1,
+          "name": "Undervalued Stocks",
+          "description": "Spot stable, undervalued stocks for long-term growth.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "max": 15
+            },
+            {
+              "field": "pb",
+              "max": 1.5
+            },
+            {
+              "field": "div_yield",
+              "min": 4
+            },
+            {
+              "field": "debt_ratio",
+              "max": 30
+            },
+            {
+              "field": "roe",
+              "min": 15,
+              "excl_min": 1
+            },
+            {
+              "field": "revenue_growth",
+              "min": 3,
+              "excl_min": 1
+            }
+          ]
+        },
+        {
+          "key": "growth",
+          "page": 1,
+          "name": "Best Growth Stocks",
+          "description": "Spot stocks with growth potential and solid financial standing.",
+          "filters": [
+            {
+              "field": "float_cap",
+              "min": 500000000.0
+            },
+            {
+              "field": "net_profit_growth",
+              "min": 15
+            },
+            {
+              "field": "gross_margin",
+              "min": 50
+            },
+            {
+              "field": "roe",
+              "min": 15
+            },
+            {
+              "field": "roe_yoy",
+              "min": 50,
+              "excl_min": 1
+            }
+          ]
+        },
+        {
+          "key": "pb-lt-1",
+          "page": 1,
+          "name": "P/B Ratio Less Than 1",
+          "description": "Spot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.",
+          "filters": [
+            {
+              "field": "pb",
+              "max": 1
+            }
+          ]
+        },
+        {
+          "key": "best-lt-high-div",
+          "page": 2,
+          "name": "Best Long Term High Dividend Stocks",
+          "description": "Spot stocks with reliable dividends and steady growth for secure long-term returns.",
+          "filters": [
+            {
+              "field": "div_yield",
+              "min": 4
+            },
+            {
+              "field": "pe_ttm",
+              "max": 20
+            },
+            {
+              "field": "pb",
+              "max": 1.5
+            },
+            {
+              "field": "debt_ratio",
+              "max": 40
+            },
+            {
+              "field": "revenue_growth",
+              "min": 3
+            }
+          ]
+        },
+        {
+          "key": "high-pe",
+          "page": 2,
+          "name": "High P/E Ratio Stocks",
+          "description": "Spot stocks with high P/E ratios, which suggest a profitable and sustainable business.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "min": 25
+            },
+            {
+              "field": "op_profit_growth",
+              "min": 30,
+              "excl_min": 1
+            }
+          ]
+        },
+        {
+          "key": "good-pe",
+          "page": 2,
+          "name": "Good P/E Ratio Stocks",
+          "description": "Spot stocks with solid fundamentals and high P/E ratios for consistent profitability and returns.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "min": 20
+            },
+            {
+              "field": "eps_growth",
+              "min": 5
+            },
+            {
+              "field": "div_yield",
+              "min": 2
+            },
+            {
+              "field": "net_margin",
+              "min": 10
+            }
+          ]
+        },
+        {
+          "key": "low-pe",
+          "page": 2,
+          "name": "Low P/E Ratio Stocks",
+          "description": "Spot stocks with low P/E ratios, which are potentially undervalued for stable gains and reduced risk.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "max": 5,
+              "excl_max": 1
+            },
+            {
+              "field": "pb",
+              "max": 3,
+              "excl_max": 1
+            },
+            {
+              "field": "debt_ratio",
+              "max": 60,
+              "excl_max": 1
+            }
+          ]
+        },
+        {
+          "key": "rsi-30",
+          "page": 2,
+          "name": "Below 30 RSI Stocks",
+          "description": "Spot stocks with an RSI value under 30, which may indicate a rebound from negative market sentiment.",
+          "filters": [
+            {
+              "field": "rsi14",
+              "max": 30
+            }
+          ]
+        },
+        {
+          "key": "junk",
+          "page": 2,
+          "name": "Junk Stocks",
+          "description": "Spot small, high-risk, yet undervalued stocks with the potential for significant returns.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "min": 0
+            },
+            {
+              "field": "price",
+              "max": 5
+            },
+            {
+              "field": "market_cap",
+              "max": 100000000.0
+            }
+          ]
+        },
+        {
+          "key": "small-growth",
+          "page": 2,
+          "name": "Small Cap Stocks with Huge Growth Potential",
+          "description": "Spot small-cap stocks with significant growth potential.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 1
+            },
+            {
+              "field": "market_cap",
+              "min": 250000000.0,
+              "max": 2000000000.0
+            },
+            {
+              "field": "revenue_growth",
+              "min": 20
+            },
+            {
+              "field": "rsi14",
+              "min": 50
+            }
+          ]
+        },
+        {
+          "key": "blue-chip-div",
+          "page": 2,
+          "name": "Blue Chip Dividend Stocks",
+          "description": "Spot familiar blue-chip stocks with high dividends for dependable income and value investment.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 50
+            },
+            {
+              "field": "market_cap",
+              "min": 100000000000.0
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            },
+            {
+              "field": "div_yield",
+              "min": 4
+            }
+          ]
+        },
+        {
+          "key": "speculative",
+          "page": 3,
+          "name": "Speculative Stocks",
+          "description": "Spot high-risk, high-return stocks, including those at their recent 10-day low that may be undervalued and ready to rebound.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 5
+            },
+            {
+              "field": "market_cap",
+              "min": 100000000.0
+            },
+            {
+              "field": "net_margin",
+              "min": 10
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            },
+            {
+              "field": "new_low_10d",
+              "min": 1
+            }
+          ]
+        },
+        {
+          "key": "high-roe",
+          "page": 3,
+          "name": "High Return On Equity Stocks",
+          "description": "Spot high-quality stocks with solid profitability, growth, and attractive dividends for long-term stability.",
+          "filters": [
+            {
+              "field": "roe",
+              "min": 20
+            },
+            {
+              "field": "revenue_growth",
+              "min": 5
+            },
+            {
+              "field": "div_yield",
+              "min": 2
+            },
+            {
+              "field": "pe_ttm",
+              "max": 25
+            }
+          ]
+        },
+        {
+          "key": "lt-high-div",
+          "page": 3,
+          "name": "Low P/E High Dividend Stocks",
+          "description": "Spot financially stable, consistently growing stocks for secure and steady long-term returns.",
+          "filters": [
+            {
+              "field": "pe_ttm",
+              "max": 15
+            },
+            {
+              "field": "div_yield",
+              "min": 4
+            },
+            {
+              "field": "revenue_growth",
+              "min": 3
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            }
+          ]
+        },
+        {
+          "key": "undervalued-semi",
+          "page": 3,
+          "name": "Undervalued Semiconductor Stocks",
+          "description": "Spot semiconductor sector stocks that are well-valued, financially robust, and profitable for attractive long-term returns.",
+          "filters": [
+            {
+              "field": "sector",
+              "plate_ids": [
+                10002016,
+                10002015
+              ]
+            },
+            {
+              "field": "pe_ttm",
+              "max": 18
+            },
+            {
+              "field": "pb",
+              "max": 5
+            },
+            {
+              "field": "roe",
+              "min": 10
+            }
+          ]
+        },
+        {
+          "key": "undervalued-tech",
+          "page": 3,
+          "name": "Undervalued Tech Stocks",
+          "description": "Spot tech stocks that are undervalued by the market.",
+          "filters": [
+            {
+              "field": "sector",
+              "plate_ids": [
+                10002016,
+                10002072,
+                10002492,
+                10002470,
+                10002508,
+                10002252,
+                10002098,
+                10002004
+              ]
+            },
+            {
+              "field": "pe_ttm",
+              "max": 15
+            },
+            {
+              "field": "pb",
+              "max": 5
+            },
+            {
+              "field": "roe",
+              "min": 10
+            }
+          ]
+        },
+        {
+          "key": "undervalued-banks",
+          "page": 3,
+          "name": "Undervalued Bank Stocks",
+          "description": "Spot bank stocks that are financially sound, reasonably valued, and highly profitable.",
+          "filters": [
+            {
+              "field": "sector",
+              "plate_ids": [
+                10002481,
+                10002456
+              ]
+            },
+            {
+              "field": "pe_ttm",
+              "max": 10
+            },
+            {
+              "field": "pb",
+              "max": 1
+            },
+            {
+              "field": "roe",
+              "min": 12
+            }
+          ]
+        },
+        {
+          "key": "high-eps",
+          "page": 3,
+          "name": "High EPS Stocks",
+          "description": "Spot stocks with favorable financial footing and high profitability for investment.",
+          "filters": [
+            {
+              "field": "price",
+              "min": 5
+            },
+            {
+              "field": "market_cap",
+              "min": 100000000.0
+            },
+            {
+              "field": "eps",
+              "min": 10
+            },
+            {
+              "field": "debt_ratio",
+              "max": 50
+            }
+          ]
+        }
+      ],
+      "watchlist": [
+        "AAPL",
+        "AMD",
+        "META",
+        "NVDA",
+        "RKLB",
+        "TSLA"
+      ]
+    },
+    "error": null
+  }
+]

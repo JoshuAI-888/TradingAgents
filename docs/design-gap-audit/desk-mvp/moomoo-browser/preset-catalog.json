@@ -1,0 +1,93 @@
+{
+  "observed_at": "2026-10-02T20:45:38.139Z",
+  "entries": [
+    {
+      "text": "Penny Stocks\n\nSpot undervalued, low-priced stocks for substantial returns.Applied Filters: Stock Price ≤ $5, Market Cap ≤ $300 million, 30-Day Average Daily Trading Volume ≥ 100,000 shares, Revenue Growth (%) ≥ 10%, Net Income Growth (%) > 5%, Debt to Assets Ratio ≤ 40%.\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/penny-stocks-0"
+    },
+    {
+      "text": "High Dividend Stocks\n\nSpot high-yield, stable dividend stocks for reliable income.Applied Filters: Dividend Yield ≥ 8%, P/E ≤ 12, Debt to Assets Ratio ≤ 30%, Market Cap > $2 billion, Revenue Growth (%) > 5%.\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--",
+      "url": "https://www.moomoo.com/screener/stock-strategies/high-dividend-stocks-1"
+    },
+    {
+      "text": "Blue Chip Stocks\n\nSpot blue-chip stocks from well-established companies for reliable returns and low volatility.Applied Filters: Stock Price ≥ $50, Market Cap ≥ $100 billion, Debt to Assets Ratio ≤50%, Revenue Growth (%) ≥ 5%.\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/blue-chip-stocks-2"
+    },
+    {
+      "text": "Warren Buffett Strategy\n\nSpot stocks with strong earnings, growth potential, and recognized value for strategic long-term investment.Applied Filters: Float Market Cap ≥ $500 million, Net Income Growth (%) ≥ 10%, Gross Margin ≥ 50%, OP/EBT ≥ 70%, ROE Growth (%) ≥ 20%.\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/warren-buffett-strategy-3"
+    },
+    {
+      "text": "Undervalued Stocks\n\nSpot stable, undervalued stocks for long-term growth.Applied Filters: P/E ≤ 15, P/B ≤ 1.5, Dividend Yield ≥ 4%, Debt to Assets Ratio ≤ 30%, ROE > 15%, Revenue Growth (%) > 3%.\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/undervalued-stocks-4"
+    },
+    {
+      "text": "Best Growth Stocks\n\nSpot stocks with growth potential and solid financial standing.Applied Filters: Float Market Cap ≥ $500 million, Net Income Growth (%) ≥ 15%, Gross Margin ≥ 50%, ROE ≥ 15%, ROE YOY Growth > 50%.\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/best-growth-stocks-5"
+    },
+    {
+      "text": "P/B Ratio Less Than 1\n\nSpot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/pb-ratio-less-than-1-6"
+    },
+    {
+      "text": "Best Long Term High Dividend Stocks\n\nSpot high-dividend stocks for durable income and resilience against market volatility.Applied Filters: Dividend Yield ≥ 4%, P/E ≤ 20, P/B ≤ 1.5, Debt to Assets Ratio ≤ 40%, Revenue Growth (%) ≥ 3%.\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/best-long-term-high-dividend-stocks-7"
+    },
+    {
+      "text": "High P/E Ratio Stocks\n\nSpot stocks with high P/E ratios, which suggest a profitable and sustainable business.Applied Filters: P/E ≥ 25, ROE YOY Growth > 30%.\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/high-pe-ratio-stocks-8"
+    },
+    {
+      "text": "Good P/E Ratio Stocks\n\nSpot stocks with solid fundamentals and high P/E ratios for consistent profitability and returns.Applied Filters: P/E ≥ 20, EPS YOY Growth ≥ 5%, Dividend Yield ≥ 2%, Net Margin ≥ 10%.\n\nSTRW\n\n+4.90%\n\nABX\n\n+4.82%\n\nSNLAY\n\n+3.77%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/good-pe-ratio-stocks-9"
+    },
+    {
+      "text": "Low P/E Ratio Stocks\n\nSpot stocks with low P/E ratios, which are potentially undervalued for stable gains and reduced risk.Applied Filters: P/E < 5, P/B < 3, Debt to Assets Ratio < 60%.\n\nZENVF\n\n+2900.00%\n\nBHATF\n\n+500.00%\n\nNXUR\n\n+266.67%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/low-pe-ratio-stocks-10"
+    },
+    {
+      "text": "Below 30 RSI Stocks\n\nSpot stocks with an RSI value under 30, which may indicate a rebound from negative market sentiment.\n\nBPTH\n\n+200.00%\n\nNCLX\n\n+36.36%\n\nNIVF\n\n+27.72%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/below-30-rsi-stocks-11"
+    },
+    {
+      "text": "Junk Stocks\n\nSpot small, high-risk, yet undervalued stocks with the potential for significant returns.Applied Filters: P/E ≥ 0, Stock Price < $5, Market Cap < $100 million.\n\nAILEQ\n\n+9900.00%\n\nPCTL\n\n+9900.00%\n\nZENVF\n\n+2900.00%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/junk-stocks-12"
+    },
+    {
+      "text": "Small Cap Stocks with Huge Growth Potential\n\nSpot small-cap stocks with significant growth potential.Applied Filters: Stock Price ≥ $1, Market Cap: $250 million - $2 billion, Revenue YOY Growth (%) ≥ 20%, Daily RSI 14 > 50.\n\nFCEL\n\n+11.47%\n\nAZ\n\n+9.75%\n\nHYLN\n\n+7.60%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/small-cap-stocks-with-huge-growth-potential-13"
+    },
+    {
+      "text": "Blue Chip Dividend Stocks\n\nSpot familiar blue-chip stocks with high dividends for dependable income and value investment.Applied Filters: Stock Price ≥ $50, Market Cap ≥ $100 billion, Debt to Assets Ratio ≤ 50%, Dividend Yield ≥ 4%.\n\nRIO\n\n+1.44%\n\n--\n\n--\n\n--\n\n--",
+      "url": "https://www.moomoo.com/screener/stock-strategies/blue-chip-dividend-stocks-14"
+    },
+    {
+      "text": "Speculative Stocks\n\nSpot high-risk, high-return stocks, including those at their recent 10-day low that may be undervalued and ready to rebound. Applied Filters: Stock Price ≥ $5, Market Cap ≥ $100 million, Net Margin ≥ 10%, Debt to Assets Ratio ≤ 50%.\n\nIPXHY\n\n+2.47%\n\nSWKS\n\n+2.25%\n\nAGI\n\n+1.79%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/speculative-stocks-15"
+    },
+    {
+      "text": "High EPS Stocks\n\nSpot stocks with favorable financial footing and high profitability for investment.Applied Filters: Stock Price ≥ $5, Market Cap ≥ $100 million, Basic EPS ≥ $10, Debt to Assets Ratio ≤ 50%.\n\nMPWR\n\n+5.79%\n\nASMIY\n\n+4.81%\n\nCFNB\n\n+4.63%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/high-eps-stocks-16"
+    },
+    {
+      "text": "High Return On Equity Stocks\n\nSpot high-quality stocks with solid profitability, growth, and attractive dividends for long-term stability.Applied Filters: ROE ≥ 20%, Revenue Growth (%) ≥5%, Dividend Yield ≥ 2%, P/E ≤ 25.\n\nMRPLY\n\n+10.91%\n\nJUMSY\n\n+8.08%\n\nJBS\n\n+7.46%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/high-roe-stocks-17"
+    },
+    {
+      "text": "Low P/E High Dividend Stocks\n\nSpot financially stable, consistently growing stocks for secure and steady long-term returns.Applied Filters: P/E ≤ 15, Dividend Yield ≥ 4%, Revenue Growth (%) ≥ 3%, Debt to Assets Ratio ≤ 50%.\n\nESEA\n\n+2.71%\n\nAGNT\n\n+2.53%\n\nBTLCY\n\n+2.32%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/low-pe-high-dividend-stocks-18"
+    },
+    {
+      "text": "Undervalued Semiconductor Stocks\n\nSpot semiconductor sector stocks that are well-valued, financially robust, and profitable for attractive long-term returns.Applied Filters: P/E ≤ 18, P/B ≤ 5, ROE ≥ 10%.\n\nNA\n\n+2.33%\n\nPLAB\n\n+2.14%\n\nCRUS\n\n+0.83%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/undervalued-semiconductor-stocks-19"
+    },
+    {
+      "text": "Undervalued Tech Stocks\n\nSpot tech stocks that are undervalued by the market.Applied Filters: P/E ≤ 15, P/B ≤ 5, ROE ≥ 10%.\n\nPICS\n\n+7.83%\n\nDDD\n\n+6.78%\n\nMASK\n\n+4.49%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/undervalued-tech-stocks-20"
+    },
+    {
+      "text": "Undervalued Bank Stocks\n\nSpot bank stocks that are financially sound, reasonably valued, and highly profitable.Applied Filters: P/E ≤ 10, P/B ≤ 1, ROE ≥ 12%.\n\nNPB\n\n+3.37%\n\nFRST\n\n+1.49%\n\nOZK\n\n+0.79%",
+      "url": "https://www.moomoo.com/screener/stock-strategies/undervalued-bank-stocks-21"
+    }
+  ]
+}

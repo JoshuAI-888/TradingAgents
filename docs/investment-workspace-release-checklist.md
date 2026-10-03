@@ -1,6 +1,26 @@
 # Investment workspace release checklist
 
+**Current build-to-mockup review and delivery order:** [fresh six-step comparison and corrected checklist](design-gap-audit/mockup-recheck-e0131ef/README.md), reviewed against UI commit `e0131ef`. Default Desk placement and settled closed-inspector Changes placement pass in the tested desktop fixture. Remaining priorities are field/source qualification, visible criterion-versus-display semantics, inspector scroll/focus and field dates, laptop Explorer actions/peer context, pair review/monitoring, then full end-to-end and production acceptance. Company context, per-rule evidence, percentage columns, region apply/save and collision selection are built locally; older missing-feature statements below are historical. Seven ordered packets map to the existing R01–R15 register; all broader release gates remain open. No new merge/deployment or investment-grade data qualification is claimed.
+
+**Latest capture/export handoff:** [viewed-generation provenance](screener-generation-capture-handoff.md) binds capture retries/reloads to the viewed cohort and retains generation IDs in observations and downloaded CSVs. 362 API/worker and 70 JavaScript tests pass; two actual 1,176-row synthetic browser downloads reconcile. Remaining readers, native capture/PostgREST, live data, retention/cutover and full release gates remain open.
+
+**Latest R01 API checkpoint:** [generation-consistent API readers](screener-generation-api-readers.md) pin stored screener rows/server pages/downloads and derive facets, previews, groups and coverage from validated generations. 360 API/worker and 68 JavaScript tests pass, plus actual API/native worker-generation round-trip. Remaining direct readers, capture provenance, frontend handoff, PostgREST, retention and production cutover remain open; R01 is not closed.
+
+**Latest R01 worker checkpoint:** [actual worker/native database evidence](screener-generation-worker-integration.md) verifies staged atomic publication, exact replay after a lost commit response and successor fencing. 347 API/worker and 68 JavaScript tests pass. API readers still use legacy mirrors; pinned paging/capture/export, PostgREST, retention and production cutover remain open. R01 is not closed.
+
+**Current authoritative review and build sequence:** [build-to-design gap register](investment-workspace-current-gap-plan.md), reviewed against `bab57b2` and fresh desktop captures of all three views. It distinguishes built foundations from missing workflow/data elements and defines R01–R15, six dependent build packets and preservation gates. Older status/build-order paragraphs below are dated evidence; this review supersedes them. No new merge/deployment or production qualification is claimed.
+
+**Latest refresh checkpoint:** [universe refresh integrity](universe-refresh-integrity.md) adds strict batch/paging/classification validation, market-specific success/failure clocks, cohort fingerprints and a working cadence save. 331 API/worker and 68 JavaScript tests pass; synthetic desktop/phone evidence verifies status/save and 390 px document fit. Atomic publication/concurrency, complete market coverage and live reconciliation remain open.
+
+**Latest producer checkpoint:** [real quote provenance and remaining acceptance checks](design-gap-audit/quote-provenance-checkpoint/README.md). Cloud normalization now produces field observations and distinct source/cache clocks; the inspector no longer infers currency from market prefix. 298 API/worker and 68 JavaScript tests pass, with a fresh single AAPL quote and desktop/phone verification. Currency, fiscal/session contracts and full-universe coverage remain unqualified; all broader mockup/release gates remain open. Earlier counts/status paragraphs are dated evidence.
+
+**Latest acceptance scope:** [fresh original-mockup recheck and revised delivery order](investment-workspace-mockup-review.md#plan-recheck-against-the-three-original-mockups). Prior checked initial-release items below are historical preservation evidence, not sign-off for the full approved build. Current full local regressions: 255 API/worker and 66 JavaScript tests pass; current browser evidence is synthetic and covers only the three desktop views. Advanced data, team/pair review, schedules, full research preservation and production qualification remain open.
+
+Subsequent evidence: [stored-universe paired observations](paired-screen-observations.md), 272 API/worker and 67 JavaScript tests, native rollback-only v3 storage contract, desktop/phone inspection and an actual 108-row synthetic comparison download checked for every row. This advances historical evidence without closing the live-provider, ownership, scheduling or release gates.
+
 2 October 2026. This checklist separates completed verification from provider limitations. The [build plan](investment-workspace-build-plan.md) retains the full feature inventory and proposed follow-on coverage gates.
+
+The [fresh design-gap review](investment-workspace-design-gap-audit.md) separates this functional-release checklist from full design acceptance. The approved shell/inspector/Explorer/Change Monitor/mobile experience is not complete. Its packages A–F remain open; prior passing checks do not imply mockup fidelity, measured p95 or accessibility compliance.
 
 ## Build sequence and completed work
 
@@ -116,3 +136,75 @@ The table below distinguishes all provider matches from classified stocks in the
 Good P/E illustrates the expected stock-only difference: 116 provider instruments = 87 stocks + 29 ETFs. All-stock defaults and Clear exclude ETFs by design. Financial criterion columns show verified annual provider values; for Penny, RFL revenue growth is 43.956%, displayed as 43.96. The current stock Overview uses actual distribution values for gross flows, not a sum of net-flow observations ([Moomoo capital-flow field definition](https://openapi.moomoo.com/moomoo-api-doc/en/quote/get-capital-flow.html)).
 
 Final presentation polish also labels provider totals on complete small screens, so ETF exclusions remain clear, and bounds the initial Market Pulse feed to 12 score-ranked signals. Additional signals remain accessible through Show 12 more / Show fewer; no candidate records are removed. This avoids rendering the entire accumulated discovery backlog on every screener interaction.
+
+## Local design implementation checkpoint — 2 October 2026
+
+- [x] 23 JavaScript tests and 199 API/worker tests pass for the working tree. Selected CSV/Excel content and a stale inspector response race are covered.
+- [x] Offline inspector range/tab/focus and selection-removal interactions checked; synthetic screenshot linked in the design-gap audit.
+- [ ] Browser-downloaded selected files reconciled; full responsive/modal/keyboard acceptance.
+- [ ] A/B combined mockup acceptance, C/D/E/F completion and fresh production/Moomoo evidence.
+
+This checkpoint is unmerged and undeployed; initial-release checkmarks above do not close the design-completion gates.
+
+
+### Newer local desk checkpoint
+
+- [x] Direct desk, all 22 preset groups, global search, seven-field Overview and saved column compatibility implemented.
+- [x] Desktop table starts at 356.6 px at 1487 × 1058; inspector actions remain visible.
+- [x] Mobile selection measures 44 × 44; responsive modal Escape restores row Inspect focus and releases background isolation.
+- [x] 30 JavaScript tests pass; 199 API/worker tests passed before later frontend-only refinements; whitespace check passes.
+- [x] Source/implementation full-view and focused comparisons recorded in [design QA](../design-qa.md).
+- [ ] Resolve QA P1/P2 findings; A/B are not complete.
+- [ ] Complete C/D/E/F and fresh end-to-end/live-data/download/production gates.
+
+Current QA result is **blocked by remaining implementation and qualification work**, not by a missing user approval. This checkpoint is unmerged and undeployed.
+
+
+### Local linked Explorer checkpoint
+
+Core C now supports labeled linear/log axes, outlier-view disclosure, numeric/pointer region selection, zoom/clear, a linked results table, shared selection/inspection and explicit region CSV/Excel exports. Advanced forward-P/E/growth/ROIC/sector comparison remains gated on E; C acceptance is not closed. Numeric workflow, linked selection and Clear reset were browser-verified. Pointer dragging and full real-cohort/device qualification remain open.
+
+A/B status work adds no-match library recovery, per-export counts, retained-column labels and Modified saved-screen relationships. Applying saved settings now clones nested arrays/objects so UI edits cannot mutate the saved definition in memory. **37 JavaScript tests pass**; evidence and remaining findings are in [design QA](../design-qa.md). This is a local, unmerged, undeployed checkpoint.
+
+
+### Local Change Monitor D1 checkpoint — 2 October 2026
+
+Basic D1 is implemented locally: New/Exited/All queues, search, sort, pagination, explicit capture pairs, unavailable/paired evidence inspection and complete filtered comparison CSV. Snapshot safeguards reject incomplete/classification-unknown cohorts, incompatible versions, invalid dates and identities; provider financial evidence cannot borrow unrelated quote fields. Current-screen and review counts/exports are labeled separately. **208 API/worker tests and 43 JavaScript tests pass.** Desktop/phone fixture evidence and remaining fidelity gaps are recorded in [design QA](../design-qa.md). This is unmerged and undeployed, with no production capture writes or fresh financial reconciliation.
+
+D1/D2 are not complete: criterion-specific table fields/sorting, selection, Next unreviewed, notes/shortlists, authenticated ownership, concurrency-safe durable history and scheduling remain open. Storage currently keeps only two captures. Entering/exiting records often lack an observation on the other side, so numeric causes are explicitly unavailable. Do not infer a threshold crossing from absent membership.
+
+- [x] D1 date-pair queue/search/pagination, invalid-pair recovery and phone dialog focus checked against synthetic captures.
+- [x] Comparison export pagination/immutable pair and incomplete/duplicate rejection verified in automated tests.
+- [ ] Contextual Changes toolbar and compact criterion matrix meet paired visual acceptance.
+- [ ] Authenticated independent lists/review ownership, durable concurrent history and schedules qualified.
+- [ ] Criterion row selection/sorts and Next unreviewed checked end to end.
+- [ ] Numeric causes supported by compatible before/after observations; no missing-member inference.
+- [ ] Downloaded comparison files reconciled with actual review scope and production data.
+
+
+### Local private-research backend checkpoint
+
+Owner-verified shortlist APIs and an additive migration are implemented, with soft archive/removal, canonical instrument membership, private notes/review status, optimistic revisions and atomic parent locks. **226 API/worker tests pass**; an isolated PostgreSQL 16.14 contract and an observed two-connection archive/add race pass. Details and limitations are in [private research ownership](private-research-ownership.md). No browser login/list UI is wired yet; the migration is unapplied to production. Existing 22 presets and shared Phase 0 saved/watchlist/snapshot records are untouched. Owner-private storage does not close shared-team workflow acceptance. Next: authentication UI and shortlist/review integration, legacy ownership migration, live schema/Auth qualification and the remaining D/E/F gates.
+
+## Latest retained-history checkpoint
+
+This supersedes historical statements above that storage currently retains only two captures. The new local build retains immutable captures and reads two payloads only for the default comparison; its date history is metadata-paginated. Legacy blobs/IDs remain intact. [Retained-history contract and rollout gates](durable-screen-history.md) include the nontransparent old-binary rollback limitation.
+
+- [x] 239 API/worker and 62 JavaScript regressions pass.
+- [x] Isolated PostgreSQL immutable/grant/idempotency/atomicity contracts and actual two-connection append race pass; the local test server is stopped.
+- [x] Synthetic 105-capture browser paging retains selected pair/counts/disclosure/focus; first review row remains 491.4 CSS px with provenance collapsed.
+- [ ] Verified capture ownership/team roles and legacy mapping; real Auth/PostgREST/production migration qualification.
+- [ ] Complete paired observations with compatible periods/currency/source clocks, pair-scoped review and opt-in schedules.
+- [ ] Large-history/device/accessibility/performance, completed downloads, fresh Moomoo/data reconciliation and qualified cutover/rollback.
+
+The shortlist UI is wired locally; older backend-only statements above are historical. This checkpoint is unmerged/undeployed and does not close full-design acceptance.
+
+## Latest shortlist search/responsive checkpoint
+
+- [x] Company/ticker search applies before pagination using matching canonical stored names; 1,200-item native SQL contract passes.
+- [x] Phone card actions fit the first screen at 390 × 844; tablet library collapses and review/Escape fits at 768 × 1024.
+- [x] Actual one-item synthetic shortlist CSV downloaded and parsed; file metadata/hash and browser event timeout are recorded in `design-gap-audit/shortlist-search-checkpoint/download-check.json`. Prepared links are recoverable and revoked on private-account clearing.
+- [x] 240 API/worker and 65 JavaScript regressions pass.
+- [ ] Production migration/Auth/PostgREST, large-list browser downloads/latency, 200% zoom, assistive technology and all remaining design/data/release gates.
+
+[Updated mockup review](investment-workspace-mockup-review.md) records screenshots and measured bounds. This is local, unmerged and undeployed.

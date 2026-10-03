@@ -1,0 +1,14 @@
+{
+  "path": "/Users/joshmini/Downloads/screen_comparison_fixture-before_fixture-after (1).csv",
+  "pair": [
+    "fixture-before",
+    "fixture-after"
+  ],
+  "count": 1,
+  "code": "US.S0001",
+  "unfiltered_count": 1177,
+  "review_filter": "reviewed",
+  "review_revision": 1,
+  "review_revision_hash": "bbc843cbcf0223730993979752e452285c9d317da58e6934a8fc50f2ebbf709a",
+  "synthetic_only": true
+}

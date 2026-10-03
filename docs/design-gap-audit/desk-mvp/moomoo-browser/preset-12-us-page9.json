@@ -1,0 +1,207 @@
+{
+  "observed_at": "2026-10-02T20:53:20.461Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/junk-stocks-12",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/FIEE-US",
+      "text": "401\nFIEE\nFIEE INC\n3.670\n-0.27%\n-0.010\n31.30M\n1.03K\n7.81"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GROW-US",
+      "text": "402\nGROW\nUS Global Investors\n2.860\n-0.35%\n-0.010\n35.17M\n21.01K\n11.92"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CRE-US",
+      "text": "403\nCRE\nCre8 Enterprise\n2.700\n-0.37%\n-0.010\n5.44M\n10.41K\n8.08"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CRWS-US",
+      "text": "404\nCRWS\nCrown Crafts\n2.480\n-0.40%\n-0.010\n26.69M\n52.14K\n5.39"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TWG-US",
+      "text": "405\nTWG\nTop Wealth Group Holding\n0.1102\n-0.45%\n-0.0005\n6.91M\n2.39M\n0.85"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SDA-US",
+      "text": "406\nSDA\nSunCar technology\n0.4290\n-0.56%\n-0.0024\n43.76M\n295.06K\n14.30"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ROLR-US",
+      "text": "407\nROLR\nHigh Roller Technologies\n4.890\n-0.61%\n-0.030\n53.93M\n31.00K\n16.86"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PCSA-US",
+      "text": "408\nPCSA\nProcessa Pharmaceuticals\n1.610\n-0.62%\n-0.010\n4.50M\n14.87K\n2.48"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/OLB-US",
+      "text": "409\nOLB\nThe OLB Group\n0.1890\n-0.63%\n-0.0012\n4.54M\n427.14K\n0.11"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VIP-US",
+      "text": "410\nVIP\nVULCAN INFRASTRUCTURE AND POWER INC\n1.520\n-0.65%\n-0.010\n28.01M\n123.93K\n12.67"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/JCSE-US",
+      "text": "411\nJCSE\nJE Cleantech Holdings Limited\n1.420\n-0.70%\n-0.010\n7.46M\n11.33K\n2.93"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AWX-US",
+      "text": "412\nAWX\nAvalon Holdings\n2.480\n-0.80%\n-0.020\n9.67M\n5.57K\n8.27"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RNGE-US",
+      "text": "413\nRNGE\nRANGE IMPACT INC\n0.6848\n-0.81%\n-0.0056\n84.02M\n21.30K\n6.23"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PVL-US",
+      "text": "414\nPVL\nPermianville Royalty Trust\n1.825\n-0.82%\n-0.015\n60.23M\n25.17K\n10.43"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/IZM-US",
+      "text": "415\nIZM\nICZOOM Group\n1.200\n-0.83%\n-0.010\n2.88M\n18.32K\n2.40"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PGOL-US",
+      "text": "416\nPGOL\nPATRIOT GOLD CORPORATION\n0.0390\n-0.84%\n-0.0003\n2.39M\n10.00K\n39.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BTMD-US",
+      "text": "417\nBTMD\nbiote\n1.150\n-0.86%\n-0.010\n41.32M\n125.33K\n8.21"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/OXBR-US",
+      "text": "418\nOXBR\nOxbridge Re Holdings\n1.120\n-0.88%\n-0.010\n9.12M\n3.92K\n56.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CVV-US",
+      "text": "419\nCVV\nCVD Equipment\n4.330\n-0.92%\n-0.040\n30.10M\n24.69K\n2.99"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RHEP-US",
+      "text": "420\nRHEP\nRegional Health Properties\n1.010\n-0.98%\n-0.010\n3.96M\n178.00\n0.46"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CCLD-US",
+      "text": "421\nCCLD\nCareCloud\n2.020\n-0.98%\n-0.020\n85.84M\n136.85K\n28.86"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CTRM-US",
+      "text": "422\nCTRM\nCastor Maritime\n2.000\n-0.99%\n-0.020\n19.32M\n13.89K\n0.60"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WYHG-US",
+      "text": "423\nWYHG\nWing Yip Food\n3.690\n-1.07%\n-0.040\n46.43M\n14.74K\n5.77"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CHKR-US",
+      "text": "424\nCHKR\nCHESAPEAKE GRANITE WASH TR\n0.3855\n-1.15%\n-0.0045\n18.02M\n1.93K\n4.10"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WIMI-US",
+      "text": "425\nWIMI\nWiMi Hologram Cloud\n0.7689\n-1.16%\n-0.0090\n14.14M\n56.09K\n0.77"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KLNG-US",
+      "text": "426\nKLNG\nKoil Energy Solutions\n2.965\n-1.17%\n-0.035\n36.34M\n2.19K\n42.36"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/JL-US",
+      "text": "427\nJL\nJ-Long Group\n4.585\n-1.19%\n-0.055\n16.35M\n2.07K\n6.11"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SELF-US",
+      "text": "428\nSELF\nGlobal Self Storage\n4.850\n-1.22%\n-0.060\n55.39M\n51.41K\n26.94"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WELX-US",
+      "text": "429\nWELX\nWINLAND HOLDINGS CORPORATION\n3.432\n-1.37%\n-0.048\n17.44M\n1.88K\n57.20"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/OTLC-US",
+      "text": "430\nOTLC\nONCOTELIC THERAPEUTICS INC\n0.0210\n-1.41%\n-0.0003\n9.61M\n274.75K\n0.04"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/YSXT-US",
+      "text": "431\nYSXT\nYSX Tech\n1.232\n-1.44%\n-0.018\n39.28M\n3.69K\n11.20"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AHMA-US",
+      "text": "432\nAHMA\nAmbitions Enterprise Management\n1.320\n-1.49%\n-0.020\n39.24M\n20.78K\n32.20"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/JFIN-US",
+      "text": "433\nJFIN\nJiayin Group\n1.310\n-1.50%\n-0.020\n68.55M\n40.77K\n1.86"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PETZ-US",
+      "text": "434\nPETZ\nTDH Holdings\n1.300\n-1.52%\n-0.020\n13.42M\n744.00\n7.65"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/YOUL-US",
+      "text": "435\nYOUL\nYoulife Group\n0.3960\n-1.57%\n-0.0063\n32.08M\n24.19K\n4.66"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TOON-US",
+      "text": "436\nTOON\nKartoon Studios\n0.5610\n-1.63%\n-0.0093\n34.90M\n199.78K\n7.01"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/STG-US",
+      "text": "437\nSTG\nSunlands Technology\n2.850\n-1.72%\n-0.050\n36.40M\n1.11K\n0.79"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DTST-US",
+      "text": "438\nDTST\nData Storage\n3.320\n-1.78%\n-0.060\n7.76M\n14.57K\n1.62"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VSA-US",
+      "text": "439\nVSA\nVisionSys AI\n2.210\n-1.78%\n-0.040\n6.17M\n25.19K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LECRD-US",
+      "text": "440\nLECRD\nLEOCOR MINING INC\n0.1738\n-1.81%\n-0.0032\n86.97M\n1.00K\n3.48"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MAMO-US",
+      "text": "441\nMAMO\nMassimo\n0.9690\n-1.85%\n-0.0183\n40.35M\n24.27K\n9.69"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FBIO-US",
+      "text": "442\nFBIO\nFortress Biotech\n2.030\n-1.93%\n-0.040\n67.70M\n326.11K\n0.73"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WETH-US",
+      "text": "443\nWETH\nWetouch Technology\n1.000\n-1.95%\n-0.020\n13.38M\n61.13K\n1.43"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CSOC-US",
+      "text": "444\nCSOC\nCADUCEUS SOFTWARE SYSTEMS CORP\n0.0022\n-2.02%\n-0.0000\n844.47K\n30.80K\n1.12"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LCGMD-US",
+      "text": "445\nLCGMD\nLION COPPER AND GOLD CORP\n4.810\n-2.04%\n-0.100\n76.84M\n3.24K\n8.91"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PRT-US",
+      "text": "446\nPRT\nPermRock Royalty Trust\n1.880\n-2.09%\n-0.040\n22.87M\n44.97K\n8.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RBNE-US",
+      "text": "447\nRBNE\nRobin Energy\n2.250\n-2.17%\n-0.050\n3.00M\n17.07K\n14.42"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LSE-US",
+      "text": "448\nLSE\nLeishen Energy\n4.500\n-2.17%\n-0.100\n76.61M\n1.76K\n1125.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ATGN-US",
+      "text": "449\nATGN\nALTIGEN COMMUNICATIONS INC\n0.4400\n-2.20%\n-0.0099\n11.39M\n6.00K\n22.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HUIZ-US",
+      "text": "450\nHUIZ\nHuize\n1.330\n-2.21%\n-0.030\n13.44M\n9.00K\n3.72"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\n\nDeposit, Share & Win NVDA 0.1\n\nGet started\nScreener\nRecommended Screeners\nJunk Stocks\nJunk Stocks\n\nSpot small, high-risk, yet undervalued stocks with the potential for significant returns.\n\nApplied Filters: P/E ≥ 0, Stock Price < $5, Market Cap < $100 million.\n\nSelected:\n\nSave Screener\nMarket: USP/E TTM: ≥0.00Stock Price: ≤5.00Market Value: ≤100.00M\nResult: 531 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nP/E (TTM)\nWatchlist\nPaper Trade\n401\nFIEE\nFIEE INC\n3.670\n-0.27%\n-0.010\n31.30M\n1.03K\n7.81\n402\nGROW\nUS Global Investors\n2.860\n-0.35%\n-0.010\n35.17M\n21.01K\n11.92\n403\nCRE\nCre8 Enterprise\n2.700\n-0.37%\n-0.010\n5.44M\n10.41K\n8.08\n404\nCRWS\nCrown Crafts\n2.480\n-0.40%\n-0.010\n26.69M\n52.14K\n5.39\n405\nTWG\nTop Wealth Group Holding\n0.1102\n-0.45%\n-0.0005\n6.91M\n2.39M\n0.85\n406\nSDA\nSunCar technology\n0.4290\n-0.56%\n-0.0024\n43.76M\n295.06K\n14.30\n407\nROLR\nHigh Roller Technologies\n4.890\n-0.61%\n-0.030\n53.93M\n31.00K\n16.86\n408\nPCSA\nProcessa Pharmaceuticals\n1.610\n-0.62%\n-0.010\n4.50M\n14.87K\n2.48\n409\nOLB\nThe OLB Group\n0.1890\n-0.63%\n-0.0012\n4.54M\n427.14K\n0.11\n410\nVIP\nVULCAN INFRASTRUCTURE AND POWER INC\n1.520\n-0.65%\n-0.010\n28.01M\n123.93K\n12.67\n411\nJCSE\nJE Cleantech Holdings Limited\n1.420\n-0.70%\n-0.010\n7.46M\n11.33K\n2.93\n412\nAWX\nAvalon Holdings\n2.480\n-0.80%\n-0.020\n9.67M\n5.57K\n8.27\n413\nRNGE\nRANGE IMPACT INC\n0.6848\n-0.81%\n-0.0056\n84.02M\n21.30K\n6.23\n414\nPVL\nPermianville Royalty Trust\n1.825\n-0.82%\n-0.015\n60.23M\n25.17K\n10.43\n415\nIZM\nICZOOM Group\n1.200\n-0.83%\n-0.010\n2.88M\n18.32K\n2.40\n416\nPGOL\nPATRIOT GOLD CORPORATION\n0.0390\n-0.84%\n-0.0003\n2.39M\n10.00K\n39.00\n417\nBTMD\nbiote\n1.150\n-0.86%\n-0.010\n41.32M\n125.33K\n8.21\n418\nOXBR\nOxbridge Re Holdings\n1.120\n-0.88%\n-0.010\n9.12M\n3.92K\n56.00\n419\nCVV\nCVD Equipment\n4.330\n-0.92%\n-0.040\n30.10M\n24.69K\n2.99\n420\nRHEP\nRegional Health Properties\n1.010\n-0.98%\n-0.010\n3.96M\n178.00\n0.46\n421\nCCLD\nCareCloud\n2.020\n-0.98%\n-0.020\n85.84M\n136.85K\n28.86\n422\nCTRM\nCastor Maritime\n2.000\n-0.99%\n-0.020\n19.32M\n13.89K\n0.60\n423\nWYHG\nWing Yip Food\n3.690\n-1.07%\n-0.040\n46.43M\n14.74K\n5.77\n424\nCHKR\nCHESAPEAKE GRANITE WASH TR\n0.3855\n-1.15%\n-0.0045\n18.02M\n1.93K\n4.10\n425\nWIMI\nWiMi Hologram Cloud\n0.7689\n-1.16%\n-0.0090\n14.14M\n56.09K\n0.77\n426\nKLNG\nKoil Energy Solutions\n2.965\n-1.17%\n-0.035\n36.34M\n2.19K\n42.36\n427\nJL\nJ-Long Group\n4.585\n-1.19%\n-0.055\n16.35M\n2.07K\n6.11\n428\nSELF\nGlobal Self Storage\n4.850\n-1.22%\n-0.060\n55.39M\n51.41K\n26.94\n429\nWELX\nWINLAND HOLDINGS CORPORATION\n3.432\n-1.37%\n-0.048\n17.44M\n1.88K\n57.20\n430\nOTLC\nONCOTELIC THERAPEUTICS INC\n0.0210\n-1.41%\n-0.0003\n9.61M\n274.75K\n0.04\n431\nYSXT\nYSX Tech\n1.232\n-1.44%\n-0.018\n39.28M\n3.69K\n11.20\n432\nAHMA\nAmbitions Enterprise Management\n1.320\n-1.49%\n-0.020\n39.24M\n20.78K\n32.20\n433\nJFIN\nJiayin Group\n1.310\n-1.50%\n-0.020\n68.55M\n40.77K\n1.86\n434\nPETZ\nTDH Holdings\n1.300\n-1.52%\n-0.020\n13.42M\n744.00\n7.65\n435\nYOUL\nYoulife Group\n0.3960\n-1.57%\n-0.0063\n32.08M\n24.19K\n4.66\n436\nTOON\nKartoon Studios\n0.5610\n-1.63%\n-0.0093\n34.90M\n199.78K\n7.01\n437\nSTG\nSunlands Technology\n2.850\n-1.72%\n-0.050\n36.40M\n1.11K\n0.79\n438\nDTST\nData Storage\n3.320\n-1.78%\n-0.060\n7.76M\n14.57K\n1.62\n439\nVSA\nVisionSys AI\n2.210\n-1.78%\n-0.040\n6.17M\n25.19K\n0.00\n440\nLECRD\nLEOCOR MINING INC\n0.1738\n-1.81%\n-0.0032\n86.97M\n1.00K\n3.48\n441\nMAMO\nMassimo\n0.9690\n-1.85%\n-0.0183\n40.35M\n24.27K\n9.69\n442\nFBIO\nFortress Biotech\n2.030\n-1.93%\n-0.040\n67.70M\n326.11K\n0.73\n443\nWETH\nWetouch Technology\n1.000\n-1.95%\n-0.020\n13.38M\n61.13K\n1.43\n444\nCSOC\nCADUCEUS SOFTWARE SYSTEMS CORP\n0.0022\n-2.02%\n-0.0000\n844.47K\n30.80K\n1.12\n445\nLCGMD\nLION COPPER AND GOLD CORP\n4.810\n-2.04%\n-0.100\n76.84M\n3.24K\n8.91\n446\nPRT\nPermRock Royalty Trust\n1.880\n-2.09%\n-0.040\n22.87M\n44.97K\n8.00\n447\nRBNE\nRobin Energy\n2.250\n-2.17%\n-0.050\n3.00M\n17.07K\n14.42\n448\nLSE\nLeishen Energy\n4.500\n-2.17%\n-0.100\n76.61M\n1.76K\n1125.00\n449\nATGN\nALTIGEN COMMUNICATIONS INC\n0.4400\n-2.20%\n-0.0099\n11.39M\n6.00K\n22.00\n450\nHUIZ\nHuize\n1.330\n-2.21%\n-0.030\n13.44M\n9.00K\n3.72\n1\n7\n8\n9\n10\n11\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\nSTRW\n\n+4.90%\n\nABX\n\n+4.82%\n\nSNLAY\n\n+3.77%\n\nLow P/E Ratio Stocks\n\nZENVF\n\n+2900.00%\n\nBHATF\n\n+500.00%\n\nNXUR\n\n+266.67%\n\nBelow 30 RSI Stocks\n\nBPTH\n\n+200.00%\n\nNCLX\n\n+36.36%\n\nNIVF\n\n+27.72%\n\nJunk Stocks\n\nAILEQ\n\n+9900.00%\n\nPCTL\n\n+9900.00%\n\nZENVF\n\n+2900.00%\n\nSmall Cap Stocks with Huge Growth Potential\n\nFCEL\n\n+11.47%\n\nAZ\n\n+9.75%\n\nHYLN\n\n+7.60%\n\nBlue Chip Dividend Stocks\n\nRIO\n\n+1.44%\n\n--\n\n--\n\n--\n\n--\n\n1\n2\nCustomer Service\n0800 886 800\n\n(toll free)\n\n+64 9 872 6000\n\n(from overseas)\n\nTrading days: 24 hours\n\nNon-trading days: 9:30 - 21:30 NZT\n\nsupport@nz.moomoo.com\n\nOfficial WhatsApp\n\nAbout moomoo\nAbout moomoo\nContact Us\nInvestor Relations\nTerms & Conditions\nPrivacy Policy\nTerms of Use\nFinancial Services Guide\nLicensed Entities*\nCareers / Contact:\nApply Now\ncareer@au.moomoo.com\nFollow us on\n\nThe moomoo app is an online trading platform offered by Moomoo Technologies Inc. In New Zealand, financial services are offered by Moomoo Securities Australia Ltd, NZBN: 942 905 240 2296, a financial services provider registered in New Zealand (FSP1008656). Moomoo Securities Australia Limited is not licensed by a New Zealand regulator to provide financial services. Its registration on the New Zealand FSP Register does not mean that it is subject to active regulation or oversight by a New Zealand regulator.\n\nInvestments carry risks and may result in losses. Market data or information on this website is for reference only and should not be seen as an endorsement or recommendation to buy or sell financial products. Past performance is not indicative of future results. The information is general and doesn't consider your personal investment objectives, financial situation, or needs. Consider your personal circumstances before making investment decisions.\n\nOptions trading involves substantial risks and may not be suitable for all investors. Losses could potentially exceed your initial investment. Please carefully review and consider our US Options Product Disclosure Statement and OCC's Characteristics and Risks of Standardized Options before trading options with us.\n\nPlease read, consider and understand our Financial Services Disclosure Statement, Privacy Policy, Website Terms and Conditions, Information Collection Notice and Risk Disclosure Statement before deciding to use our services.\n\nCompany Address: Moomoo Securities Australia Ltd. Suite 5.01, 570 George Street, Sydney NSW 2000\n\nCopyright © 2026 Moomoo Technologies Inc. All Rights Reserved."
+}

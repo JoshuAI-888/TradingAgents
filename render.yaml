@@ -49,6 +49,16 @@ services:
     startCommand: cd web/worker && python -m tradingagents_worker.service
     healthCheckPath: /healthz
     envVars:
+      - key: UNIVERSE_ENUMERATION_MODE_US
+        value: screen
+      - key: UNIVERSE_ENUMERATION_MODE_HK
+        value: screen
+      - key: UNIVERSE_REQUEST_SPACING_SECONDS
+        value: "2"
+      - key: NORMALIZED_INSTRUMENT_CLASSES_ENABLED
+        sync: false
+      - key: INSTRUMENT_SUBTYPE_CACHE_ENABLED
+        sync: false
       - key: PYTHON_VERSION
         value: "3.12.8"
       - key: TRADINGAGENTS_CACHE_DIR
@@ -120,11 +130,23 @@ services:
     plan: starter
     region: virginia
     buildCommand: pip install -r web/worker/requirements.txt && pip install -e .
-    schedule: "0 13-21 * * 1-5"  # hourly in US market hours; re-enumerates listings daily
-    startCommand: cd web/worker && python -m tradingagents_worker.universe_refresh
+    schedule: "0 8,21 * * 1-5"       # Daily HK/US close; bounded MVP storage growth
+    startCommand: cd web/worker && python -m tradingagents_worker.market_cron universe
     envVars:
+      - key: UNIVERSE_ENUMERATION_MODE_US
+        value: screen
+      - key: UNIVERSE_ENUMERATION_MODE_HK
+        value: screen
+      - key: UNIVERSE_REQUEST_SPACING_SECONDS
+        value: "2"
+      - key: NORMALIZED_INSTRUMENT_CLASSES_ENABLED
+        sync: false
+      - key: INSTRUMENT_SUBTYPE_CACHE_ENABLED
+        sync: false
       - key: PYTHON_VERSION
         value: "3.12.8"
+      - key: UNIVERSE_MARKET
+        value: US
       - key: TRADINGAGENTS_CACHE_DIR
         value: /tmp/ta-cache   # crons have no disk; /data is not writable
       - key: SUPABASE_URL
@@ -142,9 +164,11 @@ services:
     plan: starter
     region: virginia
     buildCommand: pip install -r web/worker/requirements.txt && pip install -e .
-    schedule: "45 21 * * 1-5"  # after the 13:00–21:00 US-hours universe refreshes — same trading day (spec §5b)
-    startCommand: cd web/worker && python -m tradingagents_worker.enrich_nightly
+    schedule: "45 8,21 * * 1-5"  # HK 16:45 HKT / US 21:45 UTC
+    startCommand: cd web/worker && python -m tradingagents_worker.market_cron enrich
     envVars:
+      - key: INSTRUMENT_SUBTYPE_COLLECTION_ENABLED
+        value: "0"  # enable only after first US/HK qualification
       - key: PYTHON_VERSION
         value: "3.12.8"
       - key: TRADINGAGENTS_CACHE_DIR
@@ -159,6 +183,10 @@ services:
         sync: false
       - key: MOOMOO_PRIVATE_KEY
         sync: false
+
+  # HK shares the two screener cron services above. Routing uses UTC, not host timezone.
+
+  # Subtype acquisition shares the post-close enrichment services, default-off.
 
   - type: cron
     name: tradingagents-backup

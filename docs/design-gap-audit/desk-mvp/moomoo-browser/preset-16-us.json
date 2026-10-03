@@ -1,0 +1,207 @@
+{
+  "observed_at": "2026-10-02T20:47:18.255Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/high-eps-stocks-16",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/MPWR-US",
+      "text": "1\nMPWR\nMonolithic Power Systems\n1439.730\n+5.79%\n+78.760\n70.75B\n690.31K\n15.80%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ASMIY-US",
+      "text": "2\nASMIY\nASM INTERNATIONAL NV SPON ADR EACH REP 1 ORD SHS\n1066.410\n+4.81%\n+48.950\n52.06B\n3.56K\n24.94%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CFNB-US",
+      "text": "3\nCFNB\nCALIFORNIA FIRST LEASING CORP\n1334.000\n+4.63%\n+59.000\n239.54M\n8.00\n17.47%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BIO-US",
+      "text": "4\nBIO\nBio-Rad Laboratories\n369.140\n+3.82%\n+13.570\n9.87B\n223.64K\n29.53%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AYI-US",
+      "text": "5\nAYI\nAcuity\n308.760\n+3.17%\n+9.480\n9.24B\n682.94K\n42.70%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TSM-US",
+      "text": "6\nTSM\nTaiwan Semiconductor\n472.780\n+2.96%\n+13.580\n2.45T\n9.72M\n31.98%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AZZ-US",
+      "text": "7\nAZZ\nAZZ Inc\n139.390\n+2.94%\n+3.980\n4.19B\n193.03K\n39.60%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NRP-US",
+      "text": "8\nNRP\nNatural Resource\n109.500\n+2.89%\n+3.080\n1.45B\n24.92K\n15.48%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FN-US",
+      "text": "9\nFN\nFabrinet\n463.690\n+2.71%\n+12.250\n16.62B\n659.32K\n37.25%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ESEA-US",
+      "text": "10\nESEA\nEuroseas\n72.420\n+2.71%\n+1.910\n510.95M\n43.52K\n33.84%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MATX-US",
+      "text": "11\nMATX\nMatson\n231.110\n+2.49%\n+5.610\n6.91B\n211.26K\n40.48%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FFIV-US",
+      "text": "12\nFFIV\nF5 Inc\n454.040\n+2.34%\n+10.360\n25.71B\n628.31K\n43.16%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MCEM-US",
+      "text": "13\nMCEM\nMONARCH CEMENT COMPANY\n268.000\n+2.28%\n+5.980\n994.40M\n3.00\n12.64%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DAC-US",
+      "text": "14\nDAC\nDanaos\n165.150\n+2.11%\n+3.410\n3.01B\n212.46K\n25.78%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TNK-US",
+      "text": "15\nTNK\nTeekay Tankers\n103.100\n+2.07%\n+2.090\n3.58B\n655.99K\n8.84%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DAVE-US",
+      "text": "16\nDAVE\nDave Inc\n346.570\n+2.06%\n+6.980\n4.42B\n339.17K\n27.63%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ESE-US",
+      "text": "17\nESE\nESCO Technologies\n274.950\n+1.86%\n+5.030\n7.12B\n167.09K\n36.07%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RS-US",
+      "text": "18\nRS\nReliance\n400.310\n+1.85%\n+7.270\n20.44B\n273.10K\n30.79%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SEB-US",
+      "text": "19\nSEB\nSeaboard\n4024.280\n+1.85%\n+72.970\n3.85B\n6.44K\n36.51%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/UI-US",
+      "text": "20\nUI\nUbiquiti\n620.520\n+1.78%\n+10.880\n37.56B\n117.09K\n34.48%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GOOG-US",
+      "text": "21\nGOOG\nAlphabet-C\n340.350\n+1.62%\n+5.420\n4.16T\n17.38M\n30.24%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PNRG-US",
+      "text": "22\nPNRG\nPrimeEnergy Resources\n204.660\n+1.61%\n+3.240\n323.89M\n29.69K\n33.41%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ITIC-US",
+      "text": "23\nITIC\nInvestors Title\n290.200\n+1.56%\n+4.450\n547.90M\n33.86K\n26.12%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GOOGL-US",
+      "text": "24\nGOOGL\nAlphabet-A\n343.500\n+1.56%\n+5.260\n4.20T\n22.73M\n30.24%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FSLR-US",
+      "text": "25\nFSLR\nFirst Solar\n174.610\n+1.45%\n+2.500\n18.77B\n1.90M\n28.40%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CVCO-US",
+      "text": "26\nCVCO\nCavco Industries\n585.130\n+1.37%\n+7.930\n4.50B\n91.66K\n26.02%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ASR-US",
+      "text": "27\nASR\nGrupo Aeroportuario del Sureste SAB de CV\n234.410\n+1.31%\n+3.020\n7.20B\n70.51K\n48.00%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CRS-US",
+      "text": "28\nCRS\nCarpenter Technology\n388.470\n+1.25%\n+4.780\n19.25B\n824.67K\n41.96%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DDS-US",
+      "text": "29\nDDS\nDillard's\n654.110\n+1.20%\n+7.760\n10.22B\n188.31K\n49.25%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AIT-US",
+      "text": "30\nAIT\nApplied Industrial Technologies\n343.450\n+1.20%\n+4.060\n12.62B\n268.17K\n38.15%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GEF.B-US",
+      "text": "31\nGEF.B\nGreif-B\n107.570\n+1.17%\n+1.240\n4.08B\n70.48K\n47.20%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WTS-US",
+      "text": "32\nWTS\nWatts Water Technologies\n363.070\n+1.00%\n+3.580\n12.12B\n238.52K\n29.62%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MSFT-US",
+      "text": "33\nMSFT\nMicrosoft\n517.530\n+0.92%\n+4.730\n3.84T\n17.18M\n41.67%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CHE-US",
+      "text": "34\nCHE\nChemed\n507.500\n+0.91%\n+4.600\n6.61B\n159.12K\n36.33%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GSL-US",
+      "text": "35\nGSL\nGlobal Ship Lease\n45.790\n+0.77%\n+0.350\n1.65B\n329.88K\n37.05%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GEF-US",
+      "text": "36\nGEF\nGreif\n82.180\n+0.76%\n+0.620\n4.67B\n307.71K\n47.20%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TDY-US",
+      "text": "37\nTDY\nTeledyne Technologies\n617.170\n+0.73%\n+4.470\n28.61B\n181.33K\n31.22%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GPOR-US",
+      "text": "38\nGPOR\nGulfport Energy\n154.400\n+0.68%\n+1.050\n2.73B\n223.39K\n39.44%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SUI-US",
+      "text": "39\nSUI\nSun Communities Inc\n110.750\n+0.68%\n+0.750\n13.49B\n1.06M\n43.52%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MLM-US",
+      "text": "40\nMLM\nMartin Marietta Materials\n482.270\n+0.65%\n+3.100\n34.25B\n732.40K\n46.37%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DJCO-US",
+      "text": "41\nDJCO\nDaily Journal\n656.440\n+0.52%\n+3.400\n904.54M\n32.11K\n28.65%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ANPDY-US",
+      "text": "42\nANPDY\nANTA SPORTS PRODUC\n235.370\n+0.48%\n+1.130\n26.08B\n849.00\n41.75%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/INGR-US",
+      "text": "43\nINGR\nIngredion\n95.330\n+0.44%\n+0.420\n6.01B\n733.86K\n44.71%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BRK.B-US",
+      "text": "44\nBRK.B\nBerkshire Hathaway-B\n502.650\n+0.43%\n+2.150\n1.08T\n4.14M\n41.11%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BRK.A-US",
+      "text": "45\nBRK.A\nBerkshire Hathaway-A\n754790.000\n+0.41%\n+3045.000\n1.08T\n127.00\n41.11%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WTM-US",
+      "text": "46\nWTM\nWhite Mountains Insurance Group\n2020.920\n+0.39%\n+7.880\n4.82B\n16.33K\n49.17%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RIGL-US",
+      "text": "47\nRIGL\nRigel Pharmaceuticals\n47.150\n+0.38%\n+0.180\n880.76M\n185.92K\n23.78%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SENEA-US",
+      "text": "48\nSENEA\nSeneca Foods-A\n177.660\n+0.36%\n+0.630\n1.20B\n121.23K\n39.39%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SNA-US",
+      "text": "49\nSNA\nSnap-on\n368.900\n+0.32%\n+1.180\n19.08B\n232.04K\n29.19%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NEU-US",
+      "text": "50\nNEU\nNewMarket\n924.060\n+0.32%\n+2.920\n8.50B\n113.51K\n49.08%"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\nLog in to access Online Inquiry\nBack to the Top\nScreener\nRecommended Screeners\nHigh EPS Stocks\nHigh EPS Stocks\n\nSpot stocks with favorable financial footing and high profitability for investment.\n\nApplied Filters: Stock Price ≥ $5, Market Cap ≥ $100 million, Basic EPS ≥ $10, Debt to Assets Ratio ≤ 50%.\n\nSelected:\n\nSave Screener\nMarket: USStock Price: ≥5.00Market Value: ≥100.00MBasic EPS: ≥10.00Debt to Asset Ratio: ≤50%\nResult: 93 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nDebt to Asset Ratio\nWatchlist\nPaper Trade\n1\nMPWR\nMonolithic Power Systems\n1439.730\n+5.79%\n+78.760\n70.75B\n690.31K\n15.80%\n2\nASMIY\nASM INTERNATIONAL NV SPON ADR EACH REP 1 ORD SHS\n1066.410\n+4.81%\n+48.950\n52.06B\n3.56K\n24.94%\n3\nCFNB\nCALIFORNIA FIRST LEASING CORP\n1334.000\n+4.63%\n+59.000\n239.54M\n8.00\n17.47%\n4\nBIO\nBio-Rad Laboratories\n369.140\n+3.82%\n+13.570\n9.87B\n223.64K\n29.53%\n5\nAYI\nAcuity\n308.760\n+3.17%\n+9.480\n9.24B\n682.94K\n42.70%\n6\nTSM\nTaiwan Semiconductor\n472.780\n+2.96%\n+13.580\n2.45T\n9.72M\n31.98%\n7\nAZZ\nAZZ Inc\n139.390\n+2.94%\n+3.980\n4.19B\n193.03K\n39.60%\n8\nNRP\nNatural Resource\n109.500\n+2.89%\n+3.080\n1.45B\n24.92K\n15.48%\n9\nFN\nFabrinet\n463.690\n+2.71%\n+12.250\n16.62B\n659.32K\n37.25%\n10\nESEA\nEuroseas\n72.420\n+2.71%\n+1.910\n510.95M\n43.52K\n33.84%\n11\nMATX\nMatson\n231.110\n+2.49%\n+5.610\n6.91B\n211.26K\n40.48%\n12\nFFIV\nF5 Inc\n454.040\n+2.34%\n+10.360\n25.71B\n628.31K\n43.16%\n13\nMCEM\nMONARCH CEMENT COMPANY\n268.000\n+2.28%\n+5.980\n994.40M\n3.00\n12.64%\n14\nDAC\nDanaos\n165.150\n+2.11%\n+3.410\n3.01B\n212.46K\n25.78%\n15\nTNK\nTeekay Tankers\n103.100\n+2.07%\n+2.090\n3.58B\n655.99K\n8.84%\n16\nDAVE\nDave Inc\n346.570\n+2.06%\n+6.980\n4.42B\n339.17K\n27.63%\n17\nESE\nESCO Technologies\n274.950\n+1.86%\n+5.030\n7.12B\n167.09K\n36.07%\n18\nRS\nReliance\n400.310\n+1.85%\n+7.270\n20.44B\n273.10K\n30.79%\n19\nSEB\nSeaboard\n4024.280\n+1.85%\n+72.970\n3.85B\n6.44K\n36.51%\n20\nUI\nUbiquiti\n620.520\n+1.78%\n+10.880\n37.56B\n117.09K\n34.48%\n21\nGOOG\nAlphabet-C\n340.350\n+1.62%\n+5.420\n4.16T\n17.38M\n30.24%\n22\nPNRG\nPrimeEnergy Resources\n204.660\n+1.61%\n+3.240\n323.89M\n29.69K\n33.41%\n23\nITIC\nInvestors Title\n290.200\n+1.56%\n+4.450\n547.90M\n33.86K\n26.12%\n24\nGOOGL\nAlphabet-A\n343.500\n+1.56%\n+5.260\n4.20T\n22.73M\n30.24%\n25\nFSLR\nFirst Solar\n174.610\n+1.45%\n+2.500\n18.77B\n1.90M\n28.40%\n26\nCVCO\nCavco Industries\n585.130\n+1.37%\n+7.930\n4.50B\n91.66K\n26.02%\n27\nASR\nGrupo Aeroportuario del Sureste SAB de CV\n234.410\n+1.31%\n+3.020\n7.20B\n70.51K\n48.00%\n28\nCRS\nCarpenter Technology\n388.470\n+1.25%\n+4.780\n19.25B\n824.67K\n41.96%\n29\nDDS\nDillard's\n654.110\n+1.20%\n+7.760\n10.22B\n188.31K\n49.25%\n30\nAIT\nApplied Industrial Technologies\n343.450\n+1.20%\n+4.060\n12.62B\n268.17K\n38.15%\n31\nGEF.B\nGreif-B\n107.570\n+1.17%\n+1.240\n4.08B\n70.48K\n47.20%\n32\nWTS\nWatts Water Technologies\n363.070\n+1.00%\n+3.580\n12.12B\n238.52K\n29.62%\n33\nMSFT\nMicrosoft\n517.530\n+0.92%\n+4.730\n3.84T\n17.18M\n41.67%\n34\nCHE\nChemed\n507.500\n+0.91%\n+4.600\n6.61B\n159.12K\n36.33%\n35\nGSL\nGlobal Ship Lease\n45.790\n+0.77%\n+0.350\n1.65B\n329.88K\n37.05%\n36\nGEF\nGreif\n82.180\n+0.76%\n+0.620\n4.67B\n307.71K\n47.20%\n37\nTDY\nTeledyne Technologies\n617.170\n+0.73%\n+4.470\n28.61B\n181.33K\n31.22%\n38\nGPOR\nGulfport Energy\n154.400\n+0.68%\n+1.050\n2.73B\n223.39K\n39.44%\n39\nSUI\nSun Communities Inc\n110.750\n+0.68%\n+0.750\n13.49B\n1.06M\n43.52%\n40\nMLM\nMartin Marietta Materials\n482.270\n+0.65%\n+3.100\n34.25B\n732.40K\n46.37%\n41\nDJCO\nDaily Journal\n656.440\n+0.52%\n+3.400\n904.54M\n32.11K\n28.65%\n42\nANPDY\nANTA SPORTS PRODUC\n235.370\n+0.48%\n+1.130\n26.08B\n849.00\n41.75%\n43\nINGR\nIngredion\n95.330\n+0.44%\n+0.420\n6.01B\n733.86K\n44.71%\n44\nBRK.B\nBerkshire Hathaway-B\n502.650\n+0.43%\n+2.150\n1.08T\n4.14M\n41.11%\n45\nBRK.A\nBerkshire Hathaway-A\n754790.000\n+0.41%\n+3045.000\n1.08T\n127.00\n41.11%\n46\nWTM\nWhite Mountains Insurance Group\n2020.920\n+0.39%\n+7.880\n4.82B\n16.33K\n49.17%\n47\nRIGL\nRigel Pharmaceuticals\n47.150\n+0.38%\n+0.180\n880.76M\n185.92K\n23.78%\n48\nSENEA\nSeneca Foods-A\n177.660\n+0.36%\n+0.630\n1.20B\n121.23K\n39.39%\n49\nSNA\nSnap-on\n368.900\n+0.32%\n+1.180\n19.08B\n232.04K\n29.19%\n50\nNEU\nNewMarket\n924.060\n+0.32%\n+2.920\n8.50B\n113.51K\n49.08%\n1\n2\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBest Long Term High Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nLow P/E Ratio Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBelow 30 RSI Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nJunk Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nSmall Cap Stocks with Huge Growth Potential\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\n1\n2"
+}

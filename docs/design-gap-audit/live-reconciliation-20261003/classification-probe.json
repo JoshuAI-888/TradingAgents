@@ -1,0 +1,68 @@
+{
+  "captured_at": "2026-10-02T13:01:40.250593+00:00",
+  "source": "yfinance info",
+  "yfinance_version": "1.7.0",
+  "records": [
+    {
+      "code": "US.PLD",
+      "requested_symbol": "PLD",
+      "identity_matches": true,
+      "raw_selected": {
+        "symbol": "PLD",
+        "quoteType": "EQUITY",
+        "typeDisp": "Equity",
+        "sector": "Real Estate",
+        "industry": "REIT - Industrial",
+        "currency": "USD",
+        "regularMarketTime": 1790885059,
+        "longName": "Prologis, Inc."
+      }
+    },
+    {
+      "code": "US.AMT",
+      "requested_symbol": "AMT",
+      "identity_matches": true,
+      "raw_selected": {
+        "symbol": "AMT",
+        "quoteType": "EQUITY",
+        "typeDisp": "Equity",
+        "sector": "Real Estate",
+        "industry": "REIT - Specialty",
+        "currency": "USD",
+        "regularMarketTime": 1790884803,
+        "longName": "American Tower Corporation"
+      }
+    },
+    {
+      "code": "US.SPY",
+      "requested_symbol": "SPY",
+      "identity_matches": true,
+      "raw_selected": {
+        "symbol": "SPY",
+        "quoteType": "ETF",
+        "typeDisp": "ETF",
+        "sector": null,
+        "industry": null,
+        "currency": "USD",
+        "regularMarketTime": 1790884800,
+        "longName": "State Street SPDR S&P 500 ETF Trust"
+      }
+    },
+    {
+      "code": "US.AAPL",
+      "requested_symbol": "AAPL",
+      "identity_matches": true,
+      "raw_selected": {
+        "symbol": "AAPL",
+        "quoteType": "EQUITY",
+        "typeDisp": "Equity",
+        "sector": "Technology",
+        "industry": "Consumer Electronics",
+        "currency": "USD",
+        "regularMarketTime": 1790884801,
+        "longName": "Apple Inc."
+      }
+    }
+  ],
+  "limits": "Four bounded same-response samples. Does not classify unsampled trust/fund rows or establish full universe membership."
+}

@@ -80,3 +80,7 @@ ignore = ["E501"]
 # Keep multiple aliased names from one module in a single combined import block
 # (e.g. the vendor imports in router.py) instead of one statement per name.
 combine-as-imports = true
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI dependency declarations are intentional reusable default objects.
+extend-immutable-calls = ["fastapi.Depends"]

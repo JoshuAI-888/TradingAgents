@@ -1,0 +1,19 @@
+{
+  "synthetic": true,
+  "rows": 1,
+  "code": "US.S0001",
+  "review_status": "scope_conflict",
+  "revisions": [
+    2,
+    5
+  ],
+  "original_contracts": [
+    "cross_history",
+    "same_history"
+  ],
+  "price_before": 12,
+  "price_after": 8,
+  "private_note_blank": true,
+  "both_original_anchors_retained": true,
+  "selected_representative_keys_equal": true
+}

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from tradingagents.agents.context import (get_instrument_context_from_state,
-                                          get_language_instruction, get_price_context_from_state)
-from tradingagents.agents.prompts import render, resolve
+from tradingagents.agents.context import (
+    get_instrument_context_from_state,
+    get_language_instruction,
+    get_price_context_from_state,
+)
 from tradingagents.agents.prompt_texts import AGENT_PROMPTS
+from tradingagents.agents.prompts import render, resolve
 from tradingagents.agents.schemas import ResearchPlan, render_research_plan
 from tradingagents.agents.structured import (
     NO_EXTERNAL_TOOLS,

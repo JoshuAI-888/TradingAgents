@@ -1,0 +1,87 @@
+{
+  "observed_at": "2026-10-02T20:50:31.758Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/undervalued-tech-stocks-20",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/NXTT-US",
+      "text": "51\nNXTT\nNext Technology\n5.610\n-1.23%\n-0.070\n8.26M\n28.15K\n-0.03\n0.02\n53.30%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PAYP-US",
+      "text": "52\nPAYP\nPayPay\n14.920\n-1.45%\n-0.220\n10.10B\n699.82K\n13.88\n4.05\n46.57%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/IBEX-US",
+      "text": "53\nIBEX\nIBEX Ltd\n43.580\n-1.58%\n-0.700\n578.68M\n60.85K\n13.92\n3.40\n30.43%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PTC-US",
+      "text": "54\nPTC\nPTC Inc\n144.030\n-1.67%\n-2.440\n15.63B\n1.12M\n13.97\n4.50\n20.85%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DTST-US",
+      "text": "55\nDTST\nData Storage\n3.320\n-1.78%\n-0.060\n7.76M\n14.57K\n1.62\n0.75\n61.61%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FISV-US",
+      "text": "56\nFISV\nFiserv\n44.360\n-2.25%\n-1.020\n23.59B\n6.40M\n8.50\n0.88\n13.17%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WIT-US",
+      "text": "57\nWIT\nWipro\n1.720\n-2.27%\n-0.040\n17.02B\n6.57M\n13.13\n2.12\n15.40%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/EVER-US",
+      "text": "58\nEVER\nEverQuote\n19.500\n-2.40%\n-0.480\n687.18M\n642.18K\n6.35\n2.68\n53.19%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TASK-US",
+      "text": "59\nTASK\nTaskUs\n8.060\n-2.42%\n-0.200\n739.00M\n399.68K\n6.95\n2.46\n18.65%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/INFY-US",
+      "text": "60\nINFY\nInfosys\n11.040\n-2.73%\n-0.310\n44.72B\n19.59M\n13.63\n4.65\n31.57%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LDOS-US",
+      "text": "61\nLDOS\nLeidos\n117.740\n-3.47%\n-4.230\n14.78B\n890.52K\n10.99\n2.80\n31.05%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/UPWK-US",
+      "text": "62\nUPWK\nUpwork\n8.050\n-3.48%\n-0.290\n1.01B\n2.20M\n10.32\n1.64\n19.15%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CTSH-US",
+      "text": "63\nCTSH\nCognizant\n58.510\n-3.89%\n-2.370\n26.36B\n6.98M\n12.56\n1.82\n15.16%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/G-US",
+      "text": "64\nG\nGenpact\n33.290\n-4.06%\n-1.410\n5.59B\n1.81M\n9.91\n2.15\n22.37%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SAGT-US",
+      "text": "65\nSAGT\nSagtec Global\n0.5732\n-4.34%\n-0.0260\n10.92M\n183.98K\n6.51\n0.44\n12.01%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/EPAM-US",
+      "text": "66\nEPAM\nEPAM Systems\n108.290\n-5.30%\n-6.060\n5.59B\n1.10M\n14.69\n1.59\n10.34%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HPAI-US",
+      "text": "67\nHPAI\nHelport AI\n0.3041\n-5.56%\n-0.0179\n11.45M\n19.60K\n6.08\n0.66\n12.18%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VRRM-US",
+      "text": "68\nVRRM\nVerra Mobility\n2.810\n-6.02%\n-0.180\n427.07M\n5.28M\n10.41\n1.91\n48.96%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ACN-US",
+      "text": "69\nACN\nAccenture\n198.900\n-6.31%\n-13.400\n118.60B\n10.01M\n14.67\n3.76\n25.82%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SCOR-US",
+      "text": "70\nSCOR\nComscore\n4.240\n-6.40%\n-0.290\n64.38M\n58.15K\n0.58\n0.72\n43.75%"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\nScreener\nRecommended Screeners\nUndervalued Tech Stocks\nUndervalued Tech Stocks\n\nSpot tech stocks that are undervalued by the market.\n\nApplied Filters: P/E ≤ 15, P/B ≤ 5, ROE ≥ 10%.\n\nSelected:\n\nSave Screener\nMarket: USSector: Semiconductor Equipment & Materials, Electronic Components, Computer Hardware, Software - Application, Software - Infrastructure, Information Technology Services, Communication Equipment, Internet Content & InformationP/E TTM: ≤15.00P/B: ≤5.00ROE: ≥10%\nResult: 70 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nP/E (TTM)\nP/B\nROE\nWatchlist\nPaper Trade\n51\nNXTT\nNext Technology\n5.610\n-1.23%\n-0.070\n8.26M\n28.15K\n-0.03\n0.02\n53.30%\n52\nPAYP\nPayPay\n14.920\n-1.45%\n-0.220\n10.10B\n699.82K\n13.88\n4.05\n46.57%\n53\nIBEX\nIBEX Ltd\n43.580\n-1.58%\n-0.700\n578.68M\n60.85K\n13.92\n3.40\n30.43%\n54\nPTC\nPTC Inc\n144.030\n-1.67%\n-2.440\n15.63B\n1.12M\n13.97\n4.50\n20.85%\n55\nDTST\nData Storage\n3.320\n-1.78%\n-0.060\n7.76M\n14.57K\n1.62\n0.75\n61.61%\n56\nFISV\nFiserv\n44.360\n-2.25%\n-1.020\n23.59B\n6.40M\n8.50\n0.88\n13.17%\n57\nWIT\nWipro\n1.720\n-2.27%\n-0.040\n17.02B\n6.57M\n13.13\n2.12\n15.40%\n58\nEVER\nEverQuote\n19.500\n-2.40%\n-0.480\n687.18M\n642.18K\n6.35\n2.68\n53.19%\n59\nTASK\nTaskUs\n8.060\n-2.42%\n-0.200\n739.00M\n399.68K\n6.95\n2.46\n18.65%\n60\nINFY\nInfosys\n11.040\n-2.73%\n-0.310\n44.72B\n19.59M\n13.63\n4.65\n31.57%\n61\nLDOS\nLeidos\n117.740\n-3.47%\n-4.230\n14.78B\n890.52K\n10.99\n2.80\n31.05%\n62\nUPWK\nUpwork\n8.050\n-3.48%\n-0.290\n1.01B\n2.20M\n10.32\n1.64\n19.15%\n63\nCTSH\nCognizant\n58.510\n-3.89%\n-2.370\n26.36B\n6.98M\n12.56\n1.82\n15.16%\n64\nG\nGenpact\n33.290\n-4.06%\n-1.410\n5.59B\n1.81M\n9.91\n2.15\n22.37%\n65\nSAGT\nSagtec Global\n0.5732\n-4.34%\n-0.0260\n10.92M\n183.98K\n6.51\n0.44\n12.01%\n66\nEPAM\nEPAM Systems\n108.290\n-5.30%\n-6.060\n5.59B\n1.10M\n14.69\n1.59\n10.34%\n67\nHPAI\nHelport AI\n0.3041\n-5.56%\n-0.0179\n11.45M\n19.60K\n6.08\n0.66\n12.18%\n68\nVRRM\nVerra Mobility\n2.810\n-6.02%\n-0.180\n427.07M\n5.28M\n10.41\n1.91\n48.96%\n69\nACN\nAccenture\n198.900\n-6.31%\n-13.400\n118.60B\n10.01M\n14.67\n3.76\n25.82%\n70\nSCOR\nComscore\n4.240\n-6.40%\n-0.290\n64.38M\n58.15K\n0.58\n0.72\n43.75%\n1\n2\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\nSTRW\n\n+4.90%\n\nABX\n\n+4.82%\n\nSNLAY\n\n+3.77%\n\nLow P/E Ratio Stocks\n\nZENVF\n\n+2900.00%\n\nBHATF\n\n+500.00%\n\nNXUR\n\n+266.67%\n\nBelow 30 RSI Stocks\n\nBPTH\n\n+200.00%\n\nNCLX\n\n+36.36%\n\nNIVF\n\n+27.72%\n\nJunk Stocks\n\nAILEQ\n\n+9900.00%\n\nPCTL\n\n+9900.00%\n\nZENVF\n\n+2900.00%\n\nSmall Cap Stocks with Huge Growth Potential\n\nFCEL\n\n+11.47%\n\nAZ\n\n+9.75%\n\nHYLN\n\n+7.60%\n\nBlue Chip Dividend Stocks\n\nRIO\n\n+1.44%\n\n--\n\n--\n\n--\n\n--\n\n1\n2\nCustomer Service\n0800 886 800\n\n(toll free)\n\n+64 9 872 6000\n\n(from overseas)\n\nTrading days: 24 hours\n\nNon-trading days: 9:30 - 21:30 NZT\n\nsupport@nz.moomoo.com\n\nOfficial WhatsApp\n\nAbout moomoo\nAbout moomoo\nContact Us\nInvestor Relations\nTerms & Conditions\nPrivacy Policy\nTerms of Use\nFinancial Services Guide\nLicensed Entities*\nCareers / Contact:\nApply Now\ncareer@au.moomoo.com\nFollow us on\n\nThe moomoo app is an online trading platform offered by Moomoo Technologies Inc. In New Zealand, financial services are offered by Moomoo Securities Australia Ltd, NZBN: 942 905 240 2296, a financial services provider registered in New Zealand (FSP1008656). Moomoo Securities Australia Limited is not licensed by a New Zealand regulator to provide financial services. Its registration on the New Zealand FSP Register does not mean that it is subject to active regulation or oversight by a New Zealand regulator.\n\nInvestments carry risks and may result in losses. Market data or information on this website is for reference only and should not be seen as an endorsement or recommendation to buy or sell financial products. Past performance is not indicative of future results. The information is general and doesn't consider your personal investment objectives, financial situation, or needs. Consider your personal circumstances before making investment decisions.\n\nOptions trading involves substantial risks and may not be suitable for all investors. Losses could potentially exceed your initial investment. Please carefully review and consider our US Options Product Disclosure Statement and OCC's Characteristics and Risks of Standardized Options before trading options with us.\n\nPlease read, consider and understand our Financial Services Disclosure Statement, Privacy Policy, Website Terms and Conditions, Information Collection Notice and Risk Disclosure Statement before deciding to use our services.\n\nCompany Address: Moomoo Securities Australia Ltd. Suite 5.01, 570 George Street, Sydney NSW 2000\n\nCopyright © 2026 Moomoo Technologies Inc. All Rights Reserved."
+}

@@ -1,0 +1,455 @@
+{
+  "verified_at": "2026-10-02T13:01:40.250593+00:00",
+  "definition_contracts_unchanged": 22,
+  "preset_results": [
+    {
+      "key": "penny",
+      "name": "Penny Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 55,
+      "retrieved_first_page": 55,
+      "raw_classification_counts": {
+        "STOCK": 55
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:07.437872+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "high-div",
+      "name": "High Dividend Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 0,
+      "retrieved_first_page": 0,
+      "raw_classification_counts": {},
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:58:36.586508+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "blue-chip",
+      "name": "Blue Chip Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 40,
+      "retrieved_first_page": 40,
+      "raw_classification_counts": {
+        "STOCK": 39,
+        "ETF": 1
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:58:37.555596+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "buffett",
+      "name": "Warren Buffett Strategy",
+      "available": true,
+      "pending": [],
+      "provider_total": 128,
+      "retrieved_first_page": 128,
+      "raw_classification_counts": {
+        "STOCK": 125,
+        "ETF": 3
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:58:37.728102+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "undervalued",
+      "name": "Undervalued Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 4,
+      "retrieved_first_page": 4,
+      "raw_classification_counts": {
+        "STOCK": 3,
+        "ETF": 1
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:29.127213+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "growth",
+      "name": "Best Growth Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 104,
+      "retrieved_first_page": 104,
+      "raw_classification_counts": {
+        "STOCK": 101,
+        "ETF": 3
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:58:37.624815+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "pb-lt-1",
+      "name": "P/B Ratio Less Than 1",
+      "available": true,
+      "pending": [],
+      "provider_total": 3158,
+      "retrieved_first_page": 300,
+      "raw_classification_counts": {
+        "STOCK": 300
+      },
+      "possibly_truncated": true,
+      "next_key_present": true,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:29.833965+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "best-lt-high-div",
+      "name": "Best Long Term High Dividend Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 41,
+      "retrieved_first_page": 41,
+      "raw_classification_counts": {
+        "STOCK": 35,
+        "ETF": 6
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:07.493856+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "high-pe",
+      "name": "High P/E Ratio Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 426,
+      "retrieved_first_page": 300,
+      "raw_classification_counts": {
+        "STOCK": 288,
+        "ETF": 12
+      },
+      "possibly_truncated": true,
+      "next_key_present": true,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:07.722526+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "good-pe",
+      "name": "Good P/E Ratio Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 116,
+      "retrieved_first_page": 116,
+      "raw_classification_counts": {
+        "STOCK": 87,
+        "ETF": 29
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:30.221671+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "low-pe",
+      "name": "Low P/E Ratio Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 1430,
+      "retrieved_first_page": 300,
+      "raw_classification_counts": {
+        "STOCK": 300
+      },
+      "possibly_truncated": true,
+      "next_key_present": true,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:58:37.672348+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "rsi-30",
+      "name": "Below 30 RSI Stocks",
+      "available": false,
+      "pending": [
+        "rsi14"
+      ],
+      "provider_total": null,
+      "retrieved_first_page": 0,
+      "raw_classification_counts": {},
+      "possibly_truncated": null,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": null,
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "junk",
+      "name": "Junk Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 373,
+      "retrieved_first_page": 300,
+      "raw_classification_counts": {
+        "STOCK": 292,
+        "ETF": 8
+      },
+      "possibly_truncated": true,
+      "next_key_present": true,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:07.900891+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "small-growth",
+      "name": "Small Cap Stocks with Huge Growth Potential",
+      "available": false,
+      "pending": [
+        "rsi14"
+      ],
+      "provider_total": null,
+      "retrieved_first_page": 0,
+      "raw_classification_counts": {},
+      "possibly_truncated": null,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": null,
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "blue-chip-div",
+      "name": "Blue Chip Dividend Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 1,
+      "retrieved_first_page": 1,
+      "raw_classification_counts": {
+        "STOCK": 1
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:31.252163+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "speculative",
+      "name": "Speculative Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 227,
+      "retrieved_first_page": 227,
+      "raw_classification_counts": {
+        "STOCK": 202,
+        "ETF": 25
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:32.126854+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "high-roe",
+      "name": "High Return On Equity Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 187,
+      "retrieved_first_page": 187,
+      "raw_classification_counts": {
+        "STOCK": 183,
+        "ETF": 4
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:32.301543+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "lt-high-div",
+      "name": "Low P/E High Dividend Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 98,
+      "retrieved_first_page": 98,
+      "raw_classification_counts": {
+        "STOCK": 91,
+        "ETF": 7
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:32.626009+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "undervalued-semi",
+      "name": "Undervalued Semiconductor Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 3,
+      "retrieved_first_page": 3,
+      "raw_classification_counts": {
+        "STOCK": 3
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:34.068545+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "undervalued-tech",
+      "name": "Undervalued Tech Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 67,
+      "retrieved_first_page": 67,
+      "raw_classification_counts": {
+        "STOCK": 67
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:33.463681+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "undervalued-banks",
+      "name": "Undervalued Bank Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 6,
+      "retrieved_first_page": 6,
+      "raw_classification_counts": {
+        "STOCK": 6
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:33.348932+00:00",
+      "canonical_duplicates": 0
+    },
+    {
+      "key": "high-eps",
+      "name": "High EPS Stocks",
+      "available": true,
+      "pending": [],
+      "provider_total": 90,
+      "retrieved_first_page": 90,
+      "raw_classification_counts": {
+        "STOCK": 89,
+        "ETF": 1
+      },
+      "possibly_truncated": false,
+      "next_key_present": false,
+      "pct_desc_inversions": 0,
+      "retrieved_at": "2026-10-02T12:59:33.939305+00:00",
+      "canonical_duplicates": 0
+    }
+  ],
+  "default": {
+    "declared_matched": 10605,
+    "retrieved": 500,
+    "source_universe_at": "2026-10-01T21:01:40.430487+00:00",
+    "stock_classification_only": true,
+    "cap_desc_inversions": 0,
+    "scope": "bounded first page of older deployed release; no immutable generation pin"
+  },
+  "same_response_classification_samples": [
+    {
+      "code": "US.PLD",
+      "same_response_quote_type": "EQUITY",
+      "provider_context": {
+        "version": "yfinance_info_context_v1",
+        "code": "US.PLD",
+        "provider_symbol": "PLD",
+        "source": "yfinance",
+        "fields": {
+          "currency": "USD",
+          "quoteType": "EQUITY"
+        },
+        "scope": "Same-response provider info calendar and currencies; not per-metric periods or cross-provider currency attribution",
+        "classification_scope": "Same-response Yahoo quoteType; does not reinterpret another provider trust/fund category"
+      },
+      "deployed_provider_ETF_occurrences": [
+        "blue-chip",
+        "speculative"
+      ]
+    },
+    {
+      "code": "US.AMT",
+      "same_response_quote_type": "EQUITY",
+      "provider_context": {
+        "version": "yfinance_info_context_v1",
+        "code": "US.AMT",
+        "provider_symbol": "AMT",
+        "source": "yfinance",
+        "fields": {
+          "currency": "USD",
+          "quoteType": "EQUITY"
+        },
+        "scope": "Same-response provider info calendar and currencies; not per-metric periods or cross-provider currency attribution",
+        "classification_scope": "Same-response Yahoo quoteType; does not reinterpret another provider trust/fund category"
+      },
+      "deployed_provider_ETF_occurrences": [
+        "buffett",
+        "good-pe",
+        "high-roe"
+      ]
+    },
+    {
+      "code": "US.SPY",
+      "same_response_quote_type": "ETF",
+      "provider_context": {
+        "version": "yfinance_info_context_v1",
+        "code": "US.SPY",
+        "provider_symbol": "SPY",
+        "source": "yfinance",
+        "fields": {
+          "currency": "USD",
+          "quoteType": "ETF"
+        },
+        "scope": "Same-response provider info calendar and currencies; not per-metric periods or cross-provider currency attribution",
+        "classification_scope": "Same-response Yahoo quoteType; does not reinterpret another provider trust/fund category"
+      },
+      "deployed_provider_ETF_occurrences": []
+    },
+    {
+      "code": "US.AAPL",
+      "same_response_quote_type": "EQUITY",
+      "provider_context": {
+        "version": "yfinance_info_context_v1",
+        "code": "US.AAPL",
+        "provider_symbol": "AAPL",
+        "source": "yfinance",
+        "fields": {
+          "currency": "USD",
+          "quoteType": "EQUITY"
+        },
+        "scope": "Same-response provider info calendar and currencies; not per-metric periods or cross-provider currency attribution",
+        "classification_scope": "Same-response Yahoo quoteType; does not reinterpret another provider trust/fund category"
+      },
+      "deployed_provider_ETF_occurrences": []
+    }
+  ],
+  "moomoo_public_page_result": "403 operations too frequent; no fresh page counts or like-for-like membership reconciliation",
+  "acceptance": "R02/R14 remain open; broad provider ETF trust/fund category is not verified ETF subtype; no stock-type override performed"
+}

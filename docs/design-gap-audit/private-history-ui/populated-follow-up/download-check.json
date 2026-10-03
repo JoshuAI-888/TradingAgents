@@ -1,0 +1,15 @@
+{
+  "synthetic": true,
+  "rows": 1,
+  "code": "US.S2001",
+  "review_scope": "private_schedule_pair",
+  "review_revision": 1,
+  "review_status": "reviewed",
+  "export_scope": "all_filtered",
+  "schedule_id": "00000000-0000-4000-8000-000000000009",
+  "previous_id": "cb982b7f-85f2-4b89-8cdf-769fb9225721",
+  "current_id": "2b06cb88-7c89-4ca9-a466-3fc9e594c3bf",
+  "csv_excel_all_fields_equal": true,
+  "columns": 45,
+  "review_fingerprint_present": true
+}

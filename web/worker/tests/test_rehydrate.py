@@ -1,22 +1,29 @@
 """Transcript repair: LLM-restored spacing for pre-fix debate rows, originals
 preserved, debate summary folded into the run digest."""
+
 from __future__ import annotations
 
 from types import SimpleNamespace
 
-from tradingagents_worker import rehydrate
 from tradingagents_worker.rehydrate import (
     _chunks,
-    _first_divergence,
     _similarity,
     is_legacy_row,
     rehydrate_debates,
 )
 
-MANGLED = ("BullAnalyst:" + "thebullcaserestsonmarginexpansionandpricingpower." * 12
-           + "BearAnalyst:" + "thedebtwallin2029outweighsthebullcase." * 12)
-RESTORED = ("Bull Analyst: " + "the bull case rests on margin expansion and pricing power. " * 12
-            + "Bear Analyst: " + "the debt wall in 2029 outweighs the bull case. " * 12)
+MANGLED = (
+    "BullAnalyst:"
+    + "thebullcaserestsonmarginexpansionandpricingpower." * 12
+    + "BearAnalyst:"
+    + "thedebtwallin2029outweighsthebullcase." * 12
+)
+RESTORED = (
+    "Bull Analyst: "
+    + "the bull case rests on margin expansion and pricing power. " * 12
+    + "Bear Analyst: "
+    + "the debt wall in 2029 outweighs the bull case. " * 12
+)
 
 
 class _FakeCompletions:
@@ -26,22 +33,34 @@ class _FakeCompletions:
 
     def create(self, **kw):
         self.calls.append(kw)
-        return SimpleNamespace(choices=[SimpleNamespace(
-            message=SimpleNamespace(content=self.reply), finish_reason="stop")])
+        return SimpleNamespace(
+            choices=[
+                SimpleNamespace(message=SimpleNamespace(content=self.reply), finish_reason="stop")
+            ]
+        )
 
 
 def _fake_client(reply=None):
-    return SimpleNamespace(chat=SimpleNamespace(
-        completions=_FakeCompletions(reply if reply is not None else RESTORED)))
+    return SimpleNamespace(
+        chat=SimpleNamespace(completions=_FakeCompletions(reply if reply is not None else RESTORED))
+    )
 
 
 def _seed(db):
-    db._t("debate_messages").append({"id": "dm-legacy", "run_id": "run-1",
-                                     "debate_type": "research", "content": MANGLED})
-    db._t("debate_messages").append({"id": "dm-ok", "run_id": "run-1",
-                                     "debate_type": "risk", "content": "Aggressive Analyst: spaced text here. " * 40})
-    db._t("run_digest").append({"run_id": "run-1", "model": "z-ai/glm-5.3-flash",
-                                "digest": {"qc": []}})
+    db._t("debate_messages").append(
+        {"id": "dm-legacy", "run_id": "run-1", "debate_type": "research", "content": MANGLED}
+    )
+    db._t("debate_messages").append(
+        {
+            "id": "dm-ok",
+            "run_id": "run-1",
+            "debate_type": "risk",
+            "content": "Aggressive Analyst: spaced text here. " * 40,
+        }
+    )
+    db._t("run_digest").append(
+        {"run_id": "run-1", "model": "z-ai/glm-5.3-flash", "digest": {"qc": []}}
+    )
     db._t("decisions").append({"run_id": "run-1", "rating": "hold", "signal": "hold"})
 
 
@@ -52,7 +71,9 @@ def test_legacy_detector_and_sanity():
     clean = "the trader says hold at one x and will not add until a push through resistance. " * 7
     fixed = clean.replace("the trader says", "the traders say", 1)
     assert 0.99 <= _similarity(clean, fixed) <= 1.0
-    assert _similarity(clean, clean[: len(clean) // 2]) < 0.9              # content loss nowhere near the 0.99 bar
+    assert (
+        _similarity(clean, clean[: len(clean) // 2]) < 0.9
+    )  # content loss nowhere near the 0.99 bar
     chunks = list(_chunks("a" * 50, cap=20))
     assert chunks == ["a" * 20, "a" * 20, "a" * 10]
     # chunks stay small enough for a verbatim LLM echo
@@ -63,8 +84,11 @@ def test_rehydrate_accepts_micro_divergence_rejects_content_loss(monkeypatch, fa
     _seed(fake_db)
     monkeypatch.setenv("OPENROUTER_API_KEY", "test")
     # one grammar micro-fix in the middle of an otherwise clean restoration
-    slightly_edited = RESTORED.replace("trader", "traders", 1) if "trader" in RESTORED \
+    slightly_edited = (
+        RESTORED.replace("trader", "traders", 1)
+        if "trader" in RESTORED
         else RESTORED[:-1] + ("!" if RESTORED[-1] != "!" else ".")
+    )
     client = _fake_client(reply=slightly_edited)
     assert rehydrate_debates(fake_db, client=client) == 1
     # half the content dropped -> rejected, row untouched
@@ -83,10 +107,12 @@ def test_rehydrate_restores_preserves_and_summarizes(monkeypatch, fake_db):
     client = _fake_client()
     fixed = rehydrate_debates(fake_db, client=client)
     assert fixed == 1
-    rows = {r["id"]: r for r in fake_db.select("debate_messages", {}, "id,content,content_original")}
+    rows = {
+        r["id"]: r for r in fake_db.select("debate_messages", {}, "id,content,content_original")
+    }
     assert rows["dm-legacy"]["content"].startswith("Bull Analyst: the bull case rests")
-    assert rows["dm-legacy"]["content_original"] == MANGLED      # untouched original kept
-    assert rows["dm-ok"].get("content_original") is None        # normal row untouched
+    assert rows["dm-legacy"]["content_original"] == MANGLED  # untouched original kept
+    assert rows["dm-ok"].get("content_original") is None  # normal row untouched
     # debate summary folded into the run's digest
     digest = fake_db.select("run_digest", {"run_id": "eq.run-1"}, "digest")[0]["digest"]
     assert digest["debate_summary"] == RESTORED.strip()[:1200]
@@ -104,20 +130,30 @@ def test_rehydrate_skips_already_repaired(monkeypatch, fake_db):
 
 def test_rehydrate_redoes_letter_spaced_first_repair(monkeypatch, fake_db):
     # a first pass that fed the model the raw char form produced letter-spaced junk
-    letter_spaced = " ".join("AggressiveAnalyst:" + "thestockwouldhavebeenasatatfifty." )
-    fake_db._t("debate_messages").append({"id": "dm-bad", "run_id": "run-2",
-                                          "debate_type": "risk",
-                                          "content": letter_spaced * 10,
-                                          "content_original": MANGLED})
-    fake_db._t("run_digest").append({"run_id": "run-2", "model": "m",
-                                     "digest": {"debate_summary": "junk summary"}})
+    letter_spaced = " ".join("AggressiveAnalyst:" + "thestockwouldhavebeenasatatfifty.")
+    fake_db._t("debate_messages").append(
+        {
+            "id": "dm-bad",
+            "run_id": "run-2",
+            "debate_type": "risk",
+            "content": letter_spaced * 10,
+            "content_original": MANGLED,
+        }
+    )
+    fake_db._t("run_digest").append(
+        {"run_id": "run-2", "model": "m", "digest": {"debate_summary": "junk summary"}}
+    )
     monkeypatch.setenv("OPENROUTER_API_KEY", "test")
     client = _fake_client()
     assert rehydrate_debates(fake_db, client=client) == 1
-    rows = {r["id"]: r for r in fake_db.select("debate_messages", {}, "id,content,content_original")}
+    rows = {
+        r["id"]: r for r in fake_db.select("debate_messages", {}, "id,content,content_original")
+    }
     assert rows["dm-bad"]["content"].startswith("Bull Analyst: the bull case")
-    assert rows["dm-bad"]["content_original"] == MANGLED           # original untouched
-    digests = [d for d in fake_db.select("run_digest", {}, "run_id,digest") if d["run_id"] == "run-2"]
+    assert rows["dm-bad"]["content_original"] == MANGLED  # original untouched
+    digests = [
+        d for d in fake_db.select("run_digest", {}, "run_id,digest") if d["run_id"] == "run-2"
+    ]
     # junk summary cleared and regenerated from the repaired text in the same pass
     assert digests[0]["digest"]["debate_summary"].startswith("Bull Analyst: the bull case")
 
@@ -139,6 +175,7 @@ def test_rehydrate_needs_key(fake_db, monkeypatch):
 
 def test_digest_norm_carries_debate_summary():
     from tradingagents_worker.digest import _norm
+
     out = _norm({"debate_summary": "Bull said grow, bear said debt.", "qc": []})
     assert out["debate_summary"] == "Bull said grow, bear said debt."
     assert _norm({})["debate_summary"] == ""

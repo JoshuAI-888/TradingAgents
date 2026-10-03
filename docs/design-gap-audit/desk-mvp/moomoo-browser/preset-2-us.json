@@ -1,0 +1,167 @@
+{
+  "observed_at": "2026-10-02T20:46:23.791Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/blue-chip-stocks-2",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/ATEYY-US",
+      "text": "1\nATEYY\nAdvantest (ADR)\n255.190\n+8.38%\n+19.740\n184.24B\n157.57K\n36.78%\n32.09%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ARM-US",
+      "text": "2\nARM\nArm Holdings\n307.490\n+5.18%\n+15.150\n328.40B\n5.88M\n22.79%\n22.58%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SCCO-US",
+      "text": "3\nSCCO\nSouthern Copper\n205.540\n+3.17%\n+6.320\n173.55B\n882.53K\n17.38%\n48.06%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ADI-US",
+      "text": "4\nADI\nAnalog Devices\n417.150\n+3.10%\n+12.550\n202.14B\n2.62M\n16.89%\n29.54%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TSM-US",
+      "text": "5\nTSM\nTaiwan Semiconductor\n472.780\n+2.96%\n+13.580\n2.45T\n9.72M\n37.88%\n31.98%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMD-US",
+      "text": "6\nAMD\nAdvanced Micro Devices\n633.910\n+2.95%\n+18.180\n1.03T\n19.31M\n34.34%\n18.10%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LRCX-US",
+      "text": "7\nLRCX\nLam Research\n347.490\n+2.17%\n+7.390\n434.86B\n7.43M\n26.02%\n47.00%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PANW-US",
+      "text": "8\nPANW\nPalo Alto Networks\n403.240\n+1.76%\n+6.990\n329.85B\n4.83M\n24.50%\n43.27%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GOOG-US",
+      "text": "9\nGOOG\nAlphabet-C\n340.350\n+1.62%\n+5.420\n4.16T\n17.38M\n15.09%\n30.24%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MRVL-US",
+      "text": "10\nMRVL\nMarvell Technology\n272.290\n+1.57%\n+4.210\n238.77B\n14.72M\n42.09%\n35.79%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GOOGL-US",
+      "text": "11\nGOOGL\nAlphabet-A\n343.500\n+1.56%\n+5.260\n4.20T\n22.73M\n15.09%\n30.24%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SHOP-US",
+      "text": "12\nSHOP\nShopify\n151.390\n+1.54%\n+2.300\n194.79B\n5.57M\n30.14%\n11.30%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RIO-US",
+      "text": "13\nRIO\nRio Tinto\n94.210\n+1.44%\n+1.340\n153.22B\n1.93M\n7.42%\n47.68%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ANET-US",
+      "text": "14\nANET\nArista Networks\n207.350\n+1.40%\n+2.860\n261.51B\n4.11M\n28.60%\n36.39%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NVDA-US",
+      "text": "15\nNVDA\nNVIDIA\n233.950\n+1.34%\n+3.090\n5.64T\n134.41M\n65.47%\n23.94%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMZN-US",
+      "text": "16\nAMZN\nAmazon\n251.520\n+1.33%\n+3.290\n2.71T\n33.04M\n12.38%\n49.75%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MSFT-US",
+      "text": "17\nMSFT\nMicrosoft\n517.530\n+0.92%\n+4.730\n3.84T\n17.18M\n17.79%\n41.67%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LRLCY-US",
+      "text": "18\nLRLCY\nL'Oreal SA Unsponsored ADR\n83.890\n+0.90%\n+0.750\n223.42B\n155.91K\n14.36%\n43.38%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HESAY-US",
+      "text": "19\nHESAY\nHermes International SA\n146.290\n+0.87%\n+1.260\n153.23B\n161.18K\n19.09%\n22.51%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SKHY-US",
+      "text": "20\nSKHY\nSK hynix\n195.130\n+0.84%\n+1.630\n1.42T\n15.38M\n50.00%\n31.48%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ABT-US",
+      "text": "21\nABT\nAbbott Laboratories\n97.500\n+0.84%\n+0.810\n168.71B\n8.64M\n5.67%\n39.14%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NEM-US",
+      "text": "22\nNEM\nNewmont\n115.560\n+0.78%\n+0.890\n121.76B\n4.01M\n21.34%\n40.40%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PLD-US",
+      "text": "23\nPLD\nPrologis\n128.910\n+0.57%\n+0.730\n122.51B\n3.81M\n7.18%\n41.50%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WELL-US",
+      "text": "24\nWELL\nWelltower\n227.710\n+0.34%\n+0.770\n164.12B\n2.64M\n35.63%\n35.81%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/META-US",
+      "text": "25\nMETA\nMeta Platforms\n728.080\n+0.30%\n+2.150\n1.85T\n12.87M\n22.17%\n40.65%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NEMCL-US",
+      "text": "26\nNEMCL\nNEWMONT CORPORATION CDI 1:1\n128.000\n0.00%\n0.000\n134.87B\n0.00\n21.34%\n40.40%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MDT-US",
+      "text": "27\nMDT\nMedtronic\n86.380\n-0.07%\n-0.060\n110.49B\n33.22M\n8.43%\n46.18%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/COP-US",
+      "text": "28\nCOP\nConocoPhillips\n126.750\n-0.24%\n-0.310\n152.27B\n5.20M\n7.67%\n47.12%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VRTX-US",
+      "text": "29\nVRTX\nVertex Pharmaceuticals\n504.730\n-0.40%\n-2.010\n127.93B\n936.56K\n8.90%\n27.21%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SPGI-US",
+      "text": "30\nSPGI\nS&P Global\n386.270\n-0.49%\n-1.890\n113.87B\n2.76M\n7.94%\n40.93%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PLTR-US",
+      "text": "31\nPLTR\nPalantir\n188.750\n-0.68%\n-1.290\n453.58B\n17.71M\n56.18%\n15.87%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CRM-US",
+      "text": "32\nCRM\nSalesforce\n234.690\n-0.84%\n-2.000\n193.15B\n7.84M\n9.58%\n47.34%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SAP-US",
+      "text": "33\nSAP\nSAP SE\n208.570\n-1.05%\n-2.220\n240.73B\n1.41M\n21.56%\n35.94%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PDD-US",
+      "text": "34\nPDD\nPDD Holdings\n75.380\n-1.46%\n-1.120\n107.30B\n6.22M\n14.41%\n34.39%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BABA-US",
+      "text": "35\nBABA\nAlibaba\n105.850\n-1.49%\n-1.600\n263.10B\n7.77M\n8.09%\n41.02%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TCEHY-US",
+      "text": "36\nTCEHY\nTencent\n53.110\n-1.65%\n-0.890\n478.36B\n4.21M\n18.80%\n39.13%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MU-US",
+      "text": "37\nMU\nMicron Technology\n1074.890\n-2.05%\n-22.500\n1.21T\n26.51M\n256.33%\n29.36%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ISRG-US",
+      "text": "38\nISRG\nIntuitive Surgical\n391.950\n-2.32%\n-9.290\n138.47B\n1.83M\n20.51%\n12.30%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SNDK-US",
+      "text": "39\nSNDK\nSanDisk\n1719.990\n-3.79%\n-67.700\n251.84B\n8.13M\n175.30%\n30.08%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WDC-US",
+      "text": "40\nWDC\nWestern Digital\n415.290\n-10.22%\n-47.270\n149.73B\n24.64M\n35.70%\n36.05%"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\nLog in to access Online Inquiry\nBack to the Top\nScreener\nRecommended Screeners\nBlue Chip Stocks\nBlue Chip Stocks\n\nSpot blue-chip stocks from well-established companies for reliable returns and low volatility.\n\nApplied Filters: Stock Price ≥ $50, Market Cap ≥ $100 billion, Debt to Assets Ratio ≤50%, Revenue Growth (%) ≥ 5%.\n\nSelected:\n\nSave Screener\nMarket: USStock Price: ≥50.00Market Value: ≥100.00BDebt to Asset Ratio: ≤50%Operating Revenue Growth Rate: ≥5%\nResult: 40 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nRevenue GR (YOY)\nDebt to Asset Ratio\nWatchlist\nPaper Trade\n1\nATEYY\nAdvantest (ADR)\n255.190\n+8.38%\n+19.740\n184.24B\n157.57K\n36.78%\n32.09%\n2\nARM\nArm Holdings\n307.490\n+5.18%\n+15.150\n328.40B\n5.88M\n22.79%\n22.58%\n3\nSCCO\nSouthern Copper\n205.540\n+3.17%\n+6.320\n173.55B\n882.53K\n17.38%\n48.06%\n4\nADI\nAnalog Devices\n417.150\n+3.10%\n+12.550\n202.14B\n2.62M\n16.89%\n29.54%\n5\nTSM\nTaiwan Semiconductor\n472.780\n+2.96%\n+13.580\n2.45T\n9.72M\n37.88%\n31.98%\n6\nAMD\nAdvanced Micro Devices\n633.910\n+2.95%\n+18.180\n1.03T\n19.31M\n34.34%\n18.10%\n7\nLRCX\nLam Research\n347.490\n+2.17%\n+7.390\n434.86B\n7.43M\n26.02%\n47.00%\n8\nPANW\nPalo Alto Networks\n403.240\n+1.76%\n+6.990\n329.85B\n4.83M\n24.50%\n43.27%\n9\nGOOG\nAlphabet-C\n340.350\n+1.62%\n+5.420\n4.16T\n17.38M\n15.09%\n30.24%\n10\nMRVL\nMarvell Technology\n272.290\n+1.57%\n+4.210\n238.77B\n14.72M\n42.09%\n35.79%\n11\nGOOGL\nAlphabet-A\n343.500\n+1.56%\n+5.260\n4.20T\n22.73M\n15.09%\n30.24%\n12\nSHOP\nShopify\n151.390\n+1.54%\n+2.300\n194.79B\n5.57M\n30.14%\n11.30%\n13\nRIO\nRio Tinto\n94.210\n+1.44%\n+1.340\n153.22B\n1.93M\n7.42%\n47.68%\n14\nANET\nArista Networks\n207.350\n+1.40%\n+2.860\n261.51B\n4.11M\n28.60%\n36.39%\n15\nNVDA\nNVIDIA\n233.950\n+1.34%\n+3.090\n5.64T\n134.41M\n65.47%\n23.94%\n16\nAMZN\nAmazon\n251.520\n+1.33%\n+3.290\n2.71T\n33.04M\n12.38%\n49.75%\n17\nMSFT\nMicrosoft\n517.530\n+0.92%\n+4.730\n3.84T\n17.18M\n17.79%\n41.67%\n18\nLRLCY\nL'Oreal SA Unsponsored ADR\n83.890\n+0.90%\n+0.750\n223.42B\n155.91K\n14.36%\n43.38%\n19\nHESAY\nHermes International SA\n146.290\n+0.87%\n+1.260\n153.23B\n161.18K\n19.09%\n22.51%\n20\nSKHY\nSK hynix\n195.130\n+0.84%\n+1.630\n1.42T\n15.38M\n50.00%\n31.48%\n21\nABT\nAbbott Laboratories\n97.500\n+0.84%\n+0.810\n168.71B\n8.64M\n5.67%\n39.14%\n22\nNEM\nNewmont\n115.560\n+0.78%\n+0.890\n121.76B\n4.01M\n21.34%\n40.40%\n23\nPLD\nPrologis\n128.910\n+0.57%\n+0.730\n122.51B\n3.81M\n7.18%\n41.50%\n24\nWELL\nWelltower\n227.710\n+0.34%\n+0.770\n164.12B\n2.64M\n35.63%\n35.81%\n25\nMETA\nMeta Platforms\n728.080\n+0.30%\n+2.150\n1.85T\n12.87M\n22.17%\n40.65%\n26\nNEMCL\nNEWMONT CORPORATION CDI 1:1\n128.000\n0.00%\n0.000\n134.87B\n0.00\n21.34%\n40.40%\n27\nMDT\nMedtronic\n86.380\n-0.07%\n-0.060\n110.49B\n33.22M\n8.43%\n46.18%\n28\nCOP\nConocoPhillips\n126.750\n-0.24%\n-0.310\n152.27B\n5.20M\n7.67%\n47.12%\n29\nVRTX\nVertex Pharmaceuticals\n504.730\n-0.40%\n-2.010\n127.93B\n936.56K\n8.90%\n27.21%\n30\nSPGI\nS&P Global\n386.270\n-0.49%\n-1.890\n113.87B\n2.76M\n7.94%\n40.93%\n31\nPLTR\nPalantir\n188.750\n-0.68%\n-1.290\n453.58B\n17.71M\n56.18%\n15.87%\n32\nCRM\nSalesforce\n234.690\n-0.84%\n-2.000\n193.15B\n7.84M\n9.58%\n47.34%\n33\nSAP\nSAP SE\n208.570\n-1.05%\n-2.220\n240.73B\n1.41M\n21.56%\n35.94%\n34\nPDD\nPDD Holdings\n75.380\n-1.46%\n-1.120\n107.30B\n6.22M\n14.41%\n34.39%\n35\nBABA\nAlibaba\n105.850\n-1.49%\n-1.600\n263.10B\n7.77M\n8.09%\n41.02%\n36\nTCEHY\nTencent\n53.110\n-1.65%\n-0.890\n478.36B\n4.21M\n18.80%\n39.13%\n37\nMU\nMicron Technology\n1074.890\n-2.05%\n-22.500\n1.21T\n26.51M\n256.33%\n29.36%\n38\nISRG\nIntuitive Surgical\n391.950\n-2.32%\n-9.290\n138.47B\n1.83M\n20.51%\n12.30%\n39\nSNDK\nSanDisk\n1719.990\n-3.79%\n-67.700\n251.84B\n8.13M\n175.30%\n30.08%\n40\nWDC\nWestern Digital\n415.290\n-10.22%\n-47.270\n149.73B\n24.64M\n35.70%\n36.05%\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nP/B Ratio Less Than 1\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBest Long Term High Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nHigh P/E Ratio Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nGood P/E Ratio Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nLow P/E Ratio Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBelow 30 RSI Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nJunk Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nSmall Cap Stocks with Huge Growth Potential\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\n1\n2"
+}

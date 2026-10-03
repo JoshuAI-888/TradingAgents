@@ -1,0 +1,58 @@
+{
+  "scope": "Isolated PostgreSQL synthetic data; no provider or production qualification",
+  "rows": 9421,
+  "aggregate_json_bytes": 117643843,
+  "max_batch_json_bytes": 4996801,
+  "staging_seconds": 5.51,
+  "publish_seconds": 1.07,
+  "replay_identical": true,
+  "previous_pointer_preserved_on_failure": true,
+  "projection_retains_values_clocks_classification_and_string_currency_evidence": true,
+  "security": {
+    "rpcs": [
+      {
+        "name": "screener_refresh_stage",
+        "invoker": true,
+        "anon_execute": false,
+        "service_execute": true
+      },
+      {
+        "name": "screener_refresh_publish_staged",
+        "invoker": true,
+        "anon_execute": false,
+        "service_execute": true
+      }
+    ],
+    "staging_rls": true,
+    "browser_view": false,
+    "service_view": true,
+    "view_invoker": true,
+    "browser_table": false
+  },
+  "expected_rejection_checks": [
+    "oversized staging batch",
+    "classified requested cohort",
+    "oversized staging batch",
+    "classified requested cohort",
+    "classified requested cohort",
+    "outside the refresh interval",
+    "does not match the requested cohort",
+    "Conflicting replay",
+    "does not match the requested cohort",
+    "Invalid exhausted screening receipt",
+    "Invalid exhausted screening receipt",
+    "Invalid exhausted screening receipt",
+    "finished, expired or superseded",
+    "Conflicting replay",
+    "Conflicting replay",
+    "does not belong to this run",
+    "changed during refresh",
+    "expired or superseded",
+    "expired or superseded",
+    "permission denied",
+    "permission denied",
+    "permission denied"
+  ],
+  "migration_sha256": "8b7d7bdb9381c13d84a8b44a13fdee3b7fa5917b3aa3404a792321680887206e",
+  "database": "PostgreSQL 16 isolated socket test cluster"
+}

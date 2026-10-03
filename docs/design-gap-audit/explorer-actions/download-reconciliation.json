@@ -1,0 +1,12 @@
+{
+  "csv": "screener_US_240rows_2026-10-02_region (1).csv",
+  "xls": "screener_US_240rows_2026-10-02_region.xls",
+  "rows": 240,
+  "expected_rows": 240,
+  "canonical_ids_and_market_cap_order_match": true,
+  "excel_ids_match_csv": true,
+  "first": "US.S0040",
+  "last": "US.S1160",
+  "scope": "loaded region, P/E [7,9], % change [-1,1]",
+  "fixture": "synthetic; not live data acceptance"
+}

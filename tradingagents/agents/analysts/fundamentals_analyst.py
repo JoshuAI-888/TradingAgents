@@ -1,8 +1,8 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from tradingagents.agents.context import get_instrument_context_from_state, get_language_instruction
-from tradingagents.agents.prompts import render, resolve
 from tradingagents.agents.prompt_texts import AGENT_PROMPTS
+from tradingagents.agents.prompts import render, resolve
 from tradingagents.agents.tools import (
     get_balance_sheet,
     get_cashflow,

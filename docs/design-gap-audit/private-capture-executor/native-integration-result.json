@@ -1,0 +1,15 @@
+{
+  "database": "capture_executor_qualification",
+  "actual_native_claim_renew_read_build_publish": true,
+  "first_members": [
+    "US.A"
+  ],
+  "eligible_observations": 2,
+  "post_commit_response_loss_exact_retry": true,
+  "builds_for_two_successes": 2,
+  "persisted_successful_captures": 2,
+  "revision_edit_after_build": "obsolete/no publication",
+  "incomplete_data": "pending retry/no publication",
+  "previous_success_preserved": true,
+  "limits": "Synthetic two-stock source; native SQL transport, not PostgREST, real Auth, real provider or deployed runtime."
+}

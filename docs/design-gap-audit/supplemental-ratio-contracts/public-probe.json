@@ -1,0 +1,68 @@
+{
+  "at": "2026-10-02T08:30:55.550902+00:00",
+  "yfinance_version": "1.7.0",
+  "samples": [
+    {
+      "requested_symbol": "BRK-B",
+      "fields": {
+        "symbol": "BRK-B",
+        "currency": "USD",
+        "financialCurrency": "USD",
+        "payoutRatio": 0.0,
+        "totalCash": 365513998336,
+        "totalCashPerShare": 256115.53,
+        "marketCap": 1071425257472,
+        "freeCashflow": 71975247872,
+        "regularMarketPrice": 500.5,
+        "sharesOutstanding": 1408035161
+      }
+    },
+    {
+      "requested_symbol": "KO",
+      "fields": {
+        "symbol": "KO",
+        "currency": "USD",
+        "financialCurrency": "USD",
+        "payoutRatio": 0.6246,
+        "totalCash": 16371000320,
+        "totalCashPerShare": 3.805,
+        "marketCap": 370449448960,
+        "freeCashflow": 5218749952,
+        "regularMarketPrice": 86.1,
+        "sharesOutstanding": 4302549243
+      }
+    }
+  ],
+  "rows": [
+    {
+      "code": "US.BRK.B",
+      "data": {
+        "payout_ratio": 0.0,
+        "pcf": 2.9313,
+        "pfcf": 14.886
+      },
+      "source": "yfinance",
+      "as_of": "2026-10-02T08:30:54.517336+00:00",
+      "field_contracts": {
+        "payout_ratio": "ratio_to_percent_v1",
+        "pcf": "market_cap_over_total_cash_same_currency_v1",
+        "pfcf": "market_cap_over_free_cashflow_same_currency_v1"
+      }
+    },
+    {
+      "code": "US.KO",
+      "data": {
+        "payout_ratio": 62.46,
+        "pcf": 22.6284,
+        "pfcf": 70.9843
+      },
+      "source": "yfinance",
+      "as_of": "2026-10-02T08:30:55.550772+00:00",
+      "field_contracts": {
+        "payout_ratio": "ratio_to_percent_v1",
+        "pcf": "market_cap_over_total_cash_same_currency_v1",
+        "pfcf": "market_cap_over_free_cashflow_same_currency_v1"
+      }
+    }
+  ]
+}

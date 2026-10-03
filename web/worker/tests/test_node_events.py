@@ -1,10 +1,13 @@
 """Live node-event mapping for the Analyze page's reasoning trace."""
+
 from tradingagents_worker.runner import node_event
 
 
 def test_known_nodes_map_to_trace_stages():
-    assert node_event("Market Analyst", {"market_report": "x" * 120}, 42.4) == \
-        ("analysts", "Market Analyst done · 42s in · 120 chars")
+    assert node_event("Market Analyst", {"market_report": "x" * 120}, 42.4) == (
+        "analysts",
+        "Market Analyst done · 42s in · 120 chars",
+    )
     assert node_event("Bull Researcher", {}, 10)[0] == "research_debate"
     assert node_event("Research Manager", {}, 10)[0] == "research_manager"
     assert node_event("Trader", {}, 3)[0] == "trader"
