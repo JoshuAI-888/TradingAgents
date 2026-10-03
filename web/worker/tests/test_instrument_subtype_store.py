@@ -177,3 +177,29 @@ def test_default_off_does_not_read_dedicated_storage(monkeypatch):
 
     db.select_all = read
     assert UniverseRefresher(db, TrustMoomoo(), "US")._classification_contexts() == {}
+
+
+def test_unrelated_legacy_enrichment_cannot_block_requested_stock_cohort(monkeypatch):
+    monkeypatch.setenv("NORMALIZED_INSTRUMENT_CLASSES_ENABLED", "1")
+    monkeypatch.delenv("INSTRUMENT_SUBTYPE_CACHE_ENABLED", raising=False)
+    db = StoreDb()
+    db.upsert("screener_enrichment", "code", {"market": "US", "code": "AU..XJO", "data": {}})
+    db.upsert(
+        "screener_enrichment",
+        "code",
+        {"market": "US", "code": "US.PLD", "data": {"_meta": {"marker": "retained"}}},
+    )
+    original = deepcopy(db.tables)
+    result = UniverseRefresher(db, TrustMoomoo(), "US")._classification_contexts(["US.PLD"])
+    assert result == {"US.PLD": {"marker": "retained"}}
+    assert db.tables == original
+
+
+def test_duplicate_requested_classification_context_still_fails(monkeypatch):
+    from tradingagents_worker.universe_refresh import UniverseRefreshError
+
+    monkeypatch.setenv("NORMALIZED_INSTRUMENT_CLASSES_ENABLED", "1")
+    db = StoreDb()
+    db.tables["screener_enrichment"] = [{"code": "US.PLD", "market": "US", "data": {}}] * 2
+    with pytest.raises(UniverseRefreshError, match="duplicate classification context"):
+        UniverseRefresher(db, TrustMoomoo(), "US")._classification_contexts(["US.PLD"])

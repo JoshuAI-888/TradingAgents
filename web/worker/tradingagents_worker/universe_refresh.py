@@ -447,7 +447,7 @@ class UniverseRefresher:
             for row in metadata
         )
 
-    def _classification_contexts(self):
+    def _classification_contexts(self, requested_codes=None):
         if os.getenv("NORMALIZED_INSTRUMENT_CLASSES_ENABLED") != "1":
             return None
         rows = self.db.select_all(
@@ -458,9 +458,14 @@ class UniverseRefresher:
         )
         if len(rows) > UNIVERSE_CAP:
             raise UniverseRefreshError("Classification context exceeds supported cohort")
+        requested = set(requested_codes) if requested_codes is not None else None
         contexts = {}
         for r in rows:
             code = r.get("code")
+            # Historical enrichment can contain unrelated index/foreign records.
+            # Only evidence for this exact validated quote cohort may participate.
+            if requested is not None and code not in requested:
+                continue
             if (
                 not isinstance(code, str)
                 or not re.fullmatch(self.market + r"\.[A-Z0-9][A-Z0-9._-]{0,30}", code)
@@ -502,7 +507,7 @@ class UniverseRefresher:
                 "Stored universe is empty or exceeds qualified refresh limit"
             )
         by_code = {r["code"]: r for r in metadata}
-        classification_contexts = self._classification_contexts()
+        classification_contexts = self._classification_contexts(codes)
         batches = [codes[i : i + 400] for i in range(0, len(codes), 400)]
         prepared = []
         for i, batch in enumerate(batches, 1):
