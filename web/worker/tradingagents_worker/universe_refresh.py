@@ -53,6 +53,10 @@ class UniverseRefresher:
         self.emit = emit or (lambda *a, **k: None)
         self._run_id = None
         self._run_started = None
+        self._request_spacing = float(os.getenv("UNIVERSE_REQUEST_SPACING_SECONDS", "0"))
+        if not math.isfinite(self._request_spacing) or not 0 <= self._request_spacing <= 30:
+            raise UniverseRefreshError("Invalid acquisition request spacing")
+        self._last_provider_started = None
 
     def _renew(self):
         if self._run_id:
@@ -73,6 +77,12 @@ class UniverseRefresher:
         kwargs["retries"] = 0
         while True:
             self._renew()
+            if self._last_provider_started is not None:
+                delay = self._request_spacing - (time.monotonic() - self._last_provider_started)
+                if delay > 0:
+                    time.sleep(delay)
+                    self._renew()
+            self._last_provider_started = time.monotonic()
             try:
                 result = fn(*args, **kwargs)
             except RateLimited as error:

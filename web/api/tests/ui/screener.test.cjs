@@ -1003,7 +1003,7 @@ test('normalizing an existing screener deep link does not push another browser h
 });
 
 test('navigation helpers are loaded through versioned browser assets',()=>{
- assert.match(html,/research-workspace\.js\?v=20261003-desk-recovery2/);assert.match(html,/research-account\.js\?v=20261003-desk-mvp1/);
+ assert.match(html,/research-workspace\.js\?v=20261004-desk-library1/);assert.match(html,/research-account\.js\?v=20261003-desk-mvp1/);
 });
 
 
@@ -1498,3 +1498,17 @@ test('failed background market refresh retains the previous successful cohort an
  c.showPage=async()=>vm.runInContext('pages.home()',c);const button={disabled:false,isConnected:true};await c.researchRetryPreset(button);
  assert.equal(c.__homeCtx.scr.available,true);assert.equal(c.__homeCtx.scr.matched,1);assert.equal(JSON.stringify(c.__scr),before);assert.equal(button.disabled,false);assert.equal(calls,2);
  });
+
+
+test('cold or failed screen library never reports zero preserved presets and retry bypasses stale cache',()=>{
+ const c=harness();c.__scrPresetLibraryStatus='loading';
+ assert.match(c.researchLibraryHTML(c.__scr,[]),/Loading…/);
+ assert.doesNotMatch(c.researchLibraryHTML(c.__scr,[]),/0 screens/);
+ c.__scrPresetLibraryStatus='unavailable';
+ assert.match(c.researchLibraryHTML(c.__scr,[]),/Retry screen library/);
+ const preserved=[{key:'penny',name:'Penny',filters:[]}];
+ assert.match(c.researchLibraryHTML(c.__scr,preserved),/data-screen-key="penny"/);
+ c.__panelCache={market:c.__scr.market,ts:Date.now(),rail:{available:false,presets:[]}};
+ let called; c.scrStreamPanels=market=>{called=market};c.scrRetryPresetLibrary();
+ assert.equal(called,c.__scr.market);assert.equal(c.__panelCache.ts,0);
+});

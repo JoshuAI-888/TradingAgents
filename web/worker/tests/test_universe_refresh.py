@@ -652,3 +652,32 @@ def test_ambiguous_pagination_never_means_terminal(fake_db, pagination):
 
     with pytest.raises(UniverseRefreshError):
         UniverseRefresher(fake_db, Provider())._plate_codes("US.PLATE")
+
+
+def test_configured_acquisition_spacing_prevents_bursts_without_changing_scope(
+    fake_db, monkeypatch
+):
+    import tradingagents_worker.universe_refresh as module
+
+    monkeypatch.setenv("UNIVERSE_REQUEST_SPACING_SECONDS", "2")
+    ticks, sleeps = [100.0], []
+    monkeypatch.setattr(module.time, "monotonic", lambda: ticks[0])
+
+    def sleep(seconds):
+        sleeps.append(seconds)
+        ticks[0] += seconds
+
+    monkeypatch.setattr(module.time, "sleep", sleep)
+    ref = UniverseRefresher(fake_db, FakeMoomoo())
+    assert ref._provider(lambda **kw: "first") == "first"
+    assert ref._provider(lambda **kw: "second") == "second"
+    ticks[0] += 3
+    assert ref._provider(lambda **kw: "third") == "third"
+    assert sleeps == [2]
+
+
+@pytest.mark.parametrize("spacing", ["nan", "inf", "-1", "31"])
+def test_invalid_acquisition_spacing_rejected_before_any_collection(fake_db, monkeypatch, spacing):
+    monkeypatch.setenv("UNIVERSE_REQUEST_SPACING_SECONDS", spacing)
+    with pytest.raises(UniverseRefreshError):
+        UniverseRefresher(fake_db, FakeMoomoo())
