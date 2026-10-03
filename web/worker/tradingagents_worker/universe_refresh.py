@@ -405,7 +405,9 @@ class UniverseRefresher:
     def _stored_metadata(self, state=None) -> list[dict]:
         state = self._universe_state() if state is None else state
         if "generation_id" in state:
-            header, records = read_generation(self.db, self.market, state["generation_id"])
+            header, records = read_generation(
+                self.db, self.market, state["generation_id"], compact=True
+            )
             if aware_time(state.get("last_quotes")) != aware_time(header["published_at"]) or (
                 state.get("last_result") or {}
             ).get("quotes") != header.get("result", {}).get("quotes"):
@@ -668,14 +670,33 @@ class UniverseRefresher:
             stage = "quotes"
             expected, prepared = self.refresh_quotes(metadata)
             stage = "publication"
+            for offset in range(0, len(prepared), 400):
+                self._renew()
+                batch = prepared[offset : offset + 400]
+                acknowledgement = self.db.generation_rpc(
+                    "screener_refresh_stage",
+                    {"p_market": self.market, "p_run": token, "p_rows": batch},
+                )
+                if (
+                    not isinstance(acknowledgement, dict)
+                    or acknowledgement.get("run_id") != token
+                    or acknowledgement.get("market") != self.market
+                    or type(acknowledgement.get("staged")) is not int
+                    or acknowledgement["staged"] != len(batch)
+                ):
+                    raise UniverseRefreshError("Invalid generation staging acknowledgement")
+                self.emit(
+                    "universe",
+                    "publication",
+                    f"staged {offset + len(batch)}/{len(prepared)} quotes",
+                )
             self._renew()
             receipt = self.db.generation_rpc(
-                "screener_refresh_publish",
+                "screener_refresh_publish_staged",
                 {
                     "p_market": self.market,
                     "p_run": token,
                     "p_codes": [r["code"] for r in metadata],
-                    "p_rows": prepared,
                     "p_result": {k: v for k, v in out.items() if k != "started_at"},
                     "p_enumerated": need_enum,
                 },

@@ -1069,7 +1069,7 @@ def _stored_universe(market: str, max_age: float = 60.0, generation_id: str | No
             if hit and now - hit[0] < max_age:
                 rows, header = hit[1], hit[2]
             else:
-                header, records = read_generation(db, market, target)
+                header, records = read_generation(db, market, target, compact=True)
                 rows = []
                 for record in records:
                     row = dict(record["row"])

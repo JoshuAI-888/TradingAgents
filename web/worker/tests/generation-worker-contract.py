@@ -65,7 +65,7 @@ class NativeDb(Db):
         self.calls.append((path, copy.deepcopy(body)))
         args = ",".join(k + " => " + sql_literal(v) for k, v in body.items())
         response = json.loads(query(f"select to_jsonb(public.{path[4:]}({args}));"))
-        if path == "rpc/screener_refresh_publish" and self.lose_publish_response:
+        if path == "rpc/screener_refresh_publish_staged" and self.lose_publish_response:
             self.lose_publish_response = False
             raise URLError("injected response loss AFTER native commit")
         return response
@@ -77,6 +77,7 @@ class NativeDb(Db):
             "screener_quotes",
             "screener_generations",
             "screener_generation_rows",
+            "screener_generation_display_rows",
         }
         where = []
         suffix = ""
@@ -198,7 +199,7 @@ print(
 db.lose_publish_response = True
 provider = Provider()
 replayed = UniverseRefresher(db, provider).run(force_enum=True)
-calls = [body for path, body in db.calls if path == "rpc/screener_refresh_publish"]
+calls = [body for path, body in db.calls if path == "rpc/screener_refresh_publish_staged"]
 assert calls[-1] == calls[-2] and provider.snapshots == 2
 assert len(db.select("screener_generations", {"id": "eq." + replayed["generation_id"]})) == 1
 print(

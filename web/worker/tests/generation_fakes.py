@@ -12,6 +12,7 @@ class GenerationDb(FakeSupa):
         super().__init__()
         self.leases = {}
         self.receipts = {}
+        self.staged = {}
         self.rpc_calls = []
 
     def generation_rpc(self, name, body):
@@ -40,7 +41,23 @@ class GenerationDb(FakeSupa):
             if not lease or not lease["active"] or lease["run_id"] != token:
                 raise RuntimeError("refresh expired or superseded")
             return lease["expires_at"]
-        elif name == "screener_refresh_publish":
+        elif name == "screener_refresh_stage":
+            if not lease or not lease["active"] or lease["run_id"] != token:
+                raise RuntimeError("refresh expired or superseded")
+            batch = body["p_rows"]
+            assert 0 < len(batch) <= 400
+            staged = self.staged.setdefault(token, {})
+            for item in batch:
+                if item["code"] in staged and staged[item["code"]] != item:
+                    raise RuntimeError("conflicting staged row")
+                staged[item["code"]] = copy.deepcopy(item)
+            return {"run_id": token, "market": market, "staged": len(batch)}
+        elif name in {"screener_refresh_publish", "screener_refresh_publish_staged"}:
+            if name == "screener_refresh_publish_staged":
+                staged = self.staged.get(token, {})
+                if set(staged) != set(body["p_codes"]):
+                    raise RuntimeError("incomplete staged cohort")
+                body = {**body, "p_rows": [staged[code] for code in body["p_codes"]]}
             if token in self.receipts:
                 payload, receipt = self.receipts[token]
                 if payload != body:
@@ -124,6 +141,6 @@ class GenerationDb(FakeSupa):
         self.upsert("app_settings", "key", {"key": f"universe_state_{market}", "value": state})
         if name == "screener_refresh_begin":
             return {k: v for k, v in lease.items() if k != "active"}
-        if name == "screener_refresh_publish":
+        if name in {"screener_refresh_publish", "screener_refresh_publish_staged"}:
             return receipt
         return True

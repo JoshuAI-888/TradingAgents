@@ -422,7 +422,9 @@ def test_storage_ack_failure_preserves_last_success(fake_db, monkeypatch):
     monkeypatch.setattr(
         fake_db,
         "generation_rpc",
-        lambda name, body: {} if name == "screener_refresh_publish" else original(name, body),
+        lambda name, body: (
+            {} if name == "screener_refresh_publish_staged" else original(name, body)
+        ),
     )
     ref = UniverseRefresher(fake_db, FakeMoomoo())
     with pytest.raises(UniverseRefreshError, match="acknowledgement"):
@@ -681,3 +683,47 @@ def test_invalid_acquisition_spacing_rejected_before_any_collection(fake_db, mon
     monkeypatch.setenv("UNIVERSE_REQUEST_SPACING_SECONDS", spacing)
     with pytest.raises(UniverseRefreshError):
         UniverseRefresher(fake_db, FakeMoomoo())
+
+
+@pytest.mark.parametrize("failure", ["transport", "ack_count", "ack_identity"])
+def test_staging_failure_retains_published_generation(fake_db, monkeypatch, failure):
+    seed_cohort(fake_db, 401)
+    ref = UniverseRefresher(fake_db, FakeMoomoo())
+    previous = ref.run()
+    monkeypatch.setattr(ref, "_quotes_age_h", lambda state: 24)
+    original = fake_db.generation_rpc
+    calls = []
+
+    def fail_stage(name, body):
+        if name == "screener_refresh_stage":
+            calls.append(body)
+            if len(calls) == 2:
+                if failure == "transport":
+                    raise TimeoutError("batch response lost")
+                return {
+                    "run_id": body["p_run"] if failure != "ack_identity" else "other",
+                    "market": body["p_market"],
+                    "staged": 0 if failure == "ack_count" else len(body["p_rows"]),
+                }
+        return original(name, body)
+
+    monkeypatch.setattr(fake_db, "generation_rpc", fail_stage)
+    with pytest.raises((TimeoutError, UniverseRefreshError)):
+        ref.run()
+    state = ref._universe_state()
+    assert state["generation_id"] == previous["generation_id"]
+    assert state["last_quotes"] == previous["finished_at"]
+    assert len(fake_db._t("screener_generations")) == 1
+
+
+def test_bounded_staging_and_small_atomic_publication(fake_db):
+    seed_cohort(fake_db, 801)
+    result = UniverseRefresher(fake_db, FakeMoomoo()).run()
+    batches = [body for name, body in fake_db.rpc_calls if name == "screener_refresh_stage"]
+    finals = [body for name, body in fake_db.rpc_calls if name == "screener_refresh_publish_staged"]
+    assert [len(body["p_rows"]) for body in batches] == [400, 400, 1]
+    assert len(finals) == 1 and "p_rows" not in finals[0]
+    assert set(finals[0]["p_codes"]) == {
+        row["code"] for batch in batches for row in batch["p_rows"]
+    }
+    assert result["quotes"]["quotes"] == 801

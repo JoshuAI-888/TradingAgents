@@ -74,3 +74,12 @@ Paced HK traversal returned all 2,825 members and all quote batches. Publication
 The isolated PostgreSQL rehearsal publishes 9,421 synthetic rows, verifies exact replay and browser denial (1.06 seconds locally); this is not a production performance claim. Failed HK attempts published no generation. The corrected production acquisition remains under qualification.
 
 The existing paused universe cron is prepared with explicit command environment overrides for US/HK screen enumeration, two-second spacing and normalized/cache classification. Resume remains gated on successful first generations.
+
+
+### Bounded publication correction (3 October 2026)
+
+The first HK generation published successfully with 2,825 members. US acquisition returned the 9,421-member screening cohort and every quote, but the single full-evidence RPC exceeded the original payload budget and encountered gateway failures. No US generation was published by those failed attempts; the abandoned lease was fenced before replacement.
+
+Applied additive migration `20261003120913_screener_bounded_staging.sql` replaces the enabled worker's upload with private batches of at most 400 rows and an 8 MiB SQL limit. A small final request validates the exact staged identities and atomically advances the pointer. Exact batch/final replay, conflicts, lease expiry, supersession and base-pointer drift fail safely. Full evidence remains immutable; a service-only invoker display view retains values, classification, clocks and existing string-currency observations without copying null-currency field provenance into each bulk response. Browser execution/reads remain denied. Target grants, RLS, empty search paths and function budgets were verified after application.
+
+[Realistic isolated rehearsal](bounded-publication-rehearsal.json) staged 9,421 synthetic rows totaling 117.64 MB in 24 requests below 5 MB, then published in 1.07 seconds locally. This is not a production performance claim. Native real-worker tests also qualify later-batch failure, exact response-loss replay and successor fencing. The integrated backend suite has 825 passing tests and UI contracts have 191. Production acquisition, source reconciliation and final release gates remain open.

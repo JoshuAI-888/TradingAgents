@@ -40,7 +40,11 @@ class Db:
         )
         try:
             # Publication has a 45-second database budget; allow time for its receipt.
-            timeout = 55 if path == "rpc/screener_refresh_publish" else 30
+            timeout = (
+                55
+                if path in {"rpc/screener_refresh_publish", "rpc/screener_refresh_publish_staged"}
+                else 30
+            )
             with _rq.urlopen(req, timeout=timeout) as resp:
                 raw = resp.read()
                 return json.loads(raw) if raw else None
@@ -95,6 +99,8 @@ class Db:
             "screener_refresh_begin",
             "screener_refresh_renew",
             "screener_refresh_publish",
+            "screener_refresh_stage",
+            "screener_refresh_publish_staged",
             "screener_refresh_abort",
         }:
             raise ValueError("Unsupported generation RPC")

@@ -38,7 +38,7 @@ def canonical_generation(value):
     return value
 
 
-def read_generation(db, market, generation_id):
+def read_generation(db, market, generation_id, *, compact=False):
     canonical_generation(generation_id)
     headers = db.select("screener_generations", {"id": "eq." + generation_id}, "*")
     if len(headers) != 1:
@@ -60,7 +60,7 @@ def read_generation(db, market, generation_id):
     if published < started:
         raise GenerationError("Published generation clock precedes its run")
     records = db.select_all(
-        "screener_generation_rows",
+        "screener_generation_display_rows" if compact else "screener_generation_rows",
         {"generation_id": "eq." + generation_id, "order": "code.asc"},
         "*",
         cap=GENERATION_CAP + 1,

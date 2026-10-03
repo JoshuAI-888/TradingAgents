@@ -27,7 +27,19 @@ class FakeDb:
         return self.tables.setdefault(n, [])
 
     def select(self, table, query=None, columns="*"):
-        rows = [dict(r) for r in self._t(table)]
+        if table == "screener_generation_display_rows":
+            rows = []
+            for record in self._t("screener_generation_rows"):
+                row = dict(record["row"])
+                observations = row.get("field_observations", {})
+                row["field_observations"] = {
+                    key: value
+                    for key, value in observations.items()
+                    if isinstance(value, dict) and isinstance(value.get("currency"), str)
+                }
+                rows.append({**record, "row": row})
+        else:
+            rows = [dict(r) for r in self._t(table)]
         for k, v in (query or {}).items():
             if v.startswith("eq."):
                 col, val = k, v[3:]

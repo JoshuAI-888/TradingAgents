@@ -91,6 +91,8 @@ def test_publication_receipt_timeout_exceeds_database_budget(monkeypatch):
     monkeypatch.setattr(db_module._rq, "urlopen", open_request)
     db = Db(url="https://unused.invalid", key="test-only")
     db.generation_rpc("screener_refresh_publish", {})
+    db.generation_rpc("screener_refresh_publish_staged", {})
+    db.generation_rpc("screener_refresh_stage", {})
     db.generation_rpc("screener_refresh_begin", {})
     db.select("screener_quotes", {}, "code")
-    assert [seconds for _, seconds in observed] == [55, 30, 30]
+    assert [seconds for _, seconds in observed] == [55, 55, 30, 30, 30]
