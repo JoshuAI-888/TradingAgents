@@ -1512,3 +1512,26 @@ test('cold or failed screen library never reports zero preserved presets and ret
  let called; c.scrStreamPanels=market=>{called=market};c.scrRetryPresetLibrary();
  assert.equal(called,c.__scr.market);assert.equal(c.__panelCache.ts,0);
 });
+
+test('column chooser coverage counts loaded supplied values without numeric coercion or qualification',()=>{
+ const c=harness();
+ const rows=[{price:0,roe:-1,volume:0,name:'A',concepts:['Banks'],new_high:false},{price:2,roe:0,volume:1,name:' ',concepts:[],new_high:'0'},{price:null,roe:NaN,volume:true,name:null,concepts:[' '],new_high:null},{price:NaN,roe:false,volume:'100',concepts:[1]},{price:true,roe:Infinity,volume:Infinity}];
+ const coverage=c.scrColumnCoverage(rows);
+ assert.equal(coverage.price,'2/5 supplied');assert.equal(coverage.roe,'2/5 supplied');assert.equal(coverage.volume,'2/5 supplied');
+ assert.equal(coverage.name,'1/5 supplied');assert.equal(coverage.concepts,'1/5 supplied');assert.equal(coverage.new_high,'2/5 supplied');
+ assert.equal(coverage.eps,'Not supplied');assert.equal(c.scrColumnCoverage([]).price,'No rows loaded');
+ assert.equal(c.scrColumnCoverage(null).symbol,'No rows loaded');
+});
+
+test('column chooser computes loaded coverage once per opening and preserves it while drafting columns',()=>{
+ const c=harness(),modal={innerHTML:'',remove(){}};let reads=0;
+ c.scrClientRows=()=>{reads++;return [{price:0},{price:null}];};
+ c.document.createElement=()=>modal;c.document.body.appendChild=()=>{};
+ c.scrToggleColPick();assert.equal(reads,1);assert.match(modal.innerHTML,/Coverage in loaded results only/);
+ assert.match(modal.innerHTML,/1\/2 supplied/);assert.match(modal.innerHTML,/Not supplied/);
+ assert.doesNotMatch(modal.innerHTML,/disabled/);
+ const before=c.__scr.cols.join(','),draft={textContent:'in table'},coverage={textContent:'1/2 supplied'};
+ c.document.querySelectorAll=()=>[{getAttribute:()=>"scrDragStart(event,'price','picker')",querySelector:selector=>selector==='.col-draft-status'?draft:coverage}];
+ c.scrColDraftCheck('price',false);assert.equal(draft.textContent,'');assert.equal(coverage.textContent,'1/2 supplied');
+ c.scrColDraftCheck('rsi14',true);assert.equal(c.__scr.cols.join(','),before);assert.equal(reads,1);
+});

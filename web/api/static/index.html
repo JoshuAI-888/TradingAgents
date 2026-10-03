@@ -863,19 +863,35 @@ function scrHideLoading() {
   window.__scrLoadingMsg = null;
   document.querySelectorAll(".scr-load").forEach(x => x.remove());
 }
+function scrColumnCoverage(rows) {
+  rows = Array.isArray(rows) ? rows : [];
+  const columns = Object.entries(SCR_COLS), counts = Object.fromEntries(columns.map(([key]) => [key, 0]));
+  for (const row of rows) for (const [key, [, kind]] of columns) {
+    const value = row?.[key];
+    const supplied = kind === 'num' ? typeof value === 'number' && Number.isFinite(value)
+      : kind === 'bool' ? [true, false, 0, 1, '0', '1'].includes(value)
+      : typeof value === 'string' ? !!value.trim()
+      : kind === 'multi' && Array.isArray(value) && value.length > 0 && value.every(v => typeof v === 'string' && !!v.trim());
+    if (supplied) counts[key]++;
+  }
+  return Object.fromEntries(columns.map(([key]) => [key, rows.length === 0 ? 'No rows loaded'
+    : counts[key] === 0 ? 'Not supplied' : counts[key] + '/' + rows.length + ' supplied']));
+}
 function scrToggleColPick() {
   const existing = document.getElementById("scr-colpick");
   if (existing) { existing.remove(); return; }
   window.__colDraft = [...window.__scr.cols];
+  const coverage = scrColumnCoverage(scrClientRows() || []);
   const m = document.createElement("div"); m.id = "scr-colpick";
   m.innerHTML = `<div style="position:fixed;inset:0;z-index:60" onclick="scrColPickClose()"></div>
     <div class="mbox" style="width:280px;max-height:none;position:fixed;top:16%;right:14px;left:auto;z-index:61">
       <div class="mhead"><b>Columns</b> <button class="btn ghost" onclick="scrColPickClose()">✕</button></div>
       <div class="faint" style="font-size:10px;margin-bottom:6px">Tick to add · untick to remove · or drag a name onto the table. <b>Apply</b> commits.</div>
+      <p class="faint" style="font-size:10px;margin:0 0 8px">Coverage in loaded results only. Supplied values do not qualify currency or financial periods.</p>
       <div class="msvwrap" id="scr-colpick-list">${Object.entries(SCR_COLS).map(([k, [label]]) =>
         `<label class="msv" draggable="true" ondragstart="scrDragStart(event,'${k}','picker')">
-          <input type="checkbox" ${window.__scr.cols.includes(k) ? "checked" : ""} onchange="scrColDraftCheck('${k}', this.checked)"> ${esc(label)}
-          <span class="faint mono" style="margin-left:auto;font-size:9px">${window.__scr.cols.includes(k) ? "in table" : ""}</span></label>`).join("")}</div>
+          <input type="checkbox" ${window.__scr.cols.includes(k) ? "checked" : ""} onchange="scrColDraftCheck('${k}', this.checked)"> <span style="flex:1;min-width:0">${esc(label)}<small class="col-coverage faint" style="display:block;font-size:9px">${esc(coverage[k])}</small></span>
+          <span class="col-draft-status faint mono" style="margin-left:auto;font-size:9px">${window.__scr.cols.includes(k) ? "in table" : ""}</span></label>`).join("")}</div>
       <div class="mfoot"><button class="btn ghost" onclick="scrColPickClose()">Cancel</button>
         <button class="btn primary" onclick="scrColPickApply()">Apply</button></div>
     </div>`;
@@ -886,7 +902,7 @@ function scrColDraftCheck(k, on) {
   window.__colDraft = on ? (d.includes(k) ? d : [...d, k]) : d.filter(x => x !== k);
   // keep the visible check state honest with the DRAFT (not applied yet)
   const row = [...document.querySelectorAll('#scr-colpick-list .msv')].find(l => l.getAttribute('ondragstart')?.includes(`'${k}'`));
-  if (row) row.querySelector('span').textContent = window.__colDraft.includes(k) ? "in table" : "";
+  if (row) row.querySelector('.col-draft-status').textContent = window.__colDraft.includes(k) ? "in table" : "";
 }
 function scrColPickApply() {
   const d = window.__colDraft;
