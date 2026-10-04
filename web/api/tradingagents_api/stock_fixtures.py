@@ -182,6 +182,30 @@ def _statement(period: str, fin_type: int) -> dict:
             "accounting_standards": "US_GAAP", "auditor_report": "", "item_list": items}
 
 
+def candles_back(ktype: str, before: int | None, count: int) -> dict:
+    """Paged bars for /candles/back — ascending, strictly older than `before`
+    (epoch ms; None = end at the recorded close)."""
+    step = {"K_1M": 60_000, "K_3M": 180_000, "K_5M": 300_000, "K_10M": 600_000,
+            "K_15M": 900_000, "K_30M": 1_800_000, "K_60M": 3_600_000,
+            "K_120M": 7_200_000, "K_180M": 10_800_000, "K_240M": 14_400_000,
+            "K_D": _MS_DAY, "K_W": 7 * _MS_DAY, "K_M": 30 * _MS_DAY}[ktype]
+    end = int(before) if before else 1758835200000
+    out = []
+    price = 512.16 * (1 - 0.18)
+    t0 = end - count * step
+    for i in range(count):
+        w = ((i * 5 + 3) % 13 - 6) / 900
+        o = price
+        price = round(price * (1 + 0.0011 + w), 3)
+        h = round(max(o, price) * 1.004, 3)
+        lo = round(min(o, price) * 0.996, 3)
+        v = 160000 + (i * 9973) % 210000
+        out.append({"time_key": t0 + i * step, "open": round(o, 3), "close": price,
+                    "high": h, "low": lo, "volume": v,
+                    "turnover": round(v * price, 2)})
+    return {"available": True, "ktype": ktype, "bars": out}
+
+
 def payload(key: str, symbol: str):
     """Fixture for an API fetch key; None → unknown key (route 404s/available=false)."""
     S = symbol.upper().removesuffix("-US")
@@ -189,7 +213,13 @@ def payload(key: str, symbol: str):
               "candles:1d": {"kline_list": _minute_kline()},
               "candles:5D": {"kline_list": _kline(65, seed=11)},
               "candles:15m": {"kline_list": _minute_kline(days=6, per_day=26, step_ms=900000)},
+              "candles:3m": {"kline_list": _minute_kline(days=6, per_day=130, step_ms=180000)},
+              "candles:10m": {"kline_list": _minute_kline(days=8, per_day=39, step_ms=600000)},
               "candles:1M": {"kline_list": _kline(90, seed=3)},
+              "candles:1h": {"kline_list": _kline(120, seed=6)},
+              "candles:2h": {"kline_list": _minute_kline(days=10, per_day=6, step_ms=7200000)},
+              "candles:3h": {"kline_list": _minute_kline(days=10, per_day=4, step_ms=10800000)},
+              "candles:4h": {"kline_list": _minute_kline(days=10, per_day=3, step_ms=14400000)},
               "candles:3M": {"kline_list": _kline(120, seed=4)},
               "candles:6M": {"kline_list": _kline(190)},
               "candles:W": {"kline_list": _kline(160, seed=5)},
