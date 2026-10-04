@@ -114,8 +114,10 @@ test('Explore excludes unknown and nonmeaningful ratios instead of plotting them
 test('drawings survive chart teardown and restore under their instrument scope',()=>{
  const c=harness();let disposed;
  c.klinecharts={dispose:id=>disposed=id};c.removeEventListener=()=>{};
+ // v10 engine surface: overlays are read through getOverlays(filter)
  const h={elId:'chart-a',state:()=>({sym:'AAPL',range:'Y'}),drawingScope:'scope-a',drawingIds:['trend'],
- chart:{getOverlayById:()=>({name:'segment',points:[{timestamp:1,value:100},{timestamp:2,value:110}]})}};
+ chart:{getOverlays:f=>f&&f.id==='trend'?[Object.assign({id:'trend'},{name:'segment',points:[{timestamp:1,value:100},{timestamp:2,value:110}]})]:[],
+        removeOverlay:()=>{}}};
  c.klineTeardown(h);assert.equal(disposed,'chart-a');assert.equal(c.__chartDrawings['scope-a'][0].points[1].value,110);
  assert.equal(h.chart,null);assert.equal(h.drawingIds.length,0);
 });
