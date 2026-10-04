@@ -144,8 +144,9 @@ each cell header's last price and colored % change.
 
 ## Deliberately out of scope
 
-- **Log chart scale** — klinecharts 9.8.10 has no logarithmic axis (verified:
-  no log-scale code in the vendored build). Linear only; no broken control.
+- **Log chart scale** — shipped 2026-10-05: the engine upgrade to KLineChart
+  10.0.3 added log/% scales via `overrideYAxis` value transforms (was
+  impossible on 9.8.10 — no log-scale code in that vendored build).
 - **"Patterns (daily charts)"** — TradingView-proprietary auto pattern detection.
 - **Ichimoku forward cloud** — indicator results align 1:1 with bars, so the
   26-bar forward projection cannot render; omitted rather than approximated.
