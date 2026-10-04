@@ -310,7 +310,10 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .stk-toolbar .rng.on{color:var(--txt);border-color:var(--amber);background:rgba(242,193,78,.1)}
 .stk-toolbar .mode{margin-left:auto}
 .readout{font-size:11px;font-family:var(--mono);color:var(--dim);min-height:16px;margin-bottom:4px}
-@media (max-width:760px){.stk-toolbar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}.stk-toolbar .rng{flex:0 0 auto;padding:5px 8px;font-size:11px}.kc-mwrap .kc-menu{max-height:60vh;overflow:auto}.chartbox #stk-kc,#rep-kc,#ana-kc{height:360px!important}}
+.kcwrap.kc-light .chartbox,.kcwrap.kc-light .stk-toolbar,.kcwrap.kc-light .readout{background:#f4f6fa;color:#3a4a5e}
+.kcwrap.kc-light .chartbox canvas{background:#ffffff}
+.kcwrap.kc-full .chartbox,.kcwrap.kc-full #stk-kc,.kcwrap.kc-full #rep-kc,.kcwrap.kc-full #ana-kc{width:100%!important}
+@media (max-width:760px){.wrap{padding-left:10px;padding-right:10px}.panel{padding-left:10px;padding-right:10px}.kcwrap{margin-left:-10px;margin-right:-10px}.stk-toolbar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}.stk-toolbar .rng{flex:0 0 auto;padding:5px 8px;font-size:11px}.kc-mwrap .kc-menu{max-height:60vh;overflow:auto}.chartbox #stk-kc,#rep-kc,#ana-kc{height:360px!important}}
 
 .rating-bar{display:flex;height:26px;border-radius:7px;overflow:hidden;font-size:11px;font-weight:700;color:#04121c}
 .rating-bar div{display:flex;align-items:center;justify-content:center}
@@ -2759,13 +2762,14 @@ function klineEnsure(h) {
   }
   h.baseH = h.baseH || parseInt(el.style.height, 10) || 460;  // candle pane's own height
   const st = h.state();
+  try { const wrap = el.closest(".kcwrap"); if (wrap) wrap.classList.toggle("kc-light", (st.theme || "dark") === "light"); } catch (e) {}
   const c = KC.init(el, {
     locale: "en-US",
     timezone: st.tz || undefined,
     hotkey: { enabled: true },
     styles: klineThemeStyles(st.theme || "dark"),
   });
-  try { c.setStyles(klineAxisHooks(h)); } catch (e) {}
+  try { if ((st.scale || "auto") !== "auto") c.overrideYAxis(klineAxisHooks(h)); } catch (e) {}
   c.subscribeAction("onCrosshairChange", d => { try { h.crosshair && h.crosshair(d, c); } catch (e) {} });
   h.resizeListener = () => { try { c.resize(); } catch (e) {} };
   window.addEventListener("resize", h.resizeListener);
@@ -2802,12 +2806,13 @@ function klineTeardown(h) {
 
 function klineCreate(h, value, paneId, paneOpts) {
   // isStack=true stacks into the pane. Retry once: creation can race the draw
-  // pass. paneId omitted → the candle pane; a new paneId auto-creates a pane
-  // whose height we pin right after creation.
+  // pass. v10 has no implicit main-pane default — the pane id MUST be passed
+  // ("candle_pane" overlays on the candles; any other id auto-creates a pane
+  // whose height we pin right after creation).
   for (let k = 0; k < 2; k++) {
     const spec = typeof value === "string"
-      ? (paneId && h.paneId && paneId !== h.paneId ? { name: value, paneId } : { name: value })
-      : Object.assign({}, value, paneId && h.paneId && paneId !== h.paneId ? { paneId } : {});
+      ? (paneId ? { name: value, paneId } : { name: value })
+      : Object.assign({}, value, paneId ? { paneId } : {});
     const id = h.chart.createIndicator(spec, true);
     if (id) {
       if (paneId && h.paneId && paneId !== h.paneId && paneOpts && paneOpts.height) {
@@ -2901,7 +2906,7 @@ function klineRebuild(h) {
 //    the upstream moomoo budget holds no matter how many charts are open). ──
 function klineFetchBack(h, beforeTs) {
   const st = h.state();
-  const ktype = KC_KTYPE[st.range] || "K_D";
+  const ktype = KC_KTYPE[st.range] || (st.src === "intraday" ? "K_1M" : "K_D");
   const sym = st.sym || stkState().sym || "";
   return api(`/api/stock/${encodeURIComponent(sym)}/candles/back?ktype=${ktype}&before=${Math.floor(beforeTs)}&count=300`)
     .then(d => ((d && d.bars) || []).map(b => ({
@@ -2961,10 +2966,10 @@ function klineSetData(h, data) {
   if (!c) return;
   h._initData = (data || (h.data ? h.data() : []));
   if (!h.loaderSet) { c.setDataLoader(klineLoader(h)); h.loaderSet = true; }
-  try { c.setStyles(klineAxisHooks(h)); } catch (e) {}
+  try { if ((h.state().scale || "auto") !== "auto") c.overrideYAxis(klineAxisHooks(h)); } catch (e) {}
   const st = h.state();
   const sym = String(st.sym || stkState().sym || "").toUpperCase();
-  const per = KC_PERIOD[st.range] || ["day", 1];
+  const per = KC_PERIOD[st.range] || (st.src === "intraday" ? ["minute", 1] : ["day", 1]);
   const period = { type: per[0], span: per[1] };
   h._applySoon = () => setTimeout(() => { try { klineApply(h); } catch (e) {} }, 0);
   if (h.curSym !== sym || JSON.stringify(h.curPeriod) !== JSON.stringify(period)) {
@@ -2983,9 +2988,19 @@ function klineSetData(h, data) {
     (h.drawingIds || []).forEach(id => c.removeOverlay({ id }));
     h.drawingIds = []; h.drawingScope = scope;
     if (!window.__chartDrawings) { try { window.__chartDrawings = JSON.parse(localStorage.getItem("researchDrawings") || "{}"); } catch (e) { window.__chartDrawings = {}; } }
-    for (const ov of (window.__chartDrawings || {})[scope] || []) {
-      const id = c.createOverlay(ov); if (id) h.drawingIds.push(id);
-    }
+    // v10 loads bars ASYNC via the DataLoader — createOverlay on an empty
+    // chart silently fails, so retry until the init bars have landed.
+    const gen = (h._drawGen = (h._drawGen || 0) + 1);
+    const tryRestore = () => {
+      if (!h.chart || gen !== h._drawGen || h._restoreScope !== h.drawingScope || h.drawingIds.length) return;
+      for (const ov of (window.__chartDrawings || {})[h.drawingScope] || []) {
+        const id = c.createOverlay(ov); if (id) h.drawingIds.push(id);
+      }
+    };
+    h._restoreScope = scope;
+    tryRestore();
+    setTimeout(tryRestore, 400);
+    setTimeout(tryRestore, 1000);
   }
 }
 
@@ -2996,7 +3011,7 @@ function klineTool(h, t) {
   // overlay so previous drawings persist while you keep drawing.
   if (t === "cursor") return;
   if (t === "freehand") { h.state().freehand = !h.state().freehand; return; }
-  if (t === "clear") { c.removeOverlay(); h.drawingIds = []; klineSaveDrawings(h); klineDrawOverlays(h); return; }
+  if (t === "clear") { h._drawGen = (h._drawGen || 0) + 1; c.removeOverlay(); h.drawingIds = []; klineSaveDrawings(h); klineDrawOverlays(h); return; }
   if (!STK_OVERLAYS[t]) return;
   const spec = { name: STK_OVERLAYS[t] };
   if (h.state().freehand || t === "brush") spec.drawingMode = "continuous";
@@ -3017,12 +3032,19 @@ function klineFullscreen(h) {
     b.title = on ? "Exit fullscreen (Esc)" : "Fullscreen chart";
   });
   setTimeout(() => { try { h.chart && h.chart.resize(); } catch (e) {} }, 60);
+  setTimeout(() => { try { h.chart && h.chart.resize(); } catch (e) {} }, 350);
 }
 document.addEventListener("fullscreenchange", () => {
   __kcHosts.slice().forEach(h => {
     const el = document.getElementById(h.elId);
     const w = el && el.closest(".kcwrap");
-    if (w) setTimeout(() => { try { h.chart && h.chart.resize(); } catch (e) {} }, 60);
+    if (!w) return;
+    // Esc exits NATIVE fullscreen directly — keep the CSS class in sync.
+    if (!document.fullscreenElement && w.classList.contains("kc-full")) {
+      w.classList.remove("kc-full");
+      w.querySelectorAll("[data-kc-fullbtn]").forEach(b => { b.textContent = "⛶"; b.title = "Fullscreen chart"; });
+    }
+    setTimeout(() => { try { h.chart && h.chart.resize(); } catch (e) {} }, 60);
   });
 });
 document.addEventListener("keydown", ev => {
@@ -3077,7 +3099,7 @@ function klineControlsHTML(pfx, st) {
   const cur = st.style || (st.mode === "line" ? "area" : "candle_solid");
   const menu = (k, items) => `<span class="kc-mwrap"><button class="rng" data-${pfx}-menu="${k}" title="Choose">▾</button>
     <span class="kc-menu" data-${pfx}-panel="${k}">${items}</span></span>`;
-  return `<span class="kc-mwrap"><button class="rng" title="Chart style">${esc((STK_STYLES.find(s => s[0] === cur) || STK_STYLES[0])[1])} ▾</button>
+  return `<span class="kc-mwrap"><button class="rng" data-${pfx}-menu="style" title="Chart style">${esc((STK_STYLES.find(s => s[0] === cur) || STK_STYLES[0])[1])} ▾</button>
       <span class="kc-menu" data-${pfx}-panel="style">${STK_STYLES.map(([k, l]) =>
         `<label class="kc-mi"><input type="radio" name="${pfx}style" data-${pfx}-style="${k}" ${cur === k ? "checked" : ""}> ${l}</label>`).join("")}</span></span>
     ${STK_SCALES.map(([k, l]) => `<button class="rng ${((st.scale || "auto") === k) ? "on" : ""}" title="${k} scale" data-${pfx}-scale="${k}">${l}</button>`).join("")}
@@ -3140,7 +3162,11 @@ function klineBindControls(pfx, h) {
     h.update({ mainInd: arr });
   });
   all("style").forEach(rb => rb.onchange = () => h.update({ style: rb.getAttribute(`data-${pfx}-style`), mode: rb.getAttribute(`data-${pfx}-style`) === "area" ? "line" : "candle" }));
-  all("scale").forEach(b => b.onclick = () => h.update({ scale: b.getAttribute(`data-${pfx}-scale`) }));
+  all("scale").forEach(b => b.onclick = () => {
+    if ((h.state().scale || "auto") === b.getAttribute(`data-${pfx}-scale`)) return;
+    h.update({ scale: b.getAttribute(`data-${pfx}-scale`) });
+    klineRebuild(h);   // axis transforms are init-time — deterministic rebuild
+  });
   all("tzr").forEach(rb => rb.onchange = () => klineSetTz(h, rb.getAttribute(`data-${pfx}-tzr`)));
   all("tool").forEach(b => b.onclick = () => klineTool(h, b.getAttribute(`data-${pfx}-tool`)));
   all("act").forEach(b => b.onclick = () => {
@@ -3293,12 +3319,18 @@ function cmpRegisterIndicators() {
   // the per-cell event map rides the indicator instance (inst._ev).
   KC.registerIndicator({ name: "EVT", shortName: " ", series: "price", figures: [],
     calc: keyed(dl => dl.map(() => ({}))),
-    draw: ({ ctx, kLineDataList, visibleRange, xAxis, yAxis, indicator }) => {
+    draw: ({ ctx, kLineDataList, chart, xAxis, yAxis, indicator }) => {
       const ev = indicator._ev;
       if (!ev) return true;
+      const list = kLineDataList || [];
+      if (!list.length) return true;
+      // v10 draw params carry no visibleRange — read it off the chart instance.
+      let from = 0, to = list.length;
+      try { const vr = chart.getVisibleRange();
+        from = Math.max(0, Math.floor(vr.from)); to = Math.min(list.length, Math.ceil(vr.to) + 1); } catch (e) {}
       ctx.font = "700 9px ui-sans-serif,system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      for (let i = visibleRange.from; i < visibleRange.to; i++) {
-        const b = kLineDataList[i];
+      for (let i = from; i < to; i++) {
+        const b = list[i];
         if (!b) continue;
         const d = new Date(b.timestamp).toISOString().slice(0, 10);
         const tags = [];
