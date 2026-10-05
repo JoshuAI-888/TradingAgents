@@ -5,6 +5,20 @@ Newest decisions first. Each entry: context → decision → implications.
 
 ---
 
+## 2026-10-05 — Chart engine upgraded to KLineChart v10 (chart-surface parity round)
+
+**Owner request**: TradingView-class chart surface in fullscreen using the latest KLineChart; moomoo data only; desktop+mobile verified. Scope locked to chart surface; alerts explicitly out.
+
+- **Vendor**: 9.8.10 → 10.0.3 (latest npm dist-tag; verified). UMD swap only, no build step.
+- **v10 breaking changes actually hit** (all fixed): `applyNewData/updateData` gone → `setDataLoader({getBars, subscribeBar})`; `getIndicatorByPaneId` → `getIndicators({paneId,name})`; `removeIndicator(paneId,name)` → `removeIndicator({paneId,name})`; custom indicator `calc` must return **timestamp-keyed objects** (adapted via a `keyed()` wrapper — math untouched); **v10 has no implicit main pane** — `createIndicator` without `paneId` spawns its own pane (MA landed in a stray pane until `candle_pane` was passed explicitly); **draw params no longer carry `visibleRange`** → `chart.getVisibleRange()` (EVT E/D chips crashed until patched); axis transforms live on the AXIS (`overrideYAxis({realValueToDisplayValue,…})`), NOT in `setStyles`.
+- **New chart surface**: 7 styles (6 native candle types + client-side Heikin Ashi with timestamp-stable transform; HA disables backward paging — cumulative transform can't splice), auto/log/percent scales (log/percent = value-transform pair + `displayValueToText`; scale switch rebuilds), 27 built-in indicators (21 sub-panes + MA/EMA/BOLL + SAR/AVP main extras), 16 built-in overlays + freehand (`drawingMode:"continuous"`) + brush, snapshot PNG (canvas composite), go-to-date (`scrollToTimestamp`), autoscroll (`scrollToRealTime`), timezone select (engine `timezone` option), light/dark themes (light needs the container CSS too — canvas bg is transparent), hotkeys enabled.
+- **Data**: native moomoo intervals wired (3m/10m/1h/2h/3h/4h → ktypes 10/26/9/14/29/15) in `_KLINE_WINDOWS`; new `GET /api/stock/{sym}/candles/back?ktype&before&count` pages history for the DataLoader's backward loading (one date-windowed upstream call per page, TTL-cached); intraday ktypes now cache 60 s (`ohlcv_live`) vs 24 h daily.
+- **Realtime**: 15 s frontier poll through `subscribeBar` (cur-kline via existing candles endpoint; no per-viewer upstream load; paused when tab hidden). WS push remains the follow-up.
+- **Gotchas hit in verification**: restore-drawings raced v10's async init (retry at 0/400/1000 ms + `_drawGen` guard so Clear wins); Esc exits NATIVE fullscreen directly — `fullscreenchange` must sync `.kc-full` off; Playwright-style clicks in the embedded browser auto-center elements (scroll before measuring coords); CUA wheel-scroll over a zoomable canvas times out (page never scrolls — expected).
+- **Verification**: 85 API + 17 UI tests green; live desktop (1280×720) + mobile (390×844) sweeps — styles, all 3 scales, 5 stacked panes, drawings (draw/persist/restore/clear), snapshot download event, fullscreen cycle, compare sync + VP/EVT render, zero script errors, **zero long tasks** during an interaction burst. Report-page instance shares the engine (data needs Supabase, not exercised in fixtures mode).
+
+---
+
 ## 2026-09-30 — Compare page: TradingView-style multi-chart workspace (spec'd from handbook, built, visually gated)
 
 **Owner request**: implement the TradingView multi-chart compare screenshots; tickers from the watchlist; check the moomoo API before assuming (docs/compare-spec.md).

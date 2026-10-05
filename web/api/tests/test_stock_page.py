@@ -88,6 +88,36 @@ def test_candles_intraday_timeframes(client):
     assert r15["available"] is True and len(r15["bars"]) == 156
 
 
+def test_candles_native_intervals(client):
+    """Native moomoo intervals 3m/10m/1h/2h/3h/4h serve OHLCV bars; junk 400s."""
+    for rng in ("3m", "10m", "1h", "2h", "3h", "4h"):
+        body = client.get("/api/stock/CHE/candles", params={"range": rng}).json()
+        assert body["available"] is True, rng
+        assert body["range"] == rng and body["bars"], rng
+        assert {"time_key", "open", "close", "high", "low", "volume",
+                "turnover"} <= set(body["bars"][0]), rng
+
+
+def test_candles_back_paged(client):
+    """Paged history for chart backward loading: ascending, ≤ count, strictly
+    older than `before`, ktype validated."""
+    body = client.get("/api/stock/CHE/candles/back",
+                      params={"ktype": "K_5M", "count": 10}).json()
+    assert body["available"] is True and body["ktype"] == "K_5M"
+    assert 0 < len(body["bars"]) <= 10
+    ts = [b["time_key"] for b in body["bars"]]
+    assert ts == sorted(ts)
+    older = client.get("/api/stock/CHE/candles/back",
+                       params={"ktype": "K_5M", "before": ts[0], "count": 5}).json()
+    assert older["available"] is True and older["bars"]
+    assert all(b["time_key"] < ts[0] for b in older["bars"])
+    assert client.get("/api/stock/CHE/candles/back",
+                      params={"ktype": "K_WEIRD"}).status_code == 400
+    # non-integer count is rejected by FastAPI request validation (422)
+    assert client.get("/api/stock/CHE/candles/back",
+                      params={"ktype": "K_5M", "count": "x"}).status_code == 422
+
+
 def test_dividends_route(client):
     body = client.get("/api/stock/CHE/dividends").json()
     assert body["available"] is True and body["list"]

@@ -310,6 +310,11 @@ input,select,textarea{background:var(--panel2);border:1px solid var(--line);colo
 .stk-toolbar .rng.on{color:var(--txt);border-color:var(--amber);background:rgba(242,193,78,.1)}
 .stk-toolbar .mode{margin-left:auto}
 .readout{font-size:11px;font-family:var(--mono);color:var(--dim);min-height:16px;margin-bottom:4px}
+.kcwrap.kc-light .chartbox,.kcwrap.kc-light .stk-toolbar,.kcwrap.kc-light .readout{background:#f4f6fa;color:#3a4a5e}
+.kcwrap.kc-light .chartbox canvas{background:#ffffff}
+.kcwrap.kc-full .chartbox,.kcwrap.kc-full #stk-kc,.kcwrap.kc-full #rep-kc,.kcwrap.kc-full #ana-kc{width:100%!important}
+@media (max-width:760px){.wrap{padding-left:10px;padding-right:10px}.panel{padding-left:10px;padding-right:10px}.kcwrap{margin-left:-10px;margin-right:-10px}.stk-toolbar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}.stk-toolbar .rng{flex:0 0 auto;padding:5px 8px;font-size:11px}.kc-mwrap .kc-menu{max-height:60vh;overflow:auto}.chartbox #stk-kc,#rep-kc,#ana-kc{height:360px!important}}
+
 .rating-bar{display:flex;height:26px;border-radius:7px;overflow:hidden;font-size:11px;font-weight:700;color:#04121c}
 .rating-bar div{display:flex;align-items:center;justify-content:center}
 .rt-row{display:flex;gap:10px;align-items:baseline;margin-top:8px;font-size:12px}
@@ -2610,25 +2615,57 @@ async function reportPage(ref) {
   </div>`;
 }
 
-// ── chart engine (embedded KLineChart) — one engine for the stock page and
-//    the report dossier so both expose identical features: candles/area,
-//    MA & EMA period pickers (5/20/50/100/200), BOLL, sub indicators
-//    (VOL / MACD DIF·DEA / RSI / KDJ / CCI / WR / ROC / BIAS), drawing
-//    tools, wheel zoom + pan, crosshair readout and fullscreen. ──────────
+// ── chart engine (embedded KLineChart v10) — one engine for the stock page,
+//    report dossier and compare workspace so all expose identical features:
+//    7 chart styles (6 native + Heikin Ashi), auto/log/percent scales, the
+//    full built-in indicator surface (27), the full drawing toolbar (16
+//    overlays + freehand mode), backward paging (/candles/back), frontier-bar
+//    polling, snapshot export, go-to-date, autoscroll, timezone and
+//    light/dark themes, wheel zoom + pan, crosshair readout, fullscreen. ────
 const STK_SUBS = [["VOL", "Volume"], ["MACD", "MACD (DIF/DEA)"], ["RSI", "RSI(14)"], ["KDJ", "KDJ(9,3,3)"],
-                  ["CCI", "CCI(20)"], ["WR", "WR(14)"], ["ROC", "ROC(12)"], ["BIAS", "BIAS(6/12/24)"]];
+                  ["CCI", "CCI(20)"], ["WR", "WR(14)"], ["ROC", "ROC(12)"], ["BIAS", "BIAS(6/12/24)"],
+                  ["DMI", "DMI/ADX"], ["TRIX", "TRIX"], ["OBV", "OBV"], ["VR", "VR"],
+                  ["EMV", "EMV"], ["MTM", "MTM"], ["PSY", "PSY"], ["DDI", "DDI"],
+                  ["BRAR", "BRAR"], ["BBI", "BBI"], ["AO", "AO"], ["PVT", "PVT"], ["CR", "CR"]];
+const STK_MAIN_EXTRA = [["SAR", "SAR"], ["AVP", "AVP"]];       // extra main-pane overlays
 const STK_MA_PERIODS = [5, 20, 50, 100, 200];
 const STK_MA_COLORS = { 5: "#f2c14e", 20: "#3fc1c9", 50: "#e05fa0", 100: "#a06bfa", 200: "#9aa7ff" };
+const STK_STYLES = [["candle_solid", "Candles"], ["candle_stroke", "Stroke"], ["candle_up_stroke", "Hollow ▲"],
+                    ["candle_down_stroke", "Hollow ▼"], ["ohlc", "OHLC"], ["area", "Area"], ["heikin", "Heikin Ashi"]];
+const STK_SCALES = [["auto", "auto"], ["log", "log"], ["percent", "%"]];
 const STK_TOOLS = [["cursor", "✛", "Cross cursor (default)"],
                    ["segment", "╱ Trend", "Trend line — click two points"],
                    ["hline", "─ H-Line", "Horizontal line"],
-                   ["ray", "↗ Ray", "Ray line"],
+                   ["hray", "─↗ H-Ray", "Horizontal ray"],
+                   ["hseg", "─╱ H-Seg", "Horizontal segment"],
                    ["vline", "│ V-Line", "Vertical line"],
+                   ["vray", "│↗ V-Ray", "Vertical ray"],
+                   ["vseg", "│╱ V-Seg", "Vertical segment"],
+                   ["ray", "↗ Ray", "Ray line"],
+                   ["straight", "╱ Line", "Infinite straight line"],
                    ["channel", "∥ Channel", "Parallel channel line"],
+                   ["pchannel", "⋈ P-Channel", "Price channel (3 points)"],
                    ["fib", "⑂ Fib", "Fibonacci retracement"],
+                   ["pline", "· P-Line", "Price line (1 point)"],
+                   ["tag", "🔖 Tag", "Simple price tag"],
+                   ["note", "✎ Note", "Simple annotation"],
+                   ["brush", "✏ Brush", "Freehand brush"],
+                   ["freehand", "✍ Free", "Toggle freehand (drag-to-draw) mode"],
                    ["clear", "✕ Clear", "Remove all drawings"]];
-const STK_OVERLAYS = { segment: "segment", hline: "horizontalStraightLine", ray: "rayLine",
-                       vline: "verticalStraightLine", channel: "parallelStraightLine", fib: "fibonacciLine" };
+const STK_OVERLAYS = { segment: "segment", hline: "horizontalStraightLine", hray: "horizontalRayLine",
+                       hseg: "horizontalSegment", vline: "verticalStraightLine", vray: "verticalRayLine",
+                       vseg: "verticalSegment", ray: "rayLine", straight: "straightLine",
+                       channel: "parallelStraightLine", pchannel: "priceChannelLine", fib: "fibonacciLine",
+                       pline: "priceLine", tag: "simpleTag", note: "simpleAnnotation", brush: "brush" };
+// Chart-engine ktype + period per range name (mirrors the API's _KLINE_WINDOWS
+// ktype column; the DataLoader pages with the K_* name).
+const KC_KTYPE = { "1d": "K_1M", "3m": "K_3M", "5D": "K_5M", "10m": "K_10M", "15m": "K_15M",
+                   "1M": "K_30M", "1h": "K_60M", "2h": "K_120M", "3h": "K_180M", "4h": "K_240M",
+                   "3M": "K_60M", "Q": "K_D", "6M": "K_D", "Y": "K_D", "W": "K_W", "M": "K_M", "10Y": "K_M" };
+const KC_PERIOD = { "1d": ["minute", 1], "3m": ["minute", 3], "5D": ["minute", 5], "10m": ["minute", 10],
+                    "15m": ["minute", 15], "1M": ["minute", 30], "1h": ["hour", 1], "2h": ["hour", 2],
+                    "3h": ["hour", 3], "4h": ["hour", 4], "3M": ["hour", 1], "Q": ["day", 1],
+                    "6M": ["day", 1], "Y": ["day", 1], "W": ["week", 1], "M": ["month", 1], "10Y": ["month", 1] };
 const TF_N = { "1M": 21, "3M": 63, "6M": 126, "1Y": 252, "ALL": 500 };
 // dashedValue is required — the draw pass reads dashedValue[0] on every segment.
 const KC_LINE = color => ({ style: "solid", smooth: false, color, size: 1.1, dashedValue: [4, 4] });
@@ -2640,8 +2677,42 @@ function klineHost(o) {
 const __kcHosts = [];
 function klineTeardownAll() { __kcHosts.slice().forEach(klineTeardown); }
 
-function klineTheme(c) {
-  c.setStyles({
+function klineHeikin(bars) {
+  // Heikin Ashi transform — timestamps preserved so drawings stay valid.
+  const out = []; let po = null, pc = null;
+  for (const b of bars) {
+    const hc = (b.open + b.high + b.low + b.close) / 4;
+    const ho = po == null ? (b.open + b.close) / 2 : (po + pc) / 2;
+    const hh = Math.max(b.high, ho, hc), hl = Math.min(b.low, ho, hc);
+    out.push(Object.assign({}, b, { open: ho, high: hh, low: hl, close: hc }));
+    po = ho; pc = hc;
+  }
+  return out;
+}
+function klineViewData(h) {
+  const st = h.state(), raw = (h._initData || (h.data ? h.data() : []));
+  return st.style === "heikin" ? klineHeikin(raw) : raw;
+}
+
+function klineThemeStyles(mode) {
+  if (mode === "light") return {
+    grid: { horizontal: { color: "#e6ebf2" }, vertical: { color: "#eef2f7" } },
+    candle: {
+      bar: { upColor: "#0f9960", downColor: "#d64541", noChangeColor: "#8ba0b8",
+             upWickColor: "#0f9960", downWickColor: "#d64541", noChangeWickColor: "#8ba0b8",
+             upBorderColor: "#0f9960", downBorderColor: "#d64541", noChangeBorderColor: "#8ba0b8" },
+      area: { lineSize: 2, lineColor: "#0f9960", value: "open",
+              backgroundColor: [{ offset: 0, color: "rgba(15,153,96,.16)" },
+                                 { offset: 1, color: "rgba(15,153,96,.01)" }] },
+      priceMark: { high: { color: "#9aa7b8" }, low: { color: "#9aa7b8" },
+                   last: { upColor: "#0f9960", downColor: "#d64541" } },
+    },
+    xAxis: { axisLine: { color: "#d7dee8" }, tickLine: { color: "#d7dee8" }, tickText: { color: "#7a8aa0" } },
+    yAxis: { axisLine: { color: "#d7dee8" }, tickLine: { color: "#d7dee8" }, tickText: { color: "#7a8aa0" } },
+    crosshair: { line: { color: "#9aa7b8" }, text: { backgroundColor: "#5a6b82", color: "#ffffff" } },
+    separator: { color: "#d7dee8" },
+  };
+  return {
     grid: { horizontal: { color: "#141d2a" }, vertical: { color: "#101823" } },
     candle: {
       bar: { upColor: "#26c68c", downColor: "#f0544f", noChangeColor: "#8ba0b8",
@@ -2657,7 +2728,27 @@ function klineTheme(c) {
     yAxis: { axisLine: { color: "#1e2a3b" }, tickLine: { color: "#1e2a3b" }, tickText: { color: "#5c6f86" } },
     crosshair: { line: { color: "#5c6f86" }, text: { backgroundColor: "#26344a", color: "#dce5f1" } },
     separator: { color: "#1e2a3b" },
-  });
+  };
+}
+// Log/percent y-axis value transforms (v10 axis hooks). Percent is relative to
+// the first loaded bar's close; the anchor is recomputed on every data load.
+function klineAxisHooks(h) {
+  const scale = h.state().scale || "auto";
+  if (scale === "log") return {
+    realValueToDisplayValue: v => (v > 0 ? Math.log(v) : 0),
+    displayValueToRealValue: v => Math.exp(v),
+    displayValueToText: (v, prec) => fmtAuto(Math.exp(v)),
+  };
+  if (scale === "percent") {
+    const bars = h._initData || [];
+    const anchor = bars.length ? (bars[0].close || bars[0].open) : 1;
+    return {
+      realValueToDisplayValue: v => anchor ? (v / anchor - 1) * 100 : 0,
+      displayValueToRealValue: v => (v / 100 + 1) * (anchor || 1),
+      displayValueToText: (v, prec) => (v == null || !isFinite(v) ? "—" : v.toFixed(2) + "%"),
+    };
+  }
+  return {};
 }
 
 function klineEnsure(h) {
@@ -2670,9 +2761,15 @@ function klineEnsure(h) {
     return null;
   }
   h.baseH = h.baseH || parseInt(el.style.height, 10) || 460;  // candle pane's own height
-  const c = KC.init(el);
-  try { c.setLocale("en-US"); c.setPriceVolumePrecision(2, 0); } catch (e) {}
-  klineTheme(c);
+  const st = h.state();
+  try { const wrap = el.closest(".kcwrap"); if (wrap) wrap.classList.toggle("kc-light", (st.theme || "dark") === "light"); } catch (e) {}
+  const c = KC.init(el, {
+    locale: "en-US",
+    timezone: st.tz || undefined,
+    hotkey: { enabled: true },
+    styles: klineThemeStyles(st.theme || "dark"),
+  });
+  try { if ((st.scale || "auto") !== "auto") c.overrideYAxis(klineAxisHooks(h)); } catch (e) {}
   c.subscribeAction("onCrosshairChange", d => { try { h.crosshair && h.crosshair(d, c); } catch (e) {} });
   h.resizeListener = () => { try { c.resize(); } catch (e) {} };
   window.addEventListener("resize", h.resizeListener);
@@ -2687,30 +2784,42 @@ function klineDrawingScope(h) {
 }
 function klineSaveDrawings(h) {
   if (!h.chart || !h.drawingScope) return;
-  const drawings = (h.drawingIds || []).map(id => h.chart.getOverlayById(id)).filter(o=>o && o.points?.length)
-    .map(o=>({name:o.name, points:JSON.parse(JSON.stringify(o.points))}));
+  const drawings = (h.drawingIds || []).flatMap(id => h.chart.getOverlays({ id })).filter(o => o && o.points && o.points.length)
+    .map(o => ({ name: o.name, points: JSON.parse(JSON.stringify(o.points)) }));
   window.__chartDrawings = window.__chartDrawings || {};
   window.__chartDrawings[h.drawingScope] = drawings;
-  try { localStorage.setItem("researchDrawings", JSON.stringify(window.__chartDrawings)); } catch(e) {}
+  try { localStorage.setItem("researchDrawings", JSON.stringify(window.__chartDrawings)); } catch (e) {}
 }
 function klineTeardown(h) {
   klineSaveDrawings(h);
+  if (h.pollTimer) { clearInterval(h.pollTimer); h.pollTimer = null; }
   if (h.resizeListener) window.removeEventListener("resize", h.resizeListener);
   h.resizeListener = null;
   if (h.chart) { try { window.klinecharts.dispose(h.elId); } catch (e) {} }
   h.drawingIds = []; h.drawingScope = null;
   const i = __kcHosts.indexOf(h);
   if (i >= 0) __kcHosts.splice(i, 1);
-  h.chart = null; h.subsCur = null; h.maCur = null; h.emaCur = null; h.builtType = null; h.staticOverlays = [];
+  h.chart = null; h.subsCur = null; h.maCur = null; h.emaCur = null; h.builtType = null;
+  h.staticOverlays = []; h.loaderSet = null; h.curSym = null; h.curPeriod = null; h.pollCb = null;
   h.ovlsCur = null; h.evtCur = null; h.syncBound = false;
 }
 
 function klineCreate(h, value, paneId, paneOpts) {
-  // isStack=true stacks into the pane — isStack=false would REPLACE the
-  // pane's whole indicator set. Retry once: creation can race the draw pass.
+  // isStack=true stacks into the pane. Retry once: creation can race the draw
+  // pass. v10 has no implicit main-pane default — the pane id MUST be passed
+  // ("candle_pane" overlays on the candles; any other id auto-creates a pane
+  // whose height we pin right after creation).
   for (let k = 0; k < 2; k++) {
-    const id = h.chart.createIndicator(value, true, Object.assign({ id: paneId }, paneOpts || {}));
-    if (id) return true;
+    const spec = typeof value === "string"
+      ? (paneId ? { name: value, paneId } : { name: value })
+      : Object.assign({}, value, paneId ? { paneId } : {});
+    const id = h.chart.createIndicator(spec, true);
+    if (id) {
+      if (paneId && h.paneId && paneId !== h.paneId && paneOpts && paneOpts.height) {
+        try { h.chart.setPaneOptions({ id: paneId, height: paneOpts.height }); } catch (e) {}
+      }
+      return true;
+    }
   }
   return false;
 }
@@ -2719,9 +2828,9 @@ function klineApply(h) {
   const c = h.chart;
   if (!c) return;
   const st = h.state();
-  const wantType = st.mode === "line" ? "area" : "candle_solid";
-  // Area↔candle switches go through a full rebuild: the engine's live switch
-  // leaves the previous area canvas painted above the candle layer.
+  const wantType = st.style && st.style !== "heikin" ? st.style : (st.mode === "line" ? "area" : "candle_solid");
+  // Style switches go through a full rebuild: the engine's live switch can
+  // leave the previous area canvas painted above the candle layer.
   if (h.builtType && h.builtType !== wantType) { klineRebuild(h); return; }
   c.setStyles({ candle: { type: wantType } });
   h.builtType = wantType;
@@ -2730,17 +2839,24 @@ function klineApply(h) {
   [["ma", "MA"], ["ema", "EMA"]].forEach(([key, name]) => {
     const sel = Array.isArray(st[key]) && st[key].length ? st[key].slice().sort((a, b) => a - b) : null;
     if (!sel) {
-      if (h[key + "Cur"]) { c.removeIndicator(h.paneId, name); h[key + "Cur"] = null; }
+      if (h[key + "Cur"]) { c.removeIndicator({ name }); h[key + "Cur"] = null; }
       return;
     }
     if (h[key + "Cur"] && h[key + "Cur"].join(",") === sel.join(",")) return;
-    if (h[key + "Cur"]) c.removeIndicator(h.paneId, name);
+    if (h[key + "Cur"]) c.removeIndicator({ name });
     klineCreate(h, { name, calcParams: sel, styles: { lines: sel.map(pc => KC_LINE(STK_MA_COLORS[pc])) } }, h.paneId);
     h[key + "Cur"] = sel;
   });
-  const hasBoll = !!c.getIndicatorByPaneId(h.paneId, "BOLL");
+  const hasBoll = c.getIndicators({ name: "BOLL" }).length > 0;
   if (st.boll && !hasBoll) klineCreate(h, "BOLL", h.paneId);
-  if (!st.boll && hasBoll) c.removeIndicator(h.paneId, "BOLL");
+  if (!st.boll && hasBoll) c.removeIndicator({ name: "BOLL" });
+  // Extra main-pane overlays (SAR / AVP) toggle from the indicator menu.
+  const wantMain = Array.isArray(st.mainInd) ? st.mainInd : [];
+  STK_MAIN_EXTRA.forEach(([name]) => {
+    const has = c.getIndicators({ name }).length > 0;
+    if (wantMain.includes(name) && !has) klineCreate(h, name, h.paneId);
+    if (!wantMain.includes(name) && has) c.removeIndicator({ name });
+  });
   // Sub panes are ADDITIVE — every selected indicator gets its own pane below
   // the candles. Changing the set on a live instance rebuilds the chart (a
   // removed indicator would otherwise leave an empty pane of dead space).
@@ -2769,7 +2885,7 @@ function klineApply(h) {
 function klineDrawOverlays(h) {
   const c = h.chart;
   if (!c) return;
-  (h.staticOverlays || []).forEach(id => { if (c.getOverlayById(id)) c.removeOverlay(id); });
+  (h.staticOverlays || []).forEach(id => { if (c.getOverlays({ id }).length) c.removeOverlay({ id }); });
   h.staticOverlays = [];
   (h.overlays ? h.overlays() : []).forEach((ov, i) => {
     const id = h.elId + "_ov" + i;
@@ -2785,22 +2901,106 @@ function klineRebuild(h) {
   klineSetData(h, data);
 }
 
+// ── v10 DataLoader: initial bars from the page's fetch, backward pages from
+//    /candles/back, and a 15 s frontier poll (through the API's TTL cache, so
+//    the upstream moomoo budget holds no matter how many charts are open). ──
+function klineFetchBack(h, beforeTs) {
+  const st = h.state();
+  const ktype = KC_KTYPE[st.range] || (st.src === "intraday" ? "K_1M" : "K_D");
+  const sym = st.sym || stkState().sym || "";
+  return api(`/api/stock/${encodeURIComponent(sym)}/candles/back?ktype=${ktype}&before=${Math.floor(beforeTs)}&count=300`)
+    .then(d => ((d && d.bars) || []).map(b => ({
+      timestamp: +b.time_key, open: +b.open, high: +b.high, low: +b.low,
+      close: +b.close, volume: +b.volume || 0, turnover: +b.turnover || 0 })))
+    .catch(() => []);
+}
+function klinePollFrontier(h) {
+  const st = h.state();
+  if (document.hidden || st.src === "intraday" || !h.pollCb) return;
+  const sym = st.sym || stkState().sym || "";
+  api(`/api/stock/${encodeURIComponent(sym)}/candles?range=${encodeURIComponent(st.range || "5D")}`)
+    .then(d => {
+      const last = (d && d.bars && d.bars[d.bars.length - 1]) || null;
+      if (last && h.pollCb && Number.isFinite(+last.time_key))
+        h.pollCb({ timestamp: +last.time_key, open: +last.open, high: +last.high,
+                   low: +last.low, close: +last.close, volume: +last.volume || 0,
+                   turnover: +last.turnover || 0 });
+    }).catch(() => {});
+}
+function klineLoader(h) {
+  return {
+    getBars({ type, timestamp, callback }) {
+      if (type === "backward" && timestamp) {
+        // Heikin Ashi is a cumulative transform over the whole series, so new
+        // raw pages can't be spliced into a transformed chart — paging is
+        // disabled in that style (the initial window already carries the full
+        // range fetch).
+        if (h.state().style === "heikin") { callback([], false); return; }
+        klineFetchBack(h, timestamp).then(bars => {
+          // merge the older raw page into the store so rebuilds keep it
+          const byTs = new Map((h._initData || []).map(b => [b.timestamp, b]));
+          bars.forEach(b => { if (!byTs.has(b.timestamp)) byTs.set(b.timestamp, b); });
+          h._initData = [...byTs.values()].sort((a, b) => a.timestamp - b.timestamp);
+          callback(bars, bars.length >= 60);
+        });
+        return;
+      }
+      // init / forward / update: serve the page's own fetched window.
+      callback(klineViewData(h).slice(), false);
+    },
+    subscribeBar({ callback }) {
+      h.pollCb = callback;
+      if (!h.pollTimer) h.pollTimer = setInterval(() => klinePollFrontier(h), 15000);
+    },
+    unsubscribeBar() {
+      if (h.pollTimer) { clearInterval(h.pollTimer); h.pollTimer = null; }
+      h.pollCb = null;
+    },
+  };
+}
+
 function klineSetData(h, data) {
   const scope = klineDrawingScope(h);
   if (h.drawingScope !== scope) klineSaveDrawings(h);
   let c = klineEnsure(h);
   if (!c) return;
-  c.applyNewData(data);
-  klineApply(h);
+  h._initData = (data || (h.data ? h.data() : []));
+  if (!h.loaderSet) { c.setDataLoader(klineLoader(h)); h.loaderSet = true; }
+  try { if ((h.state().scale || "auto") !== "auto") c.overrideYAxis(klineAxisHooks(h)); } catch (e) {}
+  const st = h.state();
+  const sym = String(st.sym || stkState().sym || "").toUpperCase();
+  const per = KC_PERIOD[st.range] || (st.src === "intraday" ? ["minute", 1] : ["day", 1]);
+  const period = { type: per[0], span: per[1] };
+  h._applySoon = () => setTimeout(() => { try { klineApply(h); } catch (e) {} }, 0);
+  if (h.curSym !== sym || JSON.stringify(h.curPeriod) !== JSON.stringify(period)) {
+    try { c.setSymbol({ ticker: sym || "—" }); c.setPeriod(period); } catch (e) {}
+    h.curSym = sym; h.curPeriod = period;
+    // setSymbol/setPeriod re-invokes getBars("init"); also apply right away so
+    // indicators exist even if the engine reuses cached bars.
+    h._applySoon();
+  } else {
+    try { c.resetData(); } catch (e) {}
+    h._applySoon();
+  }
   c = h.chart;
   if (!c) return;
   if (h.drawingScope !== scope) {
-    (h.drawingIds || []).forEach(id=>c.removeOverlay(id));
+    (h.drawingIds || []).forEach(id => c.removeOverlay({ id }));
     h.drawingIds = []; h.drawingScope = scope;
-    if (!window.__chartDrawings) { try { window.__chartDrawings=JSON.parse(localStorage.getItem("researchDrawings") || "{}"); } catch(e) { window.__chartDrawings={}; } }
-    for (const ov of (window.__chartDrawings || {})[scope] || []) {
-      const id = c.createOverlay(ov); if(id)h.drawingIds.push(id);
-    }
+    if (!window.__chartDrawings) { try { window.__chartDrawings = JSON.parse(localStorage.getItem("researchDrawings") || "{}"); } catch (e) { window.__chartDrawings = {}; } }
+    // v10 loads bars ASYNC via the DataLoader — createOverlay on an empty
+    // chart silently fails, so retry until the init bars have landed.
+    const gen = (h._drawGen = (h._drawGen || 0) + 1);
+    const tryRestore = () => {
+      if (!h.chart || gen !== h._drawGen || h._restoreScope !== h.drawingScope || h.drawingIds.length) return;
+      for (const ov of (window.__chartDrawings || {})[h.drawingScope] || []) {
+        const id = c.createOverlay(ov); if (id) h.drawingIds.push(id);
+      }
+    };
+    h._restoreScope = scope;
+    tryRestore();
+    setTimeout(tryRestore, 400);
+    setTimeout(tryRestore, 1000);
   }
 }
 
@@ -2810,10 +3010,13 @@ function klineTool(h, t) {
   // Clear is the only action that wipes — picking a drawing tool arms another
   // overlay so previous drawings persist while you keep drawing.
   if (t === "cursor") return;
-  if (t === "clear") { c.removeOverlay(); h.drawingIds = []; klineSaveDrawings(h); klineDrawOverlays(h); return; }
+  if (t === "freehand") { h.state().freehand = !h.state().freehand; return; }
+  if (t === "clear") { h._drawGen = (h._drawGen || 0) + 1; c.removeOverlay(); h.drawingIds = []; klineSaveDrawings(h); klineDrawOverlays(h); return; }
   if (!STK_OVERLAYS[t]) return;
-  const id = c.createOverlay({ name: STK_OVERLAYS[t] });
-  if(id)(h.drawingIds = h.drawingIds || []).push(id);
+  const spec = { name: STK_OVERLAYS[t] };
+  if (h.state().freehand || t === "brush") spec.drawingMode = "continuous";
+  const id = c.createOverlay(spec);
+  if (id) (h.drawingIds = h.drawingIds || []).push(id);
   klineDrawOverlays(h);
 }
 
@@ -2822,44 +3025,110 @@ function klineFullscreen(h) {
   const wrap = el && el.closest(".kcwrap");
   if (!wrap) return;
   const on = wrap.classList.toggle("kc-full");
+  try { if (on && wrap.requestFullscreen) wrap.requestFullscreen().catch(() => {}); } catch (e) {}
+  try { if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) {}
   wrap.querySelectorAll("[data-kc-fullbtn]").forEach(b => {
     b.textContent = on ? "⤡ Exit" : "⛶";
     b.title = on ? "Exit fullscreen (Esc)" : "Fullscreen chart";
   });
   setTimeout(() => { try { h.chart && h.chart.resize(); } catch (e) {} }, 60);
+  setTimeout(() => { try { h.chart && h.chart.resize(); } catch (e) {} }, 350);
 }
+document.addEventListener("fullscreenchange", () => {
+  __kcHosts.slice().forEach(h => {
+    const el = document.getElementById(h.elId);
+    const w = el && el.closest(".kcwrap");
+    if (!w) return;
+    // Esc exits NATIVE fullscreen directly — keep the CSS class in sync.
+    if (!document.fullscreenElement && w.classList.contains("kc-full")) {
+      w.classList.remove("kc-full");
+      w.querySelectorAll("[data-kc-fullbtn]").forEach(b => { b.textContent = "⛶"; b.title = "Fullscreen chart"; });
+    }
+    setTimeout(() => { try { h.chart && h.chart.resize(); } catch (e) {} }, 60);
+  });
+});
 document.addEventListener("keydown", ev => {
   if (ev.key !== "Escape") return;
   __kcHosts.slice().forEach(h => {
     const el = document.getElementById(h.elId);
     const w = el && el.closest(".kcwrap");
-    if (w && w.classList.contains("kc-full")) klineFullscreen(h);
+    if (w && w.classList.contains("kc-full") && !document.fullscreenElement) klineFullscreen(h);
   });
 });
 
-// ── shared control cluster (mode / MA / EMA / BOLL / sub pane / draw / full) ──
+// ── chart actions: snapshot / go-to-date / autoscroll / timezone / theme ──
+function klineSnapshot(h) {
+  const el = document.getElementById(h.elId);
+  if (!el) return;
+  const canvases = [...el.querySelectorAll("canvas")];
+  if (!canvases.length) return;
+  const w = Math.max(...canvases.map(cv => cv.width)), ht = canvases.reduce((a, cv) => a + cv.height, 0);
+  const st = h.state();
+  const out = document.createElement("canvas");
+  out.width = w; out.height = ht;
+  const ctx = out.getContext("2d");
+  ctx.fillStyle = (st.theme || "dark") === "light" ? "#ffffff" : "#0c1420";
+  ctx.fillRect(0, 0, w, ht);
+  let y = 0;
+  canvases.forEach(cv => { ctx.drawImage(cv, 0, y); y += cv.height; });
+  const a = document.createElement("a");
+  a.href = out.toDataURL("image/png");
+  a.download = `${(st.sym || stkState().sym || "chart")}_${st.range || ""}.png`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function klineGoToDate(h) {
+  const d = window.prompt("Go to date (YYYY-MM-DD):", "");
+  if (!d) return;
+  const ts = Date.parse(d + "T00:00:00Z");
+  if (!isFinite(ts)) return;
+  try { h.chart && h.chart.scrollToTimestamp(ts, 200); } catch (e) {}
+}
+function klineSetTz(h, tz) {
+  h.update({ tz });
+  klineRebuild(h);
+}
+function klineSetTheme(h) {
+  h.update({ theme: (h.state().theme || "dark") === "dark" ? "light" : "dark" });
+  klineRebuild(h);
+}
+
+// ── shared control cluster (styles / scales / MA / EMA / BOLL / indicators /
+//    panes / drawing tools / actions / fullscreen) ──────────────────────────
 function klineControlsHTML(pfx, st) {
   const on = k => Array.isArray(st[k]) && st[k].length;
-  const menu = k => `<span class="kc-mwrap"><button class="rng" data-${pfx}-menu="${k}" title="Choose ${k.toUpperCase()} periods">▾</button>
-    <span class="kc-menu" data-${pfx}-panel="${k}">${STK_MA_PERIODS.map(pc =>
-      `<label class="kc-mi"><input type="checkbox" data-${pfx}-p="${k}:${pc}" ${on(k) && st[k].includes(pc) ? "checked" : ""}> ${k.toUpperCase()}${pc}</label>`).join("")}</span></span>`;
-  return `<button class="rng ${st.mode === "line" ? "on" : ""}" data-${pfx}-mode="line">Time</button>
-    <button class="rng ${st.mode === "candle" ? "on" : ""}" data-${pfx}-mode="candle">Candle</button>
-    <button class="rng ${on("ma") ? "on" : ""}" data-${pfx}-tog="ma">MA</button>${menu("ma")}
-    <button class="rng ${on("ema") ? "on" : ""}" data-${pfx}-tog="ema">EMA</button>${menu("ema")}
+  const cur = st.style || (st.mode === "line" ? "area" : "candle_solid");
+  const menu = (k, items) => `<span class="kc-mwrap"><button class="rng" data-${pfx}-menu="${k}" title="Choose">▾</button>
+    <span class="kc-menu" data-${pfx}-panel="${k}">${items}</span></span>`;
+  return `<span class="kc-mwrap"><button class="rng" data-${pfx}-menu="style" title="Chart style">${esc((STK_STYLES.find(s => s[0] === cur) || STK_STYLES[0])[1])} ▾</button>
+      <span class="kc-menu" data-${pfx}-panel="style">${STK_STYLES.map(([k, l]) =>
+        `<label class="kc-mi"><input type="radio" name="${pfx}style" data-${pfx}-style="${k}" ${cur === k ? "checked" : ""}> ${l}</label>`).join("")}</span></span>
+    ${STK_SCALES.map(([k, l]) => `<button class="rng ${((st.scale || "auto") === k) ? "on" : ""}" title="${k} scale" data-${pfx}-scale="${k}">${l}</button>`).join("")}
+    <button class="rng ${on("ma") ? "on" : ""}" data-${pfx}-tog="ma">MA</button>${menu("ma", STK_MA_PERIODS.map(pc =>
+      `<label class="kc-mi"><input type="checkbox" data-${pfx}-p="ma:${pc}" ${on("ma") && st.ma.includes(pc) ? "checked" : ""}> MA${pc}</label>`).join(""))}
+    <button class="rng ${on("ema") ? "on" : ""}" data-${pfx}-tog="ema">EMA</button>${menu("ema", STK_MA_PERIODS.map(pc =>
+      `<label class="kc-mi"><input type="checkbox" data-${pfx}-p="ema:${pc}" ${on("ema") && st.ema.includes(pc) ? "checked" : ""}> EMA${pc}</label>`).join(""))}
     <button class="rng ${st.boll ? "on" : ""}" data-${pfx}-tog="boll">BOLL</button>
+    <span class="kc-mwrap"><button class="rng" data-${pfx}-menu="ind" title="Indicators">Indicators ▾</button>
+      <span class="kc-menu" data-${pfx}-panel="ind">
+        ${STK_MAIN_EXTRA.map(([k, l]) => `<label class="kc-mi"><input type="checkbox" data-${pfx}-mi="${k}" ${(st.mainInd || []).includes(k) ? "checked" : ""}> ${l} <i style="opacity:.6">(main)</i></label>`).join("")}
+        <div style="border-top:1px solid rgba(140,160,184,.25);margin:4px 0"></div>
+        ${STK_SUBS.map(([k, l]) => `<label class="kc-mi"><input type="checkbox" data-${pfx}-s="${k}" ${on("subs") && st.subs.includes(k) ? "checked" : ""}> ${l}</label>`).join("")}
+      </span></span>
     <span class="kc-sep"></span>
-    <span class="kc-mwrap"><button class="rng" data-${pfx}-menu="subs" title="Pick lower panes (stacks additively)">＋ Panes ▾</button>
-    <span class="kc-menu" data-${pfx}-panel="subs">${STK_SUBS.map(([k, l]) =>
-      `<label class="kc-mi"><input type="checkbox" data-${pfx}-s="${k}" ${on("subs") && st.subs.includes(k) ? "checked" : ""}> ${l}</label>`).join("")}</span></span>
+    ${STK_TOOLS.map(([k, l, t]) => `<button class="rng ${k === "freehand" && st.freehand ? "on" : ""}" title="${esc(t)}" data-${pfx}-tool="${k}">${l}</button>`).join("")}
     <span class="kc-sep"></span>
-    ${STK_TOOLS.map(([k, l, t]) => `<button class="rng" title="${esc(t)}" data-${pfx}-tool="${k}">${l}</button>`).join("")}
+    <button class="rng" title="Download chart snapshot (PNG)" data-${pfx}-act="snap">📷</button>
+    <button class="rng" title="Go to date" data-${pfx}-act="goto">📅</button>
+    <button class="rng" title="Scroll to latest bar" data-${pfx}-act="latest">⏭</button>
+    <span class="kc-mwrap"><button class="rng" title="Timezone" data-${pfx}-menu="tz">🕐 ▾</button>
+      <span class="kc-menu" data-${pfx}-panel="tz">${[["", "Local"], ["UTC", "UTC"], ["America/New_York", "US Eastern"]].map(([k, l]) =>
+        `<label class="kc-mi"><input type="radio" name="${pfx}tz" data-${pfx}-tzr="${k}" ${(st.tz || "") === k ? "checked" : ""}> ${l}</label>`).join("")}</span></span>
+    <button class="rng" title="Toggle light/dark theme" data-${pfx}-act="theme">${(st.theme || "dark") === "dark" ? "☀" : "🌙"}</button>
     <button class="rng" data-kc-fullbtn data-${pfx}-full title="Fullscreen chart">⛶</button>`;
 }
 
 function klineBindControls(pfx, h) {
   const all = suffix => [...document.querySelectorAll(`[data-${pfx}-${suffix}]`)];
-  all("mode").forEach(b => b.onclick = () => h.update({ mode: b.getAttribute(`data-${pfx}-mode`) }));
   all("tog").forEach(b => b.onclick = () => {
     const k = b.getAttribute(`data-${pfx}-tog`), st = h.state();
     const on = Array.isArray(st[k]) && st[k].length;
@@ -2886,7 +3155,27 @@ function klineBindControls(pfx, h) {
     arr = cb.checked ? [...new Set(arr.concat(k))] : arr.filter(x => x !== k);
     h.update({ subs: arr });
   });
+  all("mi").forEach(cb => cb.onchange = () => {
+    const k = cb.getAttribute(`data-${pfx}-mi`), st = h.state();
+    let arr = Array.isArray(st.mainInd) ? st.mainInd.slice() : [];
+    arr = cb.checked ? [...new Set(arr.concat(k))] : arr.filter(x => x !== k);
+    h.update({ mainInd: arr });
+  });
+  all("style").forEach(rb => rb.onchange = () => h.update({ style: rb.getAttribute(`data-${pfx}-style`), mode: rb.getAttribute(`data-${pfx}-style`) === "area" ? "line" : "candle" }));
+  all("scale").forEach(b => b.onclick = () => {
+    if ((h.state().scale || "auto") === b.getAttribute(`data-${pfx}-scale`)) return;
+    h.update({ scale: b.getAttribute(`data-${pfx}-scale`) });
+    klineRebuild(h);   // axis transforms are init-time — deterministic rebuild
+  });
+  all("tzr").forEach(rb => rb.onchange = () => klineSetTz(h, rb.getAttribute(`data-${pfx}-tzr`)));
   all("tool").forEach(b => b.onclick = () => klineTool(h, b.getAttribute(`data-${pfx}-tool`)));
+  all("act").forEach(b => b.onclick = () => {
+    const a = b.getAttribute(`data-${pfx}-act`);
+    if (a === "snap") klineSnapshot(h);
+    else if (a === "goto") klineGoToDate(h);
+    else if (a === "latest") { try { h.chart && h.chart.scrollToRealTime(200); } catch (e) {} }
+    else if (a === "theme") klineSetTheme(h);
+  });
   all("full").forEach(b => b.onclick = () => klineFullscreen(h));
 }
 document.addEventListener("click", () =>
@@ -2894,8 +3183,13 @@ document.addEventListener("click", () =>
 
 function klineSyncControls(pfx, st) {
   const on = k => Array.isArray(st[k]) && st[k].length;
-  document.querySelectorAll(`[data-${pfx}-mode]`).forEach(b =>
-    b.classList.toggle("on", st.mode === b.getAttribute(`data-${pfx}-mode`)));
+  const cur = st.style || (st.mode === "line" ? "area" : "candle_solid");
+  const label = document.querySelector(`[data-${pfx}-style="${cur}"]`);
+  const styleBtn = label && label.closest(".kc-mwrap") ? label.closest(".kc-mwrap").querySelector("button") : null;
+  if (styleBtn) styleBtn.innerHTML = esc((STK_STYLES.find(s => s[0] === cur) || STK_STYLES[0])[1]) + " ▾";
+  document.querySelectorAll(`[data-${pfx}-style]`).forEach(rb => { rb.checked = rb.getAttribute(`data-${pfx}-style`) === cur; });
+  document.querySelectorAll(`[data-${pfx}-scale]`).forEach(b =>
+    b.classList.toggle("on", (st.scale || "auto") === b.getAttribute(`data-${pfx}-scale`)));
   document.querySelectorAll(`[data-${pfx}-tog]`).forEach(b => {
     const k = b.getAttribute(`data-${pfx}-tog`);
     b.classList.toggle("on", k === "boll" ? !!st.boll : on(k));
@@ -2906,6 +3200,14 @@ function klineSyncControls(pfx, st) {
   });
   document.querySelectorAll(`[data-${pfx}-s]`).forEach(cb =>
     cb.checked = Array.isArray(st.subs) && st.subs.includes(cb.getAttribute(`data-${pfx}-s`)));
+  document.querySelectorAll(`[data-${pfx}-mi]`).forEach(cb =>
+    cb.checked = Array.isArray(st.mainInd) && st.mainInd.includes(cb.getAttribute(`data-${pfx}-mi`)));
+  document.querySelectorAll(`[data-${pfx}-tool]`).forEach(b =>
+    b.classList.toggle("on", b.getAttribute(`data-${pfx}-tool`) === "freehand" && !!st.freehand));
+  document.querySelectorAll(`[data-${pfx}-tzr]`).forEach(rb =>
+    rb.checked = (st.tz || "") === rb.getAttribute(`data-${pfx}-tzr`));
+  const themeBtn = document.querySelector(`[data-${pfx}-act="theme"]`);
+  if (themeBtn) themeBtn.textContent = (st.theme || "dark") === "dark" ? "☀" : "🌙";
 }
 
 // ── Compare page — TradingView-style multi-chart workspace ───────────
@@ -2914,7 +3216,7 @@ function klineSyncControls(pfx, st) {
 // volume profile / custom indicators are computed client-side from moomoo
 // OHLCV (no volume-by-price endpoint exists — docs/compare-spec.md).
 const CMP_LAYOUTS = [["1", "Single"], ["2h", "Split"], ["2v", "Stacked"], ["1+2", "1+2"], ["2x2", "2×2"]];
-const CMP_TFS = ["1d", "5D", "15m", "1M", "3M", "Q", "6M", "Y", "W", "M", "10Y"];
+const CMP_TFS = ["1d", "3m", "5D", "10m", "15m", "1M", "1h", "2h", "3h", "4h", "3M", "Q", "6M", "Y", "W", "M", "10Y"];
 const CMP_MAIN = [["VP", "Volume Profile"], ["DONCH", "Donchian (20)"],
                   ["KELT", "Keltner (20,2)"], ["SUPERT", "Supertrend (10,3)"], ["PIVOT", "Pivot Points"],
                   ["VWAP", "VWAP"], ["SAR", "Parabolic SAR"]];
@@ -2967,13 +3269,17 @@ function cmpRegisterIndicators() {
     return out; };
   const tr = dl => dl.map((x, i) => i === 0 ? x.high - x.low :
     Math.max(x.high - x.low, Math.abs(x.high - dl[i - 1].close), Math.abs(x.low - dl[i - 1].close)));
+  // v10 calc results are keyed by bar timestamp — keyed() adapts the
+  // array-per-bar closures below without touching their math.
+  const keyed = compute => (dl, ind) => { const arr = compute(dl, ind);
+    const o = {}; dl.forEach((x, i) => { o[x.timestamp] = arr[i]; }); return o; };
   // Volume Profile: bucketed volume-by-price over the last N bars. No moomoo
   // endpoint exposes this (all 94 indexed) — computed from OHLCV; each bar's
   // volume is spread uniformly across its high–low span. Custom draw hooks the
   // pane canvas (return true suppresses the default per-bar figure pass).
   KC.registerIndicator({ name: "VP", shortName: "VP", series: "price", calcParams: [20, 24, 0.7],
     figures: [],
-    calc: dl => dl.map(() => ({})),
+    calc: keyed(dl => dl.map(() => ({}))),
     draw: ({ ctx, kLineDataList, indicator, bounding, yAxis }) => {
       const list = kLineDataList || [];
       if (!list.length) return true;
@@ -3012,13 +3318,19 @@ function cmpRegisterIndicators() {
   // E/D event chips (earnings green, dividend teal) drawn above bar highs;
   // the per-cell event map rides the indicator instance (inst._ev).
   KC.registerIndicator({ name: "EVT", shortName: " ", series: "price", figures: [],
-    calc: dl => dl.map(() => ({})),
-    draw: ({ ctx, kLineDataList, visibleRange, xAxis, yAxis, indicator }) => {
+    calc: keyed(dl => dl.map(() => ({}))),
+    draw: ({ ctx, kLineDataList, chart, xAxis, yAxis, indicator }) => {
       const ev = indicator._ev;
       if (!ev) return true;
+      const list = kLineDataList || [];
+      if (!list.length) return true;
+      // v10 draw params carry no visibleRange — read it off the chart instance.
+      let from = 0, to = list.length;
+      try { const vr = chart.getVisibleRange();
+        from = Math.max(0, Math.floor(vr.from)); to = Math.min(list.length, Math.ceil(vr.to) + 1); } catch (e) {}
       ctx.font = "700 9px ui-sans-serif,system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      for (let i = visibleRange.from; i < visibleRange.to; i++) {
-        const b = kLineDataList[i];
+      for (let i = from; i < to; i++) {
+        const b = list[i];
         if (!b) continue;
         const d = new Date(b.timestamp).toISOString().slice(0, 10);
         const tags = [];
@@ -3036,27 +3348,27 @@ function cmpRegisterIndicators() {
     } });
   KC.registerIndicator({ name: "ATR", shortName: "ATR", calcParams: [14], figures: [
       { key: "atr", title: "ATR: ", type: "line", color: "#e8a33d" }],
-    calc: (dl, ind) => wilder(tr(dl), ind.calcParams[0]).map(v => ({ atr: v })) });
+    calc: keyed((dl, ind) => wilder(tr(dl), ind.calcParams[0]).map(v => ({ atr: v }))) });
   KC.registerIndicator({ name: "AROON", shortName: "AROON", calcParams: [14], figures: [
       { key: "up", title: "UP: ", type: "line", color: "#26c68c" },
       { key: "dn", title: "DN: ", type: "line", color: "#f0544f" }],
-    calc: (dl, ind) => { const p = ind.calcParams[0];
+    calc: keyed((dl, ind) => { const p = ind.calcParams[0];
       return dl.map((_, i) => { if (i < p) return { up: null, dn: null };
         let hi = i, lo = i;
         for (let k = i - p; k <= i; k++) { if (dl[k].high >= dl[hi].high) hi = k;
           if (dl[k].low <= dl[lo].low) lo = k; }
-        return { up: 100 * (p - (i - hi)) / p, dn: 100 * (p - (i - lo)) / p }; }); } });
+        return { up: 100 * (p - (i - hi)) / p, dn: 100 * (p - (i - lo)) / p }; }); }) });
   KC.registerIndicator({ name: "AROONOSC", shortName: "AROONOSC", calcParams: [14], figures: [
       { key: "osc", title: "OSC: ", type: "bar", color: "#3fc1c9", baseValue: 0 }],
-    calc: (dl, ind) => { const p = ind.calcParams[0];
+    calc: keyed((dl, ind) => { const p = ind.calcParams[0];
       return dl.map((_, i) => { if (i < p) return { osc: null };
         let hi = i, lo = i;
         for (let k = i - p; k <= i; k++) { if (dl[k].high >= dl[hi].high) hi = k;
           if (dl[k].low <= dl[lo].low) lo = k; }
-        return { osc: 100 * ((i - lo) - (i - hi)) / p }; }); } });
+        return { osc: 100 * ((i - lo) - (i - hi)) / p }; }); }) });
   KC.registerIndicator({ name: "MFI", shortName: "MFI", calcParams: [14], figures: [
       { key: "mfi", title: "MFI: ", type: "line", color: "#a06bfa" }],
-    calc: (dl, ind) => { const p = ind.calcParams[0];
+    calc: keyed((dl, ind) => { const p = ind.calcParams[0];
       return dl.map((_, i) => { if (i < p) return { mfi: null };
         let pos = 0, neg = 0;
         for (let k = i - p + 1; k <= i; k++) {
@@ -3065,53 +3377,53 @@ function cmpRegisterIndicators() {
           const mf = tpA * (dl[k].volume || 0);
           if (tpA > tpB) pos += mf; else if (tpA < tpB) neg += mf;
         }
-        return { mfi: neg === 0 ? 100 : pos === 0 ? 0 : 100 - 100 / (1 + pos / neg) }; }); } });
+        return { mfi: neg === 0 ? 100 : pos === 0 ? 0 : 100 - 100 / (1 + pos / neg) }; }); }) });
   KC.registerIndicator({ name: "FORCE", shortName: "FORCE", calcParams: [13], figures: [
       { key: "f", title: "FORCE: ", type: "bar", color: "#8ba0b8", baseValue: 0 }],
-    calc: (dl, ind) => ema(dl.map((x, i) => i === 0 ? 0 : (x.close - dl[i - 1].close) * (x.volume || 0)),
-                           ind.calcParams[0]).map(v => ({ f: v })) });
+    calc: keyed((dl, ind) => ema(dl.map((x, i) => i === 0 ? 0 : (x.close - dl[i - 1].close) * (x.volume || 0)),
+                           ind.calcParams[0]).map(v => ({ f: v }))) });
   KC.registerIndicator({ name: "RVOL", shortName: "RVol", calcParams: [20], figures: [
       { key: "r", title: "RVOL: ", type: "line", color: "#f2c14e" }],
-    calc: (dl, ind) => { const v = dl.map(x => x.volume || 0), av = sma(v, ind.calcParams[0]);
-      return dl.map((_, i) => ({ r: av[i] ? v[i] / av[i] : null })); } });
+    calc: keyed((dl, ind) => { const v = dl.map(x => x.volume || 0), av = sma(v, ind.calcParams[0]);
+      return dl.map((_, i) => ({ r: av[i] ? v[i] / av[i] : null })); }) });
   KC.registerIndicator({ name: "PERF", shortName: "Perf %", figures: [
       { key: "p", title: "PERF: ", type: "line", color: "#26c68c" }],
-    calc: dl => { const b = dl.length ? dl[0].close : null;
-      return dl.map(x => ({ p: b ? (x.close / b - 1) * 100 : null })); } });
+    calc: keyed(dl => { const b = dl.length ? dl[0].close : null;
+      return dl.map(x => ({ p: b ? (x.close / b - 1) * 100 : null })); }) });
   KC.registerIndicator({ name: "STOCHF", shortName: "STOCHF", calcParams: [14, 3], figures: [
       { key: "k", title: "K: ", type: "line", color: "#26c68c" },
       { key: "d", title: "D: ", type: "line", color: "#f0544f" }],
-    calc: (dl, ind) => { const [n, m] = ind.calcParams;
+    calc: keyed((dl, ind) => { const [n, m] = ind.calcParams;
       const k = dl.map((x, i) => { if (i < n - 1) return null;
         let hh = -Infinity, ll = Infinity;
         for (let q = i - n + 1; q <= i; q++) { hh = Math.max(hh, dl[q].high); ll = Math.min(ll, dl[q].low); }
         return hh === ll ? 50 : 100 * (x.close - ll) / (hh - ll); });
       const d = sma(k, m);
-      return dl.map((_, i) => ({ k: k[i], d: d[i] })); } });
+      return dl.map((_, i) => ({ k: k[i], d: d[i] })); }) });
   KC.registerIndicator({ name: "DONCH", shortName: "DONCH", series: "price", calcParams: [20],
     shouldOhlc: true, figures: [
       { key: "up", title: "UP: ", type: "line", color: "rgba(38,198,140,.8)" },
       { key: "mid", title: "MID: ", type: "line", color: "rgba(139,160,184,.6)" },
       { key: "dn", title: "DN: ", type: "line", color: "rgba(240,84,79,.8)" }],
-    calc: (dl, ind) => { const n = ind.calcParams[0];
+    calc: keyed((dl, ind) => { const n = ind.calcParams[0];
       return dl.map((_, i) => { if (i < n - 1) return {};
         let hh = -Infinity, ll = Infinity;
         for (let q = i - n + 1; q <= i; q++) { hh = Math.max(hh, dl[q].high); ll = Math.min(ll, dl[q].low); }
-        return { up: hh, dn: ll, mid: (hh + ll) / 2 }; }); } });
+        return { up: hh, dn: ll, mid: (hh + ll) / 2 }; }); }) });
   KC.registerIndicator({ name: "KELT", shortName: "KELT", series: "price", calcParams: [20, 2],
     shouldOhlc: true, figures: [
       { key: "up", title: "UP: ", type: "line", color: "rgba(160,107,250,.75)" },
       { key: "mid", title: "MID: ", type: "line", color: "rgba(139,160,184,.6)" },
       { key: "dn", title: "DN: ", type: "line", color: "rgba(160,107,250,.75)" }],
-    calc: (dl, ind) => { const [n, m] = ind.calcParams;
+    calc: keyed((dl, ind) => { const [n, m] = ind.calcParams;
       const mid = ema(dl.map(x => x.close), n), aw = wilder(tr(dl), n);
       return dl.map((_, i) => { if (mid[i] == null || aw[i] == null) return {};
-        return { up: mid[i] + m * aw[i], mid: mid[i], dn: mid[i] - m * aw[i] }; }); } });
+        return { up: mid[i] + m * aw[i], mid: mid[i], dn: mid[i] - m * aw[i] }; }); }) });
   KC.registerIndicator({ name: "SUPERT", shortName: "SUPERT", series: "price", calcParams: [10, 3],
     shouldOhlc: true, figures: [
       { key: "up", title: "ST\u2191: ", type: "line", color: "#26c68c" },
       { key: "dn", title: "ST\u2193: ", type: "line", color: "#f0544f" }],
-    calc: (dl, ind) => { const [n, m] = ind.calcParams;
+    calc: keyed((dl, ind) => { const [n, m] = ind.calcParams;
       const aw = wilder(tr(dl), n), out = [];
       let ub = null, lb = null, trend = 1, st = null;
       for (let i = 0; i < dl.length; i++) {
@@ -3127,11 +3439,11 @@ function cmpRegisterIndicators() {
         else st = trend === 1 ? lb : ub;
         out.push(trend === 1 ? { up: st, dn: null } : { up: null, dn: st });
       }
-      return out; } });
+      return out; }) });
   KC.registerIndicator({ name: "PIVOT", shortName: "PIVOT", series: "price", figures: [
       ["pv", "#f2c14e"], ["r1", "#e05fa0"], ["r2", "#f0544f"], ["s1", "#3fc1c9"], ["s2", "#26c68c"]]
       .map(([k, c]) => ({ key: k, title: k.toUpperCase() + ": ", type: "line", color: c })),
-    calc: dl => { const out = new Array(dl.length);
+    calc: keyed(dl => { const out = new Array(dl.length);
       if (dl.length < 2) return out.fill({});
       // Intraday bars → levels from the last completed week; daily+ → month.
       const intraday = (dl[1].timestamp - dl[0].timestamp) < 3 * 864e5;
@@ -3151,15 +3463,15 @@ function cmpRegisterIndicators() {
         hi = Math.max(hi, dl[i].high); lo = Math.min(lo, dl[i].low); cl = dl[i].close;
         out[i] = levels ? Object.assign({}, levels) : {};
       }
-      return out; } });
+      return out; }) });
   KC.registerIndicator({ name: "VWAP", shortName: "VWAP", series: "price", figures: [
       { key: "vwap", title: "VWAP: ", type: "line", color: "#e8a33d" }],
-    calc: dl => { let day = "", pv = 0, vv = 0;
+    calc: keyed(dl => { let day = "", pv = 0, vv = 0;
       return dl.map(x => { const d = new Date(x.timestamp).toISOString().slice(0, 10);
         if (d !== day) { day = d; pv = 0; vv = 0; }
         const v = x.volume || 0, tp = (x.high + x.low + x.close) / 3;
         pv += tp * v; vv += v;
-        return { vwap: vv ? pv / vv : x.close }; }); } });
+        return { vwap: vv ? pv / vv : x.close }; }); }) });
 }
 
 function cmpSanitizeBars(rows) {
@@ -3231,14 +3543,14 @@ function cmpApplyOvls(i) {
   const cur = h.ovlsCur || {};
   Object.keys(cur).forEach(name => {
     if (!want.includes(name)) {
-      try { h.chart.removeIndicator(h.paneId, name); } catch (e) {}
+      try { h.chart.removeIndicator({ paneId: h.paneId, name }); } catch (e) {}
       delete cur[name];
     }
   });
   (c.ovls || []).forEach(o => {
     const pj = JSON.stringify(o.params || []);
     if (cur[o.name] === pj) return;
-    if (cur[o.name] != null) { try { h.chart.removeIndicator(h.paneId, o.name); } catch (e) {} }
+    if (cur[o.name] != null) { try { h.chart.removeIndicator({ paneId: h.paneId, name: o.name }); } catch (e) {} }
     const v = { name: o.name };
     if ((o.params || []).length) v.calcParams = o.params;
     klineCreate(h, v, h.paneId);
@@ -3252,10 +3564,10 @@ function cmpApplyEvt(i) {
   if (!h || !h.chart || !c.events || !c._ev) return;
   // createIndicator returns an id, not the instance — fetch the real one so
   // the event map can ride it into the draw pass.
-  let inst = h.chart.getIndicatorByPaneId(h.paneId, "EVT");
+  let inst = h.chart.getIndicators({ paneId: h.paneId, name: "EVT" })[0];
   if (!inst) {
     klineCreate(h, "EVT", h.paneId);
-    inst = h.chart.getIndicatorByPaneId(h.paneId, "EVT");
+    inst = h.chart.getIndicators({ paneId: h.paneId, name: "EVT" })[0];
   }
   if (inst) { inst._ev = c._ev; h.evtCur = true; }
 }
@@ -3434,7 +3746,7 @@ function cmpToggleEvents(i, on) {
   if (btn) btn.classList.toggle("on", c.events);
   const h = window.__cmpHosts[i];
   if (h && h.chart && !c.events && h.evtCur) {
-    try { h.chart.removeIndicator(h.paneId, "EVT"); } catch (e) {}
+    try { h.chart.removeIndicator({ paneId: h.paneId, name: "EVT" }); } catch (e) {}
     h.evtCur = null;
   }
   if (c.events && !c._ev) cmpLoadEvents(i);
@@ -4157,7 +4469,7 @@ const STK_FIN_TABS = [["earnings","Earnings"],["revenue","Revenue Breakdown"],
   ["indicators","Financial Indicators"],["income","Income Statement"],
   ["balance","Balance Sheet"],["cashflow","Cash Flow"]];
 const STK_FIN_STMT = {income:1, balance:2, cashflow:3, indicators:4};
-const STK_RANGES = [["5D","5D"],["1M","1M"],["3M","3M"],["Q","1Q"],["6M","6M"],["Y","1Y"],["W","Weekly"],["M","Monthly"],["10Y","10Y"]];
+const STK_RANGES = [["3m","3m"],["5D","5D"],["10m","10m"],["1M","1M"],["1h","1h"],["2h","2h"],["3h","3h"],["4h","4h"],["3M","3M"],["Q","1Q"],["6M","6M"],["Y","1Y"],["W","W"],["M","M"],["10Y","10Y"]];
 const STK_SESSIONS = [["FULL","Full Hours"],["NORMAL","Real-Time"],["PREMARKET","Pre-Market"],["AFTERHOURS","After-Hours"]];
 const STK_ANN_CATS = ["All","Earnings","Transactions","Shareholding","Events","Other"];
 

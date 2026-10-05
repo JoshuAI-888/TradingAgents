@@ -1,6 +1,7 @@
 """TTL cache choke point in front of all vendor calls (BSTester pattern).
 
-quotes 5m · news 1h · OHLCV 1d · fundamentals 7d. Keys = sha1(method+args).
+quotes 5m · news 1h · OHLCV 1d · intraday OHLCV 60s · fundamentals 7d.
+Keys = sha1(method+args).
 Disk-backed under the mounted cache dir; process-local dict fast path.
 """
 from __future__ import annotations
@@ -13,7 +14,8 @@ import time
 
 
 class TtlCache:
-    DEFAULTS = {"quotes": 300, "news": 3600, "ohlcv": 86400, "fundamentals": 604800, "other": 600}
+    DEFAULTS = {"quotes": 300, "news": 3600, "ohlcv": 86400, "ohlcv_live": 60,
+                "fundamentals": 604800, "other": 600}
 
     def __init__(self, root: str = "/data/cache/ttl"):
         self.root = root
