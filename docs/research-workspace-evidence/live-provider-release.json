@@ -1,0 +1,1732 @@
+{
+  "observed_at": "2026-10-02T01:17:59Z",
+  "presets": [
+    {
+      "available": true,
+      "key": "penny",
+      "name": "Penny Stocks",
+      "description": "Spot undervalued, low-priced stocks for substantial returns.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "price",
+          "max": 5
+        },
+        {
+          "field": "market_cap",
+          "max": 300000000.0
+        },
+        {
+          "field": "volume",
+          "min": 100000.0,
+          "days": 30
+        },
+        {
+          "field": "revenue_growth",
+          "min": 10
+        },
+        {
+          "field": "net_profit_growth",
+          "min": 5,
+          "excl_min": 1
+        },
+        {
+          "field": "debt_ratio",
+          "max": 40
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 55,
+      "retrieved_at": "2026-10-02T01:17:06.557456+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 55,
+      "sample": [
+        {
+          "code": "US.RFL",
+          "symbol": "RFL",
+          "stock_type": "STOCK",
+          "pct": 13.636,
+          "criterion_values": {
+            "price": 1.5,
+            "market_cap": 77999994.0,
+            "volume": 216763.0,
+            "net_profit_growth": 52.859,
+            "revenue_growth": 43.956,
+            "debt_ratio": 13.792
+          }
+        },
+        {
+          "code": "US.VIOT",
+          "symbol": "VIOT",
+          "stock_type": "STOCK",
+          "pct": 11.47,
+          "criterion_values": {
+            "price": 1.895,
+            "market_cap": 127574676.455,
+            "volume": 2823274.0,
+            "net_profit_growth": 137.525,
+            "revenue_growth": 19.562,
+            "debt_ratio": 35.913
+          }
+        },
+        {
+          "code": "US.DAVA",
+          "symbol": "DAVA",
+          "stock_type": "STOCK",
+          "pct": 7.262,
+          "criterion_values": {
+            "price": 1.92,
+            "market_cap": 101458016.64,
+            "volume": 617286.0,
+            "net_profit_growth": 34.508,
+            "revenue_growth": 13.19,
+            "debt_ratio": 37.704
+          }
+        }
+      ],
+      "stocks": 55,
+      "etfs": 0,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "high-div",
+      "name": "High Dividend Stocks",
+      "description": "Spot high-yield, stable dividend stocks for reliable income.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "market_cap",
+          "min": 2000000000.0,
+          "excl_min": 1
+        },
+        {
+          "field": "pe_ttm",
+          "max": 12
+        },
+        {
+          "field": "div_yield",
+          "min": 8
+        },
+        {
+          "field": "debt_ratio",
+          "max": 30
+        },
+        {
+          "field": "revenue_growth",
+          "min": 5,
+          "excl_min": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 0,
+      "retrieved_at": "2026-10-02T01:17:51.336246+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 0,
+      "sample": [],
+      "stocks": 0,
+      "etfs": 0,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "blue-chip",
+      "name": "Blue Chip Stocks",
+      "description": "Spot blue-chip stocks from well-established companies for reliable returns and low volatility.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "price",
+          "min": 50
+        },
+        {
+          "field": "market_cap",
+          "min": 100000000000.0
+        },
+        {
+          "field": "debt_ratio",
+          "max": 50
+        },
+        {
+          "field": "revenue_growth",
+          "min": 5
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 40,
+      "retrieved_at": "2026-10-02T01:17:36.378338+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 40,
+      "sample": [
+        {
+          "code": "US.ATEYY",
+          "symbol": "ATEYY",
+          "stock_type": "STOCK",
+          "pct": 6.605,
+          "criterion_values": {
+            "price": 235.45,
+            "market_cap": 169983821842.05,
+            "revenue_growth": 36.779,
+            "debt_ratio": 32.094
+          }
+        },
+        {
+          "code": "US.SKHY",
+          "symbol": "SKHY",
+          "stock_type": "STOCK",
+          "pct": 5.077,
+          "criterion_values": {
+            "price": 193.5,
+            "market_cap": 1410354742500.0,
+            "revenue_growth": 50.0,
+            "debt_ratio": 31.481
+          }
+        },
+        {
+          "code": "US.LRCX",
+          "symbol": "LRCX",
+          "stock_type": "STOCK",
+          "pct": 3.528,
+          "criterion_values": {
+            "price": 340.1,
+            "market_cap": 425609425516.2,
+            "revenue_growth": 26.02,
+            "debt_ratio": 46.999
+          }
+        }
+      ],
+      "stocks": 39,
+      "etfs": 1,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "buffett",
+      "name": "Warren Buffett Strategy",
+      "description": "Spot stocks with strong earnings, growth potential, and recognized value for strategic long-term investment.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "float_cap",
+          "min": 500000000.0
+        },
+        {
+          "field": "net_profit_growth",
+          "min": 10
+        },
+        {
+          "field": "gross_margin",
+          "min": 50
+        },
+        {
+          "field": "op_ebt",
+          "min": 70
+        },
+        {
+          "field": "roe",
+          "min": 15
+        },
+        {
+          "field": "roe_yoy",
+          "min": 20
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 128,
+      "retrieved_at": "2026-10-02T01:17:36.652143+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 128,
+      "sample": [
+        {
+          "code": "US.CRDO",
+          "symbol": "CRDO",
+          "stock_type": "STOCK",
+          "pct": 7.895,
+          "criterion_values": {
+            "price": 210.17,
+            "market_cap": 39501854606.06,
+            "net_profit_growth": 805.043,
+            "gross_margin": 68.035,
+            "roe": 34.407,
+            "roe_yoy": 302.801,
+            "op_profit_growth": 302.801,
+            "op_ebt": 93.599,
+            "float_cap": 34784305646.9
+          }
+        },
+        {
+          "code": "US.DLKGF",
+          "symbol": "DLKGF",
+          "stock_type": "STOCK",
+          "pct": 7.122,
+          "criterion_values": {
+            "price": 29.78,
+            "market_cap": 5407113503.6,
+            "net_profit_growth": 83.707,
+            "gross_margin": 51.567,
+            "roe": 34.623,
+            "roe_yoy": 125.017,
+            "op_profit_growth": 125.017,
+            "op_ebt": 123.858,
+            "float_cap": 5407113503.6
+          }
+        },
+        {
+          "code": "US.VICR",
+          "symbol": "VICR",
+          "stock_type": "STOCK",
+          "pct": 6.8,
+          "criterion_values": {
+            "price": 308.59,
+            "market_cap": 14228076427.88,
+            "net_profit_growth": 1831.845,
+            "gross_margin": 57.306,
+            "roe": 18.5,
+            "roe_yoy": 1576.708,
+            "op_profit_growth": 1576.708,
+            "op_ebt": 86.525,
+            "float_cap": 7928962994.53
+          }
+        }
+      ],
+      "stocks": 125,
+      "etfs": 3,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "undervalued",
+      "name": "Undervalued Stocks",
+      "description": "Spot stable, undervalued stocks for long-term growth.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "pe_ttm",
+          "max": 15
+        },
+        {
+          "field": "pb",
+          "max": 1.5
+        },
+        {
+          "field": "div_yield",
+          "min": 4
+        },
+        {
+          "field": "debt_ratio",
+          "max": 30
+        },
+        {
+          "field": "roe",
+          "min": 15,
+          "excl_min": 1
+        },
+        {
+          "field": "revenue_growth",
+          "min": 3,
+          "excl_min": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 5,
+      "retrieved_at": "2026-10-02T01:17:51.441749+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 5,
+      "sample": [
+        {
+          "code": "US.YB",
+          "symbol": "YB",
+          "stock_type": "STOCK",
+          "pct": 3.858,
+          "criterion_values": {
+            "price": 12.92,
+            "market_cap": 595356196.92,
+            "pe_ttm": 2.64591,
+            "pb": 1.05512,
+            "div_yield": 9.767,
+            "revenue_growth": 38.916,
+            "debt_ratio": 28.122,
+            "roe": 234.55
+          }
+        },
+        {
+          "code": "US.UNTC",
+          "symbol": "UNTC",
+          "stock_type": "STOCK",
+          "pct": 0.325,
+          "criterion_values": {
+            "price": 30.8,
+            "market_cap": 304376441.6,
+            "pe_ttm": 3.95886,
+            "pb": 1.10843,
+            "div_yield": 16.233,
+            "revenue_growth": 9.689,
+            "debt_ratio": 15.017,
+            "roe": 38.276
+          }
+        },
+        {
+          "code": "US.ECTM",
+          "symbol": "ECTM",
+          "stock_type": "ETF",
+          "pct": 0.019,
+          "criterion_values": {
+            "price": 0.51,
+            "market_cap": 8978550.0,
+            "pe_ttm": 3.44594,
+            "pb": 0.72753,
+            "div_yield": 32.549,
+            "revenue_growth": 73.049,
+            "debt_ratio": 4.822,
+            "roe": 17.232
+          }
+        }
+      ],
+      "stocks": 4,
+      "etfs": 1,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "growth",
+      "name": "Best Growth Stocks",
+      "description": "Spot stocks with growth potential and solid financial standing.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "float_cap",
+          "min": 500000000.0
+        },
+        {
+          "field": "net_profit_growth",
+          "min": 15
+        },
+        {
+          "field": "gross_margin",
+          "min": 50
+        },
+        {
+          "field": "roe",
+          "min": 15
+        },
+        {
+          "field": "roe_yoy",
+          "min": 50,
+          "excl_min": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 104,
+      "retrieved_at": "2026-10-02T01:17:51.629899+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 104,
+      "sample": [
+        {
+          "code": "US.CRDO",
+          "symbol": "CRDO",
+          "stock_type": "STOCK",
+          "pct": 7.895,
+          "criterion_values": {
+            "price": 210.17,
+            "market_cap": 39501854606.06,
+            "net_profit_growth": 805.043,
+            "gross_margin": 68.035,
+            "roe": 34.407,
+            "roe_yoy": 302.801,
+            "op_profit_growth": 302.801,
+            "float_cap": 34784305646.9
+          }
+        },
+        {
+          "code": "US.DLKGF",
+          "symbol": "DLKGF",
+          "stock_type": "STOCK",
+          "pct": 7.122,
+          "criterion_values": {
+            "price": 29.78,
+            "market_cap": 5407113503.6,
+            "net_profit_growth": 83.707,
+            "gross_margin": 51.567,
+            "roe": 34.623,
+            "roe_yoy": 125.017,
+            "op_profit_growth": 125.017,
+            "float_cap": 5407113503.6
+          }
+        },
+        {
+          "code": "US.VICR",
+          "symbol": "VICR",
+          "stock_type": "STOCK",
+          "pct": 6.8,
+          "criterion_values": {
+            "price": 308.59,
+            "market_cap": 14228076427.88,
+            "net_profit_growth": 1831.845,
+            "gross_margin": 57.306,
+            "roe": 18.5,
+            "roe_yoy": 1576.708,
+            "op_profit_growth": 1576.708,
+            "float_cap": 7928962994.53
+          }
+        }
+      ],
+      "stocks": 101,
+      "etfs": 3,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "pb-lt-1",
+      "name": "P/B Ratio Less Than 1",
+      "description": "Spot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "pb",
+          "max": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": true,
+      "next_key": "300",
+      "provider_total": 3157,
+      "retrieved_at": "2026-10-02T01:18:18.961327+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 300,
+      "sample": [
+        {
+          "code": "US.AUVIP",
+          "symbol": "AUVIP",
+          "stock_type": "STOCK",
+          "pct": 509900.0,
+          "criterion_values": {
+            "price": 0.51,
+            "market_cap": 281520.0,
+            "pb": 0.01131
+          }
+        },
+        {
+          "code": "US.NFTI",
+          "symbol": "NFTI",
+          "stock_type": "STOCK",
+          "pct": 29900.0,
+          "criterion_values": {
+            "price": 0.0,
+            "market_cap": 35754.502,
+            "pb": -0.00192
+          }
+        },
+        {
+          "code": "US.MAXNQ",
+          "symbol": "MAXNQ",
+          "stock_type": "STOCK",
+          "pct": 19900.0,
+          "criterion_values": {
+            "price": 0.0,
+            "market_cap": 3386.552,
+            "pb": -1e-05
+          }
+        }
+      ],
+      "stocks": 300,
+      "etfs": 0,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "best-lt-high-div",
+      "name": "Best Long Term High Dividend Stocks",
+      "description": "Spot stocks with reliable dividends and steady growth for secure long-term returns.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "div_yield",
+          "min": 4
+        },
+        {
+          "field": "pe_ttm",
+          "max": 20
+        },
+        {
+          "field": "pb",
+          "max": 1.5
+        },
+        {
+          "field": "debt_ratio",
+          "max": 40
+        },
+        {
+          "field": "revenue_growth",
+          "min": 3
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 41,
+      "retrieved_at": "2026-10-02T01:18:06.564921+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 41,
+      "sample": [
+        {
+          "code": "US.AAGRY",
+          "symbol": "AAGRY",
+          "stock_type": "STOCK",
+          "pct": 8.888,
+          "criterion_values": {
+            "price": 2.45,
+            "market_cap": 943097284.15,
+            "pe_ttm": 9.04059,
+            "pb": 0.70809,
+            "div_yield": 5.142,
+            "revenue_growth": 27.046,
+            "debt_ratio": 10.683
+          }
+        },
+        {
+          "code": "US.YB",
+          "symbol": "YB",
+          "stock_type": "STOCK",
+          "pct": 3.858,
+          "criterion_values": {
+            "price": 12.92,
+            "market_cap": 595356196.92,
+            "pe_ttm": 2.64591,
+            "pb": 1.05512,
+            "div_yield": 9.767,
+            "revenue_growth": 38.916,
+            "debt_ratio": 28.122
+          }
+        },
+        {
+          "code": "US.HNNA",
+          "symbol": "HNNA",
+          "stock_type": "STOCK",
+          "pct": 3.589,
+          "criterion_values": {
+            "price": 10.39,
+            "market_cap": 82126819.9,
+            "pe_ttm": 9.89523,
+            "pb": 0.81197,
+            "div_yield": 5.534,
+            "revenue_growth": 19.874,
+            "debt_ratio": 39.089
+          }
+        }
+      ],
+      "stocks": 35,
+      "etfs": 6,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "high-pe",
+      "name": "High P/E Ratio Stocks",
+      "description": "Spot stocks with high P/E ratios, which suggest a profitable and sustainable business.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "pe_ttm",
+          "min": 25
+        },
+        {
+          "field": "op_profit_growth",
+          "min": 30,
+          "excl_min": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": true,
+      "next_key": "300",
+      "provider_total": 426,
+      "retrieved_at": "2026-10-02T01:18:22.622402+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 300,
+      "sample": [
+        {
+          "code": "US.OXBR",
+          "symbol": "OXBR",
+          "stock_type": "STOCK",
+          "pct": 15.897,
+          "criterion_values": {
+            "price": 1.13,
+            "market_cap": 9196592.01,
+            "pe_ttm": 56.5,
+            "roe_yoy": 30.672,
+            "op_profit_growth": 30.672
+          }
+        },
+        {
+          "code": "US.EVCM",
+          "symbol": "EVCM",
+          "stock_type": "STOCK",
+          "pct": 14.203,
+          "criterion_values": {
+            "price": 9.89,
+            "market_cap": 1747219282.94,
+            "pe_ttm": 52.05263,
+            "roe_yoy": 146.017,
+            "op_profit_growth": 146.017
+          }
+        },
+        {
+          "code": "US.EFXT",
+          "symbol": "EFXT",
+          "stock_type": "STOCK",
+          "pct": 11.627,
+          "criterion_values": {
+            "price": 25.44,
+            "market_cap": 3106297343.52,
+            "pe_ttm": 57.81818,
+            "roe_yoy": 96.355,
+            "op_profit_growth": 96.355
+          }
+        }
+      ],
+      "stocks": 288,
+      "etfs": 12,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "good-pe",
+      "name": "Good P/E Ratio Stocks",
+      "description": "Spot stocks with solid fundamentals and high P/E ratios for consistent profitability and returns.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "pe_ttm",
+          "min": 20
+        },
+        {
+          "field": "eps_growth",
+          "min": 5
+        },
+        {
+          "field": "div_yield",
+          "min": 2
+        },
+        {
+          "field": "net_margin",
+          "min": 10
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 116,
+      "retrieved_at": "2026-10-02T01:18:21.946132+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 116,
+      "sample": [
+        {
+          "code": "US.SNLAY",
+          "symbol": "SNLAY",
+          "stock_type": "STOCK",
+          "pct": 9.405,
+          "criterion_values": {
+            "price": 6.63,
+            "market_cap": 12711223290.87,
+            "pe_ttm": 21.25,
+            "div_yield": 5.55,
+            "net_margin": 49.962,
+            "eps_growth": 8.982
+          }
+        },
+        {
+          "code": "US.TMSNY",
+          "symbol": "TMSNY",
+          "stock_type": "STOCK",
+          "pct": 2.412,
+          "criterion_values": {
+            "price": 80.455,
+            "market_cap": 5467642873.645,
+            "pe_ttm": 28.0331,
+            "div_yield": 2.196,
+            "net_margin": 25.724,
+            "eps_growth": 65.04
+          }
+        },
+        {
+          "code": "US.PAYX",
+          "symbol": "PAYX",
+          "stock_type": "STOCK",
+          "pct": 2.375,
+          "criterion_values": {
+            "price": 100.84,
+            "market_cap": 35897070897.32,
+            "pe_ttm": 20.00793,
+            "div_yield": 4.502,
+            "net_margin": 27.028,
+            "eps_growth": 6.521
+          }
+        }
+      ],
+      "stocks": 87,
+      "etfs": 29,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "low-pe",
+      "name": "Low P/E Ratio Stocks",
+      "description": "Spot stocks with low P/E ratios, which are potentially undervalued for stable gains and reduced risk.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "pe_ttm",
+          "max": 5,
+          "excl_max": 1
+        },
+        {
+          "field": "pb",
+          "max": 3,
+          "excl_max": 1
+        },
+        {
+          "field": "debt_ratio",
+          "max": 60,
+          "excl_max": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": true,
+      "next_key": "300",
+      "provider_total": 1427,
+      "retrieved_at": "2026-10-02T01:18:22.638256+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 300,
+      "sample": [
+        {
+          "code": "US.BGXXQ",
+          "symbol": "BGXXQ",
+          "stock_type": "STOCK",
+          "pct": 175.0,
+          "criterion_values": {
+            "price": 0.001,
+            "market_cap": 105141.475,
+            "pe_ttm": -0.011,
+            "pb": 0.01057,
+            "debt_ratio": 36.994
+          }
+        },
+        {
+          "code": "US.MVLA",
+          "symbol": "MVLA",
+          "stock_type": "STOCK",
+          "pct": 150.0,
+          "criterion_values": {
+            "price": 0.001,
+            "market_cap": 50907.431,
+            "pe_ttm": 0.00034,
+            "pb": 0.00071,
+            "debt_ratio": 3.278
+          }
+        },
+        {
+          "code": "US.IOBTQ",
+          "symbol": "IOBTQ",
+          "stock_type": "STOCK",
+          "pct": 100.0,
+          "criterion_values": {
+            "price": 0.0,
+            "market_cap": 14389.768,
+            "pe_ttm": -0.00014,
+            "pb": 0.01538,
+            "debt_ratio": 30.552
+          }
+        }
+      ],
+      "stocks": 300,
+      "etfs": 0,
+      "unclassified": 0
+    },
+    {
+      "available": false,
+      "pending": [
+        "rsi14"
+      ],
+      "reason": "This screen cannot be fully evaluated: provider criteria unavailable (rsi14). Its saved definition is preserved.",
+      "sample": [],
+      "stocks": 0,
+      "etfs": 0,
+      "unclassified": 0,
+      "key": "rsi-30"
+    },
+    {
+      "available": true,
+      "key": "junk",
+      "name": "Junk Stocks",
+      "description": "Spot small, high-risk, yet undervalued stocks with the potential for significant returns.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "pe_ttm",
+          "min": 0
+        },
+        {
+          "field": "price",
+          "max": 5
+        },
+        {
+          "field": "market_cap",
+          "max": 100000000.0
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": true,
+      "next_key": "300",
+      "provider_total": 374,
+      "retrieved_at": "2026-10-02T01:18:06.953388+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 300,
+      "sample": [
+        {
+          "code": "US.MAXNQ",
+          "symbol": "MAXNQ",
+          "stock_type": "STOCK",
+          "pct": 19900.0,
+          "criterion_values": {
+            "price": 0.0,
+            "market_cap": 3386.552,
+            "pe_ttm": 0.0
+          }
+        },
+        {
+          "code": "US.PSWW",
+          "symbol": "PSWW",
+          "stock_type": "STOCK",
+          "pct": 9900.0,
+          "criterion_values": {
+            "price": 0.0,
+            "market_cap": 405939.934,
+            "pe_ttm": 0.0025
+          }
+        },
+        {
+          "code": "US.SWRM",
+          "symbol": "SWRM",
+          "stock_type": "STOCK",
+          "pct": 9900.0,
+          "criterion_values": {
+            "price": 0.0,
+            "market_cap": 393164.383,
+            "pe_ttm": 0.0
+          }
+        }
+      ],
+      "stocks": 292,
+      "etfs": 8,
+      "unclassified": 0
+    },
+    {
+      "available": false,
+      "pending": [
+        "rsi14"
+      ],
+      "reason": "This screen cannot be fully evaluated: provider criteria unavailable (rsi14). Its saved definition is preserved.",
+      "sample": [],
+      "stocks": 0,
+      "etfs": 0,
+      "unclassified": 0,
+      "key": "small-growth"
+    },
+    {
+      "available": true,
+      "key": "blue-chip-div",
+      "name": "Blue Chip Dividend Stocks",
+      "description": "Spot familiar blue-chip stocks with high dividends for dependable income and value investment.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "price",
+          "min": 50
+        },
+        {
+          "field": "market_cap",
+          "min": 100000000000.0
+        },
+        {
+          "field": "debt_ratio",
+          "max": 50
+        },
+        {
+          "field": "div_yield",
+          "min": 4
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 1,
+      "retrieved_at": "2026-10-02T01:18:42.942198+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 1,
+      "sample": [
+        {
+          "code": "US.RIO",
+          "symbol": "RIO",
+          "stock_type": "STOCK",
+          "pct": -1.38,
+          "criterion_values": {
+            "price": 92.87,
+            "market_cap": 151042804009.4,
+            "div_yield": 4.328,
+            "debt_ratio": 47.679
+          }
+        }
+      ],
+      "stocks": 1,
+      "etfs": 0,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "speculative",
+      "name": "Speculative Stocks",
+      "description": "Spot high-risk, high-return stocks, including those at their recent 10-day low that may be undervalued and ready to rebound.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "price",
+          "min": 5
+        },
+        {
+          "field": "market_cap",
+          "min": 100000000.0
+        },
+        {
+          "field": "net_margin",
+          "min": 10
+        },
+        {
+          "field": "debt_ratio",
+          "max": 50
+        },
+        {
+          "field": "new_low_10d",
+          "min": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 227,
+      "retrieved_at": "2026-10-02T01:18:46.975929+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 227,
+      "sample": [
+        {
+          "code": "US.SCCTY",
+          "symbol": "SCCTY",
+          "stock_type": "STOCK",
+          "pct": 5.106,
+          "criterion_values": {
+            "price": 39.31,
+            "market_cap": 5475114803.98,
+            "net_margin": 36.954,
+            "debt_ratio": 28.236
+          }
+        },
+        {
+          "code": "US.BCHMY",
+          "symbol": "BCHMY",
+          "stock_type": "STOCK",
+          "pct": 5.02,
+          "criterion_values": {
+            "price": 10.04,
+            "market_cap": 7523528216.0,
+            "net_margin": 21.406,
+            "debt_ratio": 30.843
+          }
+        },
+        {
+          "code": "US.BMI",
+          "symbol": "BMI",
+          "stock_type": "STOCK",
+          "pct": 3.909,
+          "criterion_values": {
+            "price": 128.37,
+            "market_cap": 3721041549.39,
+            "net_margin": 15.451,
+            "debt_ratio": 26.734
+          }
+        }
+      ],
+      "stocks": 202,
+      "etfs": 25,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "high-roe",
+      "name": "High Return On Equity Stocks",
+      "description": "Spot high-quality stocks with solid profitability, growth, and attractive dividends for long-term stability.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "roe",
+          "min": 20
+        },
+        {
+          "field": "revenue_growth",
+          "min": 5
+        },
+        {
+          "field": "div_yield",
+          "min": 2
+        },
+        {
+          "field": "pe_ttm",
+          "max": 25
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 187,
+      "retrieved_at": "2026-10-02T01:18:23.066209+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 187,
+      "sample": [
+        {
+          "code": "US.ACN",
+          "symbol": "ACN",
+          "stock_type": "STOCK",
+          "pct": 15.776,
+          "criterion_values": {
+            "price": 212.3,
+            "market_cap": 129979142618.6,
+            "pe_ttm": 16.95686,
+            "div_yield": 3.0,
+            "revenue_growth": 7.36,
+            "roe": 25.816
+          }
+        },
+        {
+          "code": "US.TKGBY",
+          "symbol": "TKGBY",
+          "stock_type": "STOCK",
+          "pct": 14.285,
+          "criterion_values": {
+            "price": 2.88,
+            "market_cap": 12096000000.0,
+            "pe_ttm": 4.9315,
+            "div_yield": 3.958,
+            "revenue_growth": 17.612,
+            "roe": 28.381
+          }
+        },
+        {
+          "code": "US.WLWHY",
+          "symbol": "WLWHY",
+          "stock_type": "STOCK",
+          "pct": 9.293,
+          "criterion_values": {
+            "price": 2.405,
+            "market_cap": 2151807297.445,
+            "pe_ttm": 15.41666,
+            "div_yield": 5.031,
+            "revenue_growth": 12.123,
+            "roe": 22.216
+          }
+        }
+      ],
+      "stocks": 183,
+      "etfs": 4,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "lt-high-div",
+      "name": "Low P/E High Dividend Stocks",
+      "description": "Spot financially stable, consistently growing stocks for secure and steady long-term returns.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "pe_ttm",
+          "max": 15
+        },
+        {
+          "field": "div_yield",
+          "min": 4
+        },
+        {
+          "field": "revenue_growth",
+          "min": 3
+        },
+        {
+          "field": "debt_ratio",
+          "max": 50
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 98,
+      "retrieved_at": "2026-10-02T01:18:32.124789+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 98,
+      "sample": [
+        {
+          "code": "US.AAGRY",
+          "symbol": "AAGRY",
+          "stock_type": "STOCK",
+          "pct": 8.888,
+          "criterion_values": {
+            "price": 2.45,
+            "market_cap": 943097284.15,
+            "pe_ttm": 9.04059,
+            "div_yield": 5.142,
+            "revenue_growth": 27.046,
+            "debt_ratio": 10.683
+          }
+        },
+        {
+          "code": "US.TTAPY",
+          "symbol": "TTAPY",
+          "stock_type": "STOCK",
+          "pct": 5.644,
+          "criterion_values": {
+            "price": 15.16,
+            "market_cap": 1209768000.0,
+            "pe_ttm": 13.08024,
+            "div_yield": 5.976,
+            "revenue_growth": 11.745,
+            "debt_ratio": 28.929
+          }
+        },
+        {
+          "code": "US.INFY",
+          "symbol": "INFY",
+          "stock_type": "STOCK",
+          "pct": 5.483,
+          "criterion_values": {
+            "price": 11.35,
+            "market_cap": 45971399394.65,
+            "pe_ttm": 14.01234,
+            "div_yield": 4.616,
+            "revenue_growth": 4.57,
+            "debt_ratio": 40.167
+          }
+        }
+      ],
+      "stocks": 91,
+      "etfs": 7,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "undervalued-semi",
+      "name": "Undervalued Semiconductor Stocks",
+      "description": "Spot semiconductor sector stocks that are well-valued, financially robust, and profitable for attractive long-term returns.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "sector",
+          "plate_ids": [
+            10002016,
+            10002015
+          ]
+        },
+        {
+          "field": "pe_ttm",
+          "max": 18
+        },
+        {
+          "field": "pb",
+          "max": 5
+        },
+        {
+          "field": "roe",
+          "min": 10
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 3,
+      "retrieved_at": "2026-10-02T01:18:41.647124+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 3,
+      "sample": [
+        {
+          "code": "US.CRUS",
+          "symbol": "CRUS",
+          "stock_type": "STOCK",
+          "pct": 0.166,
+          "criterion_values": {
+            "price": 120.17,
+            "market_cap": 6022627305.37,
+            "pe_ttm": 14.6907,
+            "pb": 2.75114,
+            "roe": 20.326
+          }
+        },
+        {
+          "code": "US.PLAB",
+          "symbol": "PLAB",
+          "stock_type": "STOCK",
+          "pct": 0.162,
+          "criterion_values": {
+            "price": 30.83,
+            "market_cap": 1818882658.61,
+            "pe_ttm": 10.97153,
+            "pb": 1.42021,
+            "roe": 11.89
+          }
+        },
+        {
+          "code": "US.NA",
+          "symbol": "NA",
+          "stock_type": "STOCK",
+          "pct": -2.714,
+          "criterion_values": {
+            "price": 2.15,
+            "market_cap": 47314278.15,
+            "pe_ttm": -2.2513,
+            "pb": 0.79277,
+            "roe": 27.672
+          }
+        }
+      ],
+      "stocks": 3,
+      "etfs": 0,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "undervalued-tech",
+      "name": "Undervalued Tech Stocks",
+      "description": "Spot tech stocks that are undervalued by the market.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "sector",
+          "plate_ids": [
+            10002016,
+            10002072,
+            10002492,
+            10002470,
+            10002508,
+            10002252,
+            10002098,
+            10002004
+          ]
+        },
+        {
+          "field": "pe_ttm",
+          "max": 15
+        },
+        {
+          "field": "pb",
+          "max": 5
+        },
+        {
+          "field": "roe",
+          "min": 10
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 67,
+      "retrieved_at": "2026-10-02T01:18:58.236995+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 67,
+      "sample": [
+        {
+          "code": "US.BTTC",
+          "symbol": "BTTC",
+          "stock_type": "STOCK",
+          "pct": 21.826,
+          "criterion_values": {
+            "price": 0.634,
+            "market_cap": 5756367.435,
+            "pe_ttm": -0.75416,
+            "pb": 1.01522,
+            "roe": 25.691
+          }
+        },
+        {
+          "code": "US.NXTT",
+          "symbol": "NXTT",
+          "stock_type": "STOCK",
+          "pct": 8.812,
+          "criterion_values": {
+            "price": 5.68,
+            "market_cap": 8366418.48,
+            "pe_ttm": -0.02747,
+            "pb": 0.01723,
+            "roe": 53.299
+          }
+        },
+        {
+          "code": "US.G",
+          "symbol": "G",
+          "stock_type": "STOCK",
+          "pct": 6.67,
+          "criterion_values": {
+            "price": 34.7,
+            "market_cap": 5830793922.9,
+            "pe_ttm": 10.32738,
+            "pb": 2.23842,
+            "roe": 22.372
+          }
+        }
+      ],
+      "stocks": 67,
+      "etfs": 0,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "undervalued-banks",
+      "name": "Undervalued Bank Stocks",
+      "description": "Spot bank stocks that are financially sound, reasonably valued, and highly profitable.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "sector",
+          "plate_ids": [
+            10002481,
+            10002456
+          ]
+        },
+        {
+          "field": "pe_ttm",
+          "max": 10
+        },
+        {
+          "field": "pb",
+          "max": 1
+        },
+        {
+          "field": "roe",
+          "min": 12
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 6,
+      "retrieved_at": "2026-10-02T01:19:01.323757+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 6,
+      "sample": [
+        {
+          "code": "US.NPB",
+          "symbol": "NPB",
+          "stock_type": "STOCK",
+          "pct": 1.921,
+          "criterion_values": {
+            "price": 14.85,
+            "market_cap": 513540353.7,
+            "pe_ttm": 6.30038,
+            "pb": 0.83959,
+            "roe": 13.885
+          }
+        },
+        {
+          "code": "US.NEWT",
+          "symbol": "NEWT",
+          "stock_type": "STOCK",
+          "pct": 0.988,
+          "criterion_values": {
+            "price": 11.24,
+            "market_cap": 324664376.44,
+            "pe_ttm": 5.08597,
+            "pb": 0.88902,
+            "roe": 18.588
+          }
+        },
+        {
+          "code": "US.OZK",
+          "symbol": "OZK",
+          "stock_type": "STOCK",
+          "pct": 0.826,
+          "criterion_values": {
+            "price": 46.34,
+            "market_cap": 5052936167.58,
+            "pe_ttm": 7.64686,
+            "pb": 0.85079,
+            "roe": 12.534
+          }
+        }
+      ],
+      "stocks": 6,
+      "etfs": 0,
+      "unclassified": 0
+    },
+    {
+      "available": true,
+      "key": "high-eps",
+      "name": "High EPS Stocks",
+      "description": "Spot stocks with favorable financial footing and high profitability for investment.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "price",
+          "min": 5
+        },
+        {
+          "field": "market_cap",
+          "min": 100000000.0
+        },
+        {
+          "field": "eps",
+          "min": 10
+        },
+        {
+          "field": "debt_ratio",
+          "max": 50
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": false,
+      "next_key": null,
+      "provider_total": 90,
+      "retrieved_at": "2026-10-02T01:19:04.290438+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 90,
+      "sample": [
+        {
+          "code": "US.UI",
+          "symbol": "UI",
+          "stock_type": "STOCK",
+          "pct": 7.419,
+          "criterion_values": {
+            "price": 609.64,
+            "market_cap": 36900522192.84,
+            "debt_ratio": 34.48,
+            "eps": 15.87
+          }
+        },
+        {
+          "code": "US.FN",
+          "symbol": "FN",
+          "stock_type": "STOCK",
+          "pct": 6.403,
+          "criterion_values": {
+            "price": 451.44,
+            "market_cap": 16177291004.16,
+            "debt_ratio": 37.246,
+            "eps": 13.21
+          }
+        },
+        {
+          "code": "US.DAVE",
+          "symbol": "DAVE",
+          "stock_type": "STOCK",
+          "pct": 5.623,
+          "criterion_values": {
+            "price": 339.59,
+            "market_cap": 4331642622.13,
+            "debt_ratio": 27.633,
+            "eps": 14.65
+          }
+        }
+      ],
+      "stocks": 89,
+      "etfs": 1,
+      "unclassified": 0
+    }
+  ],
+  "pagination": {
+    "first": {
+      "available": true,
+      "key": "pb-lt-1",
+      "name": "P/B Ratio Less Than 1",
+      "description": "Spot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "pb",
+          "max": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": true,
+      "next_key": "300",
+      "provider_total": 3157,
+      "retrieved_at": "2026-10-02T01:18:18.961327+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 300,
+      "sample": [
+        {
+          "code": "US.AUVIP",
+          "symbol": "AUVIP",
+          "stock_type": "STOCK",
+          "pct": 509900.0,
+          "criterion_values": {
+            "price": 0.51,
+            "market_cap": 281520.0,
+            "pb": 0.01131
+          }
+        },
+        {
+          "code": "US.NFTI",
+          "symbol": "NFTI",
+          "stock_type": "STOCK",
+          "pct": 29900.0,
+          "criterion_values": {
+            "price": 0.0,
+            "market_cap": 35754.502,
+            "pb": -0.00192
+          }
+        },
+        {
+          "code": "US.MAXNQ",
+          "symbol": "MAXNQ",
+          "stock_type": "STOCK",
+          "pct": 19900.0,
+          "criterion_values": {
+            "price": 0.0,
+            "market_cap": 3386.552,
+            "pb": -1e-05
+          }
+        }
+      ],
+      "stocks": 300,
+      "etfs": 0,
+      "unclassified": 0
+    },
+    "second": {
+      "available": true,
+      "key": "pb-lt-1",
+      "name": "P/B Ratio Less Than 1",
+      "description": "Spot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.",
+      "market": "US",
+      "pending": [],
+      "filters": [
+        {
+          "field": "pb",
+          "max": 1
+        }
+      ],
+      "sort": "pct",
+      "direction": 2,
+      "result_limit": 300,
+      "possibly_truncated": true,
+      "next_key": "600",
+      "provider_total": 3157,
+      "retrieved_at": "2026-10-02T01:18:19.974153+00:00",
+      "evidence_status": "provider_membership",
+      "shown": 300,
+      "sample": [
+        {
+          "code": "US.ARBB",
+          "symbol": "ARBB",
+          "stock_type": "STOCK",
+          "pct": 4.072,
+          "criterion_values": {
+            "price": 4.6,
+            "market_cap": 8120177.6,
+            "pb": 0.19016
+          }
+        },
+        {
+          "code": "US.AMPY",
+          "symbol": "AMPY",
+          "stock_type": "STOCK",
+          "pct": 4.038,
+          "criterion_values": {
+            "price": 4.38,
+            "market_cap": 181579251.0,
+            "pb": 0.41351
+          }
+        },
+        {
+          "code": "US.RYZ",
+          "symbol": "RYZ",
+          "stock_type": "STOCK",
+          "pct": 4.032,
+          "criterion_values": {
+            "price": 24.51,
+            "market_cap": 1272035985.03,
+            "pb": 0.98731
+          }
+        }
+      ],
+      "stocks": 298,
+      "etfs": 2,
+      "unclassified": 0
+    },
+    "overlap": 0
+  }
+}

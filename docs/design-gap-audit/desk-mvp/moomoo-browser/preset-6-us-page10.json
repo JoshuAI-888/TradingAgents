@@ -1,0 +1,207 @@
+{
+  "observed_at": "2026-10-02T20:55:03.431Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/pb-ratio-less-than-1-6",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/AVNW-US",
+      "text": "451\nAVNW\nAviat Networks\n20.680\n+2.73%\n+0.550\n264.74M\n151.35K\n0.99"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LGMK-US",
+      "text": "452\nLGMK\nLOGICMARK INC\n1.130\n+2.73%\n+0.030\n1.02M\n531.00\n0.08"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GRSD-US",
+      "text": "453\nGRSD\nGrandstand\n1.510\n+2.72%\n+0.040\n53.75M\n144.99K\n0.51"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/APGI-US",
+      "text": "454\nAPGI\nAMERICAN POWER GROUP CORP\n0.0127\n+2.72%\n+0.0003\n14.22M\n80.57K\n-0.16"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMRC-US",
+      "text": "455\nAMRC\nAmeresco\n21.570\n+2.71%\n+0.570\n1.14B\n380.43K\n0.93"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ESEA-US",
+      "text": "456\nESEA\nEuroseas\n72.420\n+2.71%\n+1.910\n510.95M\n43.52K\n0.98"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GEL-US",
+      "text": "457\nGEL\nGenesis Energy\n14.050\n+2.70%\n+0.370\n1.72B\n173.98K\n-146.35"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ECGI-US",
+      "text": "458\nECGI\nECGI HOLDINGS INC\n0.0019\n+2.70%\n+0.0001\n1.66M\n111.73M\n-0.48"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NEXT-US",
+      "text": "459\nNEXT\nNextDecade\n6.480\n+2.69%\n+0.170\n1.72B\n3.37M\n-30.14"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VOD-US",
+      "text": "460\nVOD\nVodafone\n16.820\n+2.69%\n+0.440\n38.97B\n4.18M\n0.68"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/OEC-US",
+      "text": "461\nOEC\nOrion SA\n5.790\n+2.66%\n+0.150\n327.27M\n323.62K\n0.86"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ARQ-US",
+      "text": "462\nARQ\nArq Inc\n1.940\n+2.65%\n+0.050\n84.72M\n210.16K\n0.50"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FWRD-US",
+      "text": "463\nFWRD\nForward Air\n15.910\n+2.65%\n+0.410\n537.45M\n371.47K\n-4.66"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AIRI-US",
+      "text": "464\nAIRI\nAir Industries Group\n2.720\n+2.64%\n+0.070\n13.19M\n9.54K\n0.73"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/COKE-US",
+      "text": "465\nCOKE\nCoca-Cola Consolidated\n192.040\n+2.63%\n+4.930\n12.78B\n457.90K\n-25.56"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SUNE-US",
+      "text": "466\nSUNE\nSUNation Energy\n2.340\n+2.63%\n+0.060\n15.24M\n94.36K\n0.74"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CEOS-US",
+      "text": "467\nCEOS\nCECORS INC\n0.0039\n+2.63%\n+0.0001\n1.22M\n6.64K\n-0.24"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CEPL-US",
+      "text": "468\nCEPL\nCapstone Energy Plus\n4.495\n+2.63%\n+0.115\n148.09M\n340.58K\n-3.27"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MED-US",
+      "text": "469\nMED\nMedifast\n11.730\n+2.62%\n+0.300\n131.15M\n82.62K\n0.67"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RM-US",
+      "text": "470\nRM\nRegional Management\n31.800\n+2.61%\n+0.810\n293.38M\n105.18K\n0.78"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SLMT-US",
+      "text": "471\nSLMT\nBrera Holdings\n4.330\n+2.61%\n+0.110\n47.67M\n42.25K\n0.45"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PKX-US",
+      "text": "472\nPKX\nPOSCO\n57.590\n+2.60%\n+1.460\n17.42B\n171.05K\n0.41"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TENX-US",
+      "text": "473\nTENX\nTenax Therapeutics\n1.980\n+2.59%\n+0.050\n74.10M\n2.03M\n0.65"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VLEEY-US",
+      "text": "474\nVLEEY\nVALEO SE ADR-EACH REPR 0.5 ORD EUR3\n7.940\n+2.58%\n+0.200\n3.84B\n4.61K\n0.99"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TOYO-US",
+      "text": "475\nTOYO\nTOYO Co\n4.370\n+2.58%\n+0.110\n186.68M\n283.53K\n0.89"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MTEN-US",
+      "text": "476\nMTEN\nMingteng International\n1.0100\n+2.58%\n+0.0254\n7.73M\n112.60K\n0.35"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GNW-US",
+      "text": "477\nGNW\nGenworth Financial\n9.550\n+2.58%\n+0.240\n3.61B\n4.75M\n0.41"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MBI-US",
+      "text": "478\nMBI\nMBIA\n4.400\n+2.56%\n+0.110\n224.47M\n276.60K\n-0.10"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GGR-US",
+      "text": "479\nGGR\nGogoro\n3.200\n+2.56%\n+0.080\n64.24M\n6.03K\n0.57"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MDCX-US",
+      "text": "480\nMDCX\nMedicus Pharma\n0.1610\n+2.55%\n+0.0040\n11.55M\n1.00M\n-6.44"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DOYU-US",
+      "text": "481\nDOYU\nDouYu\n4.450\n+2.53%\n+0.110\n134.30M\n45.33K\n0.48"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ALTG-US",
+      "text": "482\nALTG\nAlta Equipment\n6.480\n+2.53%\n+0.160\n211.68M\n284.85K\n-5.85"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AQST-US",
+      "text": "483\nAQST\nAquestive Therapeutics\n4.550\n+2.48%\n+0.110\n571.08M\n2.27M\n-10.09"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AVEX-US",
+      "text": "484\nAVEX\nAEVEX Corp\n14.480\n+2.48%\n+0.350\n1.65B\n2.01M\n-1.88"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/IPXHY-US",
+      "text": "485\nIPXHY\nInpex (ADR)\n23.620\n+2.47%\n+0.570\n27.31B\n32.58K\n0.84"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LGPS-US",
+      "text": "486\nLGPS\nLogProStyle\n0.7500\n+2.46%\n+0.0180\n17.71M\n22.93K\n0.66"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FNNCF-US",
+      "text": "487\nFNNCF\nFINANCIAL 15 SPLIT CORP\n7.735\n+2.45%\n+0.185\n603.08M\n600.00\n0.98"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PWRL-US",
+      "text": "488\nPWRL\nPowerlaw Corp\n11.400\n+2.43%\n+0.270\n492.97M\n136.49K\n0.95"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WING-US",
+      "text": "489\nWING\nWingstop\n106.890\n+2.42%\n+2.530\n2.91B\n734.34K\n-3.77"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RPAY-US",
+      "text": "490\nRPAY\nRepay Holdings\n3.820\n+2.41%\n+0.090\n316.67M\n175.86K\n0.67"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TORM-US",
+      "text": "491\nTORM\nTOR MINERALS INTL INC\n2.250\n+2.40%\n+0.053\n7.97M\n8.44K\n0.24"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PRHI-US",
+      "text": "492\nPRHI\nPresurance Holdings\n6.860\n+2.39%\n+0.160\n25.70M\n20.20K\n0.93"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HGBL-US",
+      "text": "493\nHGBL\nHeritage Global\n1.290\n+2.38%\n+0.030\n44.68M\n166.80K\n0.86"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FERN-US",
+      "text": "494\nFERN\nFERNHILL CORP\n0.0009\n+2.38%\n0.0000\n3.12M\n949.95K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GUER-US",
+      "text": "495\nGUER\nGUERRILLA RF INC\n4.198\n+2.38%\n+0.098\n44.91M\n2.01K\n-2.38"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TX-US",
+      "text": "496\nTX\nTernium\n56.610\n+2.37%\n+1.310\n11.11B\n398.00K\n0.90"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FMCCM-US",
+      "text": "497\nFMCCM\nFEDERAL HOME LOAN MORTGAGE CORP VAR% NON CUM PRF USD50\n9.622\n+2.36%\n+0.222\n62.54M\n1.41K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AERT-US",
+      "text": "498\nAERT\nAeries Technology\n7.410\n+2.35%\n+0.170\n38.89M\n13.57K\n-14.28"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MSLOY-US",
+      "text": "499\nMSLOY\nMitsui O.S.K. Lines (ADR)\n22.720\n+2.34%\n+0.520\n15.61B\n18.94K\n0.83"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LND-US",
+      "text": "500\nLND\nBrasilAgro\n3.510\n+2.33%\n+0.080\n349.65M\n53.06K\n0.90"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\nScreener\nRecommended Screeners\nP/B Ratio Less Than 1\nP/B Ratio Less Than 1\n\nSpot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.\n\nSelected:\n\nSave Screener\nMarket: USP/B: ≤1.00\nResult: 4532 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nP/B\nWatchlist\nPaper Trade\n451\nAVNW\nAviat Networks\n20.680\n+2.73%\n+0.550\n264.74M\n151.35K\n0.99\n452\nLGMK\nLOGICMARK INC\n1.130\n+2.73%\n+0.030\n1.02M\n531.00\n0.08\n453\nGRSD\nGrandstand\n1.510\n+2.72%\n+0.040\n53.75M\n144.99K\n0.51\n454\nAPGI\nAMERICAN POWER GROUP CORP\n0.0127\n+2.72%\n+0.0003\n14.22M\n80.57K\n-0.16\n455\nAMRC\nAmeresco\n21.570\n+2.71%\n+0.570\n1.14B\n380.43K\n0.93\n456\nESEA\nEuroseas\n72.420\n+2.71%\n+1.910\n510.95M\n43.52K\n0.98\n457\nGEL\nGenesis Energy\n14.050\n+2.70%\n+0.370\n1.72B\n173.98K\n-146.35\n458\nECGI\nECGI HOLDINGS INC\n0.0019\n+2.70%\n+0.0001\n1.66M\n111.73M\n-0.48\n459\nNEXT\nNextDecade\n6.480\n+2.69%\n+0.170\n1.72B\n3.37M\n-30.14\n460\nVOD\nVodafone\n16.820\n+2.69%\n+0.440\n38.97B\n4.18M\n0.68\n461\nOEC\nOrion SA\n5.790\n+2.66%\n+0.150\n327.27M\n323.62K\n0.86\n462\nARQ\nArq Inc\n1.940\n+2.65%\n+0.050\n84.72M\n210.16K\n0.50\n463\nFWRD\nForward Air\n15.910\n+2.65%\n+0.410\n537.45M\n371.47K\n-4.66\n464\nAIRI\nAir Industries Group\n2.720\n+2.64%\n+0.070\n13.19M\n9.54K\n0.73\n465\nCOKE\nCoca-Cola Consolidated\n192.040\n+2.63%\n+4.930\n12.78B\n457.90K\n-25.56\n466\nSUNE\nSUNation Energy\n2.340\n+2.63%\n+0.060\n15.24M\n94.36K\n0.74\n467\nCEOS\nCECORS INC\n0.0039\n+2.63%\n+0.0001\n1.22M\n6.64K\n-0.24\n468\nCEPL\nCapstone Energy Plus\n4.495\n+2.63%\n+0.115\n148.09M\n340.58K\n-3.27\n469\nMED\nMedifast\n11.730\n+2.62%\n+0.300\n131.15M\n82.62K\n0.67\n470\nRM\nRegional Management\n31.800\n+2.61%\n+0.810\n293.38M\n105.18K\n0.78\n471\nSLMT\nBrera Holdings\n4.330\n+2.61%\n+0.110\n47.67M\n42.25K\n0.45\n472\nPKX\nPOSCO\n57.590\n+2.60%\n+1.460\n17.42B\n171.05K\n0.41\n473\nTENX\nTenax Therapeutics\n1.980\n+2.59%\n+0.050\n74.10M\n2.03M\n0.65\n474\nVLEEY\nVALEO SE ADR-EACH REPR 0.5 ORD EUR3\n7.940\n+2.58%\n+0.200\n3.84B\n4.61K\n0.99\n475\nTOYO\nTOYO Co\n4.370\n+2.58%\n+0.110\n186.68M\n283.53K\n0.89\n476\nMTEN\nMingteng International\n1.0100\n+2.58%\n+0.0254\n7.73M\n112.60K\n0.35\n477\nGNW\nGenworth Financial\n9.550\n+2.58%\n+0.240\n3.61B\n4.75M\n0.41\n478\nMBI\nMBIA\n4.400\n+2.56%\n+0.110\n224.47M\n276.60K\n-0.10\n479\nGGR\nGogoro\n3.200\n+2.56%\n+0.080\n64.24M\n6.03K\n0.57\n480\nMDCX\nMedicus Pharma\n0.1610\n+2.55%\n+0.0040\n11.55M\n1.00M\n-6.44\n481\nDOYU\nDouYu\n4.450\n+2.53%\n+0.110\n134.30M\n45.33K\n0.48\n482\nALTG\nAlta Equipment\n6.480\n+2.53%\n+0.160\n211.68M\n284.85K\n-5.85\n483\nAQST\nAquestive Therapeutics\n4.550\n+2.48%\n+0.110\n571.08M\n2.27M\n-10.09\n484\nAVEX\nAEVEX Corp\n14.480\n+2.48%\n+0.350\n1.65B\n2.01M\n-1.88\n485\nIPXHY\nInpex (ADR)\n23.620\n+2.47%\n+0.570\n27.31B\n32.58K\n0.84\n486\nLGPS\nLogProStyle\n0.7500\n+2.46%\n+0.0180\n17.71M\n22.93K\n0.66\n487\nFNNCF\nFINANCIAL 15 SPLIT CORP\n7.735\n+2.45%\n+0.185\n603.08M\n600.00\n0.98\n488\nPWRL\nPowerlaw Corp\n11.400\n+2.43%\n+0.270\n492.97M\n136.49K\n0.95\n489\nWING\nWingstop\n106.890\n+2.42%\n+2.530\n2.91B\n734.34K\n-3.77\n490\nRPAY\nRepay Holdings\n3.820\n+2.41%\n+0.090\n316.67M\n175.86K\n0.67\n491\nTORM\nTOR MINERALS INTL INC\n2.250\n+2.40%\n+0.053\n7.97M\n8.44K\n0.24\n492\nPRHI\nPresurance Holdings\n6.860\n+2.39%\n+0.160\n25.70M\n20.20K\n0.93\n493\nHGBL\nHeritage Global\n1.290\n+2.38%\n+0.030\n44.68M\n166.80K\n0.86\n494\nFERN\nFERNHILL CORP\n0.0009\n+2.38%\n0.0000\n3.12M\n949.95K\n0.00\n495\nGUER\nGUERRILLA RF INC\n4.198\n+2.38%\n+0.098\n44.91M\n2.01K\n-2.38\n496\nTX\nTernium\n56.610\n+2.37%\n+1.310\n11.11B\n398.00K\n0.90\n497\nFMCCM\nFEDERAL HOME LOAN MORTGAGE CORP VAR% NON CUM PRF USD50\n9.622\n+2.36%\n+0.222\n62.54M\n1.41K\n0.00\n498\nAERT\nAeries Technology\n7.410\n+2.35%\n+0.170\n38.89M\n13.57K\n-14.28\n499\nMSLOY\nMitsui O.S.K. Lines (ADR)\n22.720\n+2.34%\n+0.520\n15.61B\n18.94K\n0.83\n500\nLND\nBrasilAgro\n3.510\n+2.33%\n+0.080\n349.65M\n53.06K\n0.90\n1\n9\n10\n11\n12\n91\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\nSTRW\n\n+4.90%\n\nABX\n\n+4.82%\n\nSNLAY\n\n+3.77%\n\nLow P/E Ratio Stocks\n\nZENVF\n\n+2900.00%\n\nBHATF\n\n+500.00%\n\nNXUR\n\n+266.67%\n\nBelow 30 RSI Stocks\n\nBPTH\n\n+200.00%\n\nNCLX\n\n+36.36%\n\nNIVF\n\n+27.72%\n\nJunk Stocks\n\nAILEQ\n\n+9900.00%\n\nPCTL\n\n+9900.00%\n\nZENVF\n\n+2900.00%\n\nSmall Cap Stocks with Huge Growth Potential\n\nFCEL\n\n+11.47%\n\nAZ\n\n+9.75%\n\nHYLN\n\n+7.60%\n\nBlue Chip Dividend Stocks\n\nRIO\n\n+1.44%\n\n--\n\n--\n\n--\n\n--\n\n1\n2\nCustomer Service\n0800 886 800\n\n(toll free)\n\n+64 9 872 6000\n\n(from overseas)\n\nTrading days: 24 hours\n\nNon-trading days: 9:30 - 21:30 NZT\n\nsupport@nz.moomoo.com\n\nOfficial WhatsApp\n\nAbout moomoo\nAbout moomoo\nContact Us\nInvestor Relations\nTerms & Conditions\nPrivacy Policy\nTerms of Use\nFinancial Services Guide\nLicensed Entities*\nCareers / Contact:\nApply Now\ncareer@au.moomoo.com\nFollow us on\n\nThe moomoo app is an online trading platform offered by Moomoo Technologies Inc. In New Zealand, financial services are offered by Moomoo Securities Australia Ltd, NZBN: 942 905 240 2296, a financial services provider registered in New Zealand (FSP1008656). Moomoo Securities Australia Limited is not licensed by a New Zealand regulator to provide financial services. Its registration on the New Zealand FSP Register does not mean that it is subject to active regulation or oversight by a New Zealand regulator.\n\nInvestments carry risks and may result in losses. Market data or information on this website is for reference only and should not be seen as an endorsement or recommendation to buy or sell financial products. Past performance is not indicative of future results. The information is general and doesn't consider your personal investment objectives, financial situation, or needs. Consider your personal circumstances before making investment decisions.\n\nOptions trading involves substantial risks and may not be suitable for all investors. Losses could potentially exceed your initial investment. Please carefully review and consider our US Options Product Disclosure Statement and OCC's Characteristics and Risks of Standardized Options before trading options with us.\n\nPlease read, consider and understand our Financial Services Disclosure Statement, Privacy Policy, Website Terms and Conditions, Information Collection Notice and Risk Disclosure Statement before deciding to use our services.\n\nCompany Address: Moomoo Securities Australia Ltd. Suite 5.01, 570 George Street, Sydney NSW 2000\n\nCopyright © 2026 Moomoo Technologies Inc. All Rights Reserved."
+}

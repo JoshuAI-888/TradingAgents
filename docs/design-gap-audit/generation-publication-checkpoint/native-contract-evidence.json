@@ -1,0 +1,37 @@
+{
+  "database": "isolated PostgreSQL",
+  "contracts": [
+    "RLS and service-only invoker functions; no anonymous/private-role access",
+    "Exact publication/replay, Python cohort hash, separate source/cache clocks and preserved cadence",
+    "Conflicting replay, token reuse and update/delete/truncate immutability safeguards",
+    "Malformed/duplicate/missing identities and bad clocks/classification roll back; abort preserves last success",
+    "Expired/superseded owner fencing prevents late publication and failure-state corruption",
+    "Expired unsuperseded owner can record failure without renewing or advancing success",
+    "Observed two-session same-market serialization; HK publication remains independent",
+    "Observed atomic pointer/rows/mirror visibility and immutable old-generation paged reads",
+    "Injected post-insert mirror error rolls back generation rows/header/pointer and all mirrors",
+    "Native 20,000-row generation publication succeeds; no reader truncation at storage boundary",
+    "20,001-row input fails closed and preserves the published generation",
+    "Malformed persisted state and invalid market/lease parameters fail before acquisition"
+  ],
+  "maximum_fixture": {
+    "rows": 20000,
+    "json_bytes": 6828890,
+    "native_publication_seconds": 0.69,
+    "scope": "local database/storage only; excludes HTTP/PostgREST, provider work and real-device p95"
+  },
+  "postgres_version": "16.14 (Homebrew)",
+  "completed_at": "2026-10-02T06:12:31.316223+00:00",
+  "migration_sha256": "7eceefdb94c6e92a98d997a5dd2117ac19dbe032d67ce32fe0ab3ad70729f26b",
+  "supabase_cli_version": "2.119.0",
+  "advisors": {
+    "scope": "isolated socket-only database",
+    "security_and_performance": "No issues found",
+    "exit_code": 0,
+    "production_schema_qualified": false
+  },
+  "regressions": {
+    "api_worker": 331,
+    "javascript": 68
+  }
+}

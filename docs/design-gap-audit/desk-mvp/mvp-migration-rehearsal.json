@@ -1,0 +1,17 @@
+{
+  "scope": "Disposable PostgreSQL 16 synthetic schema; not production/PostgREST/provider qualification",
+  "migrations": {
+    "20261002060206_screener_generation_publication.sql": "7eceefdb94c6e92a98d997a5dd2117ac19dbe032d67ce32fe0ab3ad70729f26b",
+    "20261002142613_server_owned_data_access.sql": "4f773b1d4c9c3b85ec5592448d896cbc89d8aec68ac156cbe100ddef238215e8",
+    "20261002131807_instrument_subtype_cache.sql": "d763f6b33058152537d78135d9e7f0f8add0cac768b5872a7a4b914ecae53c4e",
+    "20261002132749_instrument_subtype_leases.sql": "e900cb260beb02cc33a5d73460886829c727ebb391f88f06387cb7f6b704a3e6"
+  },
+  "checks": {
+    "generation_begin_abort_with_all_migrations": true,
+    "subtype_claim_release_with_core_migrations": true,
+    "service_access_and_original_content_preserved": true,
+    "browser_reads_denied": 36
+  },
+  "postgres_version": "16.14 (Homebrew)",
+  "database_removed": true
+}

@@ -1,0 +1,19 @@
+{
+  "synthetic_only": true,
+  "file": "/Users/joshmini/Downloads/screen_comparison_observations-before_observations-after.csv",
+  "exists_before_click": false,
+  "bytes": 264744,
+  "sha256": "5fc07e4d23ea8a1c53cdf2811ed2c365d925f8a5ce475151350733d9d035fda2",
+  "download_mtime_utc": "2026-10-02T05:29:38.147350+00:00",
+  "verified_at_utc": "2026-10-02T05:30:06.083440+00:00",
+  "rows": 108,
+  "counts": {
+    "new": 1,
+    "exited": 1,
+    "unchanged": 106
+  },
+  "eligible_observations_each_side": 1176,
+  "complete_union_sorted_unique": true,
+  "every_row_typed_evidence_verified": true,
+  "browser_download_event_observed": false
+}

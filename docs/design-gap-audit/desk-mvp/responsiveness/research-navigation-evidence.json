@@ -1,0 +1,111 @@
+{
+  "capturedAt": "2026-10-02T19:49:13.719Z",
+  "scope": "Synthetic local US browser navigation, not financial identity/value qualification",
+  "tabs": [
+    {
+      "name": "Revenue Breakdown",
+      "headings": [
+        "- heading \"TRADINGAGENTS GLOBAL RESEARCH\" [level=1]",
+        "- heading \"By Business 2025/FY · USD\" [level=3]:",
+        "- heading \"By Country / Region 2025/FY · USD\" [level=3]:"
+      ]
+    },
+    {
+      "name": "Financial Indicators",
+      "headings": [
+        "- heading \"TRADINGAGENTS GLOBAL RESEARCH\" [level=1]",
+        "- heading \"Key financial indicators USD · latest 2026/Q2\" [level=3]:"
+      ]
+    },
+    {
+      "name": "Income Statement",
+      "headings": [
+        "- heading \"TRADINGAGENTS GLOBAL RESEARCH\" [level=1]",
+        "- heading \"Income Statement USD · US_GAAP · quarterly\" [level=3]:"
+      ]
+    },
+    {
+      "name": "Balance Sheet",
+      "headings": [
+        "- heading \"TRADINGAGENTS GLOBAL RESEARCH\" [level=1]",
+        "- heading \"Balance Sheet USD · US_GAAP · quarterly\" [level=3]:"
+      ]
+    },
+    {
+      "name": "Cash Flow",
+      "headings": [
+        "- heading \"TRADINGAGENTS GLOBAL RESEARCH\" [level=1]",
+        "- heading \"Cash Flow USD · US_GAAP · quarterly\" [level=3]:"
+      ]
+    },
+    {
+      "name": "Earnings",
+      "headings": [
+        "- heading \"TRADINGAGENTS GLOBAL RESEARCH\" [level=1]",
+        "- heading \"Revenue estimates next qtr 2026-10-28 · S&P Global MI via Yahoo\" [level=3]:",
+        "- heading \"EPS estimates\" [level=3]",
+        "- heading \"Reported actuals GAAP · moomoo statements\" [level=3]:",
+        "- heading \"EPS surprise history street basis\" [level=3]:",
+        "- heading \"Earnings-day price reaction\" [level=3]"
+      ]
+    },
+    {
+      "name": "Options",
+      "headings": [
+        "- heading \"TRADINGAGENTS GLOBAL RESEARCH\" [level=1]",
+        "- heading \"S0103 Options Chain expiry 2026-10-16\" [level=3]:"
+      ]
+    },
+    {
+      "name": "Analysis",
+      "headings": [
+        "- heading \"TRADINGAGENTS GLOBAL RESEARCH\" [level=1]",
+        "- heading \"S0103 Stock Chart live moomoo sessions & periods · the same chart as the Overview tab\" [level=3]:",
+        "- heading \"S0103 Agent reports multi-agent dossiers that analyzed this ticker — full reasoning chain, decision and settlements\" [level=3]:",
+        "- heading \"S0103 Analyst Ratings, Forecast & Price Target 4 analysts · 2026-09-26\" [level=3]:"
+      ]
+    },
+    {
+      "name": "Company",
+      "headings": [
+        "- heading \"TRADINGAGENTS GLOBAL RESEARCH\" [level=1]",
+        "- heading \"About\" [level=3]",
+        "- heading \"Company Profile moomoo company API\" [level=3]:",
+        "- heading \"Company Executives\" [level=3]"
+      ]
+    },
+    {
+      "name": "News",
+      "headings": [
+        "- heading \"TRADINGAGENTS GLOBAL RESEARCH\" [level=1]"
+      ]
+    },
+    {
+      "name": "Comments",
+      "headings": [
+        "- heading \"TRADINGAGENTS GLOBAL RESEARCH\" [level=1]"
+      ]
+    },
+    {
+      "name": "Overview",
+      "headings": [
+        "- heading \"TRADINGAGENTS GLOBAL RESEARCH\" [level=1]",
+        "- heading \"S0103 Stock Chart moomoo sessions & periods · live quotes via moomoo REST\" [level=3]:",
+        "- heading \"Analyst Ratings & Price Target S&P-consensus via moomoo research API\" [level=3]:",
+        "- heading \"S0103 Orderflow Trend capital-flow + capital-distribution\" [level=3]:",
+        "- heading \"S0103 News all news →\" [level=3]:",
+        "- heading \"Stock Forum community search (latest)\" [level=3]:"
+      ]
+    }
+  ],
+  "chartControls": [
+    "1M range",
+    "BOLL overlay",
+    "MACD pane"
+  ],
+  "returnState": [
+    "  - paragraph: US · ETFs excluded · Market Cap descending",
+    "  - status: 1,176 stocks · 100 on this page",
+    "  - generic: Page 2 of 12"
+  ]
+}

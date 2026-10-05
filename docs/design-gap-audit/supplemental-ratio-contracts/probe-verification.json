@@ -1,0 +1,21 @@
+{
+  "checks": [
+    {
+      "code": "US.BRK.B",
+      "exact_identity": true,
+      "explicit_same_currency": true,
+      "raw_arithmetic_matches": true,
+      "api_eligibility_matches": true,
+      "legacy_values_rejected": true
+    },
+    {
+      "code": "US.KO",
+      "exact_identity": true,
+      "explicit_same_currency": true,
+      "raw_arithmetic_matches": true,
+      "api_eligibility_matches": true,
+      "legacy_values_rejected": true
+    }
+  ],
+  "scope": "Two public samples; units and derivation only. Reporting periods, sessions, universe coverage and Moomoo parity remain unqualified."
+}

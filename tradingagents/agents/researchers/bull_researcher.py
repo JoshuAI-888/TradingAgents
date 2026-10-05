@@ -1,11 +1,12 @@
 from tradingagents.agents.context import (
     get_instrument_context_from_state,
     get_language_instruction,
+    get_price_context_from_state,
     opponent_argument_or_opening,
     report_or_absent,
 )
-from tradingagents.agents.prompts import render, resolve
 from tradingagents.agents.prompt_texts import AGENT_PROMPTS
+from tradingagents.agents.prompts import render, resolve
 
 
 def create_bull_researcher(llm):
@@ -22,6 +23,7 @@ def create_bull_researcher(llm):
         news_report = report_or_absent(state["news_report"], "news")
         fundamentals_report = report_or_absent(state["fundamentals_report"], "fundamentals")
         instrument_context = get_instrument_context_from_state(state)
+        price_context = get_price_context_from_state(state)
         asset_type = state.get("asset_type", "stock")
         target_label = "stock" if asset_type == "stock" else "asset"
         fundamentals_label = (
@@ -34,6 +36,7 @@ def create_bull_researcher(llm):
             resolve("bull_researcher", AGENT_PROMPTS["bull_researcher"]),
             target_label=target_label,
             instrument_context=instrument_context,
+            price_context=price_context,
             market_research_report=market_research_report,
             sentiment_report=sentiment_report,
             news_report=news_report,

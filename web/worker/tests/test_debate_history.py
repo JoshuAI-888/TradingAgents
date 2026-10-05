@@ -1,5 +1,6 @@
 """Debate-transcript regression: 0.5.1 debate history is one accumulated
 string; iterating it char-wise stored transcripts one character per line."""
+
 from __future__ import annotations
 
 from tradingagents_worker.runner import _join_history, demangle_debate
@@ -30,7 +31,10 @@ def mangle_like_the_old_writer(text: str) -> str:
 
 def test_demangle_repairs_char_wise_rows():
     mangled = mangle_like_the_old_writer(HISTORY_STR)
-    assert demangle_debate(mangled) == "BullAnalyst:#TheBullCaseforVLVCY—cashflowskeepcompounding.BearAnalyst:#TheBearCaseforVLVCY—debtwallin2029."
+    assert (
+        demangle_debate(mangled)
+        == "BullAnalyst:#TheBullCaseforVLVCY—cashflowskeepcompounding.BearAnalyst:#TheBearCaseforVLVCY—debtwallin2029."
+    )
 
 
 def test_demangle_leaves_normal_transcripts_alone():

@@ -1,7 +1,7 @@
 """Stock-page wrapper tests: every new MoomooClient method hits the right path
 template with the right method/query — no network (call is monkeypatched)."""
-import pytest
 
+import pytest
 from tradingagents_worker.moomoo import MoomooClient
 
 
@@ -83,8 +83,12 @@ def test_research_and_company(client):
 
 def test_find_news_news_type_and_community(client):
     client.find_news("CHE", news_type=2)
-    assert client.calls[-1]["query"] == {"symbol": "CHE", "sort_type": 2, "size": 20,
-                                         "news_type": 2}
+    assert client.calls[-1]["query"] == {
+        "symbol": "CHE",
+        "sort_type": 2,
+        "size": 20,
+        "news_type": 2,
+    }
     client.find_community("CHE", community_type=1, sort_type=1, size=50)
     c = client.calls[-1]
     assert c["path"] == "/quote/find-community"
@@ -99,8 +103,12 @@ def test_plate_endpoints(client):
     client.plate_stocks("US.LIST2470", limit=60)
     c = client.calls[-1]
     assert c["path"] == "/quote/plate-stock"
-    assert c["query"] == {"plate_code": "US.LIST2470", "sort_field": "MARKET_VAL",
-                          "ascend": "false", "limit": 60}
+    assert c["query"] == {
+        "plate_code": "US.LIST2470",
+        "sort_field": "MARKET_VAL",
+        "ascend": "false",
+        "limit": 60,
+    }
 
 
 def test_find_community_lang(client):

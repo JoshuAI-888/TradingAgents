@@ -18,6 +18,7 @@ class Propagator:
         past_context: str = "",
         instrument_context: str = "",
         portfolio_context: str = "",
+        price_context: str = "",
     ) -> dict[str, Any]:
         """Create the initial state for the agent graph.
 
@@ -26,6 +27,11 @@ class Propagator:
         ``TradingAgentsGraph.resolve_instrument_context``). When empty, agents
         fall back to ticker-only context via
         ``get_instrument_context_from_state``.
+
+        ``price_context`` is the verified as-of market-data snapshot (see
+        ``build_verified_market_snapshot``): the same rows the report chart
+        serves, so every debate and synthesis agent argues over the exact
+        numbers a reader can check on the chart. Empty = not provided.
         """
         return {
             "messages": [("human", company_name)],
@@ -35,6 +41,7 @@ class Propagator:
             "trade_date": str(trade_date),
             "past_context": past_context,
             "portfolio_context": portfolio_context,
+            "price_context": price_context,
             "investment_debate_state": InvestDebateState(
                 {
                     "bull_history": "",

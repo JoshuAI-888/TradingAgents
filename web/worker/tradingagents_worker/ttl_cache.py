@@ -3,6 +3,7 @@
 quotes 5m · news 1h · OHLCV 1d · fundamentals 7d. Keys = sha1(method+args).
 Disk-backed under the mounted cache dir; process-local dict fast path.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -13,7 +14,8 @@ import time
 
 
 class TtlCache:
-    DEFAULTS = {"quotes": 300, "news": 3600, "ohlcv": 86400, "fundamentals": 604800, "other": 600}
+    DEFAULTS = {"quotes": 300, "news": 3600, "ohlcv": 86400, "ohlcv_live": 60,
+                "fundamentals": 604800, "other": 600}
 
     def __init__(self, root: str = "/data/cache/ttl"):
         self.root = root
@@ -21,7 +23,9 @@ class TtlCache:
         self._mem: dict[str, tuple[float, bytes]] = {}
 
     def key(self, category: str, *parts) -> str:
-        return hashlib.sha1(json.dumps([category, *parts], sort_keys=True, default=str).encode()).hexdigest()
+        return hashlib.sha1(
+            json.dumps([category, *parts], sort_keys=True, default=str).encode()
+        ).hexdigest()
 
     def get(self, category: str, k: str):
         ttl = self.DEFAULTS.get(category, 600)

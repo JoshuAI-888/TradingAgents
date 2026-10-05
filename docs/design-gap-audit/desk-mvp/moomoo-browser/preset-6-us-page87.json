@@ -1,0 +1,207 @@
+{
+  "observed_at": "2026-10-02T20:58:03.626Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/pb-ratio-less-than-1-6",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/IHRT-US",
+      "text": "4301\nIHRT\niHeartMedia\n1.940\n-7.62%\n-0.160\n300.29M\n628.99K\n-0.15"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/UCIX-US",
+      "text": "4302\nUCIX\nUMBRA COMPANIES INC\n0.0120\n-7.69%\n-0.0010\n6.03M\n44.60K\n0.71"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MGX-US",
+      "text": "4303\nMGX\nMetagenomi Therapeutics\n1.020\n-7.69%\n-0.085\n38.53M\n121.66K\n0.34"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/IVRO-US",
+      "text": "4304\nIVRO\nINVITRO INTERNATIONAL\n0.0600\n-7.69%\n-0.0050\n1.34M\n1.00K\n0.79"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RAIN-US",
+      "text": "4305\nRAIN\nRain Enhancement Technologies\n0.7722\n-7.70%\n-0.0644\n9.04M\n124.22K\n-0.74"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NBTX-US",
+      "text": "4306\nNBTX\nNanobiotix\n25.750\n-7.71%\n-2.150\n1.31B\n255.77K\n-34.94"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BVHMY-US",
+      "text": "4307\nBVHMY\nVISTRY GROUP PLC UNSPON ADS EA REPR 1 ORD SHS\n3.230\n-7.71%\n-0.270\n1.03B\n2.69K\n0.29"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CRNCY-US",
+      "text": "4308\nCRNCY\nCAPRICORN ENERGY PLC\n11.070\n-7.75%\n-0.930\n380.07M\n2.67K\n0.96"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CNXC-US",
+      "text": "4309\nCNXC\nConcentrix\n24.910\n-7.77%\n-2.100\n1.52B\n1.97M\n0.86"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GNLN-US",
+      "text": "4310\nGNLN\nGreenlane\n2.660\n-7.80%\n-0.225\n1.85M\n8.30K\n0.07"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SEAT-US",
+      "text": "4311\nSEAT\nVivid Seats\n3.520\n-7.85%\n-0.300\n0.00\n114.72K\n-0.38"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/IMUX-US",
+      "text": "4312\nIMUX\nImmunic\n7.960\n-7.87%\n-0.680\n108.61M\n722.23K\n0.85"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SCLX-US",
+      "text": "4313\nSCLX\nScilex Holding\n4.060\n-7.94%\n-0.350\n34.48M\n107.68K\n-0.11"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KIGRY-US",
+      "text": "4314\nKIGRY\nKION GROUP AG UNSP ADR EA REPR 0.25 ORD\n10.005\n-7.96%\n-0.865\n5.25B\n65.84K\n0.73"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VCIG-US",
+      "text": "4315\nVCIG\nVCI Global\n1.370\n-8.05%\n-0.120\n1.74M\n3.05M\n0.02"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AIFU-US",
+      "text": "4316\nAIFU\nAIFU Inc\n10.220\n-8.09%\n-0.900\n165.32M\n9.38K\n0.85"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ASPU-US",
+      "text": "4317\nASPU\nAspen Group\n0.2370\n-8.14%\n-0.0210\n7.52M\n627.00\n0.26"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ANZLY-US",
+      "text": "4318\nANZLY\nAIR NEW ZEALAND SPON ADR EACH REP 5 ORD SHS\n1.060\n-8.15%\n-0.094\n685.52M\n1.49K\n0.72"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BGS-US",
+      "text": "4319\nBGS\nB&G Foods\n2.690\n-8.19%\n-0.240\n218.63M\n2.73M\n0.55"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KALA-US",
+      "text": "4320\nKALA\nKALA BIO\n0.3850\n-8.20%\n-0.0344\n7.45M\n1.05M\n0.82"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GMHS-US",
+      "text": "4321\nGMHS\nGamehaus Holdings\n0.6102\n-8.21%\n-0.0546\n34.66M\n13.11K\n0.88"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FNMAP-US",
+      "text": "4322\nFNMAP\nFEDERAL NATIONAL MORTGAGE ASSOC VAR RATE PFD SER F USD50\n8.600\n-8.22%\n-0.770\n120.40M\n12.94K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BIEI-US",
+      "text": "4323\nBIEI\nPREMIER BIOMEDICAL INC\n0.0006\n-8.33%\n-0.0001\n907.43K\n13.76M\n-0.28"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MNIZ-US",
+      "text": "4324\nMNIZ\nGEN 2 TECHNOLOGIES INC\n0.2750\n-8.33%\n-0.0250\n1.09M\n930.00\n-0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ENLV-US",
+      "text": "4325\nENLV\nEnlivex\n0.3873\n-8.37%\n-0.0354\n7.71M\n616.62K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VYGR-US",
+      "text": "4326\nVYGR\nVoyager Therapeutics\n2.450\n-8.41%\n-0.225\n150.96M\n1.17M\n0.98"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TNON-US",
+      "text": "4327\nTNON\nTenon Medical\n3.700\n-8.42%\n-0.340\n2.47M\n5.85M\n-0.51"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SNAL-US",
+      "text": "4328\nSNAL\nSnail\n2.170\n-8.44%\n-0.200\n19.43M\n23.53K\n-1.69"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PURE-US",
+      "text": "4329\nPURE\nPURE BIOSCIENCE\n0.0621\n-8.54%\n-0.0058\n6.95M\n14.30K\n-5.18"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/PAAI-US",
+      "text": "4330\nPAAI\nParadium AI\n1.160\n-8.66%\n-0.110\n55.23M\n405.47K\n-7.30"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MLLUY-US",
+      "text": "4331\nMLLUY\nMETALLURGICAL CORP\n3.210\n-8.68%\n-0.305\n3.32B\n1.55K\n0.14"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LHSW-US",
+      "text": "4332\nLHSW\nLianhe Sowell International\n0.4702\n-8.70%\n-0.0448\n6.34M\n426.00K\n0.46"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GHG-US",
+      "text": "4333\nGHG\nGreenTree Hospitality\n0.940\n-8.74%\n-0.090\n94.84M\n68.28K\n0.40"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TELA-US",
+      "text": "4334\nTELA\nTELA Bio\n1.140\n-8.80%\n-0.110\n51.46M\n202.57K\n-3.25"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CNTM-US",
+      "text": "4335\nCNTM\nConnectM Technology Solutions\n4.550\n-8.82%\n-0.440\n24.22M\n3.48K\n-15.85"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VIPZ-US",
+      "text": "4336\nVIPZ\nVIP PLAY INC\n0.1975\n-8.90%\n-0.0193\n14.61M\n4.50K\n-0.37"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CHPT-US",
+      "text": "4337\nCHPT\nChargePoint\n9.290\n-8.92%\n-0.910\n249.44M\n1.65M\n-6.91"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SDOT-US",
+      "text": "4338\nSDOT\nSadot\n10.710\n-8.93%\n-1.050\n18.29M\n69.29K\n-2.15"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/IFBD-US",
+      "text": "4339\nIFBD\nInfobird Software\n0.8632\n-8.95%\n-0.0849\n7.07M\n63.89K\n0.40"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MGRX-US",
+      "text": "4340\nMGRX\nMangoceuticals\n0.4371\n-9.03%\n-0.0434\n9.43M\n871.16K\n0.75"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SIPC-US",
+      "text": "4341\nSIPC\nSIPP INDUSTRIES INC\n0.0008\n-9.09%\n-0.0001\n364.44K\n2.00K\n-40.99"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CMBMF-US",
+      "text": "4342\nCMBMF\nCambium Networks\n0.0110\n-9.09%\n-0.0011\n319.36K\n28.38K\n-0.01"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/OCLN-US",
+      "text": "4343\nOCLN\nORIGINCLEAR INC\n0.0005\n-9.09%\n-0.0001\n8.11M\n2.05M\n-0.25"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SBIG-US",
+      "text": "4344\nSBIG\nSpringBig\n0.0155\n-9.11%\n-0.0015\n753.94K\n53.01K\n-0.05"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VOGX-US",
+      "text": "4345\nVOGX\nVogenx\n18.230\n-9.12%\n-1.830\n270.81M\n55.49K\n-151.92"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HCIL-US",
+      "text": "4346\nHCIL\nHONGCHANG INTL CO LTD\n0.0507\n-9.22%\n-0.0052\n26.30M\n30.10K\n0.62"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AVX-US",
+      "text": "4347\nAVX\nAVAX One Technology\n6.200\n-9.22%\n-0.630\n45.86M\n445.99K\n0.42"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SHFS-US",
+      "text": "4348\nSHFS\nSHF Holdings\n1.180\n-9.23%\n-0.120\n1.21M\n696.46K\n0.20"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ENRD-US",
+      "text": "4349\nENRD\nEinride AB\n3.330\n-9.26%\n-0.340\n488.48M\n173.33K\n-23.29"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TDRK-US",
+      "text": "4350\nTDRK\nTIDEROCK COMPANIES INC\n0.0039\n-9.30%\n-0.0004\n740.51K\n1.05M\n0.16"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\n\nDeposit, Share & Win NVDA 0.1\n\nGet started\nScreener\nRecommended Screeners\nP/B Ratio Less Than 1\nP/B Ratio Less Than 1\n\nSpot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.\n\nSelected:\n\nSave Screener\nMarket: USP/B: ≤1.00\nResult: 4534 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nP/B\nWatchlist\nPaper Trade\n4301\nIHRT\niHeartMedia\n1.940\n-7.62%\n-0.160\n300.29M\n628.99K\n-0.15\n4302\nUCIX\nUMBRA COMPANIES INC\n0.0120\n-7.69%\n-0.0010\n6.03M\n44.60K\n0.71\n4303\nMGX\nMetagenomi Therapeutics\n1.020\n-7.69%\n-0.085\n38.53M\n121.66K\n0.34\n4304\nIVRO\nINVITRO INTERNATIONAL\n0.0600\n-7.69%\n-0.0050\n1.34M\n1.00K\n0.79\n4305\nRAIN\nRain Enhancement Technologies\n0.7722\n-7.70%\n-0.0644\n9.04M\n124.22K\n-0.74\n4306\nNBTX\nNanobiotix\n25.750\n-7.71%\n-2.150\n1.31B\n255.77K\n-34.94\n4307\nBVHMY\nVISTRY GROUP PLC UNSPON ADS EA REPR 1 ORD SHS\n3.230\n-7.71%\n-0.270\n1.03B\n2.69K\n0.29\n4308\nCRNCY\nCAPRICORN ENERGY PLC\n11.070\n-7.75%\n-0.930\n380.07M\n2.67K\n0.96\n4309\nCNXC\nConcentrix\n24.910\n-7.77%\n-2.100\n1.52B\n1.97M\n0.86\n4310\nGNLN\nGreenlane\n2.660\n-7.80%\n-0.225\n1.85M\n8.30K\n0.07\n4311\nSEAT\nVivid Seats\n3.520\n-7.85%\n-0.300\n0.00\n114.72K\n-0.38\n4312\nIMUX\nImmunic\n7.960\n-7.87%\n-0.680\n108.61M\n722.23K\n0.85\n4313\nSCLX\nScilex Holding\n4.060\n-7.94%\n-0.350\n34.48M\n107.68K\n-0.11\n4314\nKIGRY\nKION GROUP AG UNSP ADR EA REPR 0.25 ORD\n10.005\n-7.96%\n-0.865\n5.25B\n65.84K\n0.73\n4315\nVCIG\nVCI Global\n1.370\n-8.05%\n-0.120\n1.74M\n3.05M\n0.02\n4316\nAIFU\nAIFU Inc\n10.220\n-8.09%\n-0.900\n165.32M\n9.38K\n0.85\n4317\nASPU\nAspen Group\n0.2370\n-8.14%\n-0.0210\n7.52M\n627.00\n0.26\n4318\nANZLY\nAIR NEW ZEALAND SPON ADR EACH REP 5 ORD SHS\n1.060\n-8.15%\n-0.094\n685.52M\n1.49K\n0.72\n4319\nBGS\nB&G Foods\n2.690\n-8.19%\n-0.240\n218.63M\n2.73M\n0.55\n4320\nKALA\nKALA BIO\n0.3850\n-8.20%\n-0.0344\n7.45M\n1.05M\n0.82\n4321\nGMHS\nGamehaus Holdings\n0.6102\n-8.21%\n-0.0546\n34.66M\n13.11K\n0.88\n4322\nFNMAP\nFEDERAL NATIONAL MORTGAGE ASSOC VAR RATE PFD SER F USD50\n8.600\n-8.22%\n-0.770\n120.40M\n12.94K\n0.00\n4323\nBIEI\nPREMIER BIOMEDICAL INC\n0.0006\n-8.33%\n-0.0001\n907.43K\n13.76M\n-0.28\n4324\nMNIZ\nGEN 2 TECHNOLOGIES INC\n0.2750\n-8.33%\n-0.0250\n1.09M\n930.00\n-0.00\n4325\nENLV\nEnlivex\n0.3873\n-8.37%\n-0.0354\n7.71M\n616.62K\n0.00\n4326\nVYGR\nVoyager Therapeutics\n2.450\n-8.41%\n-0.225\n150.96M\n1.17M\n0.98\n4327\nTNON\nTenon Medical\n3.700\n-8.42%\n-0.340\n2.47M\n5.85M\n-0.51\n4328\nSNAL\nSnail\n2.170\n-8.44%\n-0.200\n19.43M\n23.53K\n-1.69\n4329\nPURE\nPURE BIOSCIENCE\n0.0621\n-8.54%\n-0.0058\n6.95M\n14.30K\n-5.18\n4330\nPAAI\nParadium AI\n1.160\n-8.66%\n-0.110\n55.23M\n405.47K\n-7.30\n4331\nMLLUY\nMETALLURGICAL CORP\n3.210\n-8.68%\n-0.305\n3.32B\n1.55K\n0.14\n4332\nLHSW\nLianhe Sowell International\n0.4702\n-8.70%\n-0.0448\n6.34M\n426.00K\n0.46\n4333\nGHG\nGreenTree Hospitality\n0.940\n-8.74%\n-0.090\n94.84M\n68.28K\n0.40\n4334\nTELA\nTELA Bio\n1.140\n-8.80%\n-0.110\n51.46M\n202.57K\n-3.25\n4335\nCNTM\nConnectM Technology Solutions\n4.550\n-8.82%\n-0.440\n24.22M\n3.48K\n-15.85\n4336\nVIPZ\nVIP PLAY INC\n0.1975\n-8.90%\n-0.0193\n14.61M\n4.50K\n-0.37\n4337\nCHPT\nChargePoint\n9.290\n-8.92%\n-0.910\n249.44M\n1.65M\n-6.91\n4338\nSDOT\nSadot\n10.710\n-8.93%\n-1.050\n18.29M\n69.29K\n-2.15\n4339\nIFBD\nInfobird Software\n0.8632\n-8.95%\n-0.0849\n7.07M\n63.89K\n0.40\n4340\nMGRX\nMangoceuticals\n0.4371\n-9.03%\n-0.0434\n9.43M\n871.16K\n0.75\n4341\nSIPC\nSIPP INDUSTRIES INC\n0.0008\n-9.09%\n-0.0001\n364.44K\n2.00K\n-40.99\n4342\nCMBMF\nCambium Networks\n0.0110\n-9.09%\n-0.0011\n319.36K\n28.38K\n-0.01\n4343\nOCLN\nORIGINCLEAR INC\n0.0005\n-9.09%\n-0.0001\n8.11M\n2.05M\n-0.25\n4344\nSBIG\nSpringBig\n0.0155\n-9.11%\n-0.0015\n753.94K\n53.01K\n-0.05\n4345\nVOGX\nVogenx\n18.230\n-9.12%\n-1.830\n270.81M\n55.49K\n-151.92\n4346\nHCIL\nHONGCHANG INTL CO LTD\n0.0507\n-9.22%\n-0.0052\n26.30M\n30.10K\n0.62\n4347\nAVX\nAVAX One Technology\n6.200\n-9.22%\n-0.630\n45.86M\n445.99K\n0.42\n4348\nSHFS\nSHF Holdings\n1.180\n-9.23%\n-0.120\n1.21M\n696.46K\n0.20\n4349\nENRD\nEinride AB\n3.330\n-9.26%\n-0.340\n488.48M\n173.33K\n-23.29\n4350\nTDRK\nTIDEROCK COMPANIES INC\n0.0039\n-9.30%\n-0.0004\n740.51K\n1.05M\n0.16\n1\n86\n87\n88\n89\n91\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\nSTRW\n\n+4.90%\n\nABX\n\n+4.82%\n\nSNLAY\n\n+3.77%\n\nLow P/E Ratio Stocks\n\nZENVF\n\n+2900.00%\n\nBHATF\n\n+500.00%\n\nNXUR\n\n+266.67%\n\nBelow 30 RSI Stocks\n\nBPTH\n\n+200.00%\n\nNCLX\n\n+36.36%\n\nNIVF\n\n+27.72%\n\nJunk Stocks\n\nAILEQ\n\n+9900.00%\n\nPCTL\n\n+9900.00%\n\nZENVF\n\n+2900.00%\n\nSmall Cap Stocks with Huge Growth Potential\n\nFCEL\n\n+11.47%\n\nAZ\n\n+9.75%\n\nHYLN\n\n+7.60%\n\nBlue Chip Dividend Stocks\n\nRIO\n\n+1.44%\n\n--\n\n--\n\n--\n\n--\n\n1\n2\nCustomer Service\n0800 886 800\n\n(toll free)\n\n+64 9 872 6000\n\n(from overseas)\n\nTrading days: 24 hours\n\nNon-trading days: 9:30 - 21:30 NZT\n\nsupport@nz.moomoo.com\n\nOfficial WhatsApp\n\nAbout moomoo\nAbout moomoo\nContact Us\nInvestor Relations\nTerms & Conditions\nPrivacy Policy\nTerms of Use\nFinancial Services Guide\nLicensed Entities*\nCareers / Contact:\nApply Now\ncareer@au.moomoo.com\nFollow us on\n\nThe moomoo app is an online trading platform offered by Moomoo Technologies Inc. In New Zealand, financial services are offered by Moomoo Securities Australia Ltd, NZBN: 942 905 240 2296, a financial services provider registered in New Zealand (FSP1008656). Moomoo Securities Australia Limited is not licensed by a New Zealand regulator to provide financial services. Its registration on the New Zealand FSP Register does not mean that it is subject to active regulation or oversight by a New Zealand regulator.\n\nInvestments carry risks and may result in losses. Market data or information on this website is for reference only and should not be seen as an endorsement or recommendation to buy or sell financial products. Past performance is not indicative of future results. The information is general and doesn't consider your personal investment objectives, financial situation, or needs. Consider your personal circumstances before making investment decisions.\n\nOptions trading involves substantial risks and may not be suitable for all investors. Losses could potentially exceed your initial investment. Please carefully review and consider our US Options Product Disclosure Statement and OCC's Characteristics and Risks of Standardized Options before trading options with us.\n\nPlease read, consider and understand our Financial Services Disclosure Statement, Privacy Policy, Website Terms and Conditions, Information Collection Notice and Risk Disclosure Statement before deciding to use our services.\n\nCompany Address: Moomoo Securities Australia Ltd. Suite 5.01, 570 George Street, Sydney NSW 2000\n\nCopyright © 2026 Moomoo Technologies Inc. All Rights Reserved."
+}

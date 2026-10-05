@@ -1,0 +1,235 @@
+{
+  "source_sha256": "93496cee494443496ef712147307bb2fa96e52eb7bc1650582941ace2f65b911",
+  "cohort_rows": 12045,
+  "source_universe_at": "2026-10-02T19:01:44.494347+00:00",
+  "definitions": 22,
+  "presets": [
+    {
+      "key": "penny",
+      "missing_or_contextual_fields": [
+        "revenue_growth",
+        "net_profit_growth",
+        "debt_ratio",
+        "volume"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "high-div",
+      "missing_or_contextual_fields": [
+        "debt_ratio",
+        "revenue_growth"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "blue-chip",
+      "missing_or_contextual_fields": [
+        "debt_ratio",
+        "revenue_growth"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "buffett",
+      "missing_or_contextual_fields": [
+        "net_profit_growth",
+        "gross_margin",
+        "op_ebt",
+        "roe",
+        "roe_yoy"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "undervalued",
+      "missing_or_contextual_fields": [
+        "debt_ratio",
+        "roe",
+        "revenue_growth"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "growth",
+      "missing_or_contextual_fields": [
+        "net_profit_growth",
+        "gross_margin",
+        "roe",
+        "roe_yoy"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "pb-lt-1",
+      "missing_or_contextual_fields": [],
+      "preview_status": "local_snapshot",
+      "top_ids": [
+        "US.LADX",
+        "US.LTNC",
+        "US.AMBIQ"
+      ],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "best-lt-high-div",
+      "missing_or_contextual_fields": [
+        "debt_ratio",
+        "revenue_growth"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "high-pe",
+      "missing_or_contextual_fields": [
+        "op_profit_growth"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "good-pe",
+      "missing_or_contextual_fields": [
+        "eps_growth",
+        "net_margin"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "low-pe",
+      "missing_or_contextual_fields": [
+        "debt_ratio"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "rsi-30",
+      "missing_or_contextual_fields": [
+        "rsi14"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "junk",
+      "missing_or_contextual_fields": [],
+      "preview_status": "local_snapshot",
+      "top_ids": [
+        "US.PCTL",
+        "US.AILEQ",
+        "US.FNEC"
+      ],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "small-growth",
+      "missing_or_contextual_fields": [
+        "revenue_growth",
+        "rsi14"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "blue-chip-div",
+      "missing_or_contextual_fields": [
+        "debt_ratio"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "speculative",
+      "missing_or_contextual_fields": [
+        "net_margin",
+        "debt_ratio",
+        "new_low_10d"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "high-roe",
+      "missing_or_contextual_fields": [
+        "roe",
+        "revenue_growth"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "lt-high-div",
+      "missing_or_contextual_fields": [
+        "revenue_growth",
+        "debt_ratio"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "undervalued-semi",
+      "missing_or_contextual_fields": [
+        "sector",
+        "roe"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "undervalued-tech",
+      "missing_or_contextual_fields": [
+        "sector",
+        "roe"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "undervalued-banks",
+      "missing_or_contextual_fields": [
+        "sector",
+        "roe"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    },
+    {
+      "key": "high-eps",
+      "missing_or_contextual_fields": [
+        "debt_ratio"
+      ],
+      "preview_status": "unavailable",
+      "top_ids": [],
+      "provider_membership_qualified": false
+    }
+  ],
+  "limits": "Captured deployed stock labels are not independently classified. Local numeric snapshots cannot qualify provider membership, financial periods or direct Moomoo parity. Unavailable previews do not disable provider preset execution."
+}

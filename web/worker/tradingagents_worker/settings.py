@@ -2,6 +2,7 @@
 
 Stored under key 'models' as {"quick": id, "deep": id, "provider": ...}.
 """
+
 from __future__ import annotations
 
 from .config import SETTINGS

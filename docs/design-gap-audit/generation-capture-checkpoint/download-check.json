@@ -1,0 +1,23 @@
+{
+  "scope": "actual synthetic browser downloads; native download event timed out, files verified by modification time, bytes and parsed contents",
+  "downloads": [
+    {
+      "filename": "screener_US_1176rows_2026-10-02 (1).csv",
+      "mtime": 1790923109.3719225,
+      "sha256": "30f13d33ea6f0fab9cf0862246056433482447dc9f9199b735c49574ad1848cb",
+      "rows": 1176,
+      "unique_codes": 1176,
+      "generation_id": "11111111-1111-4111-8111-111111111111",
+      "validated": "canonical membership, numeric cap and sort"
+    },
+    {
+      "filename": "screen_comparison_84a180b2-6e86-44c5-b800-f9e29f364299_8d800f6a-ea5a-4376-9c3e-c3895a040554.csv",
+      "mtime": 1790923174.5494804,
+      "sha256": "d70c738122b2b95c7c1609b32623792aa552c254b1054aa5eebd2d04f60e8af2",
+      "rows": 1176,
+      "unique_codes": 1176,
+      "generation_id": "11111111-1111-4111-8111-111111111111",
+      "validated": "canonical membership, pair identities, clocks, unchanged status and coverage"
+    }
+  ]
+}

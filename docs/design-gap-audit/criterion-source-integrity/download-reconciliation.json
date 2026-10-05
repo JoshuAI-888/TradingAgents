@@ -1,0 +1,24 @@
+{
+  "file": "/Users/joshmini/Downloads/screener_US_2rows_2026-10-02.csv",
+  "rows": 2,
+  "canonical_ids": [
+    "US.S0002",
+    "US.S0001"
+  ],
+  "sort": "pct descending",
+  "US.S0001": {
+    "display_pe": "8",
+    "criterion_values": [
+      25,
+      6,
+      3,
+      12
+    ],
+    "retrieved_at": "2026-10-02T08:14:55.405185+00:00"
+  },
+  "actual_period_currency": "not supplied",
+  "scope": "controlled synthetic actual-route browser download",
+  "excel_file": "/Users/joshmini/Downloads/screener_US_2rows_2026-10-02.xls",
+  "excel_rows": 2,
+  "excel_matches_csv": true
+}

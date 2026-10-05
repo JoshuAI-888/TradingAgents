@@ -4,6 +4,7 @@ rate limiter (the _budgeted loop sleeps through Retry-After — measured
 ~16–80 symbols/min). The kline_state table drives rotation: 4,000
 codes/night → the ~15.5k US universe reaches full coverage in ~4 nights,
 then refreshes continuously (state rows make every run resumable)."""
+
 from __future__ import annotations
 
 import time
@@ -44,7 +45,7 @@ def _bar_day(b: dict) -> str | None:
         return None
     if isinstance(raw, (int, float)) or (isinstance(raw, str) and raw.strip().isdigit()):
         v = float(raw)
-        if v > 1e11:   # epoch ms (13 digits) → seconds
+        if v > 1e11:  # epoch ms (13 digits) → seconds
             v /= 1000.0
         return datetime.fromtimestamp(v, tz=timezone.utc).date().isoformat()
     return str(raw).strip()[:10]
@@ -67,8 +68,9 @@ class KlineBackfill:
     def stale_codes(self, limit: int = ROTATION_LIMIT_DEFAULT) -> list[str]:
         """Codes never fetched (first) or with last_fetch older than
         KLINE_TTL_DAYS, in universe order, capped at `limit`."""
-        rows = self.db.select_all("screener_kline_state", {"market": f"eq.{self.market}"},
-                                  "code,last_fetch")
+        rows = self.db.select_all(
+            "screener_kline_state", {"market": f"eq.{self.market}"}, "code,last_fetch"
+        )
         cutoff = datetime.now(timezone.utc) - timedelta(days=KLINE_TTL_DAYS)
         fresh: set[str] = set()
         stale: set[str] = set()
@@ -79,8 +81,9 @@ class KlineBackfill:
             else:
                 stale.add(r["code"])
         universe = self.db.select_all("screener_universe", {"market": f"eq.{self.market}"}, "code")
-        ordered = [r["code"] for r in universe
-                   if r.get("code") and r["code"] not in fresh]  # never-fetched + stale
+        ordered = [
+            r["code"] for r in universe if r.get("code") and r["code"] not in fresh
+        ]  # never-fetched + stale
         return ordered[:limit]
 
     def backfill(self, codes: list[str]) -> dict:
@@ -90,9 +93,18 @@ class KlineBackfill:
         now = datetime.now(timezone.utc).isoformat()
         for i, code in enumerate(codes, 1):
             try:
-                out = _budgeted(self.client.call, "GET", f"/quote/{code}/history-kline",
-                                query={"start": start.isoformat(), "end": end.isoformat(),
-                                       "ktype": 2, "autype": 1, "count": 1000})
+                out = _budgeted(
+                    self.client.call,
+                    "GET",
+                    f"/quote/{code}/history-kline",
+                    query={
+                        "start": start.isoformat(),
+                        "end": end.isoformat(),
+                        "ktype": 2,
+                        "autype": 1,
+                        "count": 1000,
+                    },
+                )
                 kl = out.get("kline_list") if isinstance(out, dict) else []
             except Exception as e:
                 print(f"[klines] {code} failed: {e}", flush=True)
@@ -103,17 +115,25 @@ class KlineBackfill:
                 day = _bar_day(b)
                 if not day:
                     continue
-                rows.append({"market": self.market, "code": code, "day": day,
-                             "o": _first(b, "open_price", "open"),
-                             "h": _first(b, "high_price", "high"),
-                             "l": _first(b, "low_price", "low"),
-                             "c": _first(b, "close_price", "close", "last_close"),
-                             "v": _first(b, "volume")})
+                rows.append(
+                    {
+                        "market": self.market,
+                        "code": code,
+                        "day": day,
+                        "o": _first(b, "open_price", "open"),
+                        "h": _first(b, "high_price", "high"),
+                        "l": _first(b, "low_price", "low"),
+                        "c": _first(b, "close_price", "close", "last_close"),
+                        "v": _first(b, "volume"),
+                    }
+                )
             if rows:
                 written_bars += self.db.upsert_many("screener_klines", "market,code,day", rows)
-            self.db.upsert("screener_kline_state", "market,code",
-                           {"market": self.market, "code": code,
-                            "last_fetch": now, "bars": len(rows)})
+            self.db.upsert(
+                "screener_kline_state",
+                "market,code",
+                {"market": self.market, "code": code, "last_fetch": now, "bars": len(rows)},
+            )
             if i % 50 == 0:
                 self.emit("enrich", "progress", f"klines {i}/{len(codes)} · {written_bars} bars")
         return {"codes": len(codes) - errors, "bars": written_bars, "errors": errors}

@@ -1,0 +1,37 @@
+{
+  "endpoint": "https://tradingagents-portal.onrender.com/api/stock/US.AAPL/quote",
+  "retrieved_at": "2026-10-02T05:34:51.561621+00:00",
+  "raw_response_sha256": "b84266bde176376f176ed416e975170d1769fce12c6ba0cee0fa3df145d2797b",
+  "quote": {
+    "code": "US.AAPL",
+    "update_time": 1790919256065,
+    "data_date": "2026-10-02",
+    "last_price": 330.32,
+    "prev_close_price": 333.02
+  },
+  "currency_key_present": false,
+  "normalized_quote_observed_at": "2026-10-02T05:34:16.065000+00:00",
+  "normalized_price_observation": {
+    "code": "US.AAPL",
+    "field": "price",
+    "value": 330.32,
+    "source": "moomoo_cloud_snapshot",
+    "period": "point_in_time",
+    "unit": "currency",
+    "currency": null,
+    "observed_at": "2026-10-02T05:34:16.065000+00:00",
+    "clock": "quote_source",
+    "provider_data_date": "2026-10-02",
+    "timestamp_semantics": "provider_snapshot_update",
+    "last_trade_time": null
+  },
+  "scope": "One public quote response; preview classification and remaining universe are synthetic. No universe/count, trade-time, fiscal-period or chart reconciliation claim.",
+  "phone_primary_action": {
+    "x": 19,
+    "y": 758,
+    "width": 353,
+    "height": 44,
+    "viewport_height": 844
+  },
+  "browser_warning_errors": []
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "download": "screener_US_588rows_2026-10-02.csv",
+    "modified_at": "2026-10-02T21:06:57.026655+00:00",
+    "rows": 588,
+    "unique_codes": 588,
+    "all_US": true,
+    "market_cap_descending": false,
+    "pct_descending": true,
+    "sha256": "ebb1d6cfd3669318e76472ffbc219dc72d59093ef3f296424f084488298252ee"
+  },
+  {
+    "download": "screener_US_588rows_2026-10-02 (1).csv",
+    "modified_at": "2026-10-02T21:07:45.127756+00:00",
+    "rows": 588,
+    "unique_codes": 588,
+    "all_US": true,
+    "market_cap_descending": true,
+    "pct_descending": false,
+    "sha256": "4ff51860a1e65f8e4ed61d5e8da44e9b755a6fc629037ccbc2dd7d7c1f4b3564"
+  }
+]

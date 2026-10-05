@@ -10,9 +10,10 @@ from tradingagents.agents.context import (
     get_instrument_context_from_state,
     get_language_instruction,
     get_portfolio_context_from_state,
+    get_price_context_from_state,
 )
-from tradingagents.agents.prompts import render, resolve
 from tradingagents.agents.prompt_texts import AGENT_PROMPTS
+from tradingagents.agents.prompts import render, resolve
 from tradingagents.agents.schemas import TraderProposal, render_trader_proposal
 from tradingagents.agents.structured import (
     NO_EXTERNAL_TOOLS,
@@ -35,6 +36,7 @@ def create_trader(llm):
         # only offer it (and the grounding instruction) when it has content.
         market_report = (state["market_report"] or "").strip()
         portfolio_context = get_portfolio_context_from_state(state)
+        price_context = get_price_context_from_state(state)
 
         if market_report:
             grounding = (
@@ -53,6 +55,7 @@ def create_trader(llm):
                 "content": render(
                     resolve("trader", AGENT_PROMPTS["trader"]),
                     grounding=grounding,
+                    price_context=price_context,
                     no_external_tools=NO_EXTERNAL_TOOLS,
                     language_instruction=get_language_instruction(),
                 ),

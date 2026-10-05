@@ -1,0 +1,147 @@
+{
+  "scope": "Entire retrieved public US stock-labelled cohort, not page-only coverage",
+  "universe_as_of": "2026-10-02T19:01:44.494347+00:00",
+  "denominator": 12045,
+  "qualification": "Presence only. Numeric presence does not validate financial definition, units, currency, period, quote age or preset criterion observation. Provider may filter on fields absent from displayed rows.",
+  "fields": {
+    "debt_ratio": {
+      "finite_numeric_rows": 0,
+      "nonempty_rows": 0,
+      "denominator": 12045,
+      "numeric_pct": 0.0
+    },
+    "div_yield": {
+      "finite_numeric_rows": 3386,
+      "nonempty_rows": 3386,
+      "denominator": 12045,
+      "numeric_pct": 28.11
+    },
+    "eps": {
+      "finite_numeric_rows": 9655,
+      "nonempty_rows": 9655,
+      "denominator": 12045,
+      "numeric_pct": 80.16
+    },
+    "eps_growth": {
+      "finite_numeric_rows": 0,
+      "nonempty_rows": 0,
+      "denominator": 12045,
+      "numeric_pct": 0.0
+    },
+    "float_cap": {
+      "finite_numeric_rows": 12045,
+      "nonempty_rows": 12045,
+      "denominator": 12045,
+      "numeric_pct": 100.0
+    },
+    "gross_margin": {
+      "finite_numeric_rows": 0,
+      "nonempty_rows": 0,
+      "denominator": 12045,
+      "numeric_pct": 0.0
+    },
+    "market_cap": {
+      "finite_numeric_rows": 12045,
+      "nonempty_rows": 12045,
+      "denominator": 12045,
+      "numeric_pct": 100.0
+    },
+    "net_margin": {
+      "finite_numeric_rows": 0,
+      "nonempty_rows": 0,
+      "denominator": 12045,
+      "numeric_pct": 0.0
+    },
+    "net_profit_growth": {
+      "finite_numeric_rows": 0,
+      "nonempty_rows": 0,
+      "denominator": 12045,
+      "numeric_pct": 0.0
+    },
+    "new_low_10d": {
+      "finite_numeric_rows": 0,
+      "nonempty_rows": 0,
+      "denominator": 12045,
+      "numeric_pct": 0.0
+    },
+    "op_ebt": {
+      "finite_numeric_rows": 0,
+      "nonempty_rows": 0,
+      "denominator": 12045,
+      "numeric_pct": 0.0
+    },
+    "op_profit_growth": {
+      "finite_numeric_rows": 0,
+      "nonempty_rows": 0,
+      "denominator": 12045,
+      "numeric_pct": 0.0
+    },
+    "pb": {
+      "finite_numeric_rows": 9440,
+      "nonempty_rows": 9440,
+      "denominator": 12045,
+      "numeric_pct": 78.37
+    },
+    "pct": {
+      "finite_numeric_rows": 12045,
+      "nonempty_rows": 12045,
+      "denominator": 12045,
+      "numeric_pct": 100.0
+    },
+    "pe_ttm": {
+      "finite_numeric_rows": 8999,
+      "nonempty_rows": 8999,
+      "denominator": 12045,
+      "numeric_pct": 74.71
+    },
+    "price": {
+      "finite_numeric_rows": 12045,
+      "nonempty_rows": 12045,
+      "denominator": 12045,
+      "numeric_pct": 100.0
+    },
+    "revenue_growth": {
+      "finite_numeric_rows": 0,
+      "nonempty_rows": 0,
+      "denominator": 12045,
+      "numeric_pct": 0.0
+    },
+    "roe": {
+      "finite_numeric_rows": 0,
+      "nonempty_rows": 0,
+      "denominator": 12045,
+      "numeric_pct": 0.0
+    },
+    "roe_yoy": {
+      "finite_numeric_rows": 0,
+      "nonempty_rows": 0,
+      "denominator": 12045,
+      "numeric_pct": 0.0
+    },
+    "rsi14": {
+      "finite_numeric_rows": 0,
+      "nonempty_rows": 0,
+      "denominator": 12045,
+      "numeric_pct": 0.0
+    },
+    "sector": {
+      "finite_numeric_rows": 0,
+      "nonempty_rows": 0,
+      "denominator": 12045,
+      "numeric_pct": 0.0
+    },
+    "volume": {
+      "finite_numeric_rows": 12045,
+      "nonempty_rows": 12045,
+      "denominator": 12045,
+      "numeric_pct": 100.0
+    }
+  },
+  "rows_with_currency": 0,
+  "rows_with_field_observations": 0,
+  "reit_samples": {
+    "US.PLD": false,
+    "US.AMT": false,
+    "US.O": false
+  }
+}

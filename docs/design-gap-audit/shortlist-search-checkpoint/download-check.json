@@ -1,0 +1,25 @@
+{
+  "file": "shortlist_00000000-0000-4000-8000-000000000003.csv",
+  "modified_at": "2026-10-02T05:05:12.851401+00:00",
+  "sha256": "f0338a3ca8e0a4ae9bb1d637fbe19639b24dd23c33184d0bc21d7eb36e3201a4",
+  "rows": 1,
+  "canonical_ids": [
+    "US.S0001"
+  ],
+  "bom": true,
+  "fields": [
+    "list_name",
+    "list_revision",
+    "code",
+    "symbol",
+    "name",
+    "price",
+    "currency",
+    "quote_cache_at",
+    "review_status",
+    "note"
+  ],
+  "note_status_identity_verified": true,
+  "scope": "synthetic full shortlist, not market data",
+  "download_event_observed": false
+}

@@ -1,0 +1,207 @@
+{
+  "observed_at": "2026-10-02T20:55:49.155Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/pb-ratio-less-than-1-6",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/FNMA-US",
+      "text": "751\nFNMA\nFEDERAL NATIONAL MORTGAGE ASSOC\n4.370\n+1.16%\n+0.050\n5.06B\n2.77M\n-0.22"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/OTLY-US",
+      "text": "752\nOTLY\nOatly Group AB\n10.550\n+1.15%\n+0.120\n336.67M\n53.23K\n-13.75"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KNOP-US",
+      "text": "753\nKNOP\nKNOT Offshore\n10.590\n+1.15%\n+0.120\n365.92M\n20.65K\n0.68"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MNRO-US",
+      "text": "754\nMNRO\nMonro\n14.180\n+1.14%\n+0.160\n443.32M\n595.03K\n0.76"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DDI-US",
+      "text": "755\nDDI\nDoubleDown Interactive\n13.310\n+1.14%\n+0.150\n659.56M\n217.63K\n0.65"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AMBP-US",
+      "text": "756\nAMBP\nArdagh Metal\n4.440\n+1.14%\n+0.050\n2.65B\n1.45M\n-3.50"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DOGZ-US",
+      "text": "757\nDOGZ\nDogness\n0.8900\n+1.14%\n+0.0100\n15.68M\n2.09K\n0.21"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BHM-US",
+      "text": "758\nBHM\nBluerock Homes Trust\n8.010\n+1.14%\n+0.090\n32.91M\n4.58K\n0.27"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/DEI-US",
+      "text": "759\nDEI\nDouglas Emmett Inc\n9.820\n+1.13%\n+0.110\n1.64B\n2.46M\n0.89"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/EPC-US",
+      "text": "760\nEPC\nEdgewell Personal Care\n26.970\n+1.12%\n+0.300\n1.24B\n413.30K\n0.85"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MPU-US",
+      "text": "761\nMPU\nMega Matrix\n2.700\n+1.12%\n+0.030\n8.44M\n2.57K\n0.47"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/XLO-US",
+      "text": "762\nXLO\nXilio Therapeutics\n9.010\n+1.12%\n+0.100\n59.29M\n7.40K\n0.82"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TLRY-US",
+      "text": "763\nTLRY\nTilray Brands\n3.610\n+1.12%\n+0.040\n533.49M\n4.08M\n0.33"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NBP-US",
+      "text": "764\nNBP\nNovaBridge Biosciences\n1.355\n+1.12%\n+0.015\n157.18M\n252.90K\n0.78"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ABBV-US",
+      "text": "765\nABBV\nAbbVie\n262.820\n+1.11%\n+2.890\n464.43B\n5.54M\n-78.24"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MX-US",
+      "text": "766\nMX\nMagnaChip Semiconductor\n3.680\n+1.10%\n+0.040\n134.36M\n1.08M\n0.59"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/IMMR-US",
+      "text": "767\nIMMR\nImmersion\n7.390\n+1.09%\n+0.080\n245.39M\n352.88K\n0.82"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MLGF-US",
+      "text": "768\nMLGF\nMALAGA FINANCIAL CORP\n22.240\n+1.09%\n+0.240\n220.06M\n200.00\n0.99"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LINE-US",
+      "text": "769\nLINE\nLineage\n34.340\n+1.09%\n+0.370\n7.82B\n956.90K\n0.99"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SLGB-US",
+      "text": "770\nSLGB\nSmart Logistics\n0.2879\n+1.09%\n+0.0031\n12.96M\n442.53K\n0.64"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VTSI-US",
+      "text": "771\nVTSI\nVirTra\n2.790\n+1.09%\n+0.030\n31.58M\n32.11K\n0.72"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FMCCI-US",
+      "text": "772\nFMCCI\nFEDERAL HOME LOAN MORTGAGE CORP VAR % PRF USD50 SER'B'\n9.310\n+1.09%\n+0.100\n46.55M\n16.78K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FNMAS-US",
+      "text": "773\nFNMAS\nFEDERAL NATIONAL MORTGAGE ASSOC 8.25% PRF NON-CUM SER'S USD25\n7.510\n+1.08%\n+0.080\n2.10B\n180.83K\n-10.16"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AIJTY-US",
+      "text": "774\nAIJTY\nJianpu Technology Inc\n0.9300\n+1.08%\n+0.0099\n18.62M\n4.02K\n0.43"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FBLA-US",
+      "text": "775\nFBLA\nFB Bancorp\n16.960\n+1.07%\n+0.180\n270.48M\n72.16K\n0.95"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GDOT-US",
+      "text": "776\nGDOT\nGreen Dot\n12.500\n+1.05%\n+0.130\n712.31M\n442.51K\n0.76"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HURC-US",
+      "text": "777\nHURC\nHurco\n22.290\n+1.04%\n+0.230\n144.36M\n11.89K\n0.75"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/EGRX-US",
+      "text": "778\nEGRX\nEagle Pharmaceuticals\n0.9700\n+1.04%\n+0.0100\n12.76M\n1.39K\n0.05"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FMCCL-US",
+      "text": "779\nFMCCL\nFEDERAL HOME LOAN MORTGAGE CORP 5.97% PRF PERP USD50\n9.300\n+1.03%\n+0.095\n53.48M\n10.27K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RILYL-US",
+      "text": "780\nRILYL\nBRC GP HLDGS INC 7.375% DEP SHS EACH REP 1/1000 PFD SER B\n10.910\n+1.02%\n+0.110\n18.86M\n8.29K\n0.13"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RAIFY-US",
+      "text": "781\nRAIFY\nRAIFFEISEN BANK INTERNATIONAL UNSP ADR EA REPR 0.25 ORD SHS\n16.850\n+1.02%\n+0.170\n22.13B\n22.05K\n0.88"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MI-US",
+      "text": "782\nMI\nNFT Ltd\n0.8940\n+1.02%\n+0.0090\n456.59K\n177.33K\n0.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/JVA-US",
+      "text": "783\nJVA\nCoffee Holding\n3.980\n+1.02%\n+0.040\n22.72M\n45.58K\n0.73"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RVP-US",
+      "text": "784\nRVP\nRetractable Technologies\n0.6970\n+1.01%\n+0.0070\n20.87M\n10.72K\n0.29"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MGTE-US",
+      "text": "785\nMGTE\nMarblegate Capital Corporation\n1.0000\n+1.01%\n+0.0100\n73.91M\n100.00\n0.15"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RDIB-US",
+      "text": "786\nRDIB\nReading International-B\n16.080\n+1.01%\n+0.160\n368.07M\n14.69K\n-15.76"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BLCO-US",
+      "text": "787\nBLCO\nBausch + Lomb Corp.\n17.110\n+1.00%\n+0.170\n6.11B\n354.09K\n0.96"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NNGRY-US",
+      "text": "788\nNNGRY\nNN GROUP N.V. UNSP ADR EACH REP 0.5 ORD SHS\n43.280\n+1.00%\n+0.430\n22.51B\n37.09K\n0.94"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KEP-US",
+      "text": "789\nKEP\nKorea Electric Power\n11.080\n+1.00%\n+0.110\n14.23B\n417.52K\n0.38"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MNDO-US",
+      "text": "790\nMNDO\nMIND C.T.I.\n1.010\n+1.00%\n+0.010\n20.39M\n22.52K\n0.85"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KRC-US",
+      "text": "791\nKRC\nKilroy Realty Corp\n33.630\n+0.99%\n+0.330\n3.91B\n1.34M\n0.75"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TXMD-US",
+      "text": "792\nTXMD\nTherapeuticsMD\n2.050\n+0.99%\n+0.020\n23.73M\n9.86K\n0.87"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WDH-US",
+      "text": "793\nWDH\nWaterdrop\n1.030\n+0.98%\n+0.010\n370.08M\n136.12K\n0.48"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ESRT-US",
+      "text": "794\nESRT\nEmpire State Realty Trust Inc\n4.170\n+0.97%\n+0.040\n721.96M\n4.82M\n0.69"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CWGL-US",
+      "text": "795\nCWGL\nCRIMSON WINE GROUP\n4.290\n+0.96%\n+0.041\n89.54M\n19.54K\n0.48"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CLPR-US",
+      "text": "796\nCLPR\nClipper Realty Inc\n3.140\n+0.96%\n+0.030\n50.73M\n19.83K\n-1.27"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/CPHC-US",
+      "text": "797\nCPHC\nCanterbury Park Holding\n15.750\n+0.96%\n+0.150\n81.64M\n764.00\n0.97"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NMM-US",
+      "text": "798\nNMM\nNavios Maritime\n92.530\n+0.96%\n+0.880\n2.68B\n150.31K\n-4626.50"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/LUCK-US",
+      "text": "799\nLUCK\nLucky Strike Entertainment\n5.290\n+0.95%\n+0.050\n721.18M\n36.08K\n-1.81"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MBLY-US",
+      "text": "800\nMBLY\nMobileye Global\n7.420\n+0.95%\n+0.070\n6.31B\n8.06M\n0.77"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\n\nDeposit, Share & Win NVDA 0.1\n\nGet started\nScreener\nRecommended Screeners\nP/B Ratio Less Than 1\nP/B Ratio Less Than 1\n\nSpot stocks with a price-to-book ratio (P/B) below 1. A lower P/B may indicate an undervaluation and a margin of safety.\n\nSelected:\n\nSave Screener\nMarket: USP/B: ≤1.00\nResult: 4534 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nP/B\nWatchlist\nPaper Trade\n751\nFNMA\nFEDERAL NATIONAL MORTGAGE ASSOC\n4.370\n+1.16%\n+0.050\n5.06B\n2.77M\n-0.22\n752\nOTLY\nOatly Group AB\n10.550\n+1.15%\n+0.120\n336.67M\n53.23K\n-13.75\n753\nKNOP\nKNOT Offshore\n10.590\n+1.15%\n+0.120\n365.92M\n20.65K\n0.68\n754\nMNRO\nMonro\n14.180\n+1.14%\n+0.160\n443.32M\n595.03K\n0.76\n755\nDDI\nDoubleDown Interactive\n13.310\n+1.14%\n+0.150\n659.56M\n217.63K\n0.65\n756\nAMBP\nArdagh Metal\n4.440\n+1.14%\n+0.050\n2.65B\n1.45M\n-3.50\n757\nDOGZ\nDogness\n0.8900\n+1.14%\n+0.0100\n15.68M\n2.09K\n0.21\n758\nBHM\nBluerock Homes Trust\n8.010\n+1.14%\n+0.090\n32.91M\n4.58K\n0.27\n759\nDEI\nDouglas Emmett Inc\n9.820\n+1.13%\n+0.110\n1.64B\n2.46M\n0.89\n760\nEPC\nEdgewell Personal Care\n26.970\n+1.12%\n+0.300\n1.24B\n413.30K\n0.85\n761\nMPU\nMega Matrix\n2.700\n+1.12%\n+0.030\n8.44M\n2.57K\n0.47\n762\nXLO\nXilio Therapeutics\n9.010\n+1.12%\n+0.100\n59.29M\n7.40K\n0.82\n763\nTLRY\nTilray Brands\n3.610\n+1.12%\n+0.040\n533.49M\n4.08M\n0.33\n764\nNBP\nNovaBridge Biosciences\n1.355\n+1.12%\n+0.015\n157.18M\n252.90K\n0.78\n765\nABBV\nAbbVie\n262.820\n+1.11%\n+2.890\n464.43B\n5.54M\n-78.24\n766\nMX\nMagnaChip Semiconductor\n3.680\n+1.10%\n+0.040\n134.36M\n1.08M\n0.59\n767\nIMMR\nImmersion\n7.390\n+1.09%\n+0.080\n245.39M\n352.88K\n0.82\n768\nMLGF\nMALAGA FINANCIAL CORP\n22.240\n+1.09%\n+0.240\n220.06M\n200.00\n0.99\n769\nLINE\nLineage\n34.340\n+1.09%\n+0.370\n7.82B\n956.90K\n0.99\n770\nSLGB\nSmart Logistics\n0.2879\n+1.09%\n+0.0031\n12.96M\n442.53K\n0.64\n771\nVTSI\nVirTra\n2.790\n+1.09%\n+0.030\n31.58M\n32.11K\n0.72\n772\nFMCCI\nFEDERAL HOME LOAN MORTGAGE CORP VAR % PRF USD50 SER'B'\n9.310\n+1.09%\n+0.100\n46.55M\n16.78K\n0.00\n773\nFNMAS\nFEDERAL NATIONAL MORTGAGE ASSOC 8.25% PRF NON-CUM SER'S USD25\n7.510\n+1.08%\n+0.080\n2.10B\n180.83K\n-10.16\n774\nAIJTY\nJianpu Technology Inc\n0.9300\n+1.08%\n+0.0099\n18.62M\n4.02K\n0.43\n775\nFBLA\nFB Bancorp\n16.960\n+1.07%\n+0.180\n270.48M\n72.16K\n0.95\n776\nGDOT\nGreen Dot\n12.500\n+1.05%\n+0.130\n712.31M\n442.51K\n0.76\n777\nHURC\nHurco\n22.290\n+1.04%\n+0.230\n144.36M\n11.89K\n0.75\n778\nEGRX\nEagle Pharmaceuticals\n0.9700\n+1.04%\n+0.0100\n12.76M\n1.39K\n0.05\n779\nFMCCL\nFEDERAL HOME LOAN MORTGAGE CORP 5.97% PRF PERP USD50\n9.300\n+1.03%\n+0.095\n53.48M\n10.27K\n0.00\n780\nRILYL\nBRC GP HLDGS INC 7.375% DEP SHS EACH REP 1/1000 PFD SER B\n10.910\n+1.02%\n+0.110\n18.86M\n8.29K\n0.13\n781\nRAIFY\nRAIFFEISEN BANK INTERNATIONAL UNSP ADR EA REPR 0.25 ORD SHS\n16.850\n+1.02%\n+0.170\n22.13B\n22.05K\n0.88\n782\nMI\nNFT Ltd\n0.8940\n+1.02%\n+0.0090\n456.59K\n177.33K\n0.00\n783\nJVA\nCoffee Holding\n3.980\n+1.02%\n+0.040\n22.72M\n45.58K\n0.73\n784\nRVP\nRetractable Technologies\n0.6970\n+1.01%\n+0.0070\n20.87M\n10.72K\n0.29\n785\nMGTE\nMarblegate Capital Corporation\n1.0000\n+1.01%\n+0.0100\n73.91M\n100.00\n0.15\n786\nRDIB\nReading International-B\n16.080\n+1.01%\n+0.160\n368.07M\n14.69K\n-15.76\n787\nBLCO\nBausch + Lomb Corp.\n17.110\n+1.00%\n+0.170\n6.11B\n354.09K\n0.96\n788\nNNGRY\nNN GROUP N.V. UNSP ADR EACH REP 0.5 ORD SHS\n43.280\n+1.00%\n+0.430\n22.51B\n37.09K\n0.94\n789\nKEP\nKorea Electric Power\n11.080\n+1.00%\n+0.110\n14.23B\n417.52K\n0.38\n790\nMNDO\nMIND C.T.I.\n1.010\n+1.00%\n+0.010\n20.39M\n22.52K\n0.85\n791\nKRC\nKilroy Realty Corp\n33.630\n+0.99%\n+0.330\n3.91B\n1.34M\n0.75\n792\nTXMD\nTherapeuticsMD\n2.050\n+0.99%\n+0.020\n23.73M\n9.86K\n0.87\n793\nWDH\nWaterdrop\n1.030\n+0.98%\n+0.010\n370.08M\n136.12K\n0.48\n794\nESRT\nEmpire State Realty Trust Inc\n4.170\n+0.97%\n+0.040\n721.96M\n4.82M\n0.69\n795\nCWGL\nCRIMSON WINE GROUP\n4.290\n+0.96%\n+0.041\n89.54M\n19.54K\n0.48\n796\nCLPR\nClipper Realty Inc\n3.140\n+0.96%\n+0.030\n50.73M\n19.83K\n-1.27\n797\nCPHC\nCanterbury Park Holding\n15.750\n+0.96%\n+0.150\n81.64M\n764.00\n0.97\n798\nNMM\nNavios Maritime\n92.530\n+0.96%\n+0.880\n2.68B\n150.31K\n-4626.50\n799\nLUCK\nLucky Strike Entertainment\n5.290\n+0.95%\n+0.050\n721.18M\n36.08K\n-1.81\n800\nMBLY\nMobileye Global\n7.420\n+0.95%\n+0.070\n6.31B\n8.06M\n0.77\n1\n15\n16\n17\n18\n91\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\nSTRW\n\n+4.90%\n\nABX\n\n+4.82%\n\nSNLAY\n\n+3.77%\n\nLow P/E Ratio Stocks\n\nZENVF\n\n+2900.00%\n\nBHATF\n\n+500.00%\n\nNXUR\n\n+266.67%\n\nBelow 30 RSI Stocks\n\nBPTH\n\n+200.00%\n\nNCLX\n\n+36.36%\n\nNIVF\n\n+27.72%\n\nJunk Stocks\n\nAILEQ\n\n+9900.00%\n\nPCTL\n\n+9900.00%\n\nZENVF\n\n+2900.00%\n\nSmall Cap Stocks with Huge Growth Potential\n\nFCEL\n\n+11.47%\n\nAZ\n\n+9.75%\n\nHYLN\n\n+7.60%\n\nBlue Chip Dividend Stocks\n\nRIO\n\n+1.44%\n\n--\n\n--\n\n--\n\n--\n\n1\n2\nCustomer Service\n0800 886 800\n\n(toll free)\n\n+64 9 872 6000\n\n(from overseas)\n\nTrading days: 24 hours\n\nNon-trading days: 9:30 - 21:30 NZT\n\nsupport@nz.moomoo.com\n\nOfficial WhatsApp\n\nAbout moomoo\nAbout moomoo\nContact Us\nInvestor Relations\nTerms & Conditions\nPrivacy Policy\nTerms of Use\nFinancial Services Guide\nLicensed Entities*\nCareers / Contact:\nApply Now\ncareer@au.moomoo.com\nFollow us on\n\nThe moomoo app is an online trading platform offered by Moomoo Technologies Inc. In New Zealand, financial services are offered by Moomoo Securities Australia Ltd, NZBN: 942 905 240 2296, a financial services provider registered in New Zealand (FSP1008656). Moomoo Securities Australia Limited is not licensed by a New Zealand regulator to provide financial services. Its registration on the New Zealand FSP Register does not mean that it is subject to active regulation or oversight by a New Zealand regulator.\n\nInvestments carry risks and may result in losses. Market data or information on this website is for reference only and should not be seen as an endorsement or recommendation to buy or sell financial products. Past performance is not indicative of future results. The information is general and doesn't consider your personal investment objectives, financial situation, or needs. Consider your personal circumstances before making investment decisions.\n\nOptions trading involves substantial risks and may not be suitable for all investors. Losses could potentially exceed your initial investment. Please carefully review and consider our US Options Product Disclosure Statement and OCC's Characteristics and Risks of Standardized Options before trading options with us.\n\nPlease read, consider and understand our Financial Services Disclosure Statement, Privacy Policy, Website Terms and Conditions, Information Collection Notice and Risk Disclosure Statement before deciding to use our services.\n\nCompany Address: Moomoo Securities Australia Ltd. Suite 5.01, 570 George Street, Sydney NSW 2000\n\nCopyright © 2026 Moomoo Technologies Inc. All Rights Reserved."
+}

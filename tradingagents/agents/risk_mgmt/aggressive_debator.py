@@ -2,11 +2,12 @@ from tradingagents.agents.context import (
     get_instrument_context_from_state,
     get_language_instruction,
     get_portfolio_context_from_state,
+    get_price_context_from_state,
     opponent_argument_or_opening,
     report_or_absent,
 )
-from tradingagents.agents.prompts import render, resolve
 from tradingagents.agents.prompt_texts import AGENT_PROMPTS
+from tradingagents.agents.prompts import render, resolve
 
 
 def create_aggressive_debator(llm):
@@ -27,6 +28,7 @@ def create_aggressive_debator(llm):
         news_report = report_or_absent(state["news_report"], "news")
         fundamentals_report = report_or_absent(state["fundamentals_report"], "fundamentals")
         instrument_context = get_instrument_context_from_state(state)
+        price_context = get_price_context_from_state(state)
         portfolio_context = get_portfolio_context_from_state(state)
 
         trader_decision = state["trader_investment_plan"]
@@ -35,6 +37,7 @@ def create_aggressive_debator(llm):
             resolve("aggressive_analyst", AGENT_PROMPTS["aggressive_analyst"]),
             trader_decision=trader_decision,
             instrument_context=instrument_context,
+            price_context=price_context,
             portfolio_context=portfolio_context,
             market_research_report=market_research_report,
             sentiment_report=sentiment_report,

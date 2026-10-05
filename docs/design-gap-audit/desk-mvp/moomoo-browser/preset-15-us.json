@@ -1,0 +1,207 @@
+{
+  "observed_at": "2026-10-02T20:47:15.301Z",
+  "url": "https://www.moomoo.com/screener/stock-strategies/speculative-stocks-15",
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/IPXHY-US",
+      "text": "1\nIPXHY\nInpex (ADR)\n23.620\n+2.47%\n+0.570\n27.31B\n32.58K\n21.36%\n35.06%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SWKS-US",
+      "text": "2\nSWKS\nSkyworks Solutions\n85.030\n+2.25%\n+1.870\n12.79B\n8.73M\n11.67%\n27.28%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AGI-US",
+      "text": "3\nAGI\nAlamos Gold\n32.460\n+1.79%\n+0.570\n13.59B\n3.04M\n48.97%\n30.37%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VINP-US",
+      "text": "4\nVINP\nVinci Compass Investments\n9.450\n+1.61%\n+0.150\n620.40M\n61.16K\n22.44%\n49.08%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VIV-US",
+      "text": "5\nVIV\nTelefonica Brasil\n11.540\n+1.58%\n+0.180\n18.44B\n891.99K\n10.37%\n46.12%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ADC-US",
+      "text": "6\nADC\nAgree Realty Corp\n65.880\n+1.31%\n+0.850\n8.19B\n1.55M\n28.53%\n35.99%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TGTX-US",
+      "text": "7\nTGTX\nTG Therapeutics\n54.290\n+1.25%\n+0.670\n8.31B\n1.65M\n72.56%\n39.05%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/OHI-US",
+      "text": "8\nOHI\nOmega Healthcare Investors Inc\n45.720\n+1.08%\n+0.490\n13.85B\n2.28M\n51.21%\n45.86%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TSUKY-US",
+      "text": "9\nTSUKY\nToyo Suisan Kaisha (ADR)\n59.540\n+0.91%\n+0.538\n5.66B\n12.14K\n13.13%\n15.39%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ABT-US",
+      "text": "10\nABT\nAbbott Laboratories\n97.500\n+0.84%\n+0.810\n168.71B\n8.64M\n14.72%\n39.14%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NEM-US",
+      "text": "11\nNEM\nNewmont\n115.560\n+0.78%\n+0.890\n121.76B\n4.01M\n31.62%\n40.40%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ASM-US",
+      "text": "12\nASM\nAvino Silver & Gold Mines\n5.550\n+0.73%\n+0.040\n942.70M\n2.25M\n28.89%\n16.13%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NVZMY-US",
+      "text": "13\nNVZMY\nNOVONESIS (NOVOZYMES) B UNSP ADR EACH REP 1 SER'B' DKK10\n62.600\n+0.71%\n+0.440\n29.20B\n22.19K\n14.04%\n33.60%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KGEI-US",
+      "text": "14\nKGEI\nKolibri Global Energy\n6.160\n+0.65%\n+0.040\n221.37M\n141.99K\n27.22%\n30.64%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MKTAY-US",
+      "text": "15\nMKTAY\nMakita (ADR)\n33.710\n+0.60%\n+0.200\n8.69B\n13.31K\n10.22%\n14.95%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BTG-US",
+      "text": "16\nBTG\nB2Gold\n5.200\n+0.58%\n+0.030\n6.87B\n18.59M\n13.94%\n38.06%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TFPM-US",
+      "text": "17\nTFPM\nTriple Flag Precious Metals\n30.610\n+0.56%\n+0.170\n6.31B\n521.40K\n61.74%\n3.23%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SII-US",
+      "text": "18\nSII\nSprott\n116.310\n+0.55%\n+0.640\n2.99B\n136.58K\n23.62%\n30.15%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/EGP-US",
+      "text": "19\nEGP\nEastGroup Properties Inc\n195.780\n+0.48%\n+0.940\n10.53B\n508.97K\n35.69%\n35.63%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RIGL-US",
+      "text": "20\nRIGL\nRigel Pharmaceuticals\n47.150\n+0.38%\n+0.180\n880.76M\n185.92K\n124.72%\n23.78%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/B-US",
+      "text": "21\nB\nBarrick Mining\n40.230\n+0.32%\n+0.130\n66.21B\n7.79M\n42.19%\n30.36%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TGS-US",
+      "text": "22\nTGS\nTransportadora de Gas del Sur\n25.010\n+0.24%\n+0.060\n3.77B\n317.44K\n24.46%\n42.23%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NOAH-US",
+      "text": "23\nNOAH\nNoah Holdings\n7.790\n+0.13%\n+0.010\n534.75M\n100.82K\n21.35%\n14.97%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SOMLY-US",
+      "text": "24\nSOMLY\nSECOM (ADR)\n9.860\n+0.10%\n+0.010\n15.73B\n127.94K\n10.19%\n32.75%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AG-US",
+      "text": "25\nAG\nFirst Majestic Silver\n17.670\n+0.06%\n+0.010\n8.71B\n8.80M\n16.78%\n32.42%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/RDY-US",
+      "text": "26\nRDY\nDr. Reddy's Laboratories\n12.250\n0.00%\n0.000\n10.20B\n3.63M\n12.64%\n34.33%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WDS-US",
+      "text": "27\nWDS\nWoodside Energy\n21.790\n-0.05%\n-0.010\n41.42B\n664.80K\n21.08%\n40.09%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/GALDY-US",
+      "text": "28\nGALDY\nGALDERMA GROUP AG UNSP ADS EACH REPR 0.2 ORD SHS\n38.760\n-0.10%\n-0.040\n45.19B\n84.96K\n11.70%\n39.15%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SAUHY-US",
+      "text": "29\nSAUHY\nSTRAUMANN HOLDING AG UNSP ADS EACH REP 0.10 ORD\n10.887\n-0.12%\n-0.013\n17.36B\n51.27K\n13.71%\n42.40%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SBRA-US",
+      "text": "30\nSBRA\nSabra Health Care REIT Inc\n19.160\n-0.21%\n-0.040\n4.89B\n3.01M\n20.08%\n48.60%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NPSNY-US",
+      "text": "31\nNPSNY\nNASPERS LTD ADR\n8.380\n-0.24%\n-0.020\n31.35B\n102.45K\n106.68%\n32.46%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/XZO-US",
+      "text": "32\nXZO\nExzeo Group\n14.400\n-0.28%\n-0.040\n1.30B\n948.40K\n38.14%\n26.91%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/WB-US",
+      "text": "33\nWB\nWeibo\n6.330\n-0.31%\n-0.020\n1.56B\n1.30M\n26.24%\n43.49%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/IMPUY-US",
+      "text": "34\nIMPUY\nIMPALA PLATINUM HLDGS SPON ADR 1 REP 1 ORD ZAR0.025\n11.710\n-0.34%\n-0.040\n10.51B\n138.45K\n23.43%\n27.07%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FWONA-US",
+      "text": "35\nFWONA\nLiberty Media Corp\n83.390\n-0.36%\n-0.300\n20.91B\n199.61K\n12.38%\n45.12%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/TME-US",
+      "text": "36\nTME\nTencent Music\n7.740\n-0.39%\n-0.030\n12.18B\n4.68M\n34.51%\n18.99%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VRTX-US",
+      "text": "37\nVRTX\nVertex Pharmaceuticals\n504.730\n-0.40%\n-2.010\n127.93B\n936.56K\n32.94%\n27.21%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/MAKO-US",
+      "text": "38\nMAKO\nMako Mining\n9.260\n-0.43%\n-0.040\n811.23M\n118.29K\n22.72%\n27.69%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/FWONK-US",
+      "text": "39\nFWONK\nLiberty Formula One-C\n91.200\n-0.44%\n-0.400\n22.86B\n2.49M\n12.38%\n45.12%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VMET-US",
+      "text": "40\nVMET\nVersamet Royalties\n8.510\n-0.47%\n-0.040\n926.14M\n208.47K\n58.49%\n44.03%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/SPGI-US",
+      "text": "41\nSPGI\nS&P Global\n386.270\n-0.49%\n-1.890\n113.87B\n2.76M\n31.43%\n40.93%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/VMRK-US",
+      "text": "42\nVMRK\nVivmark Residential\n59.790\n-0.63%\n-0.380\n46.26B\n6.49M\n34.75%\n46.67%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HEGIY-US",
+      "text": "43\nHEGIY\nHENGAN INTL\n12.400\n-0.64%\n-0.080\n2.85B\n24.98K\n10.98%\n49.12%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/AUPH-US",
+      "text": "44\nAUPH\nAurinia Pharmaceuticals\n15.830\n-0.75%\n-0.120\n2.11B\n813.42K\n101.47%\n22.65%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/BWAY-US",
+      "text": "45\nBWAY\nBrainsway\n12.500\n-0.79%\n-0.100\n503.16M\n50.80K\n14.50%\n35.36%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/HMY-US",
+      "text": "46\nHMY\nHarmony Gold Mining\n17.380\n-0.80%\n-0.140\n10.88B\n3.05M\n29.68%\n40.17%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/ALPMY-US",
+      "text": "47\nALPMY\nAstellas Pharma (ADR)\n14.320\n-0.83%\n-0.120\n25.68B\n93.00K\n13.63%\n48.67%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/NLCP-US",
+      "text": "48\nNLCP\nNewLake Capital Partners, Inc.\n14.100\n-0.90%\n-0.128\n290.19M\n87.67K\n52.42%\n6.21%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/JKHY-US",
+      "text": "49\nJKHY\nJack Henry & Associates\n142.540\n-0.90%\n-1.300\n9.99B\n689.28K\n19.76%\n34.77%"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/KRYS-US",
+      "text": "50\nKRYS\nKrystal Biotech\n322.280\n-0.93%\n-3.030\n9.54B\n426.09K\n52.64%\n8.56%"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\nLog in to access Online Inquiry\nBack to the Top\nScreener\nRecommended Screeners\nSpeculative Stocks\nSpeculative Stocks\n\nSpot high-risk, high-return stocks, including those at their recent 10-day low that may be undervalued and ready to rebound.\n\nApplied Filters: Stock Price ≥ $5, Market Cap ≥ $100 million, Net Margin ≥ 10%, Debt to Assets Ratio ≤ 50%.\n\nSelected:\n\nSave Screener\nMarket: USStock Price: ≥5.00Market Value: ≥100.00MNet Margin: ≥10%Debt to Asset Ratio: ≤50%New Low: 10D\nResult: 100 stocks\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nNet Margin\nDebt to Asset Ratio\nWatchlist\nPaper Trade\n1\nIPXHY\nInpex (ADR)\n23.620\n+2.47%\n+0.570\n27.31B\n32.58K\n21.36%\n35.06%\n2\nSWKS\nSkyworks Solutions\n85.030\n+2.25%\n+1.870\n12.79B\n8.73M\n11.67%\n27.28%\n3\nAGI\nAlamos Gold\n32.460\n+1.79%\n+0.570\n13.59B\n3.04M\n48.97%\n30.37%\n4\nVINP\nVinci Compass Investments\n9.450\n+1.61%\n+0.150\n620.40M\n61.16K\n22.44%\n49.08%\n5\nVIV\nTelefonica Brasil\n11.540\n+1.58%\n+0.180\n18.44B\n891.99K\n10.37%\n46.12%\n6\nADC\nAgree Realty Corp\n65.880\n+1.31%\n+0.850\n8.19B\n1.55M\n28.53%\n35.99%\n7\nTGTX\nTG Therapeutics\n54.290\n+1.25%\n+0.670\n8.31B\n1.65M\n72.56%\n39.05%\n8\nOHI\nOmega Healthcare Investors Inc\n45.720\n+1.08%\n+0.490\n13.85B\n2.28M\n51.21%\n45.86%\n9\nTSUKY\nToyo Suisan Kaisha (ADR)\n59.540\n+0.91%\n+0.538\n5.66B\n12.14K\n13.13%\n15.39%\n10\nABT\nAbbott Laboratories\n97.500\n+0.84%\n+0.810\n168.71B\n8.64M\n14.72%\n39.14%\n11\nNEM\nNewmont\n115.560\n+0.78%\n+0.890\n121.76B\n4.01M\n31.62%\n40.40%\n12\nASM\nAvino Silver & Gold Mines\n5.550\n+0.73%\n+0.040\n942.70M\n2.25M\n28.89%\n16.13%\n13\nNVZMY\nNOVONESIS (NOVOZYMES) B UNSP ADR EACH REP 1 SER'B' DKK10\n62.600\n+0.71%\n+0.440\n29.20B\n22.19K\n14.04%\n33.60%\n14\nKGEI\nKolibri Global Energy\n6.160\n+0.65%\n+0.040\n221.37M\n141.99K\n27.22%\n30.64%\n15\nMKTAY\nMakita (ADR)\n33.710\n+0.60%\n+0.200\n8.69B\n13.31K\n10.22%\n14.95%\n16\nBTG\nB2Gold\n5.200\n+0.58%\n+0.030\n6.87B\n18.59M\n13.94%\n38.06%\n17\nTFPM\nTriple Flag Precious Metals\n30.610\n+0.56%\n+0.170\n6.31B\n521.40K\n61.74%\n3.23%\n18\nSII\nSprott\n116.310\n+0.55%\n+0.640\n2.99B\n136.58K\n23.62%\n30.15%\n19\nEGP\nEastGroup Properties Inc\n195.780\n+0.48%\n+0.940\n10.53B\n508.97K\n35.69%\n35.63%\n20\nRIGL\nRigel Pharmaceuticals\n47.150\n+0.38%\n+0.180\n880.76M\n185.92K\n124.72%\n23.78%\n21\nB\nBarrick Mining\n40.230\n+0.32%\n+0.130\n66.21B\n7.79M\n42.19%\n30.36%\n22\nTGS\nTransportadora de Gas del Sur\n25.010\n+0.24%\n+0.060\n3.77B\n317.44K\n24.46%\n42.23%\n23\nNOAH\nNoah Holdings\n7.790\n+0.13%\n+0.010\n534.75M\n100.82K\n21.35%\n14.97%\n24\nSOMLY\nSECOM (ADR)\n9.860\n+0.10%\n+0.010\n15.73B\n127.94K\n10.19%\n32.75%\n25\nAG\nFirst Majestic Silver\n17.670\n+0.06%\n+0.010\n8.71B\n8.80M\n16.78%\n32.42%\n26\nRDY\nDr. Reddy's Laboratories\n12.250\n0.00%\n0.000\n10.20B\n3.63M\n12.64%\n34.33%\n27\nWDS\nWoodside Energy\n21.790\n-0.05%\n-0.010\n41.42B\n664.80K\n21.08%\n40.09%\n28\nGALDY\nGALDERMA GROUP AG UNSP ADS EACH REPR 0.2 ORD SHS\n38.760\n-0.10%\n-0.040\n45.19B\n84.96K\n11.70%\n39.15%\n29\nSAUHY\nSTRAUMANN HOLDING AG UNSP ADS EACH REP 0.10 ORD\n10.887\n-0.12%\n-0.013\n17.36B\n51.27K\n13.71%\n42.40%\n30\nSBRA\nSabra Health Care REIT Inc\n19.160\n-0.21%\n-0.040\n4.89B\n3.01M\n20.08%\n48.60%\n31\nNPSNY\nNASPERS LTD ADR\n8.380\n-0.24%\n-0.020\n31.35B\n102.45K\n106.68%\n32.46%\n32\nXZO\nExzeo Group\n14.400\n-0.28%\n-0.040\n1.30B\n948.40K\n38.14%\n26.91%\n33\nWB\nWeibo\n6.330\n-0.31%\n-0.020\n1.56B\n1.30M\n26.24%\n43.49%\n34\nIMPUY\nIMPALA PLATINUM HLDGS SPON ADR 1 REP 1 ORD ZAR0.025\n11.710\n-0.34%\n-0.040\n10.51B\n138.45K\n23.43%\n27.07%\n35\nFWONA\nLiberty Media Corp\n83.390\n-0.36%\n-0.300\n20.91B\n199.61K\n12.38%\n45.12%\n36\nTME\nTencent Music\n7.740\n-0.39%\n-0.030\n12.18B\n4.68M\n34.51%\n18.99%\n37\nVRTX\nVertex Pharmaceuticals\n504.730\n-0.40%\n-2.010\n127.93B\n936.56K\n32.94%\n27.21%\n38\nMAKO\nMako Mining\n9.260\n-0.43%\n-0.040\n811.23M\n118.29K\n22.72%\n27.69%\n39\nFWONK\nLiberty Formula One-C\n91.200\n-0.44%\n-0.400\n22.86B\n2.49M\n12.38%\n45.12%\n40\nVMET\nVersamet Royalties\n8.510\n-0.47%\n-0.040\n926.14M\n208.47K\n58.49%\n44.03%\n41\nSPGI\nS&P Global\n386.270\n-0.49%\n-1.890\n113.87B\n2.76M\n31.43%\n40.93%\n42\nVMRK\nVivmark Residential\n59.790\n-0.63%\n-0.380\n46.26B\n6.49M\n34.75%\n46.67%\n43\nHEGIY\nHENGAN INTL\n12.400\n-0.64%\n-0.080\n2.85B\n24.98K\n10.98%\n49.12%\n44\nAUPH\nAurinia Pharmaceuticals\n15.830\n-0.75%\n-0.120\n2.11B\n813.42K\n101.47%\n22.65%\n45\nBWAY\nBrainsway\n12.500\n-0.79%\n-0.100\n503.16M\n50.80K\n14.50%\n35.36%\n46\nHMY\nHarmony Gold Mining\n17.380\n-0.80%\n-0.140\n10.88B\n3.05M\n29.68%\n40.17%\n47\nALPMY\nAstellas Pharma (ADR)\n14.320\n-0.83%\n-0.120\n25.68B\n93.00K\n13.63%\n48.67%\n48\nNLCP\nNewLake Capital Partners, Inc.\n14.100\n-0.90%\n-0.128\n290.19M\n87.67K\n52.42%\n6.21%\n49\nJKHY\nJack Henry & Associates\n142.540\n-0.90%\n-1.300\n9.99B\n689.28K\n19.76%\n34.77%\n50\nKRYS\nKrystal Biotech\n322.280\n-0.93%\n-3.030\n9.54B\n426.09K\n52.64%\n8.56%\n1\n2\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nLow P/E Ratio Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBelow 30 RSI Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nJunk Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nSmall Cap Stocks with Huge Growth Potential\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\n1\n2"
+}

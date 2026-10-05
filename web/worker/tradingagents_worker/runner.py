@@ -8,8 +8,10 @@ Two implementations:
 
 Depth presets map to engine config knobs ( Debate rounds, analysts, news windows).
 """
+
 from __future__ import annotations
 
+import threading
 import time
 from typing import Protocol
 
@@ -17,9 +19,13 @@ from .config import SETTINGS
 from .events import Emitter
 
 DEPTH_PRESETS = {
-    "fast":     {"max_debate_rounds": 0, "max_risk_discuss_rounds": 0, "selected_analysts": ["market", "fundamentals"]},
+    "fast": {
+        "max_debate_rounds": 0,
+        "max_risk_discuss_rounds": 0,
+        "selected_analysts": ["market", "fundamentals"],
+    },
     "standard": {"max_debate_rounds": 1, "max_risk_discuss_rounds": 1},
-    "deep":     {"max_debate_rounds": 3, "max_risk_discuss_rounds": 2},
+    "deep": {"max_debate_rounds": 3, "max_risk_discuss_rounds": 2},
 }
 
 
@@ -28,18 +34,39 @@ class Cancelled(Exception):
 
 
 class Runner(Protocol):
-    def run(self, ticker: str, trade_date: str, depth: str, instructions: str | None,
-            emit: Emitter, cancel: "threading.Event | None" = None) -> dict:
-        """Returns {signal, rating, decision, reports{stage: md}, tokens, cost}."""
+    def run(
+        self,
+        ticker: str,
+        trade_date: str,
+        depth: str,
+        instructions: str | None,
+        emit: Emitter,
+        cancel: threading.Event | None = None,
+        price_context: str | None = None,
+    ) -> dict:
+        """Returns {signal, rating, decision, reports{stage: md}, tokens, cost}.
+
+        ``price_context`` is the verified as-of market snapshot text (see
+        price_context.py); the engine injects it into every debate and
+        synthesis prompt, the stub ignores it.
+        """
         ...
 
 
 class StubRunner:
     """Deterministic offline run: validates the whole pipeline without an LLM key."""
 
-    def run(self, ticker, trade_date, depth, instructions, emit, cancel=None):
-        stages = ["analysts", "quality_gate", "research_debate", "research_manager",
-                  "trader", "risk_debate", "portfolio_manager", "report_qc"]
+    def run(self, ticker, trade_date, depth, instructions, emit, cancel=None, price_context=None):
+        stages = [
+            "analysts",
+            "quality_gate",
+            "research_debate",
+            "research_manager",
+            "trader",
+            "risk_debate",
+            "portfolio_manager",
+            "report_qc",
+        ]
         reports = {}
         for st in stages:
             if cancel is not None and cancel.is_set():
@@ -48,16 +75,28 @@ class StubRunner:
             emit.emit(st, "progress", f"stub: {st} complete")
             reports[st] = f"## {st}\nStub report for {ticker} @ {trade_date} (depth={depth})."
             if st == "quality_gate":
-                emit.stage_done("quality_gate", "grades: A · B+ · A− · B", {"grades": {"market": "A", "sentiment": "B+"}})
+                emit.stage_done(
+                    "quality_gate",
+                    "grades: A · B+ · A− · B",
+                    {"grades": {"market": "A", "sentiment": "B+"}},
+                )
         emit.stage_done("report_qc", "passed 4/4")
         return {
-            "signal": "buy", "rating": "Buy", "is_review": False,
-            "decision": {"rating": "Buy", "executive_summary": f"Stub decision for {ticker}",
-                         "price_target": None, "time_horizon": "12m",
-                         "full_decision": {"stub": True, "instructions": instructions}},
+            "signal": "buy",
+            "rating": "Buy",
+            "is_review": False,
+            "decision": {
+                "rating": "Buy",
+                "executive_summary": f"Stub decision for {ticker}",
+                "price_target": None,
+                "time_horizon": "12m",
+                "full_decision": {"stub": True, "instructions": instructions},
+            },
             "reports": reports,
             "tokens": {"prompt": 1200, "completion": 340, "cached": 700, "uncached": 500},
-            "cost_usd": 0.0, "tool_calls": 3, "elapsed_seconds": 1,
+            "cost_usd": 0.0,
+            "tool_calls": 3,
+            "elapsed_seconds": 1,
         }
 
 
@@ -66,9 +105,15 @@ class EngineRunner:
 
     The model pair resolves per run: DB app_settings ('models') → env defaults.
     """
+
     def __init__(self, model_pair_resolver=None, prompts_resolver=None):
-        self._pair_resolver = model_pair_resolver or (lambda: {
-            "provider": SETTINGS.llm_provider, "quick": SETTINGS.quick_model, "deep": SETTINGS.deep_model})
+        self._pair_resolver = model_pair_resolver or (
+            lambda: {
+                "provider": SETTINGS.llm_provider,
+                "quick": SETTINGS.quick_model,
+                "deep": SETTINGS.deep_model,
+            }
+        )
         self._prompts_resolver = prompts_resolver or (lambda: {})
         self._graphs: dict[str, object] = {}
 
@@ -77,14 +122,17 @@ class EngineRunner:
         resolve the registry at call time, so the cached graph needs no rebuild."""
         try:
             from tradingagents.agents import prompts as prompt_registry
+
             prompt_registry.register(self._prompts_resolver() or {})
         except Exception as e:
             print(f"prompt overrides (non-fatal): {e}", flush=True)
 
     def _ensure_graph(self, depth: str):
-        from tradingagents.graph.trading_graph import TradingAgentsGraph
-        from tradingagents.default_config import DEFAULT_CONFIG
         import copy
+
+        from tradingagents.default_config import DEFAULT_CONFIG
+        from tradingagents.graph.trading_graph import TradingAgentsGraph
+
         pair = self._pair_resolver()
         cfg = copy.deepcopy(DEFAULT_CONFIG)
         for k, v in DEPTH_PRESETS[depth].items():
@@ -104,10 +152,11 @@ class EngineRunner:
             self._graphs[key] = TradingAgentsGraph(**kwargs)
         return self._graphs[key]
 
-    def run(self, ticker, trade_date, depth, instructions, emit, cancel=None):
+    def run(self, ticker, trade_date, depth, instructions, emit, cancel=None, price_context=None):
         emit.emit("analysts", "progress", f"engine run starting ({SETTINGS.llm_provider})")
         self._apply_prompts()
         from . import llm_usage
+
         llm_usage.install()
         llm_usage.RECORDER.reset()
         ta = self._ensure_graph(depth)
@@ -121,14 +170,22 @@ class EngineRunner:
             if ev:
                 emit.emit(ev[0], "progress", ev[1])
 
-        final_state, signal = ta.propagate(ticker, trade_date, on_node=on_node)
+        final_state, signal = ta.propagate(
+            ticker, trade_date, on_node=on_node, price_context=price_context or ""
+        )
         if cancel is not None and cancel.is_set():
             raise Cancelled("cancelled by caller")
         reports = {
-            "analysts": (final_state.get("market_report") or "") + "\n\n" + (final_state.get("sentiment_report") or ""),
-            "research_debate": _join_history((final_state.get("investment_debate_state") or {}).get("history")),
+            "analysts": (final_state.get("market_report") or "")
+            + "\n\n"
+            + (final_state.get("sentiment_report") or ""),
+            "research_debate": _join_history(
+                (final_state.get("investment_debate_state") or {}).get("history")
+            ),
             "trader": final_state.get("trader_investment_plan") or "",
-            "risk_debate": _join_history((final_state.get("risk_debate_state") or {}).get("history")),
+            "risk_debate": _join_history(
+                (final_state.get("risk_debate_state") or {}).get("history")
+            ),
             "portfolio_manager": final_state.get("final_trade_decision") or "",
         }
         for st, md in reports.items():
@@ -136,15 +193,28 @@ class EngineRunner:
         # Reconcile the SDK-level recorder with the LangChain callback: tokens
         # from whichever saw them (callback is version-proof), cost from the
         # OpenRouter per-call figure when available, else catalog-priced.
-        model = (self._pair_resolver().get("quick") or SETTINGS.quick_model)
+        model = self._pair_resolver().get("quick") or SETTINGS.quick_model
         used = llm_usage.reconcile(llm_usage.RECORDER.totals(), handler.totals(), model)
         print(f"llm_usage: reconcile -> {used}", flush=True)
-        tok = {"prompt": used["prompt"], "completion": used["completion"], "cached": 0, "uncached": 0}
+        tok = {
+            "prompt": used["prompt"],
+            "completion": used["completion"],
+            "cached": 0,
+            "uncached": 0,
+        }
         return {
-            "signal": str(signal).lower(), "rating": str(signal), "is_review": str(signal).upper() == "REVIEW",
-            "decision": {"rating": str(signal), "executive_summary": None,
-                         "full_decision": {"raw": str(final_state.get("final_trade_decision", ""))[:20000]}},
-            "reports": reports, "tokens": tok, "cost_usd": used["cost_usd"], "tool_calls": 0,
+            "signal": str(signal).lower(),
+            "rating": str(signal),
+            "is_review": str(signal).upper() == "REVIEW",
+            "decision": {
+                "rating": str(signal),
+                "executive_summary": None,
+                "full_decision": {"raw": str(final_state.get("final_trade_decision", ""))[:20000]},
+            },
+            "reports": reports,
+            "tokens": tok,
+            "cost_usd": used["cost_usd"],
+            "tool_calls": 0,
             "elapsed_seconds": None,
         }
 
@@ -216,7 +286,9 @@ def node_event(node: str, delta: dict, elapsed_s: float) -> tuple[str, str] | No
 def get_runner(model_pair_resolver=None, stub_resolver=None, prompts_resolver=None) -> Runner:
     if stub_resolver is not None:
         return RuntimeRunner(model_pair_resolver, stub_resolver, prompts_resolver)
-    return StubRunner() if SETTINGS.stub_mode else EngineRunner(model_pair_resolver, prompts_resolver)
+    return (
+        StubRunner() if SETTINGS.stub_mode else EngineRunner(model_pair_resolver, prompts_resolver)
+    )
 
 
 class RuntimeRunner:
@@ -229,9 +301,11 @@ class RuntimeRunner:
         self._stub = StubRunner()
         self._engine: EngineRunner | None = None
 
-    def run(self, ticker, trade_date, depth, instructions, emit, cancel=None):
+    def run(self, ticker, trade_date, depth, instructions, emit, cancel=None, price_context=None):
         if self._stub_resolver():
             return self._stub.run(ticker, trade_date, depth, instructions, emit, cancel)
         if self._engine is None:
             self._engine = EngineRunner(self._pair_resolver, self._prompts_resolver)
-        return self._engine.run(ticker, trade_date, depth, instructions, emit, cancel)
+        return self._engine.run(
+            ticker, trade_date, depth, instructions, emit, cancel, price_context=price_context
+        )

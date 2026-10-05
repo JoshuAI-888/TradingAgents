@@ -1,0 +1,24 @@
+{
+  "database": "capture_concurrency_qualification",
+  "overlapping_claim_transactions_observed": true,
+  "second_claim_skipped_live_schedule": true,
+  "live_lease_not_reclaimed": true,
+  "expired_lease_reclaimed_same_occurrence": true,
+  "recovered_attempt": 2,
+  "fresh_token": true,
+  "stale_worker_renew_fail_publish_rejected": true,
+  "publication_contender_observed_waiting_for_lock": true,
+  "same_capture_confirmed_by_both_publishers": true,
+  "persisted_captures": 1,
+  "schedule_edit_lock_overlap_observed": true,
+  "waiting_publication_after_disable_rejected": true,
+  "obsolete_occurrence_cancelled": true,
+  "prior_success_preserved": true,
+  "actual_builder_members": [
+    "US.A"
+  ],
+  "synthetic_eligible_observations": 2,
+  "elapsed_seconds": 6.43,
+  "limits": "Native PostgreSQL processes and actual builder with synthetic two-stock source. Forced lease expiry models a crash; not an actual deployed worker restart, PostgREST, real Auth, market coverage or provider qualification.",
+  "disposable_database_removed": true
+}

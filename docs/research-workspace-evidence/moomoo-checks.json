@@ -1,0 +1,184 @@
+[
+  {
+    "count": "40",
+    "criteria": "Stock Price ≥ $50, Market Cap ≥ $100 billion, Debt to Assets Ratio ≤50%, Revenue Growth (%) ≥ 5%.",
+    "symbols": [
+      "ATEYY",
+      "SKHY",
+      "LRCX"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/blue-chip-stocks-2"
+  },
+  {
+    "count": "128",
+    "criteria": "Float Market Cap ≥ $500 million, Net Income Growth (%) ≥ 10%, Gross Margin ≥ 50%, OP/EBT ≥ 70%, ROE Growth (%) ≥ 20%.",
+    "symbols": [
+      "CRDO",
+      "DLKGF",
+      "VICR"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/warren-buffett-strategy-3"
+  },
+  {
+    "count": "5",
+    "criteria": "P/E ≤ 15, P/B ≤ 1.5, Dividend Yield ≥ 4%, Debt to Assets Ratio ≤ 30%, ROE > 15%, Revenue Growth (%) > 3%.",
+    "symbols": [
+      "YB",
+      "UNTC",
+      "ECTM"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/undervalued-stocks-4"
+  },
+  {
+    "count": "104",
+    "criteria": "Float Market Cap ≥ $500 million, Net Income Growth (%) ≥ 15%, Gross Margin ≥ 50%, ROE ≥ 15%, ROE YOY Growth > 50%.",
+    "symbols": [
+      "CRDO",
+      "DLKGF",
+      "VICR"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/best-growth-stocks-5"
+  },
+  {
+    "count": "3158",
+    "symbols": [
+      "AUVIP",
+      "NFTI",
+      "MAXNQ"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/pb-ratio-less-than-1-6"
+  },
+  {
+    "count": "41",
+    "symbols": [
+      "AAGRY",
+      "YB",
+      "HNNA"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/best-long-term-high-dividend-stocks-7"
+  },
+  {
+    "count": "426",
+    "symbols": [
+      "OXBR",
+      "EVCM",
+      "EFXT"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/high-pe-ratio-stocks-8"
+  },
+  {
+    "count": "116",
+    "symbols": [
+      "SNLAY",
+      "TMSNY",
+      "PAYX"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/good-pe-ratio-stocks-9"
+  },
+  {
+    "count": "1427",
+    "symbols": [
+      "BGXXQ",
+      "MVLA",
+      "IOBTQ"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/low-pe-ratio-stocks-10"
+  },
+  {
+    "count": "1128",
+    "symbols": [
+      "KICK",
+      "FEED",
+      "ILLR"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/below-30-rsi-stocks-11"
+  },
+  {
+    "count": "374",
+    "symbols": [
+      "MAXNQ",
+      "PSWW",
+      "SWRM"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/junk-stocks-12"
+  },
+  {
+    "count": "86",
+    "symbols": [
+      "CD",
+      "AONC",
+      "AAGRY"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/small-cap-stocks-with-huge-growth-potential-13"
+  },
+  {
+    "count": "1",
+    "symbols": [
+      "RIO"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/blue-chip-dividend-stocks-14"
+  },
+  {
+    "count": "227",
+    "symbols": [
+      "SCCTY",
+      "BCHMY",
+      "BMI"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/speculative-stocks-15"
+  },
+  {
+    "count": "90",
+    "symbols": [
+      "UI",
+      "FN",
+      "DAVE"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/high-eps-stocks-16"
+  },
+  {
+    "count": "187",
+    "symbols": [
+      "ACN",
+      "TKGBY",
+      "WLWHY"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/high-roe-stocks-17"
+  },
+  {
+    "count": "98",
+    "symbols": [
+      "AAGRY",
+      "TTAPY",
+      "INFY"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/low-pe-high-dividend-stocks-18"
+  },
+  {
+    "count": "3",
+    "symbols": [
+      "CRUS",
+      "PLAB",
+      "NA"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/undervalued-semiconductor-stocks-19"
+  },
+  {
+    "count": "67",
+    "symbols": [
+      "BTTC",
+      "NXTT",
+      "G"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/undervalued-tech-stocks-20"
+  },
+  {
+    "count": "6",
+    "symbols": [
+      "NPB",
+      "NEWT",
+      "OZK"
+    ],
+    "url": "https://www.moomoo.com/screener/stock-strategies/undervalued-bank-stocks-21"
+  }
+]

@@ -14,9 +14,10 @@ from tradingagents.agents.context import (
     get_instrument_context_from_state,
     get_language_instruction,
     get_portfolio_context_from_state,
+    get_price_context_from_state,
 )
-from tradingagents.agents.prompts import render, resolve
 from tradingagents.agents.prompt_texts import AGENT_PROMPTS
+from tradingagents.agents.prompts import render, resolve
 from tradingagents.agents.schemas import PortfolioDecision, render_pm_decision
 from tradingagents.agents.structured import (
     NO_EXTERNAL_TOOLS,
@@ -30,6 +31,7 @@ def create_portfolio_manager(llm):
 
     def portfolio_manager_node(state) -> dict:
         instrument_context = get_instrument_context_from_state(state)
+        price_context = get_price_context_from_state(state)
         portfolio_context = get_portfolio_context_from_state(state)
 
         history = state["risk_debate_state"]["history"]
@@ -47,6 +49,7 @@ def create_portfolio_manager(llm):
         prompt = render(
             resolve("portfolio_manager", AGENT_PROMPTS["portfolio_manager"]),
             instrument_context=instrument_context,
+            price_context=price_context,
             portfolio_context=portfolio_context,
             research_plan=research_plan,
             trader_plan=trader_plan,

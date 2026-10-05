@@ -8,8 +8,10 @@ EngineRunner drains after each run. OpenRouter's per-response cost is only
 returned when the request opts in via extra_body {"usage": {"include": True}},
 so the wrapper injects it for openrouter.ai traffic.
 """
+
 from __future__ import annotations
 
+import contextlib
 import threading
 
 from langchain_core.callbacks import BaseCallbackHandler
@@ -35,15 +37,17 @@ class UsageRecorder:
             self.calls += 1
             self.prompt += int(prompt_tokens or 0)
             self.completion += int(completion_tokens or 0)
-            try:
+            with contextlib.suppress(TypeError, ValueError):
                 self.cost_usd += float(cost or 0.0)
-            except (TypeError, ValueError):
-                pass
 
     def totals(self) -> dict:
         with self._lock:
-            return {"calls": self.calls, "prompt": self.prompt,
-                    "completion": self.completion, "cost_usd": round(self.cost_usd, 6)}
+            return {
+                "calls": self.calls,
+                "prompt": self.prompt,
+                "completion": self.completion,
+                "cost_usd": round(self.cost_usd, 6),
+            }
 
 
 RECORDER = UsageRecorder()
@@ -70,9 +74,11 @@ def _wrap_create(original):
             for chunk in self._stream:
                 u = getattr(chunk, "usage", None)
                 if u is not None:
-                    RECORDER.add(getattr(u, "prompt_tokens", 0),
-                                 getattr(u, "completion_tokens", 0),
-                                 getattr(u, "cost", 0) or 0)
+                    RECORDER.add(
+                        getattr(u, "prompt_tokens", 0),
+                        getattr(u, "completion_tokens", 0),
+                        getattr(u, "cost", 0) or 0,
+                    )
                 yield chunk
 
         def __getattr__(self, name):
@@ -90,9 +96,11 @@ def _wrap_create(original):
                 return _UsageStream(resp)
             u = getattr(resp, "usage", None)
             if u is not None:
-                RECORDER.add(getattr(u, "prompt_tokens", 0),
-                             getattr(u, "completion_tokens", 0),
-                             getattr(u, "cost", 0) or 0)
+                RECORDER.add(
+                    getattr(u, "prompt_tokens", 0),
+                    getattr(u, "completion_tokens", 0),
+                    getattr(u, "cost", 0) or 0,
+                )
         except Exception:
             pass
         return resp
@@ -118,14 +126,17 @@ def estimate_cost(model: str, prompt_tokens: int, completion_tokens: int) -> flo
     """Catalog-priced fallback when OpenRouter's per-call cost is unavailable."""
     try:
         from .openrouter import CATALOG
+
         data, _err = CATALOG.try_get()
         if not data:
             return 0.0
         entry = next((m for m in data.get("models", []) if m.get("id") == model), None)
         if not entry:
             return 0.0
-        cost = (prompt_tokens * float(entry.get("in_per_m") or 0)
-                + completion_tokens * float(entry.get("out_per_m") or 0)) / 1e6
+        cost = (
+            prompt_tokens * float(entry.get("in_per_m") or 0)
+            + completion_tokens * float(entry.get("out_per_m") or 0)
+        ) / 1e6
         return round(cost, 6)
     except Exception:
         return 0.0
@@ -167,5 +178,9 @@ def reconcile(sdk_totals: dict, callback_totals: dict, default_model: str) -> di
     cost = float(sdk_totals.get("cost_usd") or 0.0)
     if cost <= 0 and (prompt or completion):
         cost = estimate_cost(default_model, prompt, completion)
-    return {"calls": max(sdk_totals.get("calls", 0), callback_totals.get("calls", 0)),
-            "prompt": prompt, "completion": completion, "cost_usd": round(cost, 6)}
+    return {
+        "calls": max(sdk_totals.get("calls", 0), callback_totals.get("calls", 0)),
+        "prompt": prompt,
+        "completion": completion,
+        "cost_usd": round(cost, 6),
+    }

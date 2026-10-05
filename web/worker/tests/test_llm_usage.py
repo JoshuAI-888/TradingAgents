@@ -1,4 +1,5 @@
 """Usage capture: the SDK-level recorder feeds runs.prompt/completion/cost."""
+
 from types import SimpleNamespace
 
 from tradingagents_worker import llm_usage
@@ -10,7 +11,10 @@ OA_CLIENT = SimpleNamespace(_client=SimpleNamespace(base_url="https://api.openai
 def _fake_create(rec):
     def fake_create(self, *a, **kw):
         rec["kw"] = kw
-        return SimpleNamespace(usage=SimpleNamespace(prompt_tokens=11, completion_tokens=7, cost=0.0002))
+        return SimpleNamespace(
+            usage=SimpleNamespace(prompt_tokens=11, completion_tokens=7, cost=0.0002)
+        )
+
     return fake_create
 
 
@@ -29,7 +33,12 @@ def test_wrapper_records_usage_and_opts_into_cost():
     resp = w(OR_CLIENT, model="m")
     assert resp.usage.prompt_tokens == 11
     assert rec["kw"]["extra_body"]["usage"] == {"include": True}
-    assert llm_usage.RECORDER.totals() == {"calls": 1, "prompt": 11, "completion": 7, "cost_usd": 0.0002}
+    assert llm_usage.RECORDER.totals() == {
+        "calls": 1,
+        "prompt": 11,
+        "completion": 7,
+        "cost_usd": 0.0002,
+    }
 
 
 def test_wrapper_no_injection_off_openrouter():
@@ -50,6 +59,7 @@ def test_wrapper_passes_through_no_usage():
 
 def test_install_is_idempotent(monkeypatch):
     from openai.resources.chat import completions as oc
+
     monkeypatch.setattr(oc.Completions, "create", _fake_create({}))
     assert llm_usage.install() is True
     wrapper = oc.Completions.create
@@ -59,6 +69,7 @@ def test_install_is_idempotent(monkeypatch):
 
 def test_callback_totals_from_llm_end():
     from types import SimpleNamespace as NS
+
     h = llm_usage.LLMUsageCallback()
     h.on_llm_end(NS(llm_output={"token_usage": {"prompt_tokens": 500, "completion_tokens": 120}}))
     h.on_llm_end(NS(llm_output={"token_usage": {"prompt_tokens": 300, "completion_tokens": 80}}))
@@ -69,10 +80,16 @@ def test_callback_totals_from_llm_end():
 def test_reconcile_prefers_best_source_and_estimates_cost(monkeypatch):
     monkeypatch.setattr(llm_usage, "estimate_cost", lambda m, p, c: 0.0025 if (p or c) else 0.0)
     # SDK went silent (the TSLA-run failure mode), callback saw everything.
-    out = llm_usage.reconcile({"calls": 0, "prompt": 0, "completion": 0, "cost_usd": 0.0},
-                              {"calls": 9, "prompt": 4000, "completion": 1000}, "z-ai/glm-5.3-flash")
+    out = llm_usage.reconcile(
+        {"calls": 0, "prompt": 0, "completion": 0, "cost_usd": 0.0},
+        {"calls": 9, "prompt": 4000, "completion": 1000},
+        "z-ai/glm-5.3-flash",
+    )
     assert out == {"calls": 9, "prompt": 4000, "completion": 1000, "cost_usd": 0.0025}
     # SDK has real OpenRouter cost → it wins over the estimate.
-    out2 = llm_usage.reconcile({"calls": 9, "prompt": 4000, "completion": 1000, "cost_usd": 0.0069},
-                               {"calls": 9, "prompt": 4000, "completion": 1000}, "z-ai/glm-5.3-flash")
+    out2 = llm_usage.reconcile(
+        {"calls": 9, "prompt": 4000, "completion": 1000, "cost_usd": 0.0069},
+        {"calls": 9, "prompt": 4000, "completion": 1000},
+        "z-ai/glm-5.3-flash",
+    )
     assert out2["cost_usd"] == 0.0069

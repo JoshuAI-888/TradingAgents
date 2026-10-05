@@ -1,0 +1,1439 @@
+{
+  "observed_at": "2026-10-02T20:41:58.291Z",
+  "url": "https://www.moomoo.com/screener",
+  "inputs": [
+    {
+      "checked": false,
+      "type": "text",
+      "value": ""
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "checkbox",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "radio",
+      "value": "on"
+    },
+    {
+      "checked": false,
+      "type": "text",
+      "value": ""
+    },
+    {
+      "checked": false,
+      "type": "text",
+      "value": ""
+    },
+    {
+      "checked": false,
+      "type": "text",
+      "value": ""
+    },
+    {
+      "checked": false,
+      "type": "text",
+      "value": ""
+    },
+    {
+      "checked": false,
+      "type": "text",
+      "value": ""
+    },
+    {
+      "checked": false,
+      "type": "text",
+      "value": ""
+    }
+  ],
+  "rows": [
+    {
+      "href": "https://www.moomoo.com/stock/00700-HK",
+      "text": "1\n00700\nTENCENT\n421.200\n-2.27%\n-9.800\n3.83T\n19.11M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/80700-HK",
+      "text": "2\n80700\nTENCENT-R\n359.600\n-2.55%\n-9.400\n3.27T\n26.30K"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/01398-HK",
+      "text": "3\n01398\nICBC\n7.455\n-3.31%\n-0.255\n2.66T\n190.73M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00005-HK",
+      "text": "4\n00005\nHSBC HOLDINGS\n149.500\n-5.38%\n-8.500\n2.56T\n24.96M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00939-HK",
+      "text": "5\n00939\nCCB\n9.555\n-2.70%\n-0.265\n2.50T\n171.97M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/01288-HK",
+      "text": "6\n01288\nABC\n6.460\n-2.56%\n-0.170\n2.26T\n52.27M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/03750-HK",
+      "text": "7\n03750\nCATL\n476.800\n-1.53%\n-7.400\n2.21T\n4.02M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/09988-HK",
+      "text": "8\n09988\nBABA-W\n104.400\n-2.06%\n-2.200\n2.08T\n39.77M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/03988-HK",
+      "text": "9\n03988\nBANK OF CHINA\n5.920\n-2.71%\n-0.165\n1.91T\n148.28M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/89988-HK",
+      "text": "10\n89988\nBABA-WR\n88.950\n-2.25%\n-2.050\n1.77T\n75.30K"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00857-HK",
+      "text": "11\n00857\nPETROCHINA\n9.515\n-1.55%\n-0.150\n1.74T\n31.57M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00941-HK",
+      "text": "12\n00941\nCHINA MOBILE\n78.850\n-0.76%\n-0.600\n1.71T\n8.87M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/80941-HK",
+      "text": "13\n80941\nCHINA MOBILE-R\n67.200\n-0.88%\n-0.600\n1.46T\n98.50K"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/03968-HK",
+      "text": "14\n03968\nCM BANK\n50.600\n-1.75%\n-0.900\n1.28T\n8.43M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/03308-HK",
+      "text": "15\n03308\nZJ INNOLIGHT\n1072.000\n+0.94%\n+10.000\n1.26T\n1.23M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00883-HK",
+      "text": "16\n00883\nCNOOC\n23.520\n-1.84%\n-0.440\n1.12T\n16.27M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/06288-HK",
+      "text": "17\n06288\nFAST RETAIL-DRS\n34.600\n0.00%\n0.000\n1.10T\n301.00"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/80883-HK",
+      "text": "18\n80883\nCNOOC-R\n20.060\n-1.67%\n-0.340\n953.45B\n60.00K"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/02318-HK",
+      "text": "19\n02318\nPING AN\n52.000\n-1.42%\n-0.750\n941.60B\n24.44M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/01088-HK",
+      "text": "20\n01088\nCHINA SHENHUA\n43.400\n-2.16%\n-0.960\n941.32B\n5.75M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/02899-HK",
+      "text": "21\n02899\nZIJIN MINING\n31.700\n-1.67%\n-0.540\n842.93B\n26.15M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/82318-HK",
+      "text": "22\n82318\nPING AN-R\n44.400\n-1.55%\n-0.700\n803.98B\n61.00K"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/02628-HK",
+      "text": "23\n02628\nCHINA LIFE\n27.500\n-2.20%\n-0.620\n777.28B\n33.06M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/03328-HK",
+      "text": "24\n03328\nBANKCOMM\n8.220\n-1.67%\n-0.140\n726.35B\n13.73M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/01299-HK",
+      "text": "25\n01299\nAIA\n69.200\n-5.98%\n-4.400\n715.99B\n43.24M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00300-HK",
+      "text": "26\n00300\nMIDEA GROUP\n91.150\n-0.71%\n-0.650\n695.41B\n6.89M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/01211-HK",
+      "text": "27\n01211\nBYD COMPANY\n73.900\n-2.25%\n-1.700\n673.76B\n15.54M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/01658-HK",
+      "text": "28\n01658\nPSBC\n5.375\n-2.98%\n-0.165\n645.51B\n36.50M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/02359-HK",
+      "text": "29\n02359\nWUXI APPTEC\n210.000\n-2.42%\n-5.200\n633.10B\n3.21M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/01810-HK",
+      "text": "30\n01810\nXIAOMI-W\n24.240\n-3.96%\n-1.000\n625.26B\n129.40M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/81299-HK",
+      "text": "31\n81299\nAIA-R\n59.300\n-5.95%\n-3.750\n613.56B\n47.00K"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/09999-HK",
+      "text": "32\n09999\nNTES\n186.200\n-3.32%\n-6.400\n596.15B\n7.26M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/81211-HK",
+      "text": "33\n81211\nBYD COMPANY-R\n63.000\n-2.40%\n-1.550\n574.38B\n53.20K"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00945-HK",
+      "text": "34\n00945\nMANULIFE-S\n334.200\n-2.34%\n-8.000\n553.71B\n7.60K"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/02388-HK",
+      "text": "35\n02388\nBOC HONG KONG\n50.700\n-2.97%\n-1.550\n536.04B\n12.31M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/81810-HK",
+      "text": "36\n81810\nXIAOMI-WR\n20.640\n-4.44%\n-0.960\n532.40B\n42.00K"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00386-HK",
+      "text": "37\n00386\nSINOPEC CORP\n4.355\n-1.47%\n-0.065\n525.71B\n63.85M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00981-HK",
+      "text": "38\n00981\nSMIC\n60.250\n-0.66%\n-0.400\n515.88B\n15.86M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/02888-HK",
+      "text": "39\n02888\nSTANCHART\n229.800\n-5.97%\n-14.600\n500.06B\n1.40M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00388-HK",
+      "text": "40\n00388\nHKEX\n375.800\n-3.09%\n-12.000\n476.45B\n8.72M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00998-HK",
+      "text": "41\n00998\nCITIC BANK\n8.330\n-2.91%\n-0.250\n463.52B\n12.43M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/82388-HK",
+      "text": "42\n82388\nBOC HONG KONG-R\n43.200\n-3.23%\n-1.440\n456.74B\n64.50K"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/09633-HK",
+      "text": "43\n09633\nNONGFU SPRING\n39.540\n-0.75%\n-0.300\n444.69B\n4.95M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/03690-HK",
+      "text": "44\n03690\nMEITUAN-W\n70.200\n-2.09%\n-1.500\n433.52B\n22.49M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00992-HK",
+      "text": "45\n00992\nLENOVO GROUP\n34.320\n-0.64%\n-0.220\n426.07B\n55.55M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/02475-HK",
+      "text": "46\n02475\nLUXSHARE ICT\n52.950\n-1.12%\n-0.600\n409.85B\n436.69K"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00728-HK",
+      "text": "47\n00728\nCHINA TELECOM\n4.450\n-1.00%\n-0.045\n407.21B\n14.29M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/80388-HK",
+      "text": "48\n80388\nHKEX-R\n321.000\n-3.08%\n-10.200\n406.98B\n16.90K"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/02259-HK",
+      "text": "49\n02259\nZIJIN GOLD INTL\n142.800\n+0.71%\n+1.000\n382.18B\n5.13M"
+    },
+    {
+      "href": "https://www.moomoo.com/stock/00267-HK",
+      "text": "50\n00267\nCITIC\n12.770\n-2.67%\n-0.350\n371.48B\n11.72M"
+    }
+  ],
+  "text": "Experience moomoo\nPricing\nInsights\nPromotions\nForum\nAbout us\nMoomoo Priority\nDownload\nSign up/Log in\nScreener\nMarket\nHK\nExchange\nPlease select\nSector\nAll\nWatchlist Only\nAdd Filter\nSave Screener\nMarket Cap\n0B\nB\n~\n0B\nB\nP/B\n0\n~\n0\nResult: 2825 stocks\n15min Delay\nNo.\nSymbol\nStock Name\nPrice\n% Chg\nChg\nMarket Cap\nVolume\nWatchlist\nPaper Trade\n1\n00700\nTENCENT\n421.200\n-2.27%\n-9.800\n3.83T\n19.11M\n2\n80700\nTENCENT-R\n359.600\n-2.55%\n-9.400\n3.27T\n26.30K\n3\n01398\nICBC\n7.455\n-3.31%\n-0.255\n2.66T\n190.73M\n4\n00005\nHSBC HOLDINGS\n149.500\n-5.38%\n-8.500\n2.56T\n24.96M\n5\n00939\nCCB\n9.555\n-2.70%\n-0.265\n2.50T\n171.97M\n6\n01288\nABC\n6.460\n-2.56%\n-0.170\n2.26T\n52.27M\n7\n03750\nCATL\n476.800\n-1.53%\n-7.400\n2.21T\n4.02M\n8\n09988\nBABA-W\n104.400\n-2.06%\n-2.200\n2.08T\n39.77M\n9\n03988\nBANK OF CHINA\n5.920\n-2.71%\n-0.165\n1.91T\n148.28M\n10\n89988\nBABA-WR\n88.950\n-2.25%\n-2.050\n1.77T\n75.30K\n11\n00857\nPETROCHINA\n9.515\n-1.55%\n-0.150\n1.74T\n31.57M\n12\n00941\nCHINA MOBILE\n78.850\n-0.76%\n-0.600\n1.71T\n8.87M\n13\n80941\nCHINA MOBILE-R\n67.200\n-0.88%\n-0.600\n1.46T\n98.50K\n14\n03968\nCM BANK\n50.600\n-1.75%\n-0.900\n1.28T\n8.43M\n15\n03308\nZJ INNOLIGHT\n1072.000\n+0.94%\n+10.000\n1.26T\n1.23M\n16\n00883\nCNOOC\n23.520\n-1.84%\n-0.440\n1.12T\n16.27M\n17\n06288\nFAST RETAIL-DRS\n34.600\n0.00%\n0.000\n1.10T\n301.00\n18\n80883\nCNOOC-R\n20.060\n-1.67%\n-0.340\n953.45B\n60.00K\n19\n02318\nPING AN\n52.000\n-1.42%\n-0.750\n941.60B\n24.44M\n20\n01088\nCHINA SHENHUA\n43.400\n-2.16%\n-0.960\n941.32B\n5.75M\n21\n02899\nZIJIN MINING\n31.700\n-1.67%\n-0.540\n842.93B\n26.15M\n22\n82318\nPING AN-R\n44.400\n-1.55%\n-0.700\n803.98B\n61.00K\n23\n02628\nCHINA LIFE\n27.500\n-2.20%\n-0.620\n777.28B\n33.06M\n24\n03328\nBANKCOMM\n8.220\n-1.67%\n-0.140\n726.35B\n13.73M\n25\n01299\nAIA\n69.200\n-5.98%\n-4.400\n715.99B\n43.24M\n26\n00300\nMIDEA GROUP\n91.150\n-0.71%\n-0.650\n695.41B\n6.89M\n27\n01211\nBYD COMPANY\n73.900\n-2.25%\n-1.700\n673.76B\n15.54M\n28\n01658\nPSBC\n5.375\n-2.98%\n-0.165\n645.51B\n36.50M\n29\n02359\nWUXI APPTEC\n210.000\n-2.42%\n-5.200\n633.10B\n3.21M\n30\n01810\nXIAOMI-W\n24.240\n-3.96%\n-1.000\n625.26B\n129.40M\n31\n81299\nAIA-R\n59.300\n-5.95%\n-3.750\n613.56B\n47.00K\n32\n09999\nNTES\n186.200\n-3.32%\n-6.400\n596.15B\n7.26M\n33\n81211\nBYD COMPANY-R\n63.000\n-2.40%\n-1.550\n574.38B\n53.20K\n34\n00945\nMANULIFE-S\n334.200\n-2.34%\n-8.000\n553.71B\n7.60K\n35\n02388\nBOC HONG KONG\n50.700\n-2.97%\n-1.550\n536.04B\n12.31M\n36\n81810\nXIAOMI-WR\n20.640\n-4.44%\n-0.960\n532.40B\n42.00K\n37\n00386\nSINOPEC CORP\n4.355\n-1.47%\n-0.065\n525.71B\n63.85M\n38\n00981\nSMIC\n60.250\n-0.66%\n-0.400\n515.88B\n15.86M\n39\n02888\nSTANCHART\n229.800\n-5.97%\n-14.600\n500.06B\n1.40M\n40\n00388\nHKEX\n375.800\n-3.09%\n-12.000\n476.45B\n8.72M\n41\n00998\nCITIC BANK\n8.330\n-2.91%\n-0.250\n463.52B\n12.43M\n42\n82388\nBOC HONG KONG-R\n43.200\n-3.23%\n-1.440\n456.74B\n64.50K\n43\n09633\nNONGFU SPRING\n39.540\n-0.75%\n-0.300\n444.69B\n4.95M\n44\n03690\nMEITUAN-W\n70.200\n-2.09%\n-1.500\n433.52B\n22.49M\n45\n00992\nLENOVO GROUP\n34.320\n-0.64%\n-0.220\n426.07B\n55.55M\n46\n02475\nLUXSHARE ICT\n52.950\n-1.12%\n-0.600\n409.85B\n436.69K\n47\n00728\nCHINA TELECOM\n4.450\n-1.00%\n-0.045\n407.21B\n14.29M\n48\n80388\nHKEX-R\n321.000\n-3.08%\n-10.200\n406.98B\n16.90K\n49\n02259\nZIJIN GOLD INTL\n142.800\n+0.71%\n+1.000\n382.18B\n5.13M\n50\n00267\nCITIC\n12.770\n-2.67%\n-0.350\n371.48B\n11.72M\n1\n2\n3\n4\n5\n57\nRecommended Screeners\nPenny Stocks\n\nGREH\n\n+56.76%\n\nNMTC\n\n+13.69%\n\nMWYN\n\n+10.00%\n\nHigh Dividend Stocks\n\n--\n\n--\n\n--\n\n--\n\n--\n\n--\n\nBlue Chip Stocks\n\nATEYY\n\n+8.38%\n\nARM\n\n+5.18%\n\nSCCO\n\n+3.17%\n\nWarren Buffett Strategy\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nVIRT\n\n+5.70%\n\nUndervalued Stocks\n\nYB\n\n+0.15%\n\nRSRV\n\n0.00%\n\nECTM\n\n0.00%\n\nBest Growth Stocks\n\nAARTY\n\n+13.87%\n\nATEYY\n\n+8.38%\n\nLIF\n\n+6.95%\n\nP/B Ratio Less Than 1\n\nLADX\n\n+1099900.00%\n\nAMBIQ\n\n+69900.00%\n\nFPAYQ\n\n+9900.00%\n\nBest Long Term High Dividend Stocks\n\nESEA\n\n+2.71%\n\nBTLCY\n\n+2.32%\n\nNTIP\n\n+1.88%\n\nHigh P/E Ratio Stocks\n\nNROM\n\n+18.04%\n\nFUWAY\n\n+11.70%\n\nPENG\n\n+11.60%\n\nGood P/E Ratio Stocks\n\nSTRW\n\n+4.90%\n\nABX\n\n+4.82%\n\nSNLAY\n\n+3.77%\n\nLow P/E Ratio Stocks\n\nZENVF\n\n+2900.00%\n\nBHATF\n\n+500.00%\n\nNXUR\n\n+266.67%\n\nBelow 30 RSI Stocks\n\nBPTH\n\n+200.00%\n\nNCLX\n\n+36.36%\n\nNIVF\n\n+27.72%\n\nJunk Stocks\n\nAILEQ\n\n+9900.00%\n\nPCTL\n\n+9900.00%\n\nZENVF\n\n+2900.00%\n\nSmall Cap Stocks with Huge Growth Potential\n\nFCEL\n\n+11.47%\n\nAZ\n\n+9.75%\n\nHYLN\n\n+7.60%\n\nBlue Chip Dividend Stocks\n\nRIO\n\n+1.44%\n\n--\n\n--\n\n--\n\n--\n\n1\n2"
+}

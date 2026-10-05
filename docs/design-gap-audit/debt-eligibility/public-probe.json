@@ -1,0 +1,61 @@
+{
+  "captured_at": "2026-10-02T09:18:50.461337+00:00",
+  "yfinance_version": "1.7.0",
+  "requested": [
+    "US.MCD",
+    "US.KO"
+  ],
+  "raw_selected_fields": [
+    {
+      "symbol": "MCD",
+      "currency": "USD",
+      "financialCurrency": "USD",
+      "longTermDebt": null,
+      "totalStockholderEquity": null,
+      "StockholdersEquity": null,
+      "debtToEquity": null,
+      "totalDebt": 54604001280,
+      "mostRecentQuarter": 1782777600,
+      "lastFiscalYearEnd": 1767139200
+    },
+    {
+      "symbol": "KO",
+      "currency": "USD",
+      "financialCurrency": "USD",
+      "longTermDebt": null,
+      "totalStockholderEquity": null,
+      "StockholdersEquity": null,
+      "debtToEquity": 115.519,
+      "totalDebt": 44260999168,
+      "mostRecentQuarter": 1783036800,
+      "lastFiscalYearEnd": 1767139200
+    }
+  ],
+  "outputs": [
+    {
+      "code": "US.MCD",
+      "debt_values": {},
+      "field_contracts": {
+        "payout_ratio": "ratio_to_percent_v1",
+        "pcf": "market_cap_over_total_cash_same_currency_v1",
+        "pfcf": "market_cap_over_free_cashflow_same_currency_v1",
+        "lt_debt_eq": "nonnegative_long_term_debt_over_positive_equity_percent_v1",
+        "total_debt_eq": "provider_debt_to_equity_nonnegative_percent_v1"
+      }
+    },
+    {
+      "code": "US.KO",
+      "debt_values": {
+        "total_debt_eq": 115.519
+      },
+      "field_contracts": {
+        "payout_ratio": "ratio_to_percent_v1",
+        "pcf": "market_cap_over_total_cash_same_currency_v1",
+        "pfcf": "market_cap_over_free_cashflow_same_currency_v1",
+        "lt_debt_eq": "nonnegative_long_term_debt_over_positive_equity_percent_v1",
+        "total_debt_eq": "provider_debt_to_equity_nonnegative_percent_v1"
+      }
+    }
+  ],
+  "limits": "Public info responses only. Missing equity/long-term-debt inputs remain unavailable; no issuer-period, currency, total-debt-denominator or full-market reconciliation."
+}

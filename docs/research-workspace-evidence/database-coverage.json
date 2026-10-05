@@ -1,0 +1,246 @@
+{
+  "coverage": [
+    {
+      "roe": 0,
+      "roic": 0,
+      "rsi14": 177,
+      "market": "US",
+      "perf_y": 167,
+      "quoted": 551,
+      "sector": 0,
+      "bars_200": 399,
+      "enriched": 178,
+      "universe": 575,
+      "bar_state": 575,
+      "forward_pe": 0,
+      "stock_type": "IDX",
+      "fetched_4d_200": 399,
+      "revenue_growth": 0,
+      "net_debt_ebitda": 0,
+      "newest_quote_write": "2026-10-01T21:01:40.430487+00:00",
+      "oldest_quote_write": "2026-10-01T21:01:40.430487+00:00",
+      "newest_enrichment_stamp": "2026-09-30T01:06:55.246887+00:00",
+      "oldest_enrichment_stamp": "2026-09-30T01:06:55.246887+00:00"
+    },
+    {
+      "roe": 0,
+      "roic": 0,
+      "rsi14": 62,
+      "market": "US",
+      "perf_y": 42,
+      "quoted": 5596,
+      "sector": 0,
+      "bars_200": 2400,
+      "enriched": 62,
+      "universe": 5596,
+      "bar_state": 2899,
+      "forward_pe": 0,
+      "stock_type": "ETF",
+      "fetched_4d_200": 2400,
+      "revenue_growth": 0,
+      "net_debt_ebitda": 0,
+      "newest_quote_write": "2026-10-01T21:01:40.430487+00:00",
+      "oldest_quote_write": "2026-09-28T23:07:54.896058+00:00",
+      "newest_enrichment_stamp": "2026-09-30T01:06:55.246887+00:00",
+      "oldest_enrichment_stamp": "2026-09-30T01:06:55.246887+00:00"
+    },
+    {
+      "roe": 0,
+      "roic": 0,
+      "rsi14": 214,
+      "market": "US",
+      "perf_y": 172,
+      "quoted": 10605,
+      "sector": 0,
+      "bars_200": 4419,
+      "enriched": 220,
+      "universe": 10606,
+      "bar_state": 5373,
+      "forward_pe": 0,
+      "stock_type": "STOCK",
+      "fetched_4d_200": 4419,
+      "revenue_growth": 0,
+      "net_debt_ebitda": 0,
+      "newest_quote_write": "2026-10-01T21:01:40.430487+00:00",
+      "oldest_quote_write": "2026-09-29T21:18:05.773197+00:00",
+      "newest_enrichment_stamp": "2026-09-30T01:06:55.246887+00:00",
+      "oldest_enrichment_stamp": "2026-09-30T01:06:55.246887+00:00"
+    },
+    {
+      "roe": 0,
+      "roic": 0,
+      "rsi14": 7,
+      "market": "US",
+      "perf_y": 5,
+      "quoted": 343,
+      "sector": 0,
+      "bars_200": 100,
+      "enriched": 8,
+      "universe": 343,
+      "bar_state": 174,
+      "forward_pe": 0,
+      "stock_type": "WARRANT",
+      "fetched_4d_200": 100,
+      "revenue_growth": 0,
+      "net_debt_ebitda": 0,
+      "newest_quote_write": "2026-10-01T21:01:40.430487+00:00",
+      "oldest_quote_write": "2026-10-01T21:01:40.430487+00:00",
+      "newest_enrichment_stamp": "2026-09-30T01:06:55.246887+00:00",
+      "oldest_enrichment_stamp": "2026-09-30T01:06:55.246887+00:00"
+    },
+    {
+      "roe": 0,
+      "roic": 0,
+      "rsi14": 11,
+      "market": "US",
+      "perf_y": 8,
+      "quoted": 766,
+      "sector": 0,
+      "bars_200": 266,
+      "enriched": 11,
+      "universe": 766,
+      "bar_state": 368,
+      "forward_pe": 0,
+      "stock_type": null,
+      "fetched_4d_200": 266,
+      "revenue_growth": 0,
+      "net_debt_ebitda": 0,
+      "newest_quote_write": "2026-10-01T21:01:40.430487+00:00",
+      "oldest_quote_write": "2026-09-28T23:07:54.896058+00:00",
+      "newest_enrichment_stamp": "2026-09-30T01:06:55.246887+00:00",
+      "oldest_enrichment_stamp": "2026-09-30T01:06:55.246887+00:00"
+    }
+  ],
+  "observed_at": "2026-10-02T00:01:13.444911+00:00",
+  "field_presence": {
+    "peg": 1,
+    "atr14": 476,
+    "rsi14": 471,
+    "vol_m": 476,
+    "vol_w": 477,
+    "perf_h": 428,
+    "perf_m": 476,
+    "perf_q": 458,
+    "perf_w": 477,
+    "perf_y": 394,
+    "pos_52w": 472,
+    "rel_vol": 347,
+    "perf_ytd": 453,
+    "avg_vol3m": 347,
+    "sma20_pos": 476,
+    "sma50_pos": 467,
+    "sma200_pos": 409
+  },
+  "universe_state": {
+    "last_enum": "2026-10-01T13:01:05.054643+00:00",
+    "last_quotes": "2026-10-01T21:02:18.087135+00:00",
+    "last_result": {
+      "market": "US",
+      "quotes": {
+        "quotes": 17849,
+        "batches": 45
+      }
+    }
+  },
+  "saved_screeners": [
+    {
+      "name": "Penny Stocks",
+      "sort": "market_cap",
+      "market": "US",
+      "direction": 2,
+      "filter_count": 6
+    }
+  ],
+  "enrichment_state": {
+    "last_run": "2026-09-30T01:06:56.023513+00:00",
+    "last_result": {
+      "klines": {
+        "bars": 710329,
+        "codes": 1400,
+        "errors": 0
+      },
+      "market": "US",
+      "enriched": 479
+    }
+  },
+  "public_table_grants": [
+    {
+      "grantee": "anon",
+      "privileges": [
+        "DELETE",
+        "INSERT",
+        "REFERENCES",
+        "SELECT",
+        "TRIGGER",
+        "TRUNCATE",
+        "UPDATE"
+      ],
+      "table_name": "screener_enrichment"
+    },
+    {
+      "grantee": "authenticated",
+      "privileges": [
+        "DELETE",
+        "INSERT",
+        "REFERENCES",
+        "SELECT",
+        "TRIGGER",
+        "TRUNCATE",
+        "UPDATE"
+      ],
+      "table_name": "screener_enrichment"
+    },
+    {
+      "grantee": "anon",
+      "privileges": [
+        "DELETE",
+        "INSERT",
+        "REFERENCES",
+        "SELECT",
+        "TRIGGER",
+        "TRUNCATE",
+        "UPDATE"
+      ],
+      "table_name": "screener_kline_state"
+    },
+    {
+      "grantee": "authenticated",
+      "privileges": [
+        "DELETE",
+        "INSERT",
+        "REFERENCES",
+        "SELECT",
+        "TRIGGER",
+        "TRUNCATE",
+        "UPDATE"
+      ],
+      "table_name": "screener_kline_state"
+    },
+    {
+      "grantee": "anon",
+      "privileges": [
+        "DELETE",
+        "INSERT",
+        "REFERENCES",
+        "SELECT",
+        "TRIGGER",
+        "TRUNCATE",
+        "UPDATE"
+      ],
+      "table_name": "screener_klines"
+    },
+    {
+      "grantee": "authenticated",
+      "privileges": [
+        "DELETE",
+        "INSERT",
+        "REFERENCES",
+        "SELECT",
+        "TRIGGER",
+        "TRUNCATE",
+        "UPDATE"
+      ],
+      "table_name": "screener_klines"
+    }
+  ]
+}
