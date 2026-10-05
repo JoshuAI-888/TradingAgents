@@ -1875,8 +1875,8 @@ def stock_candles_back(symbol: str, ktype: str = "K_D",
         step_s = {1: 60, 10: 180, 6: 300, 26: 600, 7: 900, 8: 1800,
                   9: 3600, 14: 7200, 29: 10800, 15: 14400}[kt]
         days = min(30, max(2, int(count * step_s / (6.5 * 3600)) + 2))
-    end_date = date.fromtimestamp((before or time.time() * 1000) / 1000,
-                                  tz=timezone.utc).date()
+    end_date = datetime.fromtimestamp((before or time.time() * 1000) / 1000,
+                                      tz=timezone.utc).date()
     start = (end_date - timedelta(days=days)).isoformat()
 
     def fetch(c):
