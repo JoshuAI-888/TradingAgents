@@ -61,15 +61,24 @@ class WholeMarketMoomoo(FakeMoomoo):
             raise RuntimeError("provider unavailable")
         code = self.market + (".B" if second else ".A")
         total, more, cursor = 2, not second, "page2" if not second else None
+        if self.failure == "flood":
+            total = 52  # consistent across pages; the 51st bad identity trips the guard
         if second:
             if self.failure == "duplicate":
                 code = self.market + ".A"
             elif self.failure == "total":
                 total = 3
+            elif self.failure == "identity":
+                code = self.market + "..VIX"
+            elif self.failure == "whenissued":
+                code = self.market + ".RBC*"
+            elif self.failure == "flood":
+                return {
+                    "items": [{"code": f"{self.market}..BAD{i}"} for i in range(52)],
+                    "pagination": {"total": 52, "has_more": False, "next_key": None},
+                }
             elif self.failure == "cursor":
                 more, cursor = True, "page2"
-            elif self.failure == "identity":
-                code = "US..VIX"
         elif self.failure == "early":
             more, cursor = False, None
         elif self.failure == "flag":
@@ -90,6 +99,7 @@ def test_whole_market_source_exhaustion_publishes_exact_cohort(fake_db, monkeypa
         "pages": 2,
         "codes": 2,
         "provider_total": 2,
+        "skipped_nonconforming": 0,
         "scope": "exhausted_provider_market_screen",
     }
     _, rows = read_generation(fake_db, market, result["generation_id"])
@@ -99,8 +109,38 @@ def test_whole_market_source_exhaustion_publishes_exact_cohort(fake_db, monkeypa
     }
 
 
+@pytest.mark.parametrize("failure", ["identity", "whenissued"])
+@pytest.mark.parametrize("market", ["US", "HK"])
+def test_whole_market_source_counts_rare_nonconforming_identities(
+    fake_db, monkeypatch, market, failure
+):
+    """Live evidence 2026-10-05: the US screener streams a few when-issued
+    identities ("US.RBC*") that fail the code shape. A handful is counted and
+    excluded — the cohort stays exact (codes + skipped == provider_total) and
+    the run still publishes."""
+    monkeypatch.setenv(f"UNIVERSE_ENUMERATION_MODE_{market}", "screen")
+    result = UniverseRefresher(
+        fake_db, WholeMarketMoomoo(market, failure=failure), market
+    ).run(force_enum=True)
+    assert result["enum"]["codes"] == 1
+    assert result["enum"]["provider_total"] == 2
+    assert result["enum"]["skipped_nonconforming"] == 1
+    _, rows = read_generation(fake_db, market, result["generation_id"])
+    assert {r["code"] for r in rows} == {market + ".A"}
+
+
+def test_whole_market_source_flood_of_nonconforming_identities_stays_fatal(
+    fake_db, monkeypatch
+):
+    monkeypatch.setenv("UNIVERSE_ENUMERATION_MODE_US", "screen")
+    with pytest.raises(UniverseRefreshError, match="non-conforming"):
+        UniverseRefresher(fake_db, WholeMarketMoomoo("US", failure="flood")).run(
+            force_enum=True
+        )
+
+
 @pytest.mark.parametrize(
-    "failure", ["provider", "duplicate", "total", "cursor", "identity", "early", "flag"]
+    "failure", ["provider", "duplicate", "total", "cursor", "early", "flag", "flood"]
 )
 def test_incomplete_alternate_source_preserves_previous_generation(fake_db, monkeypatch, failure):
     original = UniverseRefresher(fake_db, FakeMoomoo()).run()

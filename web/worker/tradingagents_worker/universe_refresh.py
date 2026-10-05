@@ -31,6 +31,11 @@ from .screener_generations import GenerationError, aware_time, read_generation
 
 ENUM_TTL_H = 24  # re-enumerate plates once a day; quotes refresh every run
 UNIVERSE_CAP = 20000
+# Provider edge observed live 2026-10-05: when-issued markers arrive with a
+# trailing star ("US.RBC*", "US.PUK*" — 4 of 12,148 US rows). They are counted
+# and excluded from the cohort; a flood of them would mean the provider's
+# identity scheme changed, which stays fatal.
+UNIVERSE_MAX_SKIPPED_IDENTITIES = 50
 MAX_RATE_LIMIT_WAIT_SECONDS = 900
 MAX_RUN_SECONDS = 7200
 
@@ -176,6 +181,7 @@ class UniverseRefresher:
         or an ETF catalog. No failed plate traversal is reused as a success.
         """
         rows, codes_seen, cursors, cursor, total = [], set(), set(), "", None
+        skipped: list = []
         for page in range(1, UNIVERSE_CAP // 300 + 2):
             body = {
                 "limit": 300,
@@ -209,14 +215,20 @@ class UniverseRefresher:
                 raise UniverseRefreshError("Whole-market screening total changed during traversal")
             for item in items:
                 code = item.get("code") if isinstance(item, dict) else None
+                if isinstance(code, str) and code in codes_seen:
+                    raise UniverseRefreshError(
+                        "Whole-market screening identities are repeated"
+                    )
                 if (
                     not isinstance(code, str)
                     or not re.fullmatch(self.market + r"\.[A-Z0-9][A-Z0-9._-]{0,30}", code)
-                    or code in codes_seen
                 ):
-                    raise UniverseRefreshError(
-                        "Whole-market screening identities are invalid or repeated"
-                    )
+                    skipped.append(code)
+                    if len(skipped) > UNIVERSE_MAX_SKIPPED_IDENTITIES:
+                        raise UniverseRefreshError(
+                            "Whole-market screening emitted too many non-conforming identities"
+                        )
+                    continue
                 codes_seen.add(code)
                 rows.append(
                     {
@@ -228,11 +240,16 @@ class UniverseRefresher:
                     }
                 )
             next_key = pagination.get("next_key")
-            if len(rows) > total:
+            if len(rows) + len(skipped) > total:
                 raise UniverseRefreshError("Whole-market screening cursor or total is invalid")
-            self.emit("universe", "progress", f"market screen page {page} · {len(rows)}/{total}")
+            self.emit(
+                "universe",
+                "progress",
+                f"market screen page {page} · {len(rows)}/{total}"
+                + (f" · {len(skipped)} skipped" if skipped else ""),
+            )
             if not pagination["has_more"]:
-                if next_key not in (None, "", "-1") or len(rows) != total:
+                if next_key not in (None, "", "-1") or len(rows) + len(skipped) != total:
                     raise UniverseRefreshError(
                         "Whole-market screening ended without the reported cohort"
                     )
@@ -244,6 +261,7 @@ class UniverseRefresher:
                         "pages": page,
                         "codes": len(rows),
                         "provider_total": total,
+                        "skipped_nonconforming": len(skipped),
                         "scope": "exhausted_provider_market_screen",
                     },
                 )
