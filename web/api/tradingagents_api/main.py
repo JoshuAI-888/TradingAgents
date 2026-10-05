@@ -3971,8 +3971,14 @@ from fastapi.responses import FileResponse  # noqa: E402
 _KLINE_WINDOWS = {
     "1d": ("candles:1d", 1, 2),
     "5D": ("candles:5D", 6, 10),
+    "3m": ("candles:3m", 10, 45),
+    "10m": ("candles:10m", 26, 90),
     "15m": ("candles:15m", 7, 30),
     "1M": ("candles:1M", 8, 45),
+    "1h": ("candles:1h", 9, 120),
+    "2h": ("candles:2h", 14, 240),
+    "3h": ("candles:3h", 29, 300),
+    "4h": ("candles:4h", 15, 380),
     "3M": ("candles:3M", 9, 120),
     "Q": ("candles:Q", 2, 105),
     "6M": ("candles:6M", 2, 190),
@@ -3981,6 +3987,12 @@ _KLINE_WINDOWS = {
     "M": ("candles:M", 4, 4200),
     "10Y": ("candles:10Y", 5, 4200),
 }
+# Intraday ktypes go stale fast — 60 s TTL instead of the 24 h daily-bar TTL.
+_KTYPE_LIVE = {1, 6, 10, 26, 7, 8, 9, 14, 29, 15}
+# Bar-size interval names for the chart engine's DataLoader paging.
+_KTYPE_ENUM = {"K_1M": 1, "K_3M": 10, "K_5M": 6, "K_10M": 26, "K_15M": 7,
+               "K_30M": 8, "K_60M": 9, "K_120M": 14, "K_180M": 29,
+               "K_240M": 15, "K_D": 2, "K_W": 3, "K_M": 4}
 _SESSION_KINDS = {"FULL", "NORMAL", "PREMARKET", "AFTERHOURS"}
 _NEWS_TYPES = {"news": 1, "notice": 2, "report": 3}
 
@@ -4096,9 +4108,56 @@ def stock_candles(symbol: str, range: str = "5D", ext: int = 0):
             )
         }
 
-    out = _stock_fetch(key, symbol, "ohlcv", fetch)
+    category = "ohlcv_live" if ktype in _KTYPE_LIVE else "ohlcv"
+    out = _stock_fetch(key, symbol, category, fetch)
     if isinstance(out, dict) and "kline_list" in out:
         out = {"available": True, "range": range, "bars": out["kline_list"]}
+    return _stock_out(out)
+
+
+@app.get("/api/stock/{symbol}/candles/back")
+def stock_candles_back(symbol: str, ktype: str = "K_D",
+                       before: int | None = None, count: int = 300):
+    """Paged history for the chart's DataLoader backward loading: ascending
+    bars strictly older than `before` (epoch ms; omitted = newest). Each page
+    is one date-windowed upstream call kept behind the TTL cache, so long
+    scroll-backs stay inside the 30 req/min/path budget."""
+    if ktype not in _KTYPE_ENUM:
+        raise HTTPException(400, "ktype must be one of " + ",".join(_KTYPE_ENUM))
+    if not isinstance(count, int) or count <= 0:
+        raise HTTPException(400, "count must be a positive integer")
+    count = min(count, 1000)
+    if os.getenv("TA_STOCK_FIXTURES"):
+        from tradingagents_api import stock_fixtures
+        return stock_fixtures.candles_back(ktype, before, count)
+    kt = _KTYPE_ENUM[ktype]
+    if kt in (2, 3, 4, 5):
+        days = min(4200, int(count * {2: 1.7, 3: 11, 4: 32, 5: 370}[kt]) + 4)
+    else:
+        step_s = {1: 60, 10: 180, 6: 300, 26: 600, 7: 900, 8: 1800,
+                  9: 3600, 14: 7200, 29: 10800, 15: 14400}[kt]
+        days = min(30, max(2, int(count * step_s / (6.5 * 3600)) + 2))
+    end_date = date.fromtimestamp((before or time.time() * 1000) / 1000,
+                                  tz=timezone.utc).date()
+    start = (end_date - timedelta(days=days)).isoformat()
+
+    def fetch(c):
+        return {
+            "kline_list": c.history_kline(
+                _stock_code(symbol),
+                start,
+                end_date.isoformat(),
+                ktype=kt,
+            )
+        }
+
+    category = "ohlcv_live" if kt in _KTYPE_LIVE else "ohlcv"
+    out = _stock_fetch(f"candles-back:{ktype}:{before}:{count}", symbol,
+                       category, fetch)
+    if isinstance(out, dict) and "kline_list" in out:
+        bars = [b for b in out["kline_list"]
+                if not before or b.get("time_key", 0) < before]
+        return {"available": True, "ktype": ktype, "bars": bars[-count:]}
     return _stock_out(out)
 
 

@@ -14,7 +14,8 @@ import time
 
 
 class TtlCache:
-    DEFAULTS = {"quotes": 300, "news": 3600, "ohlcv": 86400, "fundamentals": 604800, "other": 600}
+    DEFAULTS = {"quotes": 300, "news": 3600, "ohlcv": 86400, "ohlcv_live": 60,
+                "fundamentals": 604800, "other": 600}
 
     def __init__(self, root: str = "/data/cache/ttl"):
         self.root = root

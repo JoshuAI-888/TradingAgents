@@ -43,7 +43,7 @@ test('HK chart dates and event matching use the source trading day without chang
  const mapped=c.cmpMapData({sym:'HK.00700',bars})[0];assert.equal(mapped.timestamp,t);assert.equal(mapped.tradingDate,'2026-10-02');assert.equal(mapped.open,422);assert.equal(mapped.close,421.2);
  const el={innerHTML:''};c.document.getElementById=id=>id==='cmp-readout-0'?el:null;
  c.__cmp={cells:[{sym:'HK.00700',events:true,_ev:{earn:{'2026-10-02':{type:'BMC'}},div:{}}}]};c.__cmpHosts=[{chart:{getDataList:()=>[mapped]}}];c.cmpReadout(0,{kLineData:mapped});assert.match(el.innerHTML,/E 2026-10-02 BMC/);
- const zones=[],chart={setTimezone:z=>zones.push(z),applyNewData:()=>{}};const host={elId:'cmp-kc-0',state:()=>({sym:'HK.00700'}),chart,drawingIds:[]};c.klineEnsure=()=>chart;c.klineApply=()=>{};
+ const zones=[],chart={setTimezone:z=>zones.push(z),setDataLoader:()=>{},setSymbol:()=>{},setPeriod:()=>{},resetData:()=>{},setStyles:()=>{}};const host={elId:'cmp-kc-0',state:()=>({sym:'HK.00700'}),chart,drawingIds:[]};c.klineEnsure=()=>chart;c.klineApply=()=>{};
  c.klineSetData(host,[mapped]);assert.deepEqual(zones,['Asia/Hong_Kong']);
 });
 test('invalid bar timestamps cannot reach a chart or event-date formatter',async()=>{
@@ -291,8 +291,10 @@ test('Explore excludes unknown and nonmeaningful ratios instead of plotting them
 test('drawings survive chart teardown and restore under their instrument scope',()=>{
  const c=harness();let disposed;
  c.klinecharts={dispose:id=>disposed=id};c.removeEventListener=()=>{};
+ // v10 engine surface: overlays are read through getOverlays(filter)
  const h={elId:'chart-a',state:()=>({sym:'AAPL',range:'Y'}),drawingScope:'scope-a',drawingIds:['trend'],
- chart:{getOverlayById:()=>({name:'segment',points:[{timestamp:1,value:100},{timestamp:2,value:110}]})}};
+ chart:{getOverlays:f=>f&&f.id==='trend'?[Object.assign({id:'trend'},{name:'segment',points:[{timestamp:1,value:100},{timestamp:2,value:110}]})]:[],
+        removeOverlay:()=>{}}};
  c.klineTeardown(h);assert.equal(disposed,'chart-a');assert.equal(c.__chartDrawings['scope-a'][0].points[1].value,110);
  assert.equal(h.chart,null);assert.equal(h.drawingIds.length,0);
 });
