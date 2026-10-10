@@ -472,7 +472,7 @@ class UniverseRefresher:
             return None
         rows = self.db.select_all(
             "screener_enrichment",
-            {"market": "eq." + self.market},
+            {"market": "eq." + self.market, "order": "code.asc"},
             "code,data",
             cap=UNIVERSE_CAP + 1,
         )
@@ -654,18 +654,26 @@ class UniverseRefresher:
             sizes = capacity.get("relation_bytes") if isinstance(capacity, dict) else None
             if (
                 not isinstance(capacity, dict)
-                or capacity.get("version") != "screener_capacity_v1"
+                or capacity.get("version") != "screener_capacity_v2"
                 or capacity.get("market") != self.market
                 or type(capacity.get("used_bytes")) is not int
                 or capacity["used_bytes"] < 0
                 or type(capacity.get("limit_bytes")) is not int
-                or capacity["limit_bytes"] != 500 * 1024 * 1024
+                or capacity["limit_bytes"] != 450_000_000
+                or type(capacity.get("reserved_bytes")) is not int
+                or capacity["reserved_bytes"] < 0
+                or type(capacity.get("required_bytes")) is not int
+                or capacity["required_bytes"] != (150_000_000 if self.market == "US" else 50_000_000)
                 or type(capacity.get("allowed")) is not bool
-                or capacity["allowed"] != (capacity["used_bytes"] < capacity["limit_bytes"])
+                or capacity["allowed"] != (
+                    capacity["used_bytes"] < 400_000_000
+                    and capacity["used_bytes"] + capacity["reserved_bytes"]
+                    + capacity["required_bytes"] <= capacity["limit_bytes"]
+                )
                 or not isinstance(sizes, dict)
                 or set(sizes) != {"generation_rows", "staged_rows", "generations"}
                 or any(type(value) is not int or value < 0 for value in sizes.values())
-                or sum(sizes.values()) != capacity["used_bytes"]
+                or sum(sizes.values()) > capacity["used_bytes"]
             ):
                 raise UniverseRefreshError(
                     "Invalid screener capacity acknowledgement; refresh stopped"
@@ -673,7 +681,7 @@ class UniverseRefresher:
             if not capacity["allowed"]:
                 raise UniverseRefreshError(
                     f"Screener storage capacity reached ({capacity['used_bytes']} bytes / "
-                    f"{capacity['limit_bytes']} bytes, 500 MiB admission budget); "
+                    f"{capacity['limit_bytes']} bytes, including refresh reservations); "
                     "refresh stopped and last-good generation retained. Operational retention review required."
                 )
         except Exception as error:

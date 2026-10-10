@@ -1,15 +1,9 @@
-"""Nightly enrichment orchestrator (cron: after the last US-hours universe
-refresh — spec §5b rule 3 keeps both stores on the same trading day).
+"""Enrich the current published stock cohort with fundamentals and technicals.
 
-Per run: (1) moomoo kline rotation slice (default ~1,400 codes), (2) yfinance
-batch over the whole US universe, (3) technicals per code from its stored
-bars — only for codes whose klines are fresh (KLINE_TTL_DAYS), capped at the
-2,000 most-stale fresh codes per run (steady state ≈ the nightly rotation
-slice); bars are read per code-chunk via PostgREST in.() filters, never the
-whole table. Technicals get the current session appended from the stored
-snapshot (append_snapshot_bar), so they track the hourly quote refresh. Stale klines mean the technicals keys are absent — never
-recomputed from old bars, never zero-filled (spec rule).
-Writes one screener_enrichment row per code; state lands in app_settings.
+The provider-history rotation computes in memory, preserving full-history
+indicator semantics without transferring bars into and back out of Supabase.
+Only derived metrics and a bounded selected raw cache persist. Quote projections
+are fetched once per run; legacy run_klines=False supports cached recomputation.
 """
 
 from __future__ import annotations
@@ -18,6 +12,7 @@ import os
 from datetime import datetime, timedelta, timezone
 
 from .config import SETTINGS
+from .current_universe import current_codes
 from .db import Db
 from .enrich_fields import TECH_FIELDS, YF_FIELD_CONTRACTS, YF_ONLY_FIELDS
 from .kline_backfill import KLINE_TTL_DAYS, KlineBackfill
@@ -46,10 +41,7 @@ class EnrichNightly:
         self._yf_fetch = yf_fetch or fetch_yf_enrichment
 
     def _universe_codes(self) -> list[str]:
-        rows = self.db.select_all(
-            "screener_universe", {"market": f"eq.{self.market}"}, "code,stock_type"
-        )
-        return [r["code"] for r in rows if r.get("code") and r.get("stock_type") in (None, "STOCK")]
+        return current_codes(self.db, self.market)
 
     def _client(self):
         return MoomooClient(SETTINGS.moomoo_appkey, SETTINGS.moomoo_private_key)
@@ -86,7 +78,12 @@ class EnrichNightly:
                 continue
             rows = self.db.select_all(
                 "screener_klines",
-                {"market": f"eq.{self.market}", "code": f"in.({','.join(chunk)})"},
+                {
+                    "market": f"eq.{self.market}",
+                    "code": f"in.({','.join(chunk)})",
+                    "order": "code.asc,day.asc",
+                },
+                cap=len(chunk) * 260 + 1,
             )
             by: dict[str, list] = {}
             for b in rows:
@@ -111,26 +108,66 @@ class EnrichNightly:
             return out
         state = self._state()
 
-        if run_klines:
-            kb = KlineBackfill(self.db, self._client(), self.market, self.emit)
-            out["klines"] = kb.backfill(kb.stale_codes())
-
-        prices = {
-            r["code"]: (r.get("row") or {}).get("price")
+        # Read each compact quote exactly once; avoid transferring observations
+        # and the same complete quote cohort twice on every enrichment run.
+        quotes = {}
+        for i in range(0, len(codes), 400):
             for r in self.db.select_all(
-                "screener_quotes", {"market": f"eq.{self.market}"}, "code,row"
+                "screener_quotes",
+                {
+                    "market": f"eq.{self.market}",
+                    "code": f"in.({','.join(codes[i : i + 400])})",
+                    "order": "code.asc",
+                },
+                "code,updated_at,price:row->price,open:row->open,high:row->high,low:row->low,volume:row->volume,quote_observed_at:row->quote_observed_at",
+            ):
+                quotes[r["code"]] = r
+        prices = {c: q["price"] for c, q in quotes.items() if q.get("price")}
+        existing = {
+            r["code"]: r
+            for r in self.db.select_all(
+                "screener_enrichment",
+                {"market": f"eq.{self.market}", "order": "code.asc"},
+                "code,data,as_of",
             )
         }
-        prices = {k: v for k, v in prices.items() if v}
+
+        def persist_technical(code, data):
+            prior = existing.get(code) or {}
+            payload = dict(prior.get("data") or {})
+            meta = dict(payload.get("_meta") or {})
+            # Preserve the original category clock before a technical-only
+            # write changes as_of; it cannot make old fundamentals fresh.
+            if not meta.get("fundamentals_at"):
+                meta["fundamentals_at"] = prior.get("as_of")
+            for field in TECH_FIELDS:
+                payload.pop(field, None)
+            payload.update(data)
+            stamp = datetime.now(timezone.utc).isoformat()
+            meta["technicals_at"] = stamp
+            payload["_meta"] = meta
+            row = {
+                "market": self.market,
+                "code": code,
+                "data": payload,
+                "source": "yfinance+computed",
+                "as_of": stamp,
+            }
+            self.db.upsert("screener_enrichment", "market,code", row)
+            existing[code] = row
+
+        tech = {}
+        if run_klines:
+            kb = KlineBackfill(self.db, self._client(), self.market, self.emit)
+            out["klines"] = kb.backfill(
+                kb.stale_codes(codes=codes), quotes=quotes, on_technical=persist_technical
+            )
+            tech = out["klines"].pop("technicals", {})
         # Bound the yf sweep: missing codes first, then oldest as_of, capped.
         # A single-run full-universe sweep (13.5k Ticker.info calls) risks the
         # cron's runtime and Yahoo throttling; full coverage lands in ~5 nights
         # and later runs refresh the stalest slice.
         yf_ttl_cut = datetime.now(timezone.utc) - timedelta(days=YF_TTL_DAYS)
-        existing = {
-            r["code"]: r
-            for r in self.db.select_all("screener_enrichment", {"market": f"eq.{self.market}"}, "*")
-        }
 
         def fundamental_stamp(r):
             data = r.get("data") or {}
@@ -190,17 +227,10 @@ class EnrichNightly:
                 if isinstance(contracts, dict) and contracts.get(field) == version
             }
 
-        fresh_codes = self._fresh_codes(codes)
+        fresh_codes = self._fresh_codes(codes) if not run_klines else []
         # Freshness lift: append the current session's partial bar (from the
         # stored snapshot) to each code's history before computing technicals —
         # no extra vendor calls, technicals track the hourly quote refresh.
-        quotes = {
-            r["code"]: (r.get("row") or {}) | {"updated_at": r.get("updated_at")}
-            for r in self.db.select_all(
-                "screener_quotes", {"market": f"eq.{self.market}"}, "code,row,updated_at"
-            )
-        }
-        tech: dict[str, dict] = {}
         if fresh_codes:
             for code, tdata in self._technical_data(fresh_codes, quotes):
                 tech[code] = tdata
@@ -208,7 +238,7 @@ class EnrichNightly:
         now = datetime.now(timezone.utc).isoformat()
         upserts = []
         for code in codes:
-            if code not in by_code and code not in tech:
+            if code not in by_code and (code not in tech or run_klines):
                 continue
             data = dict((existing.get(code) or {}).get("data") or {})
             meta = dict(data.get("_meta") or {})
@@ -227,7 +257,8 @@ class EnrichNightly:
                 for field in TECH_FIELDS:
                     data.pop(field, None)
                 data.update(tech[code])
-                meta["technicals_at"] = now
+                if not run_klines:
+                    meta["technicals_at"] = now
             data["_meta"] = meta
             upserts.append(
                 {
@@ -242,7 +273,7 @@ class EnrichNightly:
             self.db.upsert_many("screener_enrichment", "market,code", upserts[i : i + 400])
             self.emit("enrich", "progress", f"enriched {min(i + 400, len(upserts))}/{len(upserts)}")
 
-        out["enriched"] = len(upserts)
+        out["enriched"] = len(set(by_code) | set(tech))
         out["finished_at"] = datetime.now(timezone.utc).isoformat()
         state.update(
             {

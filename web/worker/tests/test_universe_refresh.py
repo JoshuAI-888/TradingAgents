@@ -119,9 +119,9 @@ def test_whole_market_source_counts_rare_nonconforming_identities(
     excluded — the cohort stays exact (codes + skipped == provider_total) and
     the run still publishes."""
     monkeypatch.setenv(f"UNIVERSE_ENUMERATION_MODE_{market}", "screen")
-    result = UniverseRefresher(
-        fake_db, WholeMarketMoomoo(market, failure=failure), market
-    ).run(force_enum=True)
+    result = UniverseRefresher(fake_db, WholeMarketMoomoo(market, failure=failure), market).run(
+        force_enum=True
+    )
     assert result["enum"]["codes"] == 1
     assert result["enum"]["provider_total"] == 2
     assert result["enum"]["skipped_nonconforming"] == 1
@@ -129,14 +129,10 @@ def test_whole_market_source_counts_rare_nonconforming_identities(
     assert {r["code"] for r in rows} == {market + ".A"}
 
 
-def test_whole_market_source_flood_of_nonconforming_identities_stays_fatal(
-    fake_db, monkeypatch
-):
+def test_whole_market_source_flood_of_nonconforming_identities_stays_fatal(fake_db, monkeypatch):
     monkeypatch.setenv("UNIVERSE_ENUMERATION_MODE_US", "screen")
     with pytest.raises(UniverseRefreshError, match="non-conforming"):
-        UniverseRefresher(fake_db, WholeMarketMoomoo("US", failure="flood")).run(
-            force_enum=True
-        )
+        UniverseRefresher(fake_db, WholeMarketMoomoo("US", failure="flood")).run(force_enum=True)
 
 
 @pytest.mark.parametrize(
@@ -774,3 +770,28 @@ def test_bounded_staging_and_small_atomic_publication(fake_db):
         row["code"] for batch in batches for row in batch["p_rows"]
     }
     assert result["quotes"]["quotes"] == 801
+
+
+def test_classification_context_pages_have_stable_unique_order(monkeypatch):
+    monkeypatch.setenv("NORMALIZED_INSTRUMENT_CLASSES_ENABLED", "1")
+    monkeypatch.setenv("INSTRUMENT_SUBTYPE_CACHE_ENABLED", "0")
+    db = GenerationDb()
+    # Model an unordered backend that repeats one row at a page boundary.
+    # Stable PK ordering fixes pagination; deduping would mask corruption.
+    records = [{"market": "HK", "code": f"HK.{i:05d}", "data": {"_meta": {}}} for i in range(1001)]
+    original = db.select
+
+    def select(table, query=None, columns="*"):
+        if table != "screener_enrichment":
+            return original(table, query, columns)
+        offset = int((query or {}).get("offset", 0))
+        limit = int((query or {}).get("limit", 1000))
+        if (query or {}).get("order") != "code.asc" and offset:
+            offset -= 1
+        return records[offset : offset + limit]
+
+    monkeypatch.setattr(db, "select", select)
+    contexts = UniverseRefresher(db, None, "HK")._classification_contexts(
+        [r["code"] for r in records]
+    )
+    assert len(contexts) == 1001

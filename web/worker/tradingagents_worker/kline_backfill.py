@@ -1,20 +1,23 @@
-"""Daily-bar store for computed technicals. One moomoo history-kline call per
-symbol (3y daily ≈ 780 bars ≤ count 1000); paced by moomoo's server-side
-rate limiter (the _budgeted loop sleeps through Retry-After — measured
-~16–80 symbols/min). The kline_state table drives rotation: 4,000
-codes/night → the ~15.5k US universe reaches full coverage in ~4 nights,
-then refreshes continuously (state rows make every run resumable)."""
+"""Compute technicals from full provider history, retaining a bounded raw cache.
+
+Published STOCK membership drives a daily, 4,000-code rotation. Each
+symbol's history is computed in memory and discarded; only selected cache
+members may persist their newest 260 bars through server-side admission.
+Kline-state freshness records computation, including uncached symbols.
+"""
 
 from __future__ import annotations
 
 import time
 from datetime import datetime, timedelta, timezone
 
+from .current_universe import current_codes
 from .db import Db
 from .moomoo import MoomooClient, RateLimited
+from .technicals import append_snapshot_bar, compute
 
 KLINE_YEARS = 3
-KLINE_TTL_DAYS = 7
+KLINE_TTL_DAYS = 1
 ROTATION_LIMIT_DEFAULT = 4000
 
 
@@ -65,32 +68,46 @@ class KlineBackfill:
         self.market = market
         self.emit = emit or (lambda *a, **k: None)
 
-    def stale_codes(self, limit: int = ROTATION_LIMIT_DEFAULT) -> list[str]:
+    def stale_codes(self, limit: int = ROTATION_LIMIT_DEFAULT, codes=None) -> list[str]:
         """Codes never fetched (first) or with last_fetch older than
         KLINE_TTL_DAYS, in universe order, capped at `limit`."""
         rows = self.db.select_all(
-            "screener_kline_state", {"market": f"eq.{self.market}"}, "code,last_fetch"
+            "screener_kline_state",
+            {"market": f"eq.{self.market}", "order": "code.asc"},
+            "code,last_fetch",
         )
         cutoff = datetime.now(timezone.utc) - timedelta(days=KLINE_TTL_DAYS)
         fresh: set[str] = set()
-        stale: set[str] = set()
+        last_fetch = {}
         for r in rows:
             ts = _parse(r.get("last_fetch"))
+            if ts is not None and ts.tzinfo is None:
+                ts = None
+            last_fetch[r["code"]] = ts
             if ts is not None and ts >= cutoff:
                 fresh.add(r["code"])
-            else:
-                stale.add(r["code"])
-        universe = self.db.select_all("screener_universe", {"market": f"eq.{self.market}"}, "code")
-        ordered = [
-            r["code"] for r in universe if r.get("code") and r["code"] not in fresh
-        ]  # never-fetched + stale
+
+        universe = codes if codes is not None else current_codes(self.db, self.market)
+        ordered = [code for code in universe if code not in fresh]  # never-fetched + stale
+        ordered.sort(
+            key=lambda code: (
+                last_fetch.get(code) or datetime.min.replace(tzinfo=timezone.utc),
+                code,
+            )
+        )
         return ordered[:limit]
 
-    def backfill(self, codes: list[str]) -> dict:
+    def backfill(self, codes: list[str], quotes=None, on_technical=None) -> dict:
         end = datetime.now(timezone.utc).date()
         start = end - timedelta(days=int(KLINE_YEARS * 365.25))
-        written_bars = errors = 0
-        now = datetime.now(timezone.utc).isoformat()
+        written_bars = errors = fetched_bars = 0
+        technicals = {}
+        cache_codes = {
+            r["code"]
+            for r in self.db.select(
+                "rpc/screener_kline_cache_members", {"market": f"eq.{self.market}"}, "code"
+            )
+        }
         for i, code in enumerate(codes, 1):
             try:
                 out = _budgeted(
@@ -127,13 +144,49 @@ class KlineBackfill:
                         "v": _first(b, "volume"),
                     }
                 )
+            # Compute before discarding history. Only the selected working set
+            # is cached; all other symbols keep derived metrics and freshness.
+            rows = sorted({r["day"]: r for r in rows}.values(), key=lambda r: r["day"])
+            fetched_bars += len(rows)
             if rows:
-                written_bars += self.db.upsert_many("screener_klines", "market,code,day", rows)
+                bars = (
+                    append_snapshot_bar(rows, (quotes or {})[code])
+                    if (quotes or {}).get(code)
+                    else rows
+                )
+                technicals[code] = compute(bars)
+                if on_technical is not None:
+                    on_technical(code, technicals[code])
+                retained = [
+                    r
+                    for r in rows
+                    if (end - timedelta(days=550)).isoformat() <= r["day"] <= end.isoformat()
+                ][-260:]
+                if code in cache_codes and retained:
+                    saved = self.db._call(
+                        "POST",
+                        "rpc/screener_kline_cache_write",
+                        body={"p_market": self.market, "p_code": code, "p_rows": retained},
+                    )
+                    if type(saved) is not int or not 0 <= saved <= 260:
+                        raise ValueError("Invalid kline cache receipt")
+                    written_bars += saved
             self.db.upsert(
                 "screener_kline_state",
                 "market,code",
-                {"market": self.market, "code": code, "last_fetch": now, "bars": len(rows)},
+                {
+                    "market": self.market,
+                    "code": code,
+                    "last_fetch": datetime.now(timezone.utc).isoformat(),
+                    "bars": len(rows),
+                },
             )
             if i % 50 == 0:
                 self.emit("enrich", "progress", f"klines {i}/{len(codes)} · {written_bars} bars")
-        return {"codes": len(codes) - errors, "bars": written_bars, "errors": errors}
+        return {
+            "codes": len(codes) - errors,
+            "bars": written_bars,
+            "fetched_bars": fetched_bars,
+            "errors": errors,
+            "technicals": technicals,
+        }
