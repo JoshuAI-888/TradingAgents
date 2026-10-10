@@ -50,6 +50,13 @@ try:
     create table watchlist_items(ticker_id uuid,active boolean);
     grant select,insert,update,delete on all tables in schema public to service_role;""")
     query((ROOT / "supabase/migrations/20261010094127_bounded_market_storage.sql").read_text())
+    query(
+        (ROOT / "supabase/migrations/20261010101615_stored_publication_projection.sql").read_text()
+    )
+    definition = query(
+        "select pg_get_functiondef('screener_refresh_publish_staged(text,uuid,jsonb,jsonb,boolean)'::regprocedure);"
+    )
+    assert "pg_column_size(payload)" in definition and "greatest(sum(" in definition
     for role in ["anon", "authenticated"]:
         query(
             f"set role {role}; select screener_kline_cache_write('US','US.A','[]');",
@@ -73,7 +80,7 @@ try:
         stamp = datetime.now(timezone.utc).isoformat()
         row = {
             "code": code,
-            "row": {"code": code, "price": 10},
+            "row": {"code": code, "price": 10, "observation_note": "provider observation;" * 2048},
             "metadata": {"code": code, "market": market, "stock_type": "STOCK", "plates": []},
             "quote_cache_at": stamp,
         }
