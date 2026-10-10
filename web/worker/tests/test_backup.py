@@ -177,7 +177,7 @@ def test_main_backup_recovers_generation_pointer_dependencies_and_closes_streams
             {"market": "HK", "code": "HK.00001", "context": {"quoteType": "EQUITY"}}
         ],
     }
-    uploaded, handles, saved = {}, [], []
+    uploaded, handles, saved, objects = {}, [], [], {}
 
     class Response:
         status_code = 200
@@ -192,18 +192,28 @@ def test_main_backup_recovers_generation_pointer_dependencies_and_closes_streams
             return self.rows
 
     class Session:
-        def get(self, url, params, **kwargs):
+        def get(self, url, params=None, **kwargs):
+            if "/storage/v1/object/" in url:
+                data = objects[url.rsplit("/", 1)[-1]]
+                r = Response()
+                r.iter_content = lambda **kwargs: [data]
+                r.close = lambda: None
+                return r
             table = url.rsplit("/", 1)[-1]
             assert params["order"] == backup.TABLE_ORDER[table]
             return Response(
                 dataset.get(table, [])[params["offset"] : params["offset"] + params["limit"]]
             )
 
-        def post(self, url, data, **kwargs):
+        def post(self, url, data=None, **kwargs):
+            if "/object/list/" in url:
+                return Response([])
             name = url.rsplit("/", 1)[-1]
             if name.endswith(".jsonl.gz"):
                 handles.append(data)
                 assert kwargs["headers"]["Content-Length"] == str(data.seek(0, 2))
+                data.seek(0)
+                objects[name] = data.read()
                 data.seek(0)
                 uploaded[name[:-9]] = [json.loads(line) for line in gzip.GzipFile(fileobj=data)]
             elif name == "_manifest.json":
@@ -246,7 +256,11 @@ def test_failed_backup_page_cannot_publish_manifest_or_success_pointer(monkeypat
             raise RuntimeError("source unavailable")
 
         def post(self, url, **kwargs):
-            assert "/storage/v1/bucket" in url
+            assert "/storage/v1/bucket" in url or "/object/list/" in url
+            if "/object/list/" in url:
+                response = Response()
+                response.json = lambda: []
+                return response
             return Response()
 
     monkeypatch.setattr(requests, "Session", Session)
@@ -257,3 +271,78 @@ def test_failed_backup_page_cannot_publish_manifest_or_success_pointer(monkeypat
     monkeypatch.setattr(backup.SETTINGS, "supabase_service_key", "test-only")
     with pytest.raises(RuntimeError, match="source unavailable"):
         backup.main()
+
+
+def test_corrupt_remote_backup_cannot_be_verified(monkeypatch):
+    from tradingagents_worker import backup
+
+    class Response:
+        def raise_for_status(self):
+            pass
+
+        def iter_content(self, **kwargs):
+            return [b"corrupt compressed content"]
+
+        def close(self):
+            pass
+
+    class Session:
+        def get(self, *args, **kwargs):
+            return Response()
+
+    manifest = {"tables": dict.fromkeys(TABLES, 0), "sha256": dict.fromkeys(TABLES, "invalid")}
+    with pytest.raises(ValueError, match="checksum"):
+        backup.verify_backup(Session(), "test", manifest)
+
+
+def test_pruning_keeps_four_complete_backups_and_fails_closed_on_corruption(monkeypatch):
+    from tradingagents_worker import backup
+
+    prefixes = [f"2026-09-{day:02d}T030000Z" for day in range(1, 6)]
+    expected = {f"{table}.jsonl.gz" for table in TABLES} | {"_manifest.json"}
+    manifest = {
+        "tables": dict.fromkeys(TABLES, 0),
+        "sha256": dict.fromkeys(TABLES, "test"),
+        "verified_at": "test",
+    }
+    monkeypatch.setattr(
+        backup,
+        "_objects",
+        lambda session, prefix: [
+            {"name": p} for p in (prefixes if not prefix else sorted(expected))
+        ],
+    )
+    checked, deleted = [], []
+
+    class Response:
+        status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return manifest
+
+    class Session:
+        def get(self, *args, **kwargs):
+            return Response()
+
+        def delete(self, url, **kwargs):
+            deleted.extend(kwargs["json"]["prefixes"])
+            return Response()
+
+    monkeypatch.setattr(
+        backup, "verify_backup", lambda session, prefix, manifest: checked.append(prefix)
+    )
+    backup.prune_verified_backups(Session())
+    assert checked == [prefixes[0]]
+    assert set(deleted) == {prefixes[0] + "/" + name for name in expected}
+    deleted.clear()
+
+    def corrupt(*args):
+        raise ValueError("corrupt")
+
+    monkeypatch.setattr(backup, "verify_backup", corrupt)
+    with pytest.raises(ValueError, match="corrupt"):
+        backup.prune_verified_backups(Session())
+    assert not deleted

@@ -8,16 +8,19 @@ from test_universe_refresh import FakeMoomoo
 from tradingagents_worker.db import Db
 from tradingagents_worker.universe_refresh import UniverseRefresher, UniverseRefreshError
 
-BUDGET = 500 * 1024 * 1024
+BUDGET = 450_000_000
 
 
 def receipt(used=0, market="US"):
     return {
-        "version": "screener_capacity_v1",
+        "version": "screener_capacity_v2",
         "market": market,
         "used_bytes": used,
         "limit_bytes": BUDGET,
-        "allowed": used < BUDGET,
+        "required_bytes": 150_000_000 if market == "US" else 50_000_000,
+        "reserved_bytes": 0,
+        "allowed": used < 400_000_000
+        and used + (150_000_000 if market == "US" else 50_000_000) <= BUDGET,
         "relation_bytes": {"generation_rows": used, "staged_rows": 0, "generations": 0},
     }
 
@@ -44,7 +47,7 @@ def test_full_capacity_repeated_attempts_do_not_grow_storage_or_change_pointer(u
     monkeypatch.setattr(db, "generation_rpc", capacity_only)
     events = []
     for _ in range(3):
-        with pytest.raises(UniverseRefreshError, match="500 MiB admission budget"):
+        with pytest.raises(UniverseRefreshError, match="including refresh reservations"):
             UniverseRefresher(db, NoProvider(), emit=lambda *args: events.append(args)).run(
                 force_enum=True
             )
@@ -70,6 +73,8 @@ def test_full_capacity_repeated_attempts_do_not_grow_storage_or_change_pointer(u
         {"relation_bytes": {"generation_rows": -1, "staged_rows": 0, "generations": 1}},
         {"relation_bytes": {"generation_rows": 0}},
         {"relation_bytes": {"generation_rows": 1, "staged_rows": 0, "generations": 0}},
+        {"reserved_bytes": -1},
+        {"required_bytes": 1},
         {"relation_bytes": None},
     ],
 )
@@ -114,7 +119,7 @@ def test_under_budget_acknowledgement_precedes_acquisition_and_publication(marke
     def checked(name, body):
         if name == "screener_refresh_capacity":
             db.rpc_calls.append((name, copy.deepcopy(body)))
-            return receipt(BUDGET - 1, market)
+            return receipt(249_000_000, market)
         return original(name, body)
 
     monkeypatch.setattr(db, "generation_rpc", checked)

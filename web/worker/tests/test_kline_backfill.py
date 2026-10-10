@@ -2,7 +2,38 @@
 
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from tradingagents_worker.kline_backfill import KlineBackfill
+
+DAY1 = (datetime.now(timezone.utc) - timedelta(days=2)).date().isoformat()
+DAY2 = (datetime.now(timezone.utc) - timedelta(days=1)).date().isoformat()
+
+
+@pytest.fixture(autouse=True)
+def cache_transport(fake_db, monkeypatch):
+    import tradingagents_worker.kline_backfill as module
+
+    monkeypatch.setattr(
+        module,
+        "current_codes",
+        lambda db, market: [
+            r["code"] for r in db.select("screener_universe", {"market": "eq." + market})
+        ],
+    )
+    original = fake_db.select
+
+    def select(table, query=None, columns="*"):
+        if table == "rpc/screener_kline_cache_members":
+            return [{"code": "US.AAPL"}]
+        return original(table, query, columns)
+
+    monkeypatch.setattr(fake_db, "select", select)
+
+    def call(method, path, body=None, **kwargs):
+        assert path == "rpc/screener_kline_cache_write"
+        return fake_db.upsert_many("screener_klines", "market,code,day", body["p_rows"])
+
+    monkeypatch.setattr(fake_db, "_call", call)
 
 
 class FakeMoomoo:
@@ -15,7 +46,7 @@ class FakeMoomoo:
         return {
             "kline_list": [
                 {
-                    "day": "2025-01-02",
+                    "day": DAY1,
                     "open_price": 10.0,
                     "high_price": 11.0,
                     "low_price": 9.5,
@@ -23,7 +54,7 @@ class FakeMoomoo:
                     "volume": 1000.0,
                 },
                 {
-                    "day": "2025-01-03",
+                    "day": DAY2,
                     "open_price": 10.5,
                     "high_price": 12.0,
                     "low_price": 10.0,
@@ -40,8 +71,8 @@ def test_backfill_writes_bars_and_state(fake_db):
     assert out["codes"] == 1 and out["bars"] == 2
     bars = fake_db.select("screener_klines", {"market": "eq.US"})
     assert {(b["code"], b["day"]) for b in bars} == {
-        ("US.AAPL", "2025-01-02"),
-        ("US.AAPL", "2025-01-03"),
+        ("US.AAPL", DAY1),
+        ("US.AAPL", DAY2),
     }
     assert bars[0]["c"] == 10.5
     st = fake_db.select("screener_kline_state", {"market": "eq.US"})
@@ -104,7 +135,10 @@ def test_real_live_kline_shape_is_normalized(fake_db):
             return {
                 "kline_list": [
                     {
-                        "time_key": 1696165200000,
+                        "time_key": int(
+                            datetime.fromisoformat(DAY1).replace(tzinfo=timezone.utc).timestamp()
+                            * 1000
+                        ),
                         "date": 0,
                         "time_zone": -300,
                         "open": 10.0,
@@ -116,7 +150,10 @@ def test_real_live_kline_shape_is_normalized(fake_db):
                         "last_close": 10.0,
                     },
                     {
-                        "time_key": 1696251600000,
+                        "time_key": int(
+                            datetime.fromisoformat(DAY2).replace(tzinfo=timezone.utc).timestamp()
+                            * 1000
+                        ),
                         "date": 0,
                         "time_zone": -300,
                         "open": 10.5,
@@ -134,7 +171,7 @@ def test_real_live_kline_shape_is_normalized(fake_db):
     out = kb.backfill(["US.AAPL"])
     assert out["codes"] == 1 and out["bars"] == 2
     bars = sorted(fake_db.select("screener_klines", {"market": "eq.US"}), key=lambda b: b["day"])
-    assert [b["day"] for b in bars] == ["2023-10-01", "2023-10-02"]  # ms → date
+    assert [b["day"] for b in bars] == [DAY1, DAY2]  # ms → date
     assert bars[0]["c"] == 10.5 and bars[0]["o"] == 10.0 and bars[0]["v"] == 1000.0
     assert bars[0]["h"] == 11.0 and bars[0]["l"] == 9.5
 
@@ -143,4 +180,44 @@ def test_iso_day_still_supported(fake_db):
     kb = KlineBackfill(fake_db, FakeMoomoo(), "US")
     kb.backfill(["US.AAPL"])
     days = sorted(b["day"] for b in fake_db.select("screener_klines", {"market": "eq.US"}))
-    assert days == ["2025-01-02", "2025-01-03"]
+    assert days == [DAY1, DAY2]
+
+
+def test_full_history_computes_year_metrics_but_cache_is_only_260_bars(fake_db):
+    class History(FakeMoomoo):
+        def call(self, *args, **kwargs):
+            end = datetime.now(timezone.utc).date()
+            return {
+                "kline_list": [
+                    {
+                        "day": (end - timedelta(days=400 - i)).isoformat(),
+                        "open": 100 + i,
+                        "high": 102 + i,
+                        "low": 99 + i,
+                        "close": 101 + i,
+                        "volume": 1000,
+                    }
+                    for i in range(400)
+                ]
+            }
+
+    out = KlineBackfill(fake_db, History()).backfill(["US.AAPL"])
+    assert out["fetched_bars"] == 400 and out["bars"] == 260
+    assert "perf_y" in out["technicals"]["US.AAPL"]
+    assert len(fake_db.tables["screener_klines"]) == 260
+
+
+def test_uncached_current_symbol_still_gets_technicals(fake_db):
+    out = KlineBackfill(fake_db, FakeMoomoo()).backfill(["US.UNCACHED"])
+    assert out["fetched_bars"] == 2 and out["bars"] == 0
+    assert "US.UNCACHED" in out["technicals"]
+    assert not fake_db._t("screener_klines")
+
+
+def test_failed_technical_persistence_does_not_mark_computation_fresh(fake_db):
+    def failed(code, data):
+        raise RuntimeError("persistence unavailable")
+
+    with pytest.raises(RuntimeError, match="persistence"):
+        KlineBackfill(fake_db, FakeMoomoo()).backfill(["US.AAPL"], on_technical=failed)
+    assert not fake_db._t("screener_kline_state")

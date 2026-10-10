@@ -2,7 +2,37 @@
 
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from tradingagents_worker.enrich_nightly import EnrichNightly
+
+
+@pytest.fixture(autouse=True)
+def cohort_transport(fake_db, monkeypatch):
+    # Existing tests qualify field merging. Membership is qualified separately
+    # against actual generation headers/rows in test_current_universe.py.
+    import tradingagents_worker.enrich_nightly as module
+
+    monkeypatch.setattr(
+        module,
+        "current_codes",
+        lambda db, market: [
+            r["code"]
+            for r in db.select("screener_universe", {"market": "eq." + market})
+            if r.get("stock_type") in (None, "STOCK")
+        ],
+    )
+    original = fake_db.select_all
+
+    def select_all(table, query=None, columns="*", **kwargs):
+        rows = original(table, query, columns, **kwargs)
+        if table == "screener_quotes":
+            return [
+                {**(r.get("row") or {}), "code": r["code"], "updated_at": r.get("updated_at")}
+                for r in rows
+            ]
+        return rows
+
+    monkeypatch.setattr(fake_db, "select_all", select_all)
 
 
 class FakeYf:
@@ -96,10 +126,10 @@ def test_kline_rotation_runs_by_default(fake_db, monkeypatch):
         def __init__(self, db, client, market="US", emit=None):
             pass
 
-        def stale_codes(self, limit=1400):
+        def stale_codes(self, limit=1400, codes=None):
             return ["US.AAPL"]
 
-        def backfill(self, codes):
+        def backfill(self, codes, quotes=None, on_technical=None):
             ran["codes"] = codes
             return {"codes": len(codes), "bars": 2, "errors": 0}
 
@@ -228,8 +258,8 @@ def test_technicals_stream_per_chunk_not_all_in_memory(fake_db, monkeypatch):
     kline_rows_read = [0]  # cumulative bars returned by the time each compute() runs
     orig_select_all = fake_db.select_all
 
-    def counting_select_all(table, query=None, columns="*"):
-        out = orig_select_all(table, query, columns)
+    def counting_select_all(table, query=None, columns="*", **kwargs):
+        out = orig_select_all(table, query, columns, **kwargs)
         if table == "screener_klines":
             kline_rows_read[0] += len(out)
         return out
@@ -693,3 +723,37 @@ def test_actual_fetch_context_survives_refresh_api_and_csv_without_assigning_met
     assert (
         "supplemental_provider_context" not in api.screener(watchlist_only=0, src="yf")["rows"][0]
     )
+
+
+def test_interrupted_rotation_keeps_completed_technicals_without_refreshing_old_fundamentals(
+    fake_db, monkeypatch
+):
+    import tradingagents_worker.enrich_nightly as module
+    from tradingagents_api.main import _fresh_supplemental
+
+    _seed(fake_db)
+    old = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    fake_db.upsert(
+        "screener_enrichment",
+        "market,code",
+        {"market": "US", "code": "US.AAPL", "data": {"beta": 1.2}, "as_of": old},
+    )
+
+    class Interrupted:
+        def __init__(self, *args):
+            pass
+
+        def stale_codes(self, **kwargs):
+            return ["US.AAPL"]
+
+        def backfill(self, codes, quotes=None, on_technical=None):
+            on_technical("US.AAPL", {"rsi14": 55.0})
+            raise RuntimeError("interrupted after progress")
+
+    monkeypatch.setattr(module, "KlineBackfill", Interrupted)
+    with pytest.raises(RuntimeError, match="interrupted"):
+        EnrichNightly(fake_db, yf_fetch=FakeYf([])).run()
+    saved = fake_db.select("screener_enrichment", {"code": "eq.US.AAPL"})[0]
+    assert saved["data"]["_meta"]["fundamentals_at"] == old
+    values, _ = _fresh_supplemental(saved["data"], saved["as_of"])
+    assert values == {"rsi14": 55.0}

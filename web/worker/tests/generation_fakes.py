@@ -19,10 +19,12 @@ class GenerationDb(FakeSupa):
         self.rpc_calls.append((name, copy.deepcopy(body)))
         if name == "screener_refresh_capacity":
             return {
-                "version": "screener_capacity_v1",
+                "version": "screener_capacity_v2",
                 "market": body["p_market"],
                 "used_bytes": 0,
-                "limit_bytes": 524288000,
+                "limit_bytes": 450000000,
+                "reserved_bytes": 0,
+                "required_bytes": 150000000 if body["p_market"] == "US" else 50000000,
                 "allowed": True,
                 "relation_bytes": {"generation_rows": 0, "staged_rows": 0, "generations": 0},
             }
